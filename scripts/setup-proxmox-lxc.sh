@@ -18,7 +18,7 @@ MEMORY="${3:-4096}"                       # RAM in MB (2048MB = 2GB)
 SWAP="${4:-4096}"                          # SWAP in MB
 CORES="${5:-2}"                           # CPU Cores allocated
 DISK_SIZE="${6:-64G}"                     # Disk size (20GB)
-STORAGE="${7:-ZFS}"                 # Proxmox storage identifier for rootfs
+STORAGE="${7:-local}"                 # Proxmox storage identifier for rootfs
 TEMPLATE_STORAGE="${8:-local}"            # Storage location for ISO/Templates
 BRIDGE="${9:-vmbr0}"                      # Network bridge
 NET_CONFIG="name=eth0,bridge=${BRIDGE},ip=dhcp"
