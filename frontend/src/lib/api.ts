@@ -4,12 +4,24 @@ export interface ApiResponse<T> {
   message: string;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1';
+declare const process: {
+  env: {
+    NEXT_PUBLIC_API_URL?: string;
+  };
+};
+
+export function getApiBaseUrl(): string {
+  if (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_API_URL && process.env.NEXT_PUBLIC_API_URL.trim() !== '') {
+    return process.env.NEXT_PUBLIC_API_URL.trim();
+  }
+  return 'http://localhost:8080/api/v1';
+}
 
 export async function fetchApi<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<ApiResponse<T>> {
+  const baseUrl = getApiBaseUrl();
   const token = typeof window !== 'undefined' ? localStorage.getItem('rabbitpos_jwt_token') : null;
 
   const headers: Record<string, string> = {
@@ -22,7 +34,7 @@ export async function fetchApi<T>(
   }
 
   try {
-    const res = await fetch(`${API_BASE_URL}${endpoint}`, {
+    const res = await fetch(`${baseUrl}${endpoint}`, {
       ...options,
       headers,
       credentials: 'include',

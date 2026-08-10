@@ -25,8 +25,15 @@ type Config struct {
 
 // LoadConfig initializes configuration from environment variables or .env file
 func LoadConfig() (*Config, error) {
-	// Attempt to load .env file; ignore error if not found (e.g., in production containers)
-	_ = godotenv.Load("../.env", ".env")
+	// Attempt to load .env files based on APP_ENV; ignore errors if not present
+	appEnvVal := os.Getenv("APP_ENV")
+	if appEnvVal == "production" {
+		_ = godotenv.Load(".env.production", "../.env.production", ".env", "../.env")
+	} else if appEnvVal == "development" {
+		_ = godotenv.Load(".env.development", "../.env.development", ".env", "../.env")
+	} else {
+		_ = godotenv.Load(".env.development", ".env.production", ".env", "../.env")
+	}
 
 	port := getEnv("PORT", "8080")
 	dbHost := getEnv("DB_HOST", "localhost")
@@ -37,16 +44,19 @@ func LoadConfig() (*Config, error) {
 	appEnv := getEnv("APP_ENV", "development")
 	jwtSecret := getEnv("JWT_SECRET", "rabbitpos-super-secret-jwt-key-2026-production")
 	jwtExpiryStr := getEnv("JWT_EXPIRY_HOURS", "24")
-	corsRaw := getEnv("CORS_ALLOWED_ORIGINS", "http://localhost:3000,http://rabbitpos.ndnworks.com")
+	corsRaw := getEnv("CORS_ORIGIN", getEnv("CORS_ALLOWED_ORIGINS", "http://localhost:3000,http://rabbitpos.ndnworks.com"))
 
 	jwtExpiryHours, err := strconv.Atoi(jwtExpiryStr)
 	if err != nil || jwtExpiryHours <= 0 {
 		jwtExpiryHours = 24
 	}
 
-	origins := strings.Split(corsRaw, ",")
-	for i := range origins {
-		origins[i] = strings.TrimSpace(origins[i])
+	var origins []string
+	for _, o := range strings.Split(corsRaw, ",") {
+		trimmed := strings.TrimSpace(o)
+		if trimmed != "" {
+			origins = append(origins, trimmed)
+		}
 	}
 
 	cfg := &Config{

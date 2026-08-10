@@ -21,14 +21,39 @@ func SetupRouter(cfg *config.Config, db *gorm.DB) *gin.Engine {
 	router := gin.Default()
 
 	// CORS Configuration
-	router.Use(cors.New(cors.Config{
-		AllowOrigins:     cfg.CORSAllowedOrigins,
+	corsConfig := cors.Config{
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Requested-With"},
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
-	}))
+	}
+
+	// Check if wildcard "*" is in allowed origins
+	allowAll := false
+	for _, origin := range cfg.CORSAllowedOrigins {
+		if origin == "*" {
+			allowAll = true
+			break
+		}
+	}
+
+	if allowAll {
+		corsConfig.AllowOriginFunc = func(origin string) bool {
+			return true
+		}
+	} else {
+		corsConfig.AllowOriginFunc = func(origin string) bool {
+			for _, allowed := range cfg.CORSAllowedOrigins {
+				if allowed == origin {
+					return true
+				}
+			}
+			return false
+		}
+	}
+
+	router.Use(cors.New(corsConfig))
 
 	// Instantiate Handlers
 	healthHandler := handlers.NewHealthHandler(db)
