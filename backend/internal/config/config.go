@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/joho/godotenv"
@@ -10,13 +11,15 @@ import (
 
 // Config holds all backend configuration values
 type Config struct {
-	Port                string
-	DBHost              string
-	DBPort              string
-	DBUser              string
-	DBPassword          string
-	DBName              string
-	AppEnv              string
+	Port               string
+	DBHost             string
+	DBPort             string
+	DBUser             string
+	DBPassword         string
+	DBName             string
+	AppEnv             string
+	JWTSecret          string
+	JWTExpiryHours     int
 	CORSAllowedOrigins []string
 }
 
@@ -32,7 +35,14 @@ func LoadConfig() (*Config, error) {
 	dbPassword := getEnv("DB_PASSWORD", "postgres")
 	dbName := getEnv("DB_NAME", "rabbitpos")
 	appEnv := getEnv("APP_ENV", "development")
+	jwtSecret := getEnv("JWT_SECRET", "thopos-super-secret-jwt-key-2026-production")
+	jwtExpiryStr := getEnv("JWT_EXPIRY_HOURS", "24")
 	corsRaw := getEnv("CORS_ALLOWED_ORIGINS", "http://localhost:3000,http://thopos.ndnworks.com")
+
+	jwtExpiryHours, err := strconv.Atoi(jwtExpiryStr)
+	if err != nil || jwtExpiryHours <= 0 {
+		jwtExpiryHours = 24
+	}
 
 	origins := strings.Split(corsRaw, ",")
 	for i := range origins {
@@ -40,13 +50,15 @@ func LoadConfig() (*Config, error) {
 	}
 
 	cfg := &Config{
-		Port:                port,
-		DBHost:              dbHost,
-		DBPort:              dbPort,
-		DBUser:              dbUser,
-		DBPassword:          dbPassword,
-		DBName:              dbName,
-		AppEnv:              appEnv,
+		Port:               port,
+		DBHost:             dbHost,
+		DBPort:             dbPort,
+		DBUser:             dbUser,
+		DBPassword:         dbPassword,
+		DBName:             dbName,
+		AppEnv:             appEnv,
+		JWTSecret:          jwtSecret,
+		JWTExpiryHours:     jwtExpiryHours,
 		CORSAllowedOrigins: origins,
 	}
 

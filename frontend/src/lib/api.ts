@@ -1,44 +1,40 @@
-// Standardized Response Envelope matching Go Backend
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T> {
   status: 'success' | 'error';
-  data: T;
+  data: T | null;
   message: string;
 }
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1';
 
-export async function fetchApi<T = any>(
+export async function fetchApi<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<ApiResponse<T>> {
-  const url = `${API_BASE_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
-  
-  const defaultHeaders: HeadersInit = {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('thopos_jwt_token') : null;
+
+  const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    'Accept': 'application/json',
+    ...(options.headers as Record<string, string>),
   };
 
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
   try {
-    const response = await fetch(url, {
+    const res = await fetch(`${API_BASE_URL}${endpoint}`, {
       ...options,
-      headers: {
-        ...defaultHeaders,
-        ...options.headers,
-      },
+      headers,
+      credentials: 'include',
     });
 
-    const data: ApiResponse<T> = await response.json();
-
-    if (!response.ok || data.status === 'error') {
-      throw new Error(data.message || `HTTP Error ${response.status}`);
-    }
-
+    const data: ApiResponse<T> = await res.json();
     return data;
-  } catch (err: any) {
+  } catch (error: any) {
     return {
       status: 'error',
-      data: null as unknown as T,
-      message: err.message || 'Network request failed',
+      data: null,
+      message: error?.message || 'Network communication error',
     };
   }
 }

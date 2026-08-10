@@ -6,6 +6,7 @@ import (
 
 	"github.com/RabbitPOS/backend/internal/config"
 	"github.com/RabbitPOS/backend/internal/models"
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -38,12 +39,17 @@ func InitDB(cfg *config.Config) (*gorm.DB, error) {
 
 	log.Println("Successfully connected to PostgreSQL database")
 
-	// Perform auto-migration for catalog domain models
+	// Auto-migrate domain models
 	err = db.AutoMigrate(
 		&models.Category{},
 		&models.Product{},
 		&models.ProductVariant{},
 		&models.VariantGroup{},
+		&models.Fund{},
+		&models.Order{},
+		&models.OrderItem{},
+		&models.Transaction{},
+		&models.User{},
 	)
 	if err != nil {
 		log.Printf("Warning: Failed during DB auto-migration: %v", err)
@@ -51,5 +57,38 @@ func InitDB(cfg *config.Config) (*gorm.DB, error) {
 	}
 
 	log.Println("Database auto-migration completed successfully")
+
+	// Seed default accounts if users table is empty
+	seedUsers(db)
+
 	return db, nil
+}
+
+func seedUsers(db *gorm.DB) {
+	var count int64
+	db.Model(&models.User{}).Count(&count)
+	if count == 0 {
+		log.Println("Seeding default admin and staff accounts...")
+
+		adminHash, _ := bcrypt.GenerateFromPassword([]byte("admin123"), bcrypt.DefaultCost)
+		staffHash, _ := bcrypt.GenerateFromPassword([]byte("staff123"), bcrypt.DefaultCost)
+
+		admin := models.User{
+			Username:     "admin",
+			PasswordHash: string(adminHash),
+			Role:         models.RoleAdmin,
+			IsActive:     true,
+		}
+
+		staff := models.User{
+			Username:     "staff",
+			PasswordHash: string(staffHash),
+			Role:         models.RoleStaff,
+			IsActive:     true,
+		}
+
+		db.Create(&admin)
+		db.Create(&staff)
+		log.Println("Default user accounts ('admin' & 'staff') created successfully.")
+	}
 }
