@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/RabbitPOS/backend/internal/models"
 	"github.com/gin-gonic/gin"
@@ -52,4 +53,74 @@ func (h *CategoryHandler) CreateCategory(c *gin.Context) {
 	}
 
 	models.SendSuccess(c, http.StatusCreated, category, "Category created successfully")
+}
+
+// UpdateCategory updates an existing category
+func (h *CategoryHandler) UpdateCategory(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		models.SendError(c, http.StatusBadRequest, "Invalid category ID")
+		return
+	}
+
+	var category models.Category
+	if err := h.db.First(&category, id).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			models.SendError(c, http.StatusNotFound, "Category not found")
+			return
+		}
+		models.SendInternalError(c, "Failed to find category")
+		return
+	}
+
+	var req models.UpdateCategoryRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		models.SendError(c, http.StatusBadRequest, "Invalid request payload: "+err.Error())
+		return
+	}
+
+	if req.Name != nil {
+		category.Name = *req.Name
+	}
+	if req.DisplayOrder != nil {
+		category.DisplayOrder = *req.DisplayOrder
+	}
+	if req.IsActive != nil {
+		category.IsActive = *req.IsActive
+	}
+
+	if err := h.db.Save(&category).Error; err != nil {
+		models.SendInternalError(c, "Failed to update category")
+		return
+	}
+
+	models.SendSuccess(c, http.StatusOK, category, "Category updated successfully")
+}
+
+// DeleteCategory soft-deletes/deactivates a category
+func (h *CategoryHandler) DeleteCategory(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		models.SendError(c, http.StatusBadRequest, "Invalid category ID")
+		return
+	}
+
+	var category models.Category
+	if err := h.db.First(&category, id).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			models.SendError(c, http.StatusNotFound, "Category not found")
+			return
+		}
+		models.SendInternalError(c, "Failed to find category")
+		return
+	}
+
+	if err := h.db.Delete(&category).Error; err != nil {
+		models.SendInternalError(c, "Failed to delete category")
+		return
+	}
+
+	models.SendSuccess(c, http.StatusOK, nil, "Category deleted successfully")
 }

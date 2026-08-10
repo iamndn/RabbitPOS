@@ -38,9 +38,12 @@ func InitDB(cfg *config.Config) (*gorm.DB, error) {
 
 	log.Println("Successfully connected to PostgreSQL database")
 
-	// Perform auto-migration for baseline models
+	// Perform auto-migration for catalog domain models
 	err = db.AutoMigrate(
 		&models.Category{},
+		&models.Product{},
+		&models.ProductVariant{},
+		&models.VariantGroup{},
 	)
 	if err != nil {
 		log.Printf("Warning: Failed during DB auto-migration: %v", err)

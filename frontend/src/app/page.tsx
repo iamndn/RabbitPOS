@@ -2,130 +2,147 @@
 
 import React, { useEffect, useState } from 'react';
 import { ShoppingBag, Coffee, Store, RefreshCw, CheckCircle2, AlertCircle } from 'lucide-react';
+import AppShell from '@/components/AppShell';
 import { fetchApi, ApiResponse } from '@/lib/api';
 
-interface HealthData {
-  app: string;
-  version: string;
-  db_connected: boolean;
+interface Category {
+  id: number;
+  name: string;
+  display_order: number;
+}
+
+interface ProductVariant {
+  id: number;
+  variant_name: string;
+  cogs_price: number;
+  retail_price: number;
+}
+
+interface Product {
+  id: number;
+  category_id: number;
+  name: string;
+  description: string;
+  image_url: string;
+  tag: string;
+  variants: ProductVariant[];
 }
 
 export default function PosPage() {
-  const [health, setHealth] = useState<HealthData | null>(null);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [activeCategoryId, setActiveCategoryId] = useState<number | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
 
-  const checkBackendHealth = async () => {
+  const loadData = async () => {
     setLoading(true);
-    setError(null);
-    const res: ApiResponse<HealthData> = await fetchApi<HealthData>('/health');
-    if (res.status === 'success') {
-      setHealth(res.data);
-    } else {
-      setError(res.message);
+    const catRes = await fetchApi<Category[]>('/categories');
+    if (catRes.status === 'success' && catRes.data) {
+      setCategories(catRes.data);
+    }
+
+    const prodRes = await fetchApi<Product[]>('/products');
+    if (prodRes.status === 'success' && prodRes.data) {
+      setProducts(prodRes.data);
     }
     setLoading(false);
   };
 
   useEffect(() => {
-    checkBackendHealth();
+    loadData();
   }, []);
 
+  const filteredProducts = activeCategoryId
+    ? products.filter((p) => p.category_id === activeCategoryId)
+    : products;
+
   return (
-    <div className="flex flex-col min-h-screen bg-slate-100 text-slate-800">
-      {/* Header Bar */}
-      <header className="sticky top-0 z-30 flex items-center justify-between px-4 py-3 bg-indigo-600 text-white shadow-md">
-        <div className="flex items-center space-x-2">
-          <Coffee className="w-6 h-6" />
-          <span className="font-bold text-lg tracking-tight">ThoPOS</span>
-        </div>
-        <div className="flex items-center space-x-2">
-          <span className="text-xs bg-indigo-700 px-2 py-1 rounded-full font-medium flex items-center gap-1">
-            <Store className="w-3.5 h-3.5" /> Main Store
-          </span>
-        </div>
-      </header>
-
-      {/* Backend Status Banner */}
-      <div className="bg-slate-800 text-white px-4 py-2 text-xs flex items-center justify-between border-b border-slate-700">
-        <div className="flex items-center space-x-2">
-          <span className="font-semibold text-slate-300">Backend API:</span>
-          {loading ? (
-            <span className="text-amber-400 flex items-center gap-1">
-              <RefreshCw className="w-3 h-3 animate-spin" /> Connecting...
-            </span>
-          ) : error ? (
-            <span className="text-rose-400 flex items-center gap-1" title={error}>
-              <AlertCircle className="w-3 h-3" /> Offline / Disconnected
-            </span>
-          ) : (
-            <span className="text-emerald-400 flex items-center gap-1">
-              <CheckCircle2 className="w-3 h-3" /> Online ({health?.app} v{health?.version}) DB: {health?.db_connected ? 'Connected' : 'Degraded'}
-            </span>
-          )}
-        </div>
-        <button
-          onClick={checkBackendHealth}
-          className="p-1 hover:bg-slate-700 rounded transition"
-          title="Retry Connection"
-        >
-          <RefreshCw className="w-3.5 h-3.5 text-slate-300" />
-        </button>
-      </div>
-
-      {/* Main Content Area */}
-      <main className="flex-1 p-4 flex flex-col space-y-4">
+    <AppShell>
+      <div className="p-4 space-y-4 max-w-7xl mx-auto">
         {/* Category Tabs (Horizontal Scroll) */}
         <div className="flex overflow-x-auto space-x-2 pb-2 scrollbar-none">
-          {['All Items', 'Coffee', 'Fresh Juice', 'Tea & Milk Tea', 'Toppings'].map((cat, idx) => (
+          <button
+            onClick={() => setActiveCategoryId(null)}
+            className={`px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap shadow-sm transition ${
+              activeCategoryId === null
+                ? 'bg-indigo-600 text-white'
+                : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+            }`}
+          >
+            All Items ({products.length})
+          </button>
+          {categories.map((cat) => (
             <button
-              key={cat}
+              key={cat.id}
+              onClick={() => setActiveCategoryId(cat.id)}
               className={`px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap shadow-sm transition ${
-                idx === 0
+                activeCategoryId === cat.id
                   ? 'bg-indigo-600 text-white'
                   : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
               }`}
             >
-              {cat}
+              {cat.name}
             </button>
           ))}
         </div>
 
-        {/* Product Grid Placeholder */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-          {[
-            { name: 'Iced Black Coffee', price: '$2.50', tag: 'Best Seller' },
-            { name: 'Fresh Orange Juice', price: '$3.00', tag: 'Fresh' },
-            { name: 'Milk Tea Boba', price: '$3.50', tag: 'Popular' },
-            { name: 'Coconut Water', price: '$2.00', tag: 'New' },
-          ].map((item, idx) => (
-            <div
-              key={idx}
-              className="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition flex flex-col justify-between cursor-pointer"
-            >
-              <div>
-                <div className="w-full h-24 bg-slate-100 rounded-xl mb-2 flex items-center justify-center text-slate-400">
-                  <Coffee className="w-8 h-8 opacity-40" />
-                </div>
-                <span className="text-xs font-semibold px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-md">
-                  {item.tag}
-                </span>
-                <h3 className="font-medium text-slate-900 text-sm mt-1 leading-tight">{item.name}</h3>
-              </div>
-              <div className="mt-3 flex items-center justify-between">
-                <span className="font-bold text-indigo-600 text-sm">{item.price}</span>
-                <button className="bg-indigo-50 hover:bg-indigo-100 text-indigo-600 text-xs font-semibold px-2.5 py-1 rounded-lg transition">
-                  + Add
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </main>
+        {/* Product Grid */}
+        {loading ? (
+          <div className="flex justify-center py-12">
+            <RefreshCw className="w-8 h-8 text-indigo-600 animate-spin" />
+          </div>
+        ) : filteredProducts.length === 0 ? (
+          <div className="bg-white p-8 rounded-2xl border border-slate-200 text-center text-slate-500">
+            No products found in this category.
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+            {filteredProducts.map((item) => {
+              const startingPrice =
+                item.variants && item.variants.length > 0
+                  ? Math.min(...item.variants.map((v) => v.retail_price))
+                  : 0;
 
-      {/* Cart Summary Bottom Sheet Bar (Mobile First) */}
-      <footer className="sticky bottom-0 z-20 bg-white border-t border-slate-200 p-4 shadow-lg">
-        <div className="flex items-center justify-between">
+              return (
+                <div
+                  key={item.id}
+                  className="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition flex flex-col justify-between cursor-pointer"
+                >
+                  <div>
+                    <div className="w-full h-28 bg-slate-100 rounded-xl mb-2 flex items-center justify-center text-slate-400 overflow-hidden relative">
+                      {item.image_url ? (
+                        <img
+                          src={item.image_url}
+                          alt={item.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <Coffee className="w-8 h-8 opacity-40" />
+                      )}
+                    </div>
+                    {item.tag && item.tag !== 'none' && (
+                      <span className="text-[10px] uppercase font-bold px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-md tracking-wider">
+                        {item.tag.replace('_', ' ')}
+                      </span>
+                    )}
+                    <h3 className="font-semibold text-slate-900 text-sm mt-1 leading-tight">{item.name}</h3>
+                  </div>
+                  <div className="mt-3 flex items-center justify-between">
+                    <span className="font-bold text-indigo-600 text-sm">
+                      ${startingPrice.toFixed(2)}
+                    </span>
+                    <button className="bg-indigo-50 hover:bg-indigo-100 text-indigo-600 text-xs font-bold px-2.5 py-1 rounded-lg transition">
+                      + Add
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Cart Bar Footer */}
+        <div className="fixed bottom-14 md:bottom-4 left-4 right-4 max-w-7xl mx-auto z-20 bg-white/95 backdrop-blur border border-slate-200 p-3 rounded-2xl shadow-xl flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <div className="relative bg-indigo-100 p-2.5 rounded-xl text-indigo-600">
               <ShoppingBag className="w-6 h-6" />
@@ -140,12 +157,12 @@ export default function PosPage() {
           </div>
           <button
             disabled
-            className="bg-slate-300 text-slate-500 font-bold px-6 py-3 rounded-xl cursor-not-allowed text-sm transition shadow-sm"
+            className="bg-slate-300 text-slate-500 font-bold px-6 py-2.5 rounded-xl cursor-not-allowed text-sm transition shadow-sm"
           >
             Checkout
           </button>
         </div>
-      </footer>
-    </div>
+      </div>
+    </AppShell>
   );
 }
