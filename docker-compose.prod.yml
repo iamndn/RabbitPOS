@@ -51,7 +51,7 @@ services:
       DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       DB_NAME: ${POSTGRES_DB:-rabbitpos}
       APP_ENV: production
-      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-https://thopos.ndnworks.com,http://thopos.ndnworks.com}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-https://rabbitpos.ndnworks.com,http://rabbitpos.ndnworks.com}
     ports:
       - "${BACKEND_PORT:-8080}:8080"
     depends_on:
@@ -67,7 +67,7 @@ services:
     container_name: rabbitpos-frontend
     restart: always
     environment:
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://api.thopos.ndnworks.com/api/v1}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://api.rabbitpos.ndnworks.com/api/v1}
     ports:
       - "${FRONTEND_PORT:-3000}:3000"
     depends_on:

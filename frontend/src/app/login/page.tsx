@@ -51,7 +51,7 @@ export default function LoginPage() {
           <div className="inline-flex p-3 bg-indigo-50 text-indigo-600 rounded-2xl border border-indigo-100 shadow-sm">
             <Coffee className="w-8 h-8" />
           </div>
-          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">ThoPOS Login</h1>
+          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">RabbitPOS Login</h1>
           <p className="text-xs text-slate-500 font-medium">Tho Juice & Coffee Mobile Point of Sale</p>
         </div>
 

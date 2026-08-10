@@ -1,23 +1,23 @@
 #!/usr/bin/env bash
 # ==============================================================================
 # Script: backup_db.sh
-# Description: Automated PostgreSQL Database Backup Script for ThoPOS LXC
+# Description: Automated PostgreSQL Database Backup Script for RabbitPOS LXC
 # Suitable for daily cronjob execution e.g. 0 2 * * * /opt/rabbitpos/scripts/backup_db.sh
 # ==============================================================================
 
 set -eo pipefail
 
 # Configuration
-BACKUP_DIR="${BACKUP_DIR:-/var/backups/thopos}"
-DB_CONTAINER="${DB_CONTAINER:-thopos-db}"
+BACKUP_DIR="${BACKUP_DIR:-/var/backups/rabbitpos}"
+DB_CONTAINER="${DB_CONTAINER:-rabbitpos-db}"
 DB_USER="${DB_USER:-postgres}"
 DB_NAME="${DB_NAME:-rabbitpos}"
 RETENTION_DAYS=7
 
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
-BACKUP_FILE="${BACKUP_DIR}/thopos_db_backup_${TIMESTAMP}.sql.gz"
+BACKUP_FILE="${BACKUP_DIR}/rabbitpos_db_backup_${TIMESTAMP}.sql.gz"
 
-echo "[$(date)] Starting ThoPOS Database Backup..."
+echo "[$(date)] Starting RabbitPOS Database Backup..."
 
 # Create backup directory if missing
 mkdir -p "${BACKUP_DIR}"
@@ -37,6 +37,6 @@ echo "[$(date)] ✅ Database backup completed successfully: ${BACKUP_FILE} (${BA
 
 # Retention Policy Cleanup: Remove backups older than 7 days
 echo "Cleaning up backups older than ${RETENTION_DAYS} days..."
-find "${BACKUP_DIR}" -type f -name "thopos_db_backup_*.sql.gz" -mtime +${RETENTION_DAYS} -delete
+find "${BACKUP_DIR}" -type f -name "rabbitpos_db_backup_*.sql.gz" -mtime +${RETENTION_DAYS} -delete
 
 echo "[$(date)] Backup maintenance routine complete."

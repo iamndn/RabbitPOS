@@ -103,7 +103,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             <div className="p-1.5 bg-white/10 rounded-lg">
               <Coffee className="w-5 h-5 text-indigo-200" />
             </div>
-            <span>ThoPOS</span>
+            <span>RabbitPOS</span>
           </Link>
           <span className="hidden sm:inline-block text-xs bg-indigo-700/80 px-2.5 py-1 rounded-full font-medium text-indigo-100 border border-indigo-500/30">
             Tho Juice & Coffee
@@ -119,11 +119,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex items-center space-x-2 px-3 py-1.5 rounded-lg text-xs font-medium transition ${
-                  isActive
+                className={`flex items-center space-x-2 px-3 py-1.5 rounded-lg text-xs font-medium transition ${isActive
                     ? 'bg-white/20 text-white shadow-sm font-bold'
                     : 'text-indigo-100 hover:bg-white/10 hover:text-white'
-                }`}
+                  }`}
               >
                 <Icon className="w-4 h-4" />
                 <span>{item.label}</span>
@@ -145,9 +144,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               </div>
               <span className="font-bold text-white text-xs">{currentUser.username}</span>
               <span
-                className={`text-[9px] uppercase font-extrabold px-1.5 py-0.5 rounded ${
-                  currentUser.role === 'admin' ? 'bg-purple-500/40 text-purple-200' : 'bg-blue-500/40 text-blue-200'
-                }`}
+                className={`text-[9px] uppercase font-extrabold px-1.5 py-0.5 rounded ${currentUser.role === 'admin' ? 'bg-purple-500/40 text-purple-200' : 'bg-blue-500/40 text-blue-200'
+                  }`}
               >
                 {currentUser.role}
               </span>
@@ -176,9 +174,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex flex-col items-center py-1 px-2 rounded-lg text-[10px] font-medium transition ${
-                isActive ? 'text-indigo-600 font-bold' : 'text-slate-500 hover:text-slate-800'
-              }`}
+              className={`flex flex-col items-center py-1 px-2 rounded-lg text-[10px] font-medium transition ${isActive ? 'text-indigo-600 font-bold' : 'text-slate-500 hover:text-slate-800'
+                }`}
             >
               <Icon className={`w-4 h-4 mb-0.5 ${isActive ? 'text-indigo-600' : 'text-slate-400'}`} />
               <span className="truncate max-w-[64px]">{item.label}</span>

@@ -35,9 +35,9 @@ func LoadConfig() (*Config, error) {
 	dbPassword := getEnv("DB_PASSWORD", "postgres")
 	dbName := getEnv("DB_NAME", "rabbitpos")
 	appEnv := getEnv("APP_ENV", "development")
-	jwtSecret := getEnv("JWT_SECRET", "thopos-super-secret-jwt-key-2026-production")
+	jwtSecret := getEnv("JWT_SECRET", "rabbitpos-super-secret-jwt-key-2026-production")
 	jwtExpiryStr := getEnv("JWT_EXPIRY_HOURS", "24")
-	corsRaw := getEnv("CORS_ALLOWED_ORIGINS", "http://localhost:3000,http://thopos.ndnworks.com")
+	corsRaw := getEnv("CORS_ALLOWED_ORIGINS", "http://localhost:3000,http://rabbitpos.ndnworks.com")
 
 	jwtExpiryHours, err := strconv.Atoi(jwtExpiryStr)
 	if err != nil || jwtExpiryHours <= 0 {

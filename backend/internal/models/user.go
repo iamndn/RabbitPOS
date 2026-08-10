@@ -11,7 +11,7 @@ const (
 	RoleStaff UserRole = "staff"
 )
 
-// User represents a system operator or cashier in ThoPOS
+// User represents a system operator or cashier in RabbitPOS
 type User struct {
 	ID           uint      `gorm:"primaryKey" json:"id"`
 	Username     string    `gorm:"type:varchar(50);uniqueIndex;not null" json:"username"`

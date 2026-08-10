@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# ThoPOS (RabbitPOS) - Proxmox VE 8.x/9.x LXC Provisioning & Docker Setup Script
+# RabbitPOS (RabbitPOS) - Proxmox VE 8.x/9.x LXC Provisioning & Docker Setup Script
 # ==============================================================================
 # This script is intended to be executed directly on the Proxmox VE Host Node Shell.
 # It creates an unprivileged Ubuntu 24.04 LTS LXC container with Docker nesting enabled,
@@ -24,7 +24,7 @@ BRIDGE="${9:-vmbr0}"                      # Network bridge
 NET_CONFIG="name=eth0,bridge=${BRIDGE},ip=dhcp"
 
 echo "======================================================================"
-echo " Starting ThoPOS LXC Container Provisioning on Proxmox VE Host"
+echo " Starting RabbitPOS LXC Container Provisioning on Proxmox VE Host"
 echo " Container ID       : ${CT_ID}"
 echo " Hostname           : ${CT_HOSTNAME}"
 echo " Cores / RAM / Swap : ${CORES} Cores / ${MEMORY}MB RAM / ${SWAP}MB Swap"
@@ -127,7 +127,7 @@ pct exec "${CT_ID}" -- bash -c "
 CONTAINER_IP=$(pct exec "${CT_ID}" -- ip -4 addr show eth0 | grep -oP '(?<=inet\s)\d+(\.\d+){3}' | head -n 1 || echo "Unknown")
 
 echo "======================================================================"
-echo " SUCCESS: ThoPOS LXC Container ${CT_ID} is fully provisioned!"
+echo " SUCCESS: RabbitPOS LXC Container ${CT_ID} is fully provisioned!"
 echo "======================================================================"
 echo " Container ID : ${CT_ID}"
 echo " Hostname     : ${CT_HOSTNAME}"

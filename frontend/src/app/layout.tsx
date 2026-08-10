@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "ThoPOS - Takeaway Point of Sale",
+  title: "RabbitPOS - Takeaway Point of Sale",
   description: "High-performance POS and financial management for Tho Juice & Coffee",
 };
 

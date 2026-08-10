@@ -1,6 +1,6 @@
-# ThoPOS (RabbitPOS) - Production Proxmox VE 8.x/9.x Deployment Guide
+# RabbitPOS (RabbitPOS) - Production Proxmox VE 8.x/9.x Deployment Guide
 
-This guide provides end-to-end instructions for deploying the **ThoPOS (RabbitPOS)** infrastructure on **Proxmox VE 8.x/9.x** using an unprivileged Ubuntu 24.04 LTS LXC container, Docker Engine, Nginx Proxy Manager (NPM), Cloudflare DNS, and Let's Encrypt SSL certificates.
+This guide provides end-to-end instructions for deploying the **RabbitPOS (RabbitPOS)** infrastructure on **Proxmox VE 8.x/9.x** using an unprivileged Ubuntu 24.04 LTS LXC container, Docker Engine, Nginx Proxy Manager (NPM), Cloudflare DNS, and Let's Encrypt SSL certificates.
 
 ---
 
@@ -12,8 +12,8 @@ This guide provides end-to-end instructions for deploying the **ThoPOS (RabbitPO
                                  ▼
                      [ Cloudflare Edge DNS ]
            (Proxy Mode: Orange Cloud - Orange IP Masking)
-               ├── thopos.ndnworks.com     (App UI)
-               └── api.thopos.ndnworks.com (Backend API)
+               ├── rabbitpos.ndnworks.com     (App UI)
+               └── api.rabbitpos.ndnworks.com (Backend API)
                                  │
                                  ▼
              [ Proxmox VE Host (Public Router / Port Forward) ]
@@ -56,7 +56,7 @@ curl -fsSL https://raw.githubusercontent.com/YourOrg/RabbitPOS/main/scripts/setu
 chmod +x setup-proxmox-lxc.sh
 
 # Run provisioning script (Syntax: ./setup-proxmox-lxc.sh [CT_ID] [HOSTNAME] [RAM_MB] [SWAP_MB] [CORES] [DISK_SIZE])
-./setup-proxmox-lxc.sh 100 thopos-lxc 2048 512 2 20G
+./setup-proxmox-lxc.sh 100 rabbitpos-lxc 2048 512 2 20G
 ```
 
 ### Script Execution Summary:
@@ -101,19 +101,19 @@ Ensure the following variables are configured:
 
 ```ini
 # PostgreSQL Production Settings
-POSTGRES_USER=thopos_user
+POSTGRES_USER=rabbitpos_user
 POSTGRES_PASSWORD=YOUR_STRONG_DB_PASSWORD_HERE
-POSTGRES_DB=thopos_prod
+POSTGRES_DB=rabbitpos_prod
 POSTGRES_PORT=5432
 
 # Backend API Settings
 BACKEND_PORT=8080
 APP_ENV=production
-CORS_ALLOWED_ORIGINS=https://thopos.ndnworks.com,http://thopos.ndnworks.com
+CORS_ALLOWED_ORIGINS=https://rabbitpos.ndnworks.com,http://rabbitpos.ndnworks.com
 
 # Frontend Settings
 FRONTEND_PORT=3000
-NEXT_PUBLIC_API_URL=https://api.thopos.ndnworks.com/api/v1
+NEXT_PUBLIC_API_URL=https://api.rabbitpos.ndnworks.com/api/v1
 ```
 
 ### Step 3.3: Launch Production Docker Stack
@@ -140,8 +140,8 @@ Add the following DNS records:
 
 | Type | Name | IPv4 Address / Target | Proxy Status | TTL |
 | :--- | :--- | :--- | :--- | :--- |
-| **A** | `thopos` | `<YOUR_PROXMOX_PUBLIC_IP>` | **Proxied** (Orange Cloud) | Auto |
-| **A** | `api.thopos` | `<YOUR_PROXMOX_PUBLIC_IP>` | **Proxied** (Orange Cloud) | Auto |
+| **A** | `rabbitpos` | `<YOUR_PROXMOX_PUBLIC_IP>` | **Proxied** (Orange Cloud) | Auto |
+| **A** | `api.rabbitpos` | `<YOUR_PROXMOX_PUBLIC_IP>` | **Proxied** (Orange Cloud) | Auto |
 
 > [!TIP]
 > **Cloudflare SSL/TLS Encryption Mode:**
@@ -160,10 +160,10 @@ Add the following DNS records:
 
 ---
 
-### Step 5.2: Configure Proxy Host for Frontend (`thopos.ndnworks.com`)
+### Step 5.2: Configure Proxy Host for Frontend (`rabbitpos.ndnworks.com`)
 1. Click **Hosts** -> **Proxy Hosts** -> **Add Proxy Host**.
 2. **Details Tab:**
-   - **Domain Names:** `thopos.ndnworks.com`
+   - **Domain Names:** `rabbitpos.ndnworks.com`
    - **Scheme:** `http`
    - **Forward Hostname / IP:** `frontend` (or internal LXC IP e.g. `127.0.0.1`)
    - **Forward Port:** `3000`
@@ -179,10 +179,10 @@ Add the following DNS records:
 
 ---
 
-### Step 5.3: Configure Proxy Host for Backend API (`api.thopos.ndnworks.com`)
+### Step 5.3: Configure Proxy Host for Backend API (`api.rabbitpos.ndnworks.com`)
 1. Click **Hosts** -> **Proxy Hosts** -> **Add Proxy Host**.
 2. **Details Tab:**
-   - **Domain Names:** `api.thopos.ndnworks.com`
+   - **Domain Names:** `api.rabbitpos.ndnworks.com`
    - **Scheme:** `http`
    - **Forward Hostname / IP:** `backend` (or internal LXC IP e.g. `127.0.0.1`)
    - **Forward Port:** `8080`
@@ -214,11 +214,11 @@ Ensure your external router or firewall forwards incoming public web traffic to 
 Verify your production endpoints in browser or terminal:
 
 1. **Frontend Web Interface:**
-   - URL: `https://thopos.ndnworks.com`
+   - URL: `https://rabbitpos.ndnworks.com`
    - Expect: Next.js POS Landing Page with status badge showing **Online**.
 
 2. **Backend API Health Check Endpoint:**
-   - URL: `https://api.thopos.ndnworks.com/api/v1/health`
+   - URL: `https://api.rabbitpos.ndnworks.com/api/v1/health`
    - Expect JSON response:
      ```json
      {
@@ -233,7 +233,7 @@ Verify your production endpoints in browser or terminal:
      ```
 
 3. **Backend API Categories Endpoint:**
-   - URL: `https://api.thopos.ndnworks.com/api/v1/categories`
+   - URL: `https://api.rabbitpos.ndnworks.com/api/v1/categories`
    - Expect JSON response:
      ```json
      {

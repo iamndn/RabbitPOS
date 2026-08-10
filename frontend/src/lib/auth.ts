@@ -5,8 +5,8 @@ export interface UserInfo {
   is_active: boolean;
 }
 
-const TOKEN_KEY = 'thopos_jwt_token';
-const USER_KEY = 'thopos_user';
+const TOKEN_KEY = 'rabbitpos_jwt_token';
+const USER_KEY = 'rabbitpos_user';
 
 export function setAuth(token: string, user: UserInfo) {
   if (typeof window !== 'undefined') {

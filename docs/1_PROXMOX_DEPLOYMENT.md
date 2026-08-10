@@ -1,12 +1,12 @@
 # Infrastructure & Deployment Plan (Proxmox Self-Host)
 
 ## 1. General Information
-- **Project Name:** ThoPOS (Tho Juice and Coffee)
+- **Project Name:** RabbitPOS (Tho Juice and Coffee)
 - **Environment:** Proxmox VE (Virtual Environment).
 - **Root Domain:** `ndnworks.com`
 - **Target Subdomains:**
-  - App (Frontend): `thopos.ndnworks.com`
-  - API (Backend): `api.thopos.ndnworks.com`
+  - App (Frontend): `rabbitpos.ndnworks.com`
+  - API (Backend): `api.rabbitpos.ndnworks.com`
 
 ## 2. Server Architecture (LXC Container)
 We prioritize **Ubuntu 22.04/24.04 LXC (Linux Container)** on Proxmox to optimize hardware resources (RAM/CPU) compared to traditional VMs.

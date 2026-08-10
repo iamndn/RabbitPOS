@@ -1,6 +1,6 @@
 -- ==============================================================================
 -- Seed File: users_seed.sql
--- Description: Default admin and staff user accounts for ThoPOS
+-- Description: Default admin and staff user accounts for RabbitPOS
 -- Default Accounts:
 --   1. admin / admin123 (Role: admin)
 --   2. staff / staff123 (Role: staff)

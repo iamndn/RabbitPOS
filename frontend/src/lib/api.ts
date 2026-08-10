@@ -10,7 +10,7 @@ export async function fetchApi<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<ApiResponse<T>> {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('thopos_jwt_token') : null;
+  const token = typeof window !== 'undefined' ? localStorage.getItem('rabbitpos_jwt_token') : null;
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
