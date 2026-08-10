@@ -13,7 +13,7 @@ set -euo pipefail
 # Configuration Variables (Customize as needed)
 # ------------------------------------------------------------------------------
 CT_ID="${1:-1000}"                         # LXC Container ID
-CT_HOSTNAME="${2:-thopos}"           # Hostname of the container
+CT_HOSTNAME="${2:-RabbitPOS}"           # Hostname of the container
 MEMORY="${3:-4096}"                       # RAM in MB (2048MB = 2GB)
 SWAP="${4:-4096}"                          # SWAP in MB
 CORES="${5:-2}"                           # CPU Cores allocated
