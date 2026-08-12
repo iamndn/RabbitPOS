@@ -1,13 +1,12 @@
 package routes
 
 import (
-	"time"
+	"os"
 
 	"github.com/RabbitPOS/backend/internal/config"
 	"github.com/RabbitPOS/backend/internal/handlers"
 	"github.com/RabbitPOS/backend/internal/middleware"
 	"github.com/RabbitPOS/backend/internal/models"
-	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -20,44 +19,19 @@ func SetupRouter(cfg *config.Config, db *gorm.DB) *gin.Engine {
 
 	router := gin.Default()
 
-	// CORS Configuration
-	corsConfig := cors.Config{
-		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Requested-With"},
-		ExposeHeaders:    []string{"Content-Length"},
-		AllowCredentials: true,
-		MaxAge:           12 * time.Hour,
-	}
+	// Ensure uploads directory exists on server startup
+	_ = os.MkdirAll("./uploads", os.ModePerm)
 
-	// Check if wildcard "*" is in allowed origins
-	allowAll := false
-	for _, origin := range cfg.CORSAllowedOrigins {
-		if origin == "*" {
-			allowAll = true
-			break
-		}
-	}
+	// Global CORS Middleware
+	router.Use(middleware.CORSMiddleware(cfg))
 
-	if allowAll {
-		corsConfig.AllowOriginFunc = func(origin string) bool {
-			return true
-		}
-	} else {
-		corsConfig.AllowOriginFunc = func(origin string) bool {
-			for _, allowed := range cfg.CORSAllowedOrigins {
-				if allowed == origin {
-					return true
-				}
-			}
-			return false
-		}
-	}
-
-	router.Use(cors.New(corsConfig))
+	// Serve uploaded image assets statically
+	router.Static("/uploads", "./uploads")
 
 	// Instantiate Handlers
 	healthHandler := handlers.NewHealthHandler(db)
 	authHandler := handlers.NewAuthHandler(db, cfg)
+	uploadHandler := handlers.NewUploadHandler()
 	categoryHandler := handlers.NewCategoryHandler(db)
 	productHandler := handlers.NewProductHandler(db)
 	variantHandler := handlers.NewVariantHandler(db)
@@ -80,6 +54,7 @@ func SetupRouter(cfg *config.Config, db *gorm.DB) *gin.Engine {
 			// Auth User Session Routes
 			authenticated.POST("/auth/logout", authHandler.Logout)
 			authenticated.GET("/auth/me", authHandler.GetMe)
+			authenticated.POST("/upload", uploadHandler.UploadImage)
 
 			// Staff & Admin Accessible Endpoints (POS Operations)
 			authenticated.GET("/categories", categoryHandler.ListCategories)

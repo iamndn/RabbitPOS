@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { Coffee, Lock, User, LogIn, AlertCircle, RefreshCw, Shield, UserCheck } from 'lucide-react';
 import { fetchApi } from '@/lib/api';
 import { setAuth, UserInfo } from '@/lib/auth';
+import { useTranslation } from '@/lib/i18n/LanguageContext';
+import LanguageToggle from '@/components/LanguageToggle';
 
 interface LoginData {
   token: string;
@@ -13,6 +15,7 @@ interface LoginData {
 
 export default function LoginPage() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [username, setUsername] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
@@ -43,7 +46,11 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 flex flex-col justify-center items-center p-4">
+    <div className="min-h-screen bg-slate-900 flex flex-col justify-center items-center p-4 relative">
+      <div className="absolute top-4 right-4">
+        <LanguageToggle />
+      </div>
+
       {/* Container */}
       <div className="w-full max-w-md bg-white rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 animate-in zoom-in-95 duration-200">
         {/* Brand Header */}
@@ -51,8 +58,8 @@ export default function LoginPage() {
           <div className="inline-flex p-3 bg-indigo-50 text-indigo-600 rounded-2xl border border-indigo-100 shadow-sm">
             <Coffee className="w-8 h-8" />
           </div>
-          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">RabbitPOS Login</h1>
-          <p className="text-xs text-slate-500 font-medium">Tho Juice & Coffee Mobile Point of Sale</p>
+          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">{t('login.title')}</h1>
+          <p className="text-xs text-slate-500 font-medium">{t('login.subtitle')}</p>
         </div>
 
         {/* Error Alert */}
@@ -66,7 +73,7 @@ export default function LoginPage() {
         {/* Form */}
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
-            <label className="text-xs font-bold text-slate-700 mb-1 block uppercase tracking-wider">Username</label>
+            <label className="text-xs font-bold text-slate-700 mb-1 block uppercase tracking-wider">{t('login.username')}</label>
             <div className="relative">
               <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
               <input
@@ -81,7 +88,7 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <label className="text-xs font-bold text-slate-700 mb-1 block uppercase tracking-wider">Password</label>
+            <label className="text-xs font-bold text-slate-700 mb-1 block uppercase tracking-wider">{t('login.password')}</label>
             <div className="relative">
               <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
               <input
@@ -101,7 +108,7 @@ export default function LoginPage() {
             className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 text-white font-bold py-3.5 px-4 rounded-xl shadow-lg transition flex items-center justify-center space-x-2 text-sm"
           >
             {loading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <LogIn className="w-4 h-4" />}
-            <span>Sign In to Pos</span>
+            <span>{t('login.sign_in')}</span>
           </button>
         </form>
 

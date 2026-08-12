@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import AppShell from '@/components/AppShell';
 import { fetchApi } from '@/lib/api';
+import { useTranslation } from '@/lib/i18n/LanguageContext';
 
 interface Fund {
   id: number;
@@ -34,6 +35,7 @@ interface FundBalanceDetails {
 }
 
 export default function FundsPage() {
+  const { t } = useTranslation();
   const [funds, setFunds] = useState<Fund[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
@@ -94,10 +96,10 @@ export default function FundsPage() {
           <div>
             <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
               <Wallet className="w-6 h-6 text-indigo-600" />
-              Funds Overview & Reconciliation (Quản Lý Quỹ & Kiểm Kê)
+              {t('funds.title')}
             </h1>
             <p className="text-xs text-slate-500 mt-1">
-              Monitor real-time cash drawer and bank account balances, reconcile physical cash counts, and log variance adjustments.
+              {t('funds.subtitle')}
             </p>
           </div>
         </div>

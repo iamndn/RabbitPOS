@@ -14,9 +14,12 @@ import {
   Wallet,
   ShoppingBag,
   FileText,
+  Download,
 } from 'lucide-react';
 import AppShell from '@/components/AppShell';
 import { fetchApi } from '@/lib/api';
+import { useTranslation } from '@/lib/i18n/LanguageContext';
+import { exportToCsv } from '@/lib/exportCsv';
 
 interface Fund {
   id: number;
@@ -39,6 +42,7 @@ interface Transaction {
 }
 
 export default function TransactionsPage() {
+  const { t } = useTranslation();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [funds, setFunds] = useState<Fund[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -103,6 +107,20 @@ export default function TransactionsPage() {
     }
   };
 
+  const handleExportCsv = () => {
+    exportToCsv<Transaction>('rabbitpos_transactions', filteredTransactions, [
+      { header: 'ID', accessor: (tx) => tx.id },
+      { header: 'Date', accessor: (tx) => new Date(tx.created_at).toLocaleString() },
+      { header: 'Type', accessor: (tx) => tx.transaction_type },
+      { header: 'Category', accessor: (tx) => tx.category },
+      { header: 'Fund Account', accessor: (tx) => tx.fund?.name || tx.fund_id },
+      { header: 'Amount ($)', accessor: (tx) => tx.amount.toFixed(2) },
+      { header: 'Ref Order', accessor: (tx) => tx.reference_order?.order_code || '' },
+      { header: 'Description', accessor: (tx) => tx.description },
+      { header: 'Created By', accessor: (tx) => tx.created_by },
+    ]);
+  };
+
   const filteredTransactions = transactions.filter((tx) => {
     const matchesFund = selectedFundId ? tx.fund_id === selectedFundId : true;
     const matchesType = selectedType !== 'all' ? tx.transaction_type === selectedType : true;
@@ -110,13 +128,13 @@ export default function TransactionsPage() {
     return matchesFund && matchesType && matchesCat;
   });
 
-  const totalInflow = filteredTransactions
-    .filter((t) => t.transaction_type === 'inflow')
-    .reduce((acc, t) => acc + t.amount, 0);
+  const totalInflow = transactions
+    .filter((tx) => tx.transaction_type === 'inflow')
+    .reduce((acc, tx) => acc + tx.amount, 0);
 
-  const totalOutflow = filteredTransactions
-    .filter((t) => t.transaction_type === 'outflow')
-    .reduce((acc, t) => acc + t.amount, 0);
+  const totalOutflow = transactions
+    .filter((tx) => tx.transaction_type === 'outflow')
+    .reduce((acc, tx) => acc + tx.amount, 0);
 
   const netCashFlow = totalInflow - totalOutflow;
 
@@ -128,25 +146,33 @@ export default function TransactionsPage() {
           <div>
             <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
               <TrendingUp className="w-6 h-6 text-indigo-600" />
-              Financial Ledger & Cash Flow (Sổ Thu Chi)
+              {t('tx.title')}
             </h1>
             <p className="text-xs text-slate-500 mt-1">
-              Track sales inflows, manual ingredient expenses, utility bills, and fund activity.
+              {t('tx.subtitle')}
             </p>
           </div>
-          <button
-            onClick={() => setIsExpenseModalOpen(true)}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl flex items-center gap-1.5 shadow-sm transition"
-          >
-            <Plus className="w-4 h-4" /> Log Expense / Inflow
-          </button>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={handleExportCsv}
+              className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-3.5 py-2.5 rounded-xl border border-slate-200 flex items-center gap-1.5 transition"
+            >
+              <Download className="w-4 h-4 text-slate-500" /> Export CSV
+            </button>
+            <button
+              onClick={() => setIsExpenseModalOpen(true)}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl flex items-center gap-1.5 shadow-sm transition"
+            >
+              <Plus className="w-4 h-4" /> {t('tx.add_expense')}
+            </button>
+          </div>
         </div>
 
         {/* KPI Summary Row */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
             <div>
-              <span className="text-xs font-semibold text-slate-500">Total Inflows (Sales)</span>
+              <span className="text-xs font-semibold text-slate-500">{t('tx.inflows')}</span>
               <div className="text-2xl font-extrabold text-emerald-600 mt-1">${totalInflow.toFixed(2)}</div>
             </div>
             <div className="p-3 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-100">
@@ -156,7 +182,7 @@ export default function TransactionsPage() {
 
           <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
             <div>
-              <span className="text-xs font-semibold text-slate-500">Total Outflows (Expenses)</span>
+              <span className="text-xs font-semibold text-slate-500">{t('tx.outflows')}</span>
               <div className="text-2xl font-extrabold text-rose-600 mt-1">${totalOutflow.toFixed(2)}</div>
             </div>
             <div className="p-3 rounded-2xl bg-rose-50 text-rose-600 border border-rose-100">
@@ -166,7 +192,7 @@ export default function TransactionsPage() {
 
           <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
             <div>
-              <span className="text-xs font-semibold text-slate-500">Net Cash Flow</span>
+              <span className="text-xs font-semibold text-slate-500">{t('tx.net_cash_flow')}</span>
               <div className={`text-2xl font-extrabold mt-1 ${netCashFlow >= 0 ? 'text-indigo-600' : 'text-rose-600'}`}>
                 ${netCashFlow.toFixed(2)}
               </div>

@@ -7,15 +7,19 @@ import VariantSelectorModal, { CartItem, Product } from '@/components/pos/Varian
 import CartDrawer from '@/components/pos/CartDrawer';
 import CheckoutModal from '@/components/pos/CheckoutModal';
 import VietQRModal from '@/components/pos/VietQRModal';
-import { fetchApi, ApiResponse } from '@/lib/api';
+import ReceiptModal, { CompletedOrderData } from '@/components/pos/ReceiptModal';
+import { fetchApi, ApiResponse, getImageUrl } from '@/lib/api';
+import { useTranslation } from '@/lib/i18n/LanguageContext';
 
 interface Category {
   id: number;
   name: string;
+  image_url?: string;
   display_order: number;
 }
 
 export default function PosPage() {
+  const { t } = useTranslation();
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [activeCategoryId, setActiveCategoryId] = useState<number | null>(null);
@@ -34,6 +38,10 @@ export default function PosPage() {
   const [selectedFundId, setSelectedFundId] = useState<number | null>(null);
   const [orderSuccessMessage, setOrderSuccessMessage] = useState<string | null>(null);
 
+  // Receipt Modal State
+  const [completedOrder, setCompletedOrder] = useState<CompletedOrderData | null>(null);
+  const [isReceiptModalOpen, setIsReceiptModalOpen] = useState<boolean>(false);
+
   const loadData = async () => {
     setLoading(true);
     const catRes = await fetchApi<Category[]>('/categories');
@@ -50,12 +58,44 @@ export default function PosPage() {
 
   useEffect(() => {
     loadData();
+
+    // 1. Restore Cart from LocalStorage (Offline Resiliency)
+    try {
+      const savedCart = localStorage.getItem('rabbitpos_active_cart');
+      if (savedCart) {
+        const parsed = JSON.parse(savedCart);
+        if (parsed.cartItems && Array.isArray(parsed.cartItems)) {
+          setCartItems(parsed.cartItems);
+        }
+        if (typeof parsed.discountAmount === 'number') {
+          setDiscountAmount(parsed.discountAmount);
+        }
+      }
+    } catch (e) {
+      console.error('Failed to restore active cart', e);
+    }
   }, []);
+
+  // 2. Persist Active Cart to LocalStorage
+  useEffect(() => {
+    try {
+      if (cartItems.length > 0 || discountAmount > 0) {
+        localStorage.setItem(
+          'rabbitpos_active_cart',
+          JSON.stringify({ cartItems, discountAmount })
+        );
+      } else {
+        localStorage.removeItem('rabbitpos_active_cart');
+      }
+    } catch (e) {
+      console.error('Failed to save cart to localStorage', e);
+    }
+  }, [cartItems, discountAmount]);
 
   // Cart Handlers
   const handleAddToCart = (newItem: CartItem) => {
     setCartItems((prev) => [...prev, newItem]);
-    setOrderSuccessMessage(`Added ${newItem.product.name} (${newItem.selectedVariant.variant_name}) to order`);
+    setOrderSuccessMessage(t('pos.added_to_cart', { name: `${newItem.product.name} (${newItem.selectedVariant.variant_name})` }));
     setTimeout(() => setOrderSuccessMessage(null), 3000);
   };
 
@@ -86,6 +126,10 @@ export default function PosPage() {
   const submitOrder = async (fundId: number) => {
     if (cartItems.length === 0) return;
 
+    const currentSubtotal = cartItems.reduce((acc, item) => acc + item.lineTotal, 0);
+    const currentTotal = Math.max(0, currentSubtotal - discountAmount);
+    const orderCartSnapshot = [...cartItems];
+
     const payload = {
       fund_id: fundId,
       discount_amount: discountAmount,
@@ -105,13 +149,27 @@ export default function PosPage() {
 
     if (res.status === 'success' && res.data) {
       const createdOrder = res.data;
+
+      // Purge persisted cart
+      localStorage.removeItem('rabbitpos_active_cart');
       setCartItems([]);
       setDiscountAmount(0);
       setIsCheckoutModalOpen(false);
       setIsVietQRModalOpen(false);
       setIsCartDrawerOpen(false);
 
-      alert(`✅ Order ${createdOrder.order_code} completed successfully! Total: $${createdOrder.total_amount.toFixed(2)}`);
+      // Open Receipt Thermal Printing Modal
+      setCompletedOrder({
+        order_code: createdOrder.order_code,
+        created_at: createdOrder.created_at,
+        created_by: createdOrder.created_by || 'Cashier Staff',
+        payment_method: selectedFundId === 2 ? 'VietQR Transfer' : 'Cash',
+        items: orderCartSnapshot,
+        subtotal: currentSubtotal,
+        discount: discountAmount,
+        total: currentTotal,
+      });
+      setIsReceiptModalOpen(true);
     } else {
       alert('Failed to submit order: ' + res.message);
     }
@@ -167,7 +225,7 @@ export default function PosPage() {
                   : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
               }`}
             >
-              All Items ({products.length})
+              {t('pos.all_items')} ({products.length})
             </button>
             {categories.map((cat) => (
               <button
@@ -188,7 +246,7 @@ export default function PosPage() {
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
             <input
               type="text"
-              placeholder="Search drinks..."
+              placeholder={t('pos.search_placeholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-9 pr-4 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
@@ -203,7 +261,7 @@ export default function PosPage() {
           </div>
         ) : filteredProducts.length === 0 ? (
           <div className="bg-white p-8 rounded-2xl border border-slate-200 text-center text-slate-500 text-xs">
-            No drinks found.
+            {t('pos.no_drinks')}
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
@@ -221,9 +279,9 @@ export default function PosPage() {
                 >
                   <div>
                     <div className="w-full h-28 bg-slate-100 rounded-xl mb-2 flex items-center justify-center text-slate-400 overflow-hidden relative">
-                      {product.image_url ? (
+                      {getImageUrl(product.image_url) ? (
                         <img
-                          src={product.image_url}
+                          src={getImageUrl(product.image_url)!}
                           alt={product.name}
                           className="w-full h-full object-cover group-hover:scale-105 transition duration-200"
                         />
@@ -243,7 +301,7 @@ export default function PosPage() {
                   <div className="mt-3 flex items-center justify-between">
                     <span className="font-bold text-indigo-600 text-xs">${startingPrice.toFixed(2)}</span>
                     <span className="bg-indigo-50 group-hover:bg-indigo-600 group-hover:text-white text-indigo-600 text-xs font-bold px-2 py-1 rounded-lg transition flex items-center gap-0.5">
-                      <Plus className="w-3.5 h-3.5" /> Order
+                      <Plus className="w-3.5 h-3.5" /> {t('pos.order_button')}
                     </span>
                   </div>
                 </div>
@@ -267,7 +325,7 @@ export default function PosPage() {
               )}
             </div>
             <div>
-              <p className="text-[11px] text-slate-400 font-medium">Cart Total ({totalItemCount} items)</p>
+              <p className="text-[11px] text-slate-400 font-medium">{t('pos.cart_total')} ({totalItemCount} items)</p>
               <p className="text-base font-bold text-white">${cartTotal.toFixed(2)}</p>
             </div>
           </div>
@@ -277,14 +335,14 @@ export default function PosPage() {
               onClick={() => setIsCartDrawerOpen(true)}
               className="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold px-3 py-2.5 rounded-xl transition"
             >
-              View Cart
+              {t('pos.view_cart')}
             </button>
             <button
               disabled={cartItems.length === 0}
               onClick={() => setIsCheckoutModalOpen(true)}
               className="bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-700 text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow-sm transition disabled:cursor-not-allowed"
             >
-              Checkout
+              {t('pos.checkout')}
             </button>
           </div>
         </div>
@@ -329,6 +387,12 @@ export default function PosPage() {
           onConfirmOrder={handleConfirmVietQRPayment}
         />
       )}
+
+      <ReceiptModal
+        isOpen={isReceiptModalOpen}
+        onClose={() => setIsReceiptModalOpen(false)}
+        order={completedOrder}
+      />
     </AppShell>
   );
 }

@@ -19,6 +19,8 @@ import {
 } from 'lucide-react';
 import { fetchApi } from '@/lib/api';
 import { getAuthUser, isAuthenticated, logout as authLogout, UserInfo } from '@/lib/auth';
+import { useTranslation } from '@/lib/i18n/LanguageContext';
+import LanguageToggle from '@/components/LanguageToggle';
 
 interface HealthData {
   app: string;
@@ -29,6 +31,7 @@ interface HealthData {
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
+  const { t } = useTranslation();
 
   const [currentUser, setCurrentUser] = useState<UserInfo | null>(null);
   const [mounted, setMounted] = useState<boolean>(false);
@@ -78,11 +81,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   };
 
   const allNavItems = [
-    { label: 'POS Terminal', href: '/', icon: ShoppingCart, adminOnly: false },
-    { label: 'Catalog', href: '/products', icon: Package, adminOnly: true },
-    { label: 'Transactions', href: '/transactions', icon: ArrowUpRight, adminOnly: true },
-    { label: 'Funds & Balances', href: '/funds', icon: Wallet, adminOnly: true },
-    { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, adminOnly: true },
+    { label: t('nav.pos'), href: '/', icon: ShoppingCart, adminOnly: false },
+    { label: t('nav.catalog'), href: '/products', icon: Package, adminOnly: true },
+    { label: t('nav.transactions'), href: '/transactions', icon: ArrowUpRight, adminOnly: true },
+    { label: t('nav.funds'), href: '/funds', icon: Wallet, adminOnly: true },
+    { label: t('nav.dashboard'), href: '/dashboard', icon: LayoutDashboard, adminOnly: true },
   ];
 
   const visibleNavItems = allNavItems.filter((item) => {
@@ -119,10 +122,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex items-center space-x-2 px-3 py-1.5 rounded-lg text-xs font-medium transition ${isActive
+                className={`flex items-center space-x-2 px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+                  isActive
                     ? 'bg-white/20 text-white shadow-sm font-bold'
                     : 'text-indigo-100 hover:bg-white/10 hover:text-white'
-                  }`}
+                }`}
               >
                 <Icon className="w-4 h-4" />
                 <span>{item.label}</span>
@@ -131,8 +135,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           })}
         </nav>
 
-        {/* User Session & Logout */}
+        {/* User Session, Language Toggle & Logout */}
         <div className="flex items-center space-x-3 text-xs">
+          <LanguageToggle />
+
           {currentUser && (
             <div className="flex items-center space-x-2 bg-indigo-700/80 border border-indigo-500/40 px-2.5 py-1 rounded-xl">
               <div className="p-1 bg-indigo-500/30 rounded-lg">
@@ -144,8 +150,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               </div>
               <span className="font-bold text-white text-xs">{currentUser.username}</span>
               <span
-                className={`text-[9px] uppercase font-extrabold px-1.5 py-0.5 rounded ${currentUser.role === 'admin' ? 'bg-purple-500/40 text-purple-200' : 'bg-blue-500/40 text-blue-200'
-                  }`}
+                className={`text-[9px] uppercase font-extrabold px-1.5 py-0.5 rounded ${
+                  currentUser.role === 'admin' ? 'bg-purple-500/40 text-purple-200' : 'bg-blue-500/40 text-blue-200'
+                }`}
               >
                 {currentUser.role}
               </span>
@@ -155,7 +162,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           <button
             onClick={handleLogout}
             className="bg-indigo-700 hover:bg-rose-600 text-indigo-100 hover:text-white p-1.5 rounded-lg transition"
-            title="Log Out"
+            title={t('nav.logout')}
           >
             <LogOut className="w-4 h-4" />
           </button>

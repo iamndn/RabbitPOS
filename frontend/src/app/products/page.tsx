@@ -15,13 +15,18 @@ import {
   Percent,
   CheckCircle,
   FolderPlus,
+  Upload,
+  Image as ImageIcon,
+  Loader2,
 } from 'lucide-react';
 import AppShell from '@/components/AppShell';
-import { fetchApi } from '@/lib/api';
+import { fetchApi, getImageUrl, uploadImage } from '@/lib/api';
+import { useTranslation } from '@/lib/i18n/LanguageContext';
 
 interface Category {
   id: number;
   name: string;
+  image_url?: string;
   display_order: number;
 }
 
@@ -47,6 +52,7 @@ interface Product {
 }
 
 export default function ProductsPage() {
+  const { t } = useTranslation();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -70,7 +76,38 @@ export default function ProductsPage() {
 
   // New Category Form State
   const [catName, setCatName] = useState<string>('');
+  const [catImageUrl, setCatImageUrl] = useState<string>('');
   const [catDisplayOrder, setCatDisplayOrder] = useState<number>(1);
+
+  // Uploading states
+  const [uploadingProductImg, setUploadingProductImg] = useState<boolean>(false);
+  const [uploadingCatImg, setUploadingCatImg] = useState<boolean>(false);
+
+  const handleProductFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingProductImg(true);
+    const res = await uploadImage(file);
+    if (res.status === 'success' && res.data?.url) {
+      setFormImageUrl(res.data.url);
+    } else {
+      alert(res.message || 'Failed to upload image');
+    }
+    setUploadingProductImg(false);
+  };
+
+  const handleCatFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingCatImg(true);
+    const res = await uploadImage(file);
+    if (res.status === 'success' && res.data?.url) {
+      setCatImageUrl(res.data.url);
+    } else {
+      alert(res.message || 'Failed to upload image');
+    }
+    setUploadingCatImg(false);
+  };
 
   const loadCatalog = async () => {
     setLoading(true);
@@ -202,12 +239,14 @@ export default function ProductsPage() {
       method: 'POST',
       body: JSON.stringify({
         name: catName,
+        image_url: catImageUrl,
         display_order: Number(catDisplayOrder),
       }),
     });
 
     if (res.status === 'success') {
       setCatName('');
+      setCatImageUrl('');
       loadCatalog();
       setIsCategoryModalOpen(false);
     } else {
@@ -241,10 +280,10 @@ export default function ProductsPage() {
           <div>
             <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
               <Package className="w-6 h-6 text-indigo-600" />
-              Catalog & Product Management
+              {t('products.title')}
             </h1>
             <p className="text-xs text-slate-500 mt-1">
-              Manage menu items, COGS pricing, retail prices, and variant margins for Tho Juice & Coffee.
+              {t('products.subtitle')}
             </p>
           </div>
           <div className="flex items-center space-x-2">
@@ -252,13 +291,13 @@ export default function ProductsPage() {
               onClick={() => setIsCategoryModalOpen(true)}
               className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-3 py-2.5 rounded-xl border border-slate-200 flex items-center gap-1.5 transition"
             >
-              <FolderPlus className="w-4 h-4 text-slate-500" /> + Category
+              <FolderPlus className="w-4 h-4 text-slate-500" /> + {t('products.add_category')}
             </button>
             <button
               onClick={openCreateModal}
               className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl flex items-center gap-1.5 shadow-sm transition"
             >
-              <Plus className="w-4 h-4" /> Add Product
+              <Plus className="w-4 h-4" /> {t('products.add_product')}
             </button>
           </div>
         </div>
@@ -269,7 +308,7 @@ export default function ProductsPage() {
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
             <input
               type="text"
-              placeholder="Search product name or SKU..."
+              placeholder={t('products.search_placeholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-9 pr-4 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
@@ -285,7 +324,7 @@ export default function ProductsPage() {
                   : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
               }`}
             >
-              All Categories
+              {t('common.all')}
             </button>
             {categories.map((cat) => (
               <button
@@ -309,12 +348,12 @@ export default function ProductsPage() {
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase tracking-wider font-semibold">
                 <tr>
-                  <th className="py-3 px-4">Item</th>
-                  <th className="py-3 px-4">Category</th>
-                  <th className="py-3 px-4">Variants / Pricing</th>
-                  <th className="py-3 px-4">COGS vs Retail</th>
-                  <th className="py-3 px-4">Margin %</th>
-                  <th className="py-3 px-4 text-right">Actions</th>
+                  <th className="py-3 px-4">{t('products.item')}</th>
+                  <th className="py-3 px-4">{t('products.category')}</th>
+                  <th className="py-3 px-4">{t('products.variants_pricing')}</th>
+                  <th className="py-3 px-4">{t('products.cogs_vs_retail')}</th>
+                  <th className="py-3 px-4">{t('products.margin')}</th>
+                  <th className="py-3 px-4 text-right">{t('common.actions')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -337,9 +376,9 @@ export default function ProductsPage() {
                       <tr key={product.id} className="hover:bg-slate-50 transition">
                         <td className="py-3 px-4">
                           <div className="flex items-center space-x-3">
-                            <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center overflow-hidden border border-slate-200">
-                              {product.image_url ? (
-                                <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
+                            <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center overflow-hidden border border-slate-200 shrink-0">
+                              {getImageUrl(product.image_url) ? (
+                                <img src={getImageUrl(product.image_url)!} alt={product.name} className="w-full h-full object-cover" />
                               ) : (
                                 <Coffee className="w-5 h-5 text-slate-400" />
                               )}
@@ -476,29 +515,48 @@ export default function ProductsPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="font-semibold text-slate-700 mb-1 block">Image URL</label>
-                  <input
-                    type="text"
-                    value={formImageUrl}
-                    onChange={(e) => setFormImageUrl(e.target.value)}
-                    placeholder="https://..."
-                    className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
+              <div>
+                <label className="font-semibold text-slate-700 mb-1 block">Product Image</label>
+                <div className="flex items-center space-x-3">
+                  <div className="w-14 h-14 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center overflow-hidden shrink-0 relative">
+                    {getImageUrl(formImageUrl) ? (
+                      <img src={getImageUrl(formImageUrl)!} alt="Product Preview" className="w-full h-full object-cover" />
+                    ) : (
+                      <ImageIcon className="w-6 h-6 text-slate-400" />
+                    )}
+                    {uploadingProductImg && (
+                      <div className="absolute inset-0 bg-slate-900/40 flex items-center justify-center">
+                        <Loader2 className="w-5 h-5 text-white animate-spin" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 space-y-1.5">
+                    <label className="cursor-pointer bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-3 py-1.5 rounded-xl border border-slate-200 inline-flex items-center gap-1.5 transition">
+                      <Upload className="w-3.5 h-3.5" /> Upload Image File
+                      <input type="file" accept="image/*" onChange={handleProductFileChange} className="hidden" />
+                    </label>
+                    <input
+                      type="text"
+                      value={formImageUrl}
+                      onChange={(e) => setFormImageUrl(e.target.value)}
+                      placeholder="Or enter image URL (https://... or /uploads/...)"
+                      className="w-full p-2 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="font-semibold text-slate-700 mb-1 block">Tag / Badge</label>
-                  <select
-                    value={formTag}
-                    onChange={(e) => setFormTag(e.target.value)}
-                    className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  >
-                    <option value="none">None</option>
-                    <option value="best_seller">Best Seller</option>
-                    <option value="new">New</option>
-                  </select>
-                </div>
+              </div>
+
+              <div>
+                <label className="font-semibold text-slate-700 mb-1 block">Tag / Badge</label>
+                <select
+                  value={formTag}
+                  onChange={(e) => setFormTag(e.target.value)}
+                  className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  <option value="none">None</option>
+                  <option value="best_seller">Best Seller</option>
+                  <option value="new">New</option>
+                </select>
               </div>
 
               {/* Variants Section */}
@@ -614,6 +672,37 @@ export default function ProductsPage() {
                   onChange={(e) => setCatName(e.target.value)}
                   className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
+              </div>
+
+              <div>
+                <label className="font-semibold text-slate-700 mb-1 block">Category Image</label>
+                <div className="flex items-center space-x-3">
+                  <div className="w-12 h-12 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center overflow-hidden shrink-0 relative">
+                    {getImageUrl(catImageUrl) ? (
+                      <img src={getImageUrl(catImageUrl)!} alt="Category Preview" className="w-full h-full object-cover" />
+                    ) : (
+                      <ImageIcon className="w-5 h-5 text-slate-400" />
+                    )}
+                    {uploadingCatImg && (
+                      <div className="absolute inset-0 bg-slate-900/40 flex items-center justify-center">
+                        <Loader2 className="w-4 h-4 text-white animate-spin" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 space-y-1.5">
+                    <label className="cursor-pointer bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-3 py-1.5 rounded-xl border border-slate-200 inline-flex items-center gap-1.5 transition">
+                      <Upload className="w-3.5 h-3.5" /> Upload Image File
+                      <input type="file" accept="image/*" onChange={handleCatFileChange} className="hidden" />
+                    </label>
+                    <input
+                      type="text"
+                      value={catImageUrl}
+                      onChange={(e) => setCatImageUrl(e.target.value)}
+                      placeholder="Or enter image URL..."
+                      className="w-full p-2 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                    />
+                  </div>
+                </div>
               </div>
 
               <div>

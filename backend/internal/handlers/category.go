@@ -43,6 +43,7 @@ func (h *CategoryHandler) CreateCategory(c *gin.Context) {
 
 	category := models.Category{
 		Name:         req.Name,
+		ImageURL:     req.ImageURL,
 		DisplayOrder: req.DisplayOrder,
 		IsActive:     isActive,
 	}
@@ -82,6 +83,9 @@ func (h *CategoryHandler) UpdateCategory(c *gin.Context) {
 
 	if req.Name != nil {
 		category.Name = *req.Name
+	}
+	if req.ImageURL != nil {
+		category.ImageURL = *req.ImageURL
 	}
 	if req.DisplayOrder != nil {
 		category.DisplayOrder = *req.DisplayOrder

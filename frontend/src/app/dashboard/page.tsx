@@ -13,9 +13,12 @@ import {
   Calendar,
   PieChart,
   Percent,
+  Download,
 } from 'lucide-react';
 import AppShell from '@/components/AppShell';
 import { fetchApi } from '@/lib/api';
+import { useTranslation } from '@/lib/i18n/LanguageContext';
+import { exportToCsv } from '@/lib/exportCsv';
 
 interface DashboardMetrics {
   total_revenue: number;
@@ -47,6 +50,7 @@ interface CashFlowItem {
 }
 
 export default function DashboardPage() {
+  const { t } = useTranslation();
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [topProducts, setTopProducts] = useState<TopProduct[]>([]);
   const [cashFlow, setCashFlow] = useState<CashFlowItem[]>([]);
@@ -111,6 +115,17 @@ export default function DashboardPage() {
     loadDashboardData();
   }, [startDate, endDate]);
 
+  const handleExportTopProducts = () => {
+    exportToCsv<TopProduct>('rabbitpos_top_products', topProducts, [
+      { header: 'Product Name', accessor: (tp) => tp.product_name },
+      { header: 'Variant Name', accessor: (tp) => tp.variant_name },
+      { header: 'Quantity Sold', accessor: (tp) => tp.quantity_sold },
+      { header: 'Total Revenue ($)', accessor: (tp) => tp.total_revenue.toFixed(2) },
+      { header: 'Total COGS ($)', accessor: (tp) => tp.total_cogs.toFixed(2) },
+      { header: 'Profit Margin (%)', accessor: (tp) => tp.profit_margin.toFixed(1) },
+    ]);
+  };
+
   return (
     <AppShell>
       <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-6">
@@ -119,15 +134,22 @@ export default function DashboardPage() {
           <div>
             <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
               <LayoutDashboard className="w-6 h-6 text-indigo-600" />
-              Executive Analytics Dashboard
+              {t('dashboard.title')}
             </h1>
             <p className="text-xs text-slate-500 mt-1">
-              Real-time revenue, gross profit, net profit, top drink rankings, and daily cash flow.
+              {t('dashboard.subtitle')}
             </p>
           </div>
 
-          {/* Quick Date Shortcuts */}
+          {/* Quick Date Shortcuts & CSV Export */}
           <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={handleExportTopProducts}
+              className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-3 py-1.5 rounded-xl border border-slate-200 flex items-center gap-1.5 transition"
+            >
+              <Download className="w-3.5 h-3.5 text-slate-500" /> Export CSV
+            </button>
+
             <div className="flex items-center space-x-1 bg-slate-100 p-1 rounded-xl">
               {(['today', 'yesterday', 'week', 'month', 'custom'] as const).map((sc) => (
                 <button
