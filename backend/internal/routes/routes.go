@@ -39,6 +39,7 @@ func SetupRouter(cfg *config.Config, db *gorm.DB) *gin.Engine {
 	orderHandler := handlers.NewOrderHandler(db)
 	txHandler := handlers.NewTransactionHandler(db)
 	analyticsHandler := handlers.NewAnalyticsHandler(db)
+	settingHandler := handlers.NewSettingHandler(db)
 
 	// API v1 Group
 	v1 := router.Group("/api/v1")
@@ -56,7 +57,7 @@ func SetupRouter(cfg *config.Config, db *gorm.DB) *gin.Engine {
 			authenticated.GET("/auth/me", authHandler.GetMe)
 			authenticated.POST("/upload", uploadHandler.UploadImage)
 
-			// Staff & Admin Accessible Endpoints (POS Operations)
+			// Staff & Admin Accessible Endpoints (POS Operations & Settings View)
 			authenticated.GET("/categories", categoryHandler.ListCategories)
 			authenticated.GET("/products", productHandler.ListProducts)
 			authenticated.GET("/products/:id", productHandler.GetProductByID)
@@ -66,8 +67,9 @@ func SetupRouter(cfg *config.Config, db *gorm.DB) *gin.Engine {
 			authenticated.GET("/orders/:id", orderHandler.GetOrderByID)
 			authenticated.POST("/orders", orderHandler.CreateOrder)
 			authenticated.GET("/vietqr/generate", orderHandler.GetVietQR)
+			authenticated.GET("/settings", settingHandler.GetSettings)
 
-			// Admin-Only Routes (Management, Financial Ledger & Analytics)
+			// Admin-Only Routes (Management, Financial Ledger, Analytics & Settings Update)
 			adminOnly := authenticated.Group("")
 			adminOnly.Use(middleware.RequireRole(models.RoleAdmin))
 			{
@@ -95,6 +97,9 @@ func SetupRouter(cfg *config.Config, db *gorm.DB) *gin.Engine {
 				adminOnly.GET("/analytics/dashboard", analyticsHandler.GetDashboardMetrics)
 				adminOnly.GET("/analytics/top-products", analyticsHandler.GetTopProducts)
 				adminOnly.GET("/analytics/cash-flow", analyticsHandler.GetCashFlowSummary)
+
+				// Settings Management
+				adminOnly.PUT("/settings", settingHandler.UpdateSettings)
 			}
 		}
 	}

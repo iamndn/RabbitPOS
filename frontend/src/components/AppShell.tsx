@@ -16,6 +16,7 @@ import {
   LogOut,
   Shield,
   User,
+  Settings,
 } from 'lucide-react';
 import { fetchApi } from '@/lib/api';
 import { getAuthUser, isAuthenticated, logout as authLogout, UserInfo } from '@/lib/auth';
@@ -53,7 +54,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
     // 2. Role Guard Check: Restrict Staff from Admin routes
     if (u && u.role === 'staff') {
-      const adminRoutes = ['/products', '/transactions', '/funds', '/dashboard'];
+      const adminRoutes = ['/products', '/transactions', '/funds', '/dashboard', '/settings'];
       if (adminRoutes.some((route) => pathname.startsWith(route))) {
         router.push('/');
       }
@@ -86,6 +87,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     { label: t('nav.transactions'), href: '/transactions', icon: ArrowUpRight, adminOnly: true },
     { label: t('nav.funds'), href: '/funds', icon: Wallet, adminOnly: true },
     { label: t('nav.dashboard'), href: '/dashboard', icon: LayoutDashboard, adminOnly: true },
+    { label: t('nav.settings'), href: '/settings', icon: Settings, adminOnly: true },
   ];
 
   const visibleNavItems = allNavItems.filter((item) => {

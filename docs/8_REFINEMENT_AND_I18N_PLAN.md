@@ -1,6 +1,6 @@
-# ThoPOS — Phase 6 Architecture Update
+# RabbitPOS — Phase 6 Architecture Update
 **i18n · Image Management · Auth/CORS Hardening · Operational Enhancements**
-Domains: `thopos.ndnworks.com` (Frontend) / `api.thopos.ndnworks.com` (Backend) / LAN `10.0.0.10`
+Domains: `rabbitpos.ndnworks.com` (Frontend) / `api.rabbitpos.ndnworks.com` (Backend) / LAN `10.0.0.10`
 
 ---
 
@@ -85,11 +85,11 @@ Base path: `/api/v1` — envelope unchanged: `{ "status", "data", "message" }`
   - Client-side pre-processing: resize to max dimension + convert to WebP **before** upload (reduces bandwidth on mobile admin use)
   - Progress indicator + error state (file too large, invalid type)
 - `MediaThumbnail` — reusable image component with lazy-loading, fallback placeholder icon (reuses existing `Coffee` icon pattern already in ProductGrid/ProductCard for missing images)
-- Backend static serving: local Docker volume mounted at `/media`, served via reverse proxy path (e.g., `thopos.ndnworks.com/media/*`) with long-lived `Cache-Control` headers; MinIO/S3 remains a drop-in future replacement via `storage_provider` field — no frontend change needed if API returns a resolvable URL regardless of backend.
+- Backend static serving: local Docker volume mounted at `/media`, served via reverse proxy path (e.g., `rabbitpos.ndnworks.com/media/*`) with long-lived `Cache-Control` headers; MinIO/S3 remains a drop-in future replacement via `storage_provider` field — no frontend change needed if API returns a resolvable URL regardless of backend.
 
 ### 3.3 Auth Persistence & API Base URL Resolution
 - `ApiClientProvider` (update) — dynamic base URL resolution priority:
-  1. `NEXT_PUBLIC_API_URL` if explicitly set at build time (production default: `https://api.thopos.ndnworks.com/api/v1`)
+  1. `NEXT_PUBLIC_API_URL` if explicitly set at build time (production default: `https://api.rabbitpos.ndnworks.com/api/v1`)
   2. Runtime fallback: derive from `window.location.hostname` — if hostname is a LAN IP (e.g. `10.0.0.10`), construct `http://{hostname}:8080/api/v1`; otherwise use the configured production URL.
   - This removes the need to rebuild the frontend image every time the access origin changes between LAN IP and domain.
 - `AuthGuard` (update) — on `401` response from any API call, clear local session and redirect to `/login`; attempt silent `POST /auth/refresh` once before redirecting, to avoid disrupting active POS sessions on token expiry mid-shift.
@@ -136,4 +136,4 @@ Base path: `/api/v1` — envelope unchanged: `{ "status", "data", "message" }`
 - Verify all Phase 6 features respect existing RBAC (staff vs. admin route/API restrictions).
 - Regression test Phases 1–5 features (catalog, orders, funds, ledger, analytics) still function after auth/CORS and i18n refactors.
 - Confirm `.env.example` and deployment docs (`docs/7_PROXMOX_DEPLOYMENT_GUIDE.md`) updated with new required env vars (media storage path, refresh token secret, etc.).
-- **Exit criteria:** ThoPOS is bilingual, image-complete, resilient to token expiry and network hiccups, printable, exportable, and backed up — ready for full production handoff to Tho Juice & Coffee staff.
+- **Exit criteria:** RabbitPOS is bilingual, image-complete, resilient to token expiry and network hiccups, printable, exportable, and backed up — ready for full production handoff to Tho Juice & Coffee staff.

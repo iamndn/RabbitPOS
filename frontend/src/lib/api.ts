@@ -13,19 +13,28 @@ declare const process: {
 };
 
 export function getApiBaseUrl(): string {
+  // NEXT_PUBLIC_API_URL is baked into the build artifact at compile time.
+  // If set, it is always correct for this build — use it unconditionally.
   const envUrl = typeof process !== 'undefined' ? process.env?.NEXT_PUBLIC_API_URL?.trim() : undefined;
-  if (envUrl && envUrl !== '' && !envUrl.includes('localhost')) {
+  if (envUrl && envUrl !== '') {
     return envUrl;
   }
+
+  // Fallback: dynamically derive API URL from the current window hostname.
+  // This path is only reached when NEXT_PUBLIC_API_URL was not set at build time.
   if (typeof window !== 'undefined' && window.location?.hostname) {
     const protocol = window.location.protocol || 'http:';
     const hostname = window.location.hostname;
-    if (hostname.includes('ndnworks.com')) {
+    // Production domain pattern: prepend 'api.' subdomain
+    if (hostname.includes('ndnworks.com') || hostname.includes('rabbitpos')) {
       return `https://api.${hostname}/api/v1`;
     }
+    // Local / Headscale IP access: same host, port 8080
     return `${protocol}//${hostname}:8080/api/v1`;
   }
-  return envUrl || 'http://localhost:8080/api/v1';
+
+  // Last resort local development fallback
+  return 'http://localhost:8080/api/v1';
 }
 
 export async function fetchApi<T>(
@@ -72,11 +81,15 @@ export async function fetchApi<T>(
 export function getImageUrl(url?: string | null): string | null {
   if (!url || url.trim() === '') return null;
   const trimmed = url.trim();
+  const apiBase = getApiBaseUrl();
+  const origin = apiBase.replace(/\/api\/v1\/?$/, '');
+
+  if (trimmed.includes(':3000/uploads/')) {
+    return trimmed.replace(/^https?:\/\/[^\/]+:3000/, origin);
+  }
   if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
     return trimmed;
   }
-  const apiBase = getApiBaseUrl();
-  const origin = apiBase.replace(/\/api\/v1\/?$/, '');
   return `${origin}${trimmed.startsWith('/') ? '' : '/'}${trimmed}`;
 }
 

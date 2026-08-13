@@ -7,7 +7,6 @@ import {
   TrendingUp,
   Plus,
   Filter,
-  DollarSign,
   Calendar,
   X,
   Building2,
@@ -20,6 +19,7 @@ import AppShell from '@/components/AppShell';
 import { fetchApi } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
 import { exportToCsv } from '@/lib/exportCsv';
+import { formatCurrency, SettingsMap } from '@/lib/utils';
 
 interface Fund {
   id: number;
@@ -46,6 +46,7 @@ export default function TransactionsPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [funds, setFunds] = useState<Fund[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [settings, setSettings] = useState<SettingsMap | null>(null);
 
   // Filters
   const [selectedFundId, setSelectedFundId] = useState<number | null>(null);
@@ -62,6 +63,15 @@ export default function TransactionsPage() {
 
   const loadData = async () => {
     setLoading(true);
+
+    // Load settings for currency formatting
+    const settingsRes = await fetchApi<{ key: string; value: string }[]>('/settings');
+    if (settingsRes.status === 'success' && settingsRes.data) {
+      const map: SettingsMap = {};
+      settingsRes.data.forEach((s) => { map[s.key] = s.value; });
+      setSettings(map);
+    }
+
     const fundRes = await fetchApi<Fund[]>('/funds');
     if (fundRes.status === 'success' && fundRes.data) {
       setFunds(fundRes.data);
@@ -114,7 +124,7 @@ export default function TransactionsPage() {
       { header: 'Type', accessor: (tx) => tx.transaction_type },
       { header: 'Category', accessor: (tx) => tx.category },
       { header: 'Fund Account', accessor: (tx) => tx.fund?.name || tx.fund_id },
-      { header: 'Amount ($)', accessor: (tx) => tx.amount.toFixed(2) },
+      { header: 'Amount', accessor: (tx) => tx.amount.toFixed(2) },
       { header: 'Ref Order', accessor: (tx) => tx.reference_order?.order_code || '' },
       { header: 'Description', accessor: (tx) => tx.description },
       { header: 'Created By', accessor: (tx) => tx.created_by },
@@ -157,7 +167,7 @@ export default function TransactionsPage() {
               onClick={handleExportCsv}
               className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-3.5 py-2.5 rounded-xl border border-slate-200 flex items-center gap-1.5 transition"
             >
-              <Download className="w-4 h-4 text-slate-500" /> Export CSV
+              <Download className="w-4 h-4 text-slate-500" /> {t('common.export_csv')}
             </button>
             <button
               onClick={() => setIsExpenseModalOpen(true)}
@@ -173,7 +183,7 @@ export default function TransactionsPage() {
           <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
             <div>
               <span className="text-xs font-semibold text-slate-500">{t('tx.inflows')}</span>
-              <div className="text-2xl font-extrabold text-emerald-600 mt-1">${totalInflow.toFixed(2)}</div>
+              <div className="text-2xl font-extrabold text-emerald-600 mt-1">{formatCurrency(totalInflow, settings)}</div>
             </div>
             <div className="p-3 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-100">
               <ArrowDownLeft className="w-6 h-6" />
@@ -183,7 +193,7 @@ export default function TransactionsPage() {
           <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
             <div>
               <span className="text-xs font-semibold text-slate-500">{t('tx.outflows')}</span>
-              <div className="text-2xl font-extrabold text-rose-600 mt-1">${totalOutflow.toFixed(2)}</div>
+              <div className="text-2xl font-extrabold text-rose-600 mt-1">{formatCurrency(totalOutflow, settings)}</div>
             </div>
             <div className="p-3 rounded-2xl bg-rose-50 text-rose-600 border border-rose-100">
               <ArrowUpRight className="w-6 h-6" />
@@ -194,11 +204,11 @@ export default function TransactionsPage() {
             <div>
               <span className="text-xs font-semibold text-slate-500">{t('tx.net_cash_flow')}</span>
               <div className={`text-2xl font-extrabold mt-1 ${netCashFlow >= 0 ? 'text-indigo-600' : 'text-rose-600'}`}>
-                ${netCashFlow.toFixed(2)}
+                {formatCurrency(netCashFlow, settings)}
               </div>
             </div>
             <div className="p-3 rounded-2xl bg-indigo-50 text-indigo-600 border border-indigo-100">
-              <DollarSign className="w-6 h-6" />
+              <TrendingUp className="w-6 h-6" />
             </div>
           </div>
         </div>
@@ -212,7 +222,7 @@ export default function TransactionsPage() {
               onChange={(e) => setSelectedFundId(e.target.value ? Number(e.target.value) : null)}
               className="p-2 border border-slate-200 rounded-xl text-xs bg-white text-slate-700 font-medium"
             >
-              <option value="">All Payment Funds</option>
+              <option value="">{t('tx.filter_all_funds')}</option>
               {funds.map((f) => (
                 <option key={f.id} value={f.id}>
                   {f.name}
@@ -225,9 +235,9 @@ export default function TransactionsPage() {
               onChange={(e) => setSelectedType(e.target.value)}
               className="p-2 border border-slate-200 rounded-xl text-xs bg-white text-slate-700 font-medium"
             >
-              <option value="all">All Types</option>
-              <option value="inflow">Inflows (+)</option>
-              <option value="outflow">Outflows (-)</option>
+              <option value="all">{t('tx.filter_all_types')}</option>
+              <option value="inflow">{t('tx.type_inflow')}</option>
+              <option value="outflow">{t('tx.type_outflow')}</option>
             </select>
 
             <select
@@ -235,12 +245,12 @@ export default function TransactionsPage() {
               onChange={(e) => setSelectedCategory(e.target.value)}
               className="p-2 border border-slate-200 rounded-xl text-xs bg-white text-slate-700 font-medium"
             >
-              <option value="all">All Categories</option>
-              <option value="sale">Sales</option>
-              <option value="ingredient_purchase">Ingredient Purchase</option>
-              <option value="utility_bill">Utility Bill</option>
-              <option value="reconciliation_variance">Reconciliation Variance</option>
-              <option value="other">Other</option>
+              <option value="all">{t('tx.filter_all_categories')}</option>
+              <option value="sale">{t('tx.cat_sale')}</option>
+              <option value="ingredient_purchase">{t('tx.cat_ingredient')}</option>
+              <option value="utility_bill">{t('tx.cat_utility')}</option>
+              <option value="reconciliation_variance">{t('tx.cat_reconciliation')}</option>
+              <option value="other">{t('tx.cat_other')}</option>
             </select>
           </div>
         </div>
@@ -251,19 +261,19 @@ export default function TransactionsPage() {
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase tracking-wider font-semibold">
                 <tr>
-                  <th className="py-3 px-4">Date & Time</th>
-                  <th className="py-3 px-4">Fund</th>
-                  <th className="py-3 px-4">Type</th>
-                  <th className="py-3 px-4">Category</th>
-                  <th className="py-3 px-4">Description / Reference</th>
-                  <th className="py-3 px-4 text-right">Amount</th>
+                  <th className="py-3 px-4">{t('tx.date')}</th>
+                  <th className="py-3 px-4">{t('tx.fund')}</th>
+                  <th className="py-3 px-4">{t('tx.type')}</th>
+                  <th className="py-3 px-4">{t('tx.category')}</th>
+                  <th className="py-3 px-4">{t('tx.description')}</th>
+                  <th className="py-3 px-4 text-right">{t('tx.amount')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {filteredTransactions.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="py-8 text-center text-slate-400">
-                      No financial transactions recorded.
+                      {t('tx.no_transactions')}
                     </td>
                   </tr>
                 ) : (
@@ -275,7 +285,7 @@ export default function TransactionsPage() {
                       <tr key={tx.id} className="hover:bg-slate-50 transition">
                         <td className="py-3 px-4 text-slate-600 font-mono">{dateStr}</td>
                         <td className="py-3 px-4 font-semibold text-slate-900">
-                          {tx.fund?.name || 'Unknown Fund'}
+                          {tx.fund?.name || t('tx.unknown_fund')}
                         </td>
                         <td className="py-3 px-4">
                           <span
@@ -286,7 +296,7 @@ export default function TransactionsPage() {
                             }`}
                           >
                             {isInflow ? <ArrowDownLeft className="w-3.5 h-3.5" /> : <ArrowUpRight className="w-3.5 h-3.5" />}
-                            {isInflow ? 'Inflow (+)' : 'Outflow (-)'}
+                            {isInflow ? t('tx.type_inflow') : t('tx.type_outflow')}
                           </span>
                         </td>
                         <td className="py-3 px-4">
@@ -303,7 +313,7 @@ export default function TransactionsPage() {
                           )}
                         </td>
                         <td className={`py-3 px-4 text-right font-extrabold text-sm ${isInflow ? 'text-emerald-600' : 'text-rose-600'}`}>
-                          {isInflow ? '+' : '-'}${tx.amount.toFixed(2)}
+                          {isInflow ? '+' : '-'}{formatCurrency(tx.amount, settings)}
                         </td>
                       </tr>
                     );
@@ -320,7 +330,7 @@ export default function TransactionsPage() {
         <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h2 className="font-bold text-lg text-slate-900">Log Manual Expense / Inflow</h2>
+              <h2 className="font-bold text-lg text-slate-900">{t('tx.modal_title')}</h2>
               <button onClick={() => setIsExpenseModalOpen(false)} className="p-1 text-slate-400 hover:text-slate-600">
                 <X className="w-5 h-5" />
               </button>
@@ -328,7 +338,7 @@ export default function TransactionsPage() {
 
             <form onSubmit={handleSaveTransaction} className="space-y-4 text-xs">
               <div>
-                <label className="font-semibold text-slate-700 mb-1 block">Transaction Type *</label>
+                <label className="font-semibold text-slate-700 mb-1 block">{t('tx.modal_type_label')} *</label>
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
@@ -342,7 +352,7 @@ export default function TransactionsPage() {
                         : 'border-slate-200 bg-white text-slate-600'
                     }`}
                   >
-                    Outflow Expense (-)
+                    {t('tx.outflow_label')}
                   </button>
                   <button
                     type="button"
@@ -356,13 +366,13 @@ export default function TransactionsPage() {
                         : 'border-slate-200 bg-white text-slate-600'
                     }`}
                   >
-                    Manual Inflow (+)
+                    {t('tx.inflow_label')}
                   </button>
                 </div>
               </div>
 
               <div>
-                <label className="font-semibold text-slate-700 mb-1 block">Target Fund *</label>
+                <label className="font-semibold text-slate-700 mb-1 block">{t('tx.modal_fund_label')} *</label>
                 <select
                   value={modalFundId}
                   onChange={(e) => setModalFundId(Number(e.target.value))}
@@ -377,7 +387,7 @@ export default function TransactionsPage() {
               </div>
 
               <div>
-                <label className="font-semibold text-slate-700 mb-1 block">Category *</label>
+                <label className="font-semibold text-slate-700 mb-1 block">{t('tx.modal_category_label')} *</label>
                 <select
                   value={modalCategory}
                   onChange={(e) => setModalCategory(e.target.value)}
@@ -385,21 +395,21 @@ export default function TransactionsPage() {
                 >
                   {modalType === 'outflow' ? (
                     <>
-                      <option value="ingredient_purchase">Ingredient Purchase (Milk, Ice, Coffee Beans)</option>
-                      <option value="utility_bill">Utility Bill (Electricity, Water, Internet)</option>
-                      <option value="other">Other Expense</option>
+                      <option value="ingredient_purchase">{t('tx.cat_ingredient_purchase_detail')}</option>
+                      <option value="utility_bill">{t('tx.cat_utility_detail')}</option>
+                      <option value="other">{t('tx.cat_other_expense')}</option>
                     </>
                   ) : (
                     <>
-                      <option value="sale">Manual Sale</option>
-                      <option value="other">Other Manual Inflow</option>
+                      <option value="sale">{t('tx.cat_manual_sale')}</option>
+                      <option value="other">{t('tx.cat_other_inflow')}</option>
                     </>
                   )}
                 </select>
               </div>
 
               <div>
-                <label className="font-semibold text-slate-700 mb-1 block">Amount ($) *</label>
+                <label className="font-semibold text-slate-700 mb-1 block">{t('tx.modal_amount_label')} *</label>
                 <input
                   type="number"
                   step="0.01"
@@ -413,7 +423,7 @@ export default function TransactionsPage() {
               </div>
 
               <div>
-                <label className="font-semibold text-slate-700 mb-1 block">Description / Notes</label>
+                <label className="font-semibold text-slate-700 mb-1 block">{t('tx.modal_description_label')}</label>
                 <textarea
                   rows={2}
                   placeholder="e.g. Purchased 10L condensed milk..."
@@ -429,13 +439,13 @@ export default function TransactionsPage() {
                   onClick={() => setIsExpenseModalOpen(false)}
                   className="px-4 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl"
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </button>
                 <button
                   type="submit"
                   className="px-5 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-sm"
                 >
-                  Record Transaction
+                  {t('tx.record_btn')}
                 </button>
               </div>
             </form>

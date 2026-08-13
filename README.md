@@ -1,4 +1,4 @@
-# 🐰 ThoPOS (RabbitPOS) - Mobile-First Point of Sale & Management System
+# 🐰 RabbitPOS - Mobile-First Point of Sale & Management System
 
 > Modern, lightweight, high-performance Point of Sale (POS) and Financial Management System tailored for **Tho Juice & Coffee**. Built with Go (Clean Architecture), PostgreSQL, Next.js 14, Tailwind CSS, and optimized for LXC Container deployment on Proxmox VE 8.x/9.x.
 
@@ -118,7 +118,7 @@ Access points:
 
 ## 🌐 Production Deployment on Proxmox VE (LXC Container)
 
-ThoPOS includes a fully automated 1-command provisioning script for **Proxmox VE 8.x / 9.x**.
+RabbitPOS includes a fully automated 1-command provisioning script for **Proxmox VE 8.x / 9.x**.
 
 ### Step 1: Provision LXC Container on Proxmox Node
 Run the provisioning script on your Proxmox VE host shell:
@@ -136,8 +136,8 @@ bash scripts/setup-proxmox-lxc.sh
 
 ### Step 2: Nginx Proxy Manager & Cloudflare DNS Setup
 - Access **NPM Admin Console:** `http://<LXC_IP>:81` (Default: `admin@example.com` / `changeme`).
-- Proxy Host 1: `thopos.ndnworks.com` -> `http://127.0.0.1:3000` (Next.js Frontend).
-- Proxy Host 2: `api.thopos.ndnworks.com` -> `http://127.0.0.1:8080` (Go Backend).
+- Proxy Host 1: `rabbitpos.ndnworks.com` -> `http://127.0.0.1:3000` (Next.js Frontend).
+- Proxy Host 2: `api.rabbitpos.ndnworks.com` -> `http://127.0.0.1:8080` (Go Backend).
 
 ---
 

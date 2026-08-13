@@ -3,7 +3,7 @@ FROM golang:1.22-alpine AS builder
 
 WORKDIR /app
 
-# Install git and ca-certificates
+# Install git and ca-certificates for dependencies download
 RUN apk add --no-cache git ca-certificates
 
 # Copy dependency manifests
@@ -13,7 +13,7 @@ RUN go mod download
 # Copy source code
 COPY . .
 
-# Build statically linked binary
+# Build statically linked binary without debug symbols for smaller footprint
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o main ./cmd/server/main.go
 
 # Production runtime stage

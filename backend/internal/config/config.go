@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -21,6 +22,22 @@ type Config struct {
 	JWTSecret          string
 	JWTExpiryHours     int
 	CORSAllowedOrigins []string
+
+	// Seeding control: if true, demo catalog data is inserted on first run
+	EnableSeeding bool
+
+	// Initial admin account credentials injected from environment
+	InitialAdminUsername string
+	InitialAdminPassword string
+
+	// Initial staff account credentials (optional, only seeded in development)
+	InitialStaffUsername string
+	InitialStaffPassword string
+}
+
+// IsProduction returns true when running in production mode
+func (c *Config) IsProduction() bool {
+	return c.AppEnv == "production"
 }
 
 // LoadConfig initializes configuration from environment variables or .env file
@@ -42,9 +59,30 @@ func LoadConfig() (*Config, error) {
 	dbPassword := getEnv("DB_PASSWORD", "postgres")
 	dbName := getEnv("DB_NAME", "rabbitpos")
 	appEnv := getEnv("APP_ENV", "development")
-	jwtSecret := getEnv("JWT_SECRET", "rabbitpos-super-secret-jwt-key-2026-production")
+
+	// JWT secret: no hardcoded fallback — empty string forces validation below
+	jwtSecret := getEnv("JWT_SECRET", "")
+
 	jwtExpiryStr := getEnv("JWT_EXPIRY_HOURS", "24")
-	corsRaw := getEnv("CORS_ORIGIN", getEnv("CORS_ALLOWED_ORIGINS", "http://localhost:3000,http://10.0.0.10:3000,https://thopos.ndnworks.com"))
+	corsRaw := getEnv("CORS_ORIGIN", getEnv("CORS_ALLOWED_ORIGINS", "http://localhost:3000,http://10.0.0.10:3000"))
+
+	// Seeding configuration
+	enableSeedingStr := getEnv("ENABLE_SEEDING", "")
+	var enableSeeding bool
+	if enableSeedingStr == "" {
+		// Default: enable seeding only in non-production environments
+		enableSeeding = appEnv != "production"
+	} else {
+		enableSeeding, _ = strconv.ParseBool(enableSeedingStr)
+	}
+
+	// Initial admin credentials (required for first-time DB initialization)
+	initialAdminUsername := getEnv("INITIAL_ADMIN_USERNAME", "admin")
+	initialAdminPassword := getEnv("INITIAL_ADMIN_PASSWORD", "")
+
+	// Initial staff credentials (only for development seeding)
+	initialStaffUsername := getEnv("INITIAL_STAFF_USERNAME", "staff")
+	initialStaffPassword := getEnv("INITIAL_STAFF_PASSWORD", "")
 
 	jwtExpiryHours, err := strconv.Atoi(jwtExpiryStr)
 	if err != nil || jwtExpiryHours <= 0 {
@@ -62,19 +100,64 @@ func LoadConfig() (*Config, error) {
 	}
 
 	cfg := &Config{
-		Port:               port,
-		DBHost:             dbHost,
-		DBPort:             dbPort,
-		DBUser:             dbUser,
-		DBPassword:         dbPassword,
-		DBName:             dbName,
-		AppEnv:             appEnv,
-		JWTSecret:          jwtSecret,
-		JWTExpiryHours:     jwtExpiryHours,
-		CORSAllowedOrigins: origins,
+		Port:                 port,
+		DBHost:               dbHost,
+		DBPort:               dbPort,
+		DBUser:               dbUser,
+		DBPassword:           dbPassword,
+		DBName:               dbName,
+		AppEnv:               appEnv,
+		JWTSecret:            jwtSecret,
+		JWTExpiryHours:       jwtExpiryHours,
+		CORSAllowedOrigins:   origins,
+		EnableSeeding:        enableSeeding,
+		InitialAdminUsername: initialAdminUsername,
+		InitialAdminPassword: initialAdminPassword,
+		InitialStaffUsername: initialStaffUsername,
+		InitialStaffPassword: initialStaffPassword,
+	}
+
+	// Enforce secure JWT secret in production — fail fast rather than run insecurely
+	if err := cfg.validateSecurity(); err != nil {
+		return nil, err
 	}
 
 	return cfg, nil
+}
+
+// validateSecurity enforces critical security constraints on startup
+func (c *Config) validateSecurity() error {
+	if c.IsProduction() {
+		// JWT secret must be set and sufficiently long (at least 32 characters)
+		if c.JWTSecret == "" {
+			return fmt.Errorf("FATAL: JWT_SECRET environment variable is not set. " +
+				"Generate a strong secret with: openssl rand -hex 32")
+		}
+		if len(c.JWTSecret) < 32 {
+			return fmt.Errorf("FATAL: JWT_SECRET is too short (%d chars). "+
+				"Minimum 32 characters required for production security. "+
+				"Generate one with: openssl rand -hex 32", len(c.JWTSecret))
+		}
+
+		// Admin password must be set in production
+		if c.InitialAdminPassword == "" {
+			log.Println("WARNING: INITIAL_ADMIN_PASSWORD is not set. Admin account will not be created on first run.")
+		}
+	} else {
+		// Development: use a weak default JWT secret if not provided
+		if c.JWTSecret == "" {
+			c.JWTSecret = "rabbitpos-dev-jwt-secret-key-2026-not-for-production"
+			log.Println("WARNING: JWT_SECRET not set — using default development secret. DO NOT use in production.")
+		}
+		// Development: use default admin/staff passwords if not provided
+		if c.InitialAdminPassword == "" {
+			c.InitialAdminPassword = "admin123"
+		}
+		if c.InitialStaffPassword == "" {
+			c.InitialStaffPassword = "staff123"
+		}
+	}
+	return nil
 }
 
 // GetDSN returns PostgreSQL Connection Data Source Name

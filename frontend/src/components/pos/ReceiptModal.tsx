@@ -1,9 +1,11 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Printer, X, CheckCircle2 } from 'lucide-react';
 import { CartItem } from './VariantSelectorModal';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
+import { fetchApi } from '@/lib/api';
+import { formatCurrency, SettingsMap } from '@/lib/utils';
 
 export interface CompletedOrderData {
   order_code: string;
@@ -24,6 +26,19 @@ interface ReceiptModalProps {
 
 export default function ReceiptModal({ isOpen, onClose, order }: ReceiptModalProps) {
   const { t } = useTranslation();
+  const [settings, setSettings] = useState<SettingsMap | null>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      const loadSettings = async () => {
+        const res = await fetchApi<SettingsMap>('/settings');
+        if (res.status === 'success' && res.data) {
+          setSettings(res.data);
+        }
+      };
+      loadSettings();
+    }
+  }, [isOpen]);
 
   if (!isOpen || !order) return null;
 
@@ -34,6 +49,10 @@ export default function ReceiptModal({ isOpen, onClose, order }: ReceiptModalPro
   const formattedDate = order.created_at
     ? new Date(order.created_at).toLocaleString()
     : new Date().toLocaleString();
+
+  const storeName = settings?.store_name || 'Thỏ Juice & Coffee';
+  const storeAddress = settings?.store_address || '123 Vo Van Kiet, D1, HCMC';
+  const storePhone = settings?.store_phone || '0901234567';
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
@@ -57,9 +76,9 @@ export default function ReceiptModal({ isOpen, onClose, order }: ReceiptModalPro
         <div id="thermal-receipt" className="bg-white p-4 font-mono text-xs text-slate-900 leading-tight border border-dashed border-slate-300 rounded-2xl print:border-none print:p-0 print:m-0 print:shadow-none">
           {/* Header */}
           <div className="text-center space-y-1 pb-3 border-b border-dashed border-slate-300">
-            <h2 className="text-base font-extrabold tracking-tight uppercase">Thỏ Juice & Coffee</h2>
-            <p className="text-[10px] text-slate-600">123 Vo Van Kiet, D1, HCMC</p>
-            <p className="text-[10px] text-slate-600">Tel: 0901-234-567</p>
+            <h2 className="text-base font-extrabold tracking-tight uppercase">{storeName}</h2>
+            <p className="text-[10px] text-slate-600">{storeAddress}</p>
+            <p className="text-[10px] text-slate-600">Tel: {storePhone}</p>
             <div className="pt-2 text-[10px] font-bold text-slate-800">
               <p>{t('pos.receipt_no', { code: order.order_code })}</p>
               <p className="font-normal text-slate-500">{formattedDate}</p>
@@ -78,9 +97,9 @@ export default function ReceiptModal({ isOpen, onClose, order }: ReceiptModalPro
             {order.items.map((item, idx) => (
               <div key={idx} className="space-y-0.5">
                 <div className="flex justify-between font-bold">
-                  <span className="truncate max-w-[140px]">{item.product.name}</span>
-                  <span className="text-[10px]">{item.quantity}x ${item.unitPrice.toFixed(2)}</span>
-                  <span>${item.lineTotal.toFixed(2)}</span>
+                  <span className="truncate max-w-[130px]">{item.product.name}</span>
+                  <span className="text-[10px]">{item.quantity}x {formatCurrency(item.unitPrice, settings)}</span>
+                  <span>{formatCurrency(item.lineTotal, settings)}</span>
                 </div>
                 <div className="text-[10px] text-slate-500 pl-2">
                   <span>{t('pos.size', { size: item.selectedVariant.variant_name })}</span>
@@ -94,17 +113,17 @@ export default function ReceiptModal({ isOpen, onClose, order }: ReceiptModalPro
           <div className="py-3 border-b border-dashed border-slate-300 space-y-1 text-right">
             <div className="flex justify-between">
               <span>{t('pos.subtotal')}:</span>
-              <span>${order.subtotal.toFixed(2)}</span>
+              <span>{formatCurrency(order.subtotal, settings)}</span>
             </div>
             {order.discount > 0 && (
               <div className="flex justify-between text-rose-600">
                 <span>{t('common.discount')}:</span>
-                <span>-${order.discount.toFixed(2)}</span>
+                <span>-{formatCurrency(order.discount, settings)}</span>
               </div>
             )}
             <div className="flex justify-between font-extrabold text-sm pt-1 border-t border-slate-200 text-slate-900">
               <span>{t('common.total_amount')}:</span>
-              <span>${order.total.toFixed(2)}</span>
+              <span>{formatCurrency(order.total, settings)}</span>
             </div>
             <div className="flex justify-between text-[10px] text-slate-500 pt-1">
               <span>{t('pos.payment')}:</span>

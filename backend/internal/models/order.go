@@ -45,16 +45,16 @@ type OrderItem struct {
 // Request & Response DTOs
 
 type CreateOrderItemRequest struct {
-	ProductVariantID uint    `json:"product_variant_id" binding:"required"`
+	ProductVariantID uint    `json:"product_variant_id" binding:"required,gt=0"`
 	Quantity         int     `json:"quantity" binding:"required,gt=0"`
-	UnitPrice        float64 `json:"unit_price" binding:"required,gte=0"`
+	UnitPrice        float64 `json:"unit_price" binding:"gte=0"`
 	Notes            string  `json:"notes"`
 }
 
 type CreateOrderRequest struct {
-	FundID         uint                     `json:"fund_id" binding:"required"`
+	FundID         uint                     `json:"fund_id" binding:"required,gt=0"`
 	DiscountAmount float64                  `json:"discount_amount"`
-	Items          []CreateOrderItemRequest `json:"items" binding:"required,min=1"`
+	Items          []CreateOrderItemRequest `json:"items" binding:"required,min=1,dive"`
 	CreatedBy      string                   `json:"created_by"`
 }
 

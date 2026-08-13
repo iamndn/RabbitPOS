@@ -10,18 +10,20 @@ import {
   Trash2,
   X,
   Coffee,
-  DollarSign,
   TrendingUp,
   Percent,
-  CheckCircle,
   FolderPlus,
   Upload,
   Image as ImageIcon,
   Loader2,
+  FolderOpen,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import AppShell from '@/components/AppShell';
 import { fetchApi, getImageUrl, uploadImage } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
+import { formatCurrency, SettingsMap } from '@/lib/utils';
 
 interface Category {
   id: number;
@@ -58,13 +60,18 @@ export default function ProductsPage() {
   const [loading, setLoading] = useState<boolean>(true);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
+  const [settings, setSettings] = useState<SettingsMap | null>(null);
+
+  // Category Management Panel
+  const [catPanelOpen, setCatPanelOpen] = useState<boolean>(false);
 
   // Modal States
   const [isProductModalOpen, setIsProductModalOpen] = useState<boolean>(false);
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState<boolean>(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
 
-  // Form State
+  // Product Form State
   const [formName, setFormName] = useState<string>('');
   const [formCategoryId, setFormCategoryId] = useState<number>(0);
   const [formDescription, setFormDescription] = useState<string>('');
@@ -74,12 +81,12 @@ export default function ProductsPage() {
     { variant_name: 'Size M', cogs_price: 1.0, retail_price: 3.5, sku: '' },
   ]);
 
-  // New Category Form State
+  // Category Form State
   const [catName, setCatName] = useState<string>('');
   const [catImageUrl, setCatImageUrl] = useState<string>('');
   const [catDisplayOrder, setCatDisplayOrder] = useState<number>(1);
 
-  // Uploading states
+  // Upload states
   const [uploadingProductImg, setUploadingProductImg] = useState<boolean>(false);
   const [uploadingCatImg, setUploadingCatImg] = useState<boolean>(false);
 
@@ -111,6 +118,15 @@ export default function ProductsPage() {
 
   const loadCatalog = async () => {
     setLoading(true);
+
+    // Load settings for currency formatting
+    const settingsRes = await fetchApi<{ key: string; value: string }[]>('/settings');
+    if (settingsRes.status === 'success' && settingsRes.data) {
+      const map: SettingsMap = {};
+      settingsRes.data.forEach((s) => { map[s.key] = s.value; });
+      setSettings(map);
+    }
+
     const catRes = await fetchApi<Category[]>('/categories');
     if (catRes.status === 'success' && catRes.data) {
       setCategories(catRes.data);
@@ -130,6 +146,7 @@ export default function ProductsPage() {
     loadCatalog();
   }, []);
 
+  // ── Product Modal Helpers ──────────────────────────────────────────────────
   const openCreateModal = () => {
     setEditingProduct(null);
     setFormName('');
@@ -185,7 +202,6 @@ export default function ProductsPage() {
     if (!formName || !formCategoryId) return;
 
     if (editingProduct) {
-      // Update Product
       const res = await fetchApi<Product>(`/products/${editingProduct.id}`, {
         method: 'PUT',
         body: JSON.stringify({
@@ -196,7 +212,6 @@ export default function ProductsPage() {
           tag: formTag,
         }),
       });
-
       if (res.status === 'success') {
         loadCatalog();
         setIsProductModalOpen(false);
@@ -204,7 +219,6 @@ export default function ProductsPage() {
         alert('Failed to update product: ' + res.message);
       }
     } else {
-      // Create Product with variants
       const res = await fetchApi<Product>('/products', {
         method: 'POST',
         body: JSON.stringify({
@@ -221,7 +235,6 @@ export default function ProductsPage() {
           })),
         }),
       });
-
       if (res.status === 'success') {
         loadCatalog();
         setIsProductModalOpen(false);
@@ -231,31 +244,8 @@ export default function ProductsPage() {
     }
   };
 
-  const handleSaveCategory = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!catName) return;
-
-    const res = await fetchApi<Category>('/categories', {
-      method: 'POST',
-      body: JSON.stringify({
-        name: catName,
-        image_url: catImageUrl,
-        display_order: Number(catDisplayOrder),
-      }),
-    });
-
-    if (res.status === 'success') {
-      setCatName('');
-      setCatImageUrl('');
-      loadCatalog();
-      setIsCategoryModalOpen(false);
-    } else {
-      alert('Failed to create category: ' + res.message);
-    }
-  };
-
   const handleDeleteProduct = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this product?')) return;
+    if (!confirm(t('products.confirm_delete_product'))) return;
     const res = await fetchApi(`/products/${id}`, { method: 'DELETE' });
     if (res.status === 'success') {
       loadCatalog();
@@ -264,6 +254,71 @@ export default function ProductsPage() {
     }
   };
 
+  // ── Category Modal Helpers ─────────────────────────────────────────────────
+  const openCreateCategoryModal = () => {
+    setEditingCategory(null);
+    setCatName('');
+    setCatImageUrl('');
+    setCatDisplayOrder(categories.length + 1);
+    setIsCategoryModalOpen(true);
+  };
+
+  const openEditCategoryModal = (cat: Category) => {
+    setEditingCategory(cat);
+    setCatName(cat.name);
+    setCatImageUrl(cat.image_url || '');
+    setCatDisplayOrder(cat.display_order);
+    setIsCategoryModalOpen(true);
+  };
+
+  const handleSaveCategory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!catName) return;
+
+    if (editingCategory) {
+      const res = await fetchApi<Category>(`/categories/${editingCategory.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          name: catName,
+          image_url: catImageUrl,
+          display_order: Number(catDisplayOrder),
+        }),
+      });
+      if (res.status === 'success') {
+        loadCatalog();
+        setIsCategoryModalOpen(false);
+      } else {
+        alert('Failed to update category: ' + res.message);
+      }
+    } else {
+      const res = await fetchApi<Category>('/categories', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: catName,
+          image_url: catImageUrl,
+          display_order: Number(catDisplayOrder),
+        }),
+      });
+      if (res.status === 'success') {
+        loadCatalog();
+        setIsCategoryModalOpen(false);
+      } else {
+        alert('Failed to create category: ' + res.message);
+      }
+    }
+  };
+
+  const handleDeleteCategory = async (id: number) => {
+    if (!confirm(t('products.confirm_delete_category'))) return;
+    const res = await fetchApi(`/categories/${id}`, { method: 'DELETE' });
+    if (res.status === 'success') {
+      loadCatalog();
+    } else {
+      alert('Failed to delete category: ' + res.message);
+    }
+  };
+
+  // ── Filtering ──────────────────────────────────────────────────────────────
   const filteredProducts = products.filter((p) => {
     const matchesSearch =
       p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -288,7 +343,7 @@ export default function ProductsPage() {
           </div>
           <div className="flex items-center space-x-2">
             <button
-              onClick={() => setIsCategoryModalOpen(true)}
+              onClick={openCreateCategoryModal}
               className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-3 py-2.5 rounded-xl border border-slate-200 flex items-center gap-1.5 transition"
             >
               <FolderPlus className="w-4 h-4 text-slate-500" /> + {t('products.add_category')}
@@ -300,6 +355,80 @@ export default function ProductsPage() {
               <Plus className="w-4 h-4" /> {t('products.add_product')}
             </button>
           </div>
+        </div>
+
+        {/* Category Management Panel */}
+        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+          <button
+            onClick={() => setCatPanelOpen(!catPanelOpen)}
+            className="w-full flex items-center justify-between px-5 py-3.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition"
+          >
+            <span className="flex items-center gap-2">
+              <FolderOpen className="w-4 h-4 text-indigo-500" />
+              {t('products.manage_categories')}
+              <span className="bg-indigo-50 text-indigo-600 text-[11px] font-bold px-2 py-0.5 rounded-full border border-indigo-200">
+                {categories.length}
+              </span>
+            </span>
+            {catPanelOpen ? (
+              <ChevronUp className="w-4 h-4 text-slate-400" />
+            ) : (
+              <ChevronDown className="w-4 h-4 text-slate-400" />
+            )}
+          </button>
+
+          {catPanelOpen && (
+            <div className="border-t border-slate-100 divide-y divide-slate-100">
+              {categories.length === 0 ? (
+                <p className="text-xs text-slate-400 text-center py-6">
+                  No categories yet. Click "+ Add Category" to create one.
+                </p>
+              ) : (
+                categories.map((cat) => (
+                  <div
+                    key={cat.id}
+                    className="flex items-center justify-between px-5 py-3 hover:bg-slate-50 transition"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center overflow-hidden shrink-0">
+                        {getImageUrl(cat.image_url) ? (
+                          <img
+                            src={getImageUrl(cat.image_url)!}
+                            alt={cat.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <FolderOpen className="w-4 h-4 text-slate-400" />
+                        )}
+                      </div>
+                      <div>
+                        <span className="text-sm font-semibold text-slate-800">{cat.name}</span>
+                        <span className="ml-2 text-xs text-slate-400">
+                          #{cat.display_order} · {products.filter((p) => p.category_id === cat.id).length} items
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => openEditCategoryModal(cat)}
+                        className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition"
+                        title={t('products.edit_category')}
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteCategory(cat.id)}
+                        className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
+                        title={t('products.delete_category')}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
         </div>
 
         {/* Filter Controls Bar */}
@@ -360,7 +489,7 @@ export default function ProductsPage() {
                 {filteredProducts.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="py-8 text-center text-slate-400">
-                      No catalog items found. Click "+ Add Product" to create your first menu item.
+                      {t('products.no_items')}
                     </td>
                   </tr>
                 ) : (
@@ -393,29 +522,29 @@ export default function ProductsPage() {
                                 )}
                               </div>
                               <span className="text-slate-400 text-[11px] truncate max-w-xs block">
-                                {product.description || 'No description'}
+                                {product.description || t('products.no_description')}
                               </span>
                             </div>
                           </div>
                         </td>
                         <td className="py-3 px-4 font-medium text-slate-700">
-                          {product.category?.name || 'Unassigned'}
+                          {product.category?.name || t('products.unassigned')}
                         </td>
                         <td className="py-3 px-4">
                           <div className="flex flex-wrap gap-1">
                             {variants.map((v) => (
                               <span key={v.id || v.variant_name} className="bg-slate-100 text-slate-700 text-[11px] px-2 py-0.5 rounded border border-slate-200">
-                                {v.variant_name}: <strong className="text-indigo-600">${v.retail_price.toFixed(2)}</strong>
+                                {v.variant_name}: <strong className="text-indigo-600">{formatCurrency(v.retail_price, settings)}</strong>
                               </span>
                             ))}
                           </div>
                         </td>
                         <td className="py-3 px-4">
                           <div className="text-slate-900 font-semibold">
-                            ${minRetail.toFixed(2)} {maxRetail > minRetail ? `- $${maxRetail.toFixed(2)}` : ''}
+                            {formatCurrency(minRetail, settings)}{maxRetail > minRetail ? ` – ${formatCurrency(maxRetail, settings)}` : ''}
                           </div>
                           <div className="text-slate-400 text-[11px]">
-                            Avg COGS: ${avgCogs.toFixed(2)}
+                            Avg COGS: {formatCurrency(avgCogs, settings)}
                           </div>
                         </td>
                         <td className="py-3 px-4 font-bold">
@@ -436,14 +565,14 @@ export default function ProductsPage() {
                             <button
                               onClick={() => openEditModal(product)}
                               className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition"
-                              title="Edit Product"
+                              title={t('products.edit_product')}
                             >
                               <Edit2 className="w-4 h-4" />
                             </button>
                             <button
                               onClick={() => handleDeleteProduct(product.id)}
                               className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
-                              title="Delete Product"
+                              title={t('common.delete')}
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
@@ -465,7 +594,7 @@ export default function ProductsPage() {
           <div className="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h2 className="font-bold text-lg text-slate-900">
-                {editingProduct ? 'Edit Product' : 'Create New Product'}
+                {editingProduct ? t('products.edit_product') : t('products.create_product')}
               </h2>
               <button
                 onClick={() => setIsProductModalOpen(false)}
@@ -478,7 +607,9 @@ export default function ProductsPage() {
             <form onSubmit={handleSaveProduct} className="space-y-4 text-xs">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="font-semibold text-slate-700 mb-1 block">Product Name *</label>
+                  <label className="font-semibold text-slate-700 mb-1 block">
+                    {t('products.product_name')} *
+                  </label>
                   <input
                     type="text"
                     required
@@ -489,7 +620,9 @@ export default function ProductsPage() {
                   />
                 </div>
                 <div>
-                  <label className="font-semibold text-slate-700 mb-1 block">Category *</label>
+                  <label className="font-semibold text-slate-700 mb-1 block">
+                    {t('products.category')} *
+                  </label>
                   <select
                     value={formCategoryId}
                     onChange={(e) => setFormCategoryId(Number(e.target.value))}
@@ -505,7 +638,7 @@ export default function ProductsPage() {
               </div>
 
               <div>
-                <label className="font-semibold text-slate-700 mb-1 block">Description</label>
+                <label className="font-semibold text-slate-700 mb-1 block">{t('products.description')}</label>
                 <textarea
                   rows={2}
                   value={formDescription}
@@ -516,7 +649,7 @@ export default function ProductsPage() {
               </div>
 
               <div>
-                <label className="font-semibold text-slate-700 mb-1 block">Product Image</label>
+                <label className="font-semibold text-slate-700 mb-1 block">{t('products.image_url')}</label>
                 <div className="flex items-center space-x-3">
                   <div className="w-14 h-14 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center overflow-hidden shrink-0 relative">
                     {getImageUrl(formImageUrl) ? (
@@ -532,7 +665,7 @@ export default function ProductsPage() {
                   </div>
                   <div className="flex-1 space-y-1.5">
                     <label className="cursor-pointer bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-3 py-1.5 rounded-xl border border-slate-200 inline-flex items-center gap-1.5 transition">
-                      <Upload className="w-3.5 h-3.5" /> Upload Image File
+                      <Upload className="w-3.5 h-3.5" /> {t('products.upload_image')}
                       <input type="file" accept="image/*" onChange={handleProductFileChange} className="hidden" />
                     </label>
                     <input
@@ -547,29 +680,29 @@ export default function ProductsPage() {
               </div>
 
               <div>
-                <label className="font-semibold text-slate-700 mb-1 block">Tag / Badge</label>
+                <label className="font-semibold text-slate-700 mb-1 block">{t('products.badge')}</label>
                 <select
                   value={formTag}
                   onChange={(e) => setFormTag(e.target.value)}
                   className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 >
-                  <option value="none">None</option>
-                  <option value="best_seller">Best Seller</option>
-                  <option value="new">New</option>
+                  <option value="none">{t('products.none')}</option>
+                  <option value="best_seller">{t('products.best_seller')}</option>
+                  <option value="new">{t('products.new')}</option>
                 </select>
               </div>
 
-              {/* Variants Section */}
+              {/* Variants Section (Create only) */}
               {!editingProduct && (
                 <div className="space-y-2 border-t border-slate-100 pt-3">
                   <div className="flex items-center justify-between">
-                    <label className="font-bold text-slate-800">Product Variants & Pricing</label>
+                    <label className="font-bold text-slate-800">{t('products.variants_pricing_label')}</label>
                     <button
                       type="button"
                       onClick={handleAddVariantRow}
                       className="text-indigo-600 font-semibold text-xs hover:underline flex items-center gap-1"
                     >
-                      <Plus className="w-3.5 h-3.5" /> Add Variant
+                      <Plus className="w-3.5 h-3.5" /> {t('products.add_variant')}
                     </button>
                   </div>
 
@@ -584,7 +717,7 @@ export default function ProductsPage() {
                         <div key={idx} className="flex flex-col sm:flex-row items-center gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
                           <input
                             type="text"
-                            placeholder="Name (e.g. Size M)"
+                            placeholder={t('products.variant_name_label')}
                             value={v.variant_name}
                             onChange={(e) => handleVariantChange(idx, 'variant_name', e.target.value)}
                             className="flex-1 p-2 border border-slate-200 rounded-lg text-xs"
@@ -594,7 +727,7 @@ export default function ProductsPage() {
                             <input
                               type="number"
                               step="0.01"
-                              placeholder="Retail $"
+                              placeholder={t('products.retail_price_label')}
                               value={v.retail_price}
                               onChange={(e) => handleVariantChange(idx, 'retail_price', parseFloat(e.target.value) || 0)}
                               className="w-24 p-2 border border-slate-200 rounded-lg text-xs"
@@ -603,7 +736,7 @@ export default function ProductsPage() {
                             <input
                               type="number"
                               step="0.01"
-                              placeholder="COGS $"
+                              placeholder={t('products.cogs_price_label')}
                               value={v.cogs_price}
                               onChange={(e) => handleVariantChange(idx, 'cogs_price', parseFloat(e.target.value) || 0)}
                               className="w-24 p-2 border border-slate-200 rounded-lg text-xs"
@@ -633,13 +766,13 @@ export default function ProductsPage() {
                   onClick={() => setIsProductModalOpen(false)}
                   className="px-4 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl"
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </button>
                 <button
                   type="submit"
                   className="px-5 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-sm"
                 >
-                  Save Product
+                  {t('products.save_product_btn')}
                 </button>
               </div>
             </form>
@@ -647,12 +780,14 @@ export default function ProductsPage() {
         </div>
       )}
 
-      {/* New Category Modal */}
+      {/* Category Form Modal (Create & Edit) */}
       {isCategoryModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h2 className="font-bold text-lg text-slate-900">Add New Category</h2>
+              <h2 className="font-bold text-lg text-slate-900">
+                {editingCategory ? t('products.edit_category') : t('products.add_category')}
+              </h2>
               <button
                 onClick={() => setIsCategoryModalOpen(false)}
                 className="p-1 text-slate-400 hover:text-slate-600 rounded-lg"
@@ -663,7 +798,7 @@ export default function ProductsPage() {
 
             <form onSubmit={handleSaveCategory} className="space-y-4 text-xs">
               <div>
-                <label className="font-semibold text-slate-700 mb-1 block">Category Name *</label>
+                <label className="font-semibold text-slate-700 mb-1 block">{t('products.category_name')} *</label>
                 <input
                   type="text"
                   required
@@ -675,7 +810,7 @@ export default function ProductsPage() {
               </div>
 
               <div>
-                <label className="font-semibold text-slate-700 mb-1 block">Category Image</label>
+                <label className="font-semibold text-slate-700 mb-1 block">{t('products.image_url')}</label>
                 <div className="flex items-center space-x-3">
                   <div className="w-12 h-12 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center overflow-hidden shrink-0 relative">
                     {getImageUrl(catImageUrl) ? (
@@ -691,7 +826,7 @@ export default function ProductsPage() {
                   </div>
                   <div className="flex-1 space-y-1.5">
                     <label className="cursor-pointer bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-3 py-1.5 rounded-xl border border-slate-200 inline-flex items-center gap-1.5 transition">
-                      <Upload className="w-3.5 h-3.5" /> Upload Image File
+                      <Upload className="w-3.5 h-3.5" /> {t('products.upload_image')}
                       <input type="file" accept="image/*" onChange={handleCatFileChange} className="hidden" />
                     </label>
                     <input
@@ -706,7 +841,7 @@ export default function ProductsPage() {
               </div>
 
               <div>
-                <label className="font-semibold text-slate-700 mb-1 block">Display Order</label>
+                <label className="font-semibold text-slate-700 mb-1 block">{t('products.display_order')}</label>
                 <input
                   type="number"
                   value={catDisplayOrder}
@@ -715,19 +850,19 @@ export default function ProductsPage() {
                 />
               </div>
 
-              <div className="flex justify-end space-x-2 pt-2">
+              <div className="flex justify-end space-x-2 pt-2 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setIsCategoryModalOpen(false)}
                   className="px-4 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl"
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </button>
                 <button
                   type="submit"
                   className="px-5 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-sm"
                 >
-                  Create Category
+                  {editingCategory ? t('products.save_category_btn') : t('products.create_category_btn')}
                 </button>
               </div>
             </form>

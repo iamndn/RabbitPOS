@@ -138,7 +138,7 @@ export default function PosPage() {
 
     const payload = {
       fund_id: fundIdNum,
-      discount_amount: Number(discountAmount),
+      discount_amount: Number(discountAmount) || 0,
       created_by: 'Cashier Staff',
       items: cartItems.map((ci) => ({
         product_variant_id: Number(ci.selectedVariant.id),

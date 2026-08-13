@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { X, Minus, Plus, Check } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
+import { getImageUrl } from '@/lib/api';
 
 export interface ProductVariant {
   id: number;
@@ -114,8 +115,8 @@ export default function VariantSelectorModal({ product, onClose, onAddToCart }: 
         <div className="flex items-start justify-between border-b border-slate-100 pb-3">
           <div className="flex items-center space-x-3">
             <div className="w-14 h-14 rounded-2xl bg-slate-100 overflow-hidden border border-slate-200 flex-shrink-0">
-              {product.image_url ? (
-                <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
+              {getImageUrl(product.image_url) ? (
+                <img src={getImageUrl(product.image_url)!} alt={product.name} className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-slate-400 font-bold text-lg">
                   {product.name[0]}

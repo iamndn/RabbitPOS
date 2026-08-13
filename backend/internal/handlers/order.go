@@ -69,7 +69,10 @@ func (h *OrderHandler) GetOrderByID(c *gin.Context) {
 func (h *OrderHandler) CreateOrder(c *gin.Context) {
 	var req models.CreateOrderRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		models.SendError(c, http.StatusBadRequest, "Invalid request payload: "+err.Error())
+		c.JSON(http.StatusBadRequest, models.ResponseEnvelope{
+			Status:  "error",
+			Message: "Invalid order payload: " + err.Error(),
+		})
 		return
 	}
 
@@ -182,9 +185,30 @@ func (h *OrderHandler) GetVietQR(c *gin.Context) {
 		orderCode = fmt.Sprintf("POS-%d", time.Now().Unix())
 	}
 
+	// Fetch VietQR settings from DB with default fallbacks
 	bankID := "MB"
-	accountNo := "0335889999"
+	accountNo := "123456789"
 	accountName := "THO JUICE AND COFFEE"
+
+	var settings []models.Setting
+	if err := h.db.Where("key IN ?", []string{"vietqr_bank_id", "vietqr_account_no", "vietqr_account_name"}).Find(&settings).Error; err == nil {
+		for _, s := range settings {
+			switch s.Key {
+			case "vietqr_bank_id":
+				if s.Value != "" {
+					bankID = s.Value
+				}
+			case "vietqr_account_no":
+				if s.Value != "" {
+					accountNo = s.Value
+				}
+			case "vietqr_account_name":
+				if s.Value != "" {
+					accountName = s.Value
+				}
+			}
+		}
+	}
 
 	addInfoEscaped := url.QueryEscape(orderCode)
 	accountNameEscaped := url.QueryEscape(accountName)

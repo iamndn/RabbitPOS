@@ -2,4 +2,17 @@ node_modules/
 frontend/node_modules/
 .next/
 frontend/.next/
+
+# Local environment files (never commit real credentials)
 .env
+.env.local
+
+# Production environment files contain real secrets — NEVER commit these
+.env.production
+backend/.env.production
+frontend/.env.production
+*.env.production
+
+# Compiled Go binary
+backend/main
+backend/main.exe
