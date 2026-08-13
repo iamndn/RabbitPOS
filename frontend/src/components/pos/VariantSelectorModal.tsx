@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { X, Minus, Plus, Check } from 'lucide-react';
+import { useTranslation } from '@/lib/i18n/LanguageContext';
 
 export interface ProductVariant {
   id: number;
@@ -43,6 +44,7 @@ interface Props {
 }
 
 export default function VariantSelectorModal({ product, onClose, onAddToCart }: Props) {
+  const { t } = useTranslation();
   const defaultVariant = product.variants?.[0] || {
     id: 0,
     product_id: product.id,
@@ -122,7 +124,7 @@ export default function VariantSelectorModal({ product, onClose, onAddToCart }: 
             </div>
             <div>
               <h3 className="font-bold text-slate-900 text-base leading-tight">{product.name}</h3>
-              <p className="text-xs text-slate-500 line-clamp-1">{product.description || 'Customizable beverage'}</p>
+              <p className="text-xs text-slate-500 line-clamp-1">{product.description || t('pos.select_variant')}</p>
             </div>
           </div>
           <button onClick={onClose} className="p-1.5 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100">
@@ -132,7 +134,7 @@ export default function VariantSelectorModal({ product, onClose, onAddToCart }: 
 
         {/* 1. Size / Variant Selection */}
         <div className="space-y-2">
-          <label className="text-xs font-bold text-slate-800 uppercase tracking-wider block">Size / Option *</label>
+          <label className="text-xs font-bold text-slate-800 uppercase tracking-wider block">{t('pos.select_variant')}</label>
           <div className="grid grid-cols-2 gap-2">
             {product.variants?.map((v) => (
               <button
@@ -157,7 +159,7 @@ export default function VariantSelectorModal({ product, onClose, onAddToCart }: 
 
         {/* 2. Sugar Level */}
         <div className="space-y-1.5">
-          <label className="text-xs font-bold text-slate-800 uppercase tracking-wider block">Sugar Level</label>
+          <label className="text-xs font-bold text-slate-800 uppercase tracking-wider block">Sugar / Đường</label>
           <div className="grid grid-cols-4 gap-1.5">
             {['100%', '70%', '50%', '30%'].map((lvl) => (
               <button
@@ -178,7 +180,7 @@ export default function VariantSelectorModal({ product, onClose, onAddToCart }: 
 
         {/* 3. Ice Level */}
         <div className="space-y-1.5">
-          <label className="text-xs font-bold text-slate-800 uppercase tracking-wider block">Ice Level</label>
+          <label className="text-xs font-bold text-slate-800 uppercase tracking-wider block">Ice / Đá</label>
           <div className="grid grid-cols-4 gap-1.5">
             {['100%', '70%', '50%', '30%'].map((lvl) => (
               <button
@@ -199,7 +201,7 @@ export default function VariantSelectorModal({ product, onClose, onAddToCart }: 
 
         {/* 4. Extra Toppings */}
         <div className="space-y-1.5">
-          <label className="text-xs font-bold text-slate-800 uppercase tracking-wider block">Extra Toppings</label>
+          <label className="text-xs font-bold text-slate-800 uppercase tracking-wider block">Toppings</label>
           <div className="space-y-1.5">
             {availableToppings.map((topping) => {
               const isSelected = selectedToppings.includes(topping.name);
@@ -244,7 +246,7 @@ export default function VariantSelectorModal({ product, onClose, onAddToCart }: 
             onClick={handleAdd}
             className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-xl shadow-md transition flex items-center justify-between text-sm"
           >
-            <span>Add to Order</span>
+            <span>{t('pos.add_to_order')}</span>
             <span>${lineTotal.toFixed(2)}</span>
           </button>
         </div>

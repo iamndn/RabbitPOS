@@ -44,7 +44,7 @@ func LoadConfig() (*Config, error) {
 	appEnv := getEnv("APP_ENV", "development")
 	jwtSecret := getEnv("JWT_SECRET", "rabbitpos-super-secret-jwt-key-2026-production")
 	jwtExpiryStr := getEnv("JWT_EXPIRY_HOURS", "24")
-	corsRaw := getEnv("CORS_ORIGIN", getEnv("CORS_ALLOWED_ORIGINS", "http://localhost:3000,http://rabbitpos.ndnworks.com"))
+	corsRaw := getEnv("CORS_ORIGIN", getEnv("CORS_ALLOWED_ORIGINS", "http://localhost:3000,http://10.0.0.10:3000,https://thopos.ndnworks.com"))
 
 	jwtExpiryHours, err := strconv.Atoi(jwtExpiryStr)
 	if err != nil || jwtExpiryHours <= 0 {
@@ -54,6 +54,8 @@ func LoadConfig() (*Config, error) {
 	var origins []string
 	for _, o := range strings.Split(corsRaw, ",") {
 		trimmed := strings.TrimSpace(o)
+		trimmed = strings.Trim(trimmed, "\"'")
+		trimmed = strings.TrimRight(trimmed, "/")
 		if trimmed != "" {
 			origins = append(origins, trimmed)
 		}

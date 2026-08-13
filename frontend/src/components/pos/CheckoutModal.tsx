@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Wallet, Building2, Check, ArrowRight, RefreshCw } from 'lucide-react';
 import { fetchApi } from '@/lib/api';
+import { useTranslation } from '@/lib/i18n/LanguageContext';
 
 export interface Fund {
   id: number;
@@ -14,7 +15,7 @@ export interface Fund {
 interface Props {
   totalAmount: number;
   onClose: () => void;
-  onConfirmCashPayment: (fundId: number) => void;
+  onConfirmCashPayment: (fundId: number) => Promise<void> | void;
   onSelectBankTransfer: (fundId: number) => void;
 }
 
@@ -24,9 +25,11 @@ export default function CheckoutModal({
   onConfirmCashPayment,
   onSelectBankTransfer,
 }: Props) {
+  const { t } = useTranslation();
   const [funds, setFunds] = useState<Fund[]>([]);
   const [selectedFundId, setSelectedFundId] = useState<number | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   useEffect(() => {
     const loadFunds = async () => {
@@ -45,13 +48,18 @@ export default function CheckoutModal({
 
   const selectedFund = funds.find((f) => f.id === selectedFundId);
 
-  const handleProceed = () => {
-    if (!selectedFundId || !selectedFund) return;
+  const handleProceed = async () => {
+    if (!selectedFundId || !selectedFund || isSubmitting) return;
 
     if (selectedFund.fund_type === 'bank') {
       onSelectBankTransfer(selectedFundId);
     } else {
-      onConfirmCashPayment(selectedFundId);
+      setIsSubmitting(true);
+      try {
+        await onConfirmCashPayment(selectedFundId);
+      } finally {
+        setIsSubmitting(false);
+      }
     }
   };
 
@@ -61,23 +69,23 @@ export default function CheckoutModal({
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
           <div>
-            <h2 className="font-bold text-lg text-slate-900">Select Payment Method</h2>
-            <p className="text-xs text-slate-500">Choose destination fund for order inflow</p>
+            <h2 className="font-bold text-lg text-slate-900">{t('pos.select_payment_method')}</h2>
+            <p className="text-xs text-slate-500">{t('pos.choose_target_fund')}</p>
           </div>
-          <button onClick={onClose} className="p-1.5 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100">
+          <button onClick={onClose} disabled={isSubmitting} className="p-1.5 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 disabled:opacity-50">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Total Amount Display */}
         <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-4 text-center">
-          <span className="text-xs font-semibold uppercase text-indigo-600 tracking-wider">Total Payable</span>
+          <span className="text-xs font-semibold uppercase text-indigo-600 tracking-wider">{t('pos.total_payable')}</span>
           <div className="text-3xl font-extrabold text-indigo-900 mt-1">${totalAmount.toFixed(2)}</div>
         </div>
 
         {/* Fund Selection */}
         <div className="space-y-2">
-          <label className="text-xs font-bold text-slate-800 uppercase tracking-wider block">Target Fund / Method</label>
+          <label className="text-xs font-bold text-slate-800 uppercase tracking-wider block">{t('pos.target_fund_method')}</label>
           {loading ? (
             <div className="flex justify-center py-6">
               <RefreshCw className="w-6 h-6 text-indigo-600 animate-spin" />
@@ -92,6 +100,7 @@ export default function CheckoutModal({
                   <button
                     key={fund.id}
                     type="button"
+                    disabled={isSubmitting}
                     onClick={() => setSelectedFundId(fund.id)}
                     className={`w-full p-3.5 rounded-2xl border text-left flex items-center justify-between transition ${
                       isSelected
@@ -104,8 +113,10 @@ export default function CheckoutModal({
                         {isBank ? <Building2 className="w-5 h-5" /> : <Wallet className="w-5 h-5" />}
                       </div>
                       <div>
-                        <span className="block font-bold text-sm text-slate-900">{fund.name}</span>
-                        <span className="text-xs text-slate-500 capitalize">{fund.fund_type} Payment</span>
+                        <span className="block font-bold text-sm text-slate-900">
+                          {isBank ? t('pos.bank_transfer') : t('pos.cash_drawer')} ({fund.name})
+                        </span>
+                        <span className="text-xs text-slate-500 capitalize">{fund.fund_type}</span>
                       </div>
                     </div>
                     {isSelected && <Check className="w-5 h-5 text-indigo-600" />}
@@ -120,11 +131,24 @@ export default function CheckoutModal({
         <div className="pt-2">
           <button
             onClick={handleProceed}
-            disabled={!selectedFundId}
+            disabled={!selectedFundId || isSubmitting}
             className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 text-white font-bold py-3.5 px-4 rounded-xl shadow-lg transition flex items-center justify-center space-x-2 text-sm"
           >
-            <span>{selectedFund?.fund_type === 'bank' ? 'Generate VietQR Transfer' : 'Complete Cash Payment'}</span>
-            <ArrowRight className="w-4 h-4" />
+            {isSubmitting ? (
+              <>
+                <RefreshCw className="w-4 h-4 animate-spin" />
+                <span>{t('pos.processing')}</span>
+              </>
+            ) : (
+              <>
+                <span>
+                  {selectedFund?.fund_type === 'bank'
+                    ? t('pos.generate_vietqr')
+                    : t('pos.complete_cash_payment')}
+                </span>
+                <ArrowRight className="w-4 h-4" />
+              </>
+            )}
           </button>
         </div>
       </div>

@@ -3,6 +3,7 @@
 import React from 'react';
 import { X, Trash2, Minus, Plus, ShoppingBag, ArrowRight, Tag } from 'lucide-react';
 import { CartItem } from './VariantSelectorModal';
+import { useTranslation } from '@/lib/i18n/LanguageContext';
 
 interface Props {
   isOpen: boolean;
@@ -25,6 +26,7 @@ export default function CartDrawer({
   onDiscountChange,
   onProceedCheckout,
 }: Props) {
+  const { t } = useTranslation();
   if (!isOpen) return null;
 
   const subtotal = cartItems.reduce((acc, item) => acc + item.lineTotal, 0);
@@ -37,9 +39,9 @@ export default function CartDrawer({
         <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
           <div className="flex items-center space-x-2">
             <ShoppingBag className="w-5 h-5 text-indigo-600" />
-            <h2 className="font-bold text-slate-900 text-base">Current Order Cart</h2>
+            <h2 className="font-bold text-slate-900 text-base">{t('pos.view_cart')}</h2>
             <span className="bg-indigo-100 text-indigo-700 text-xs font-bold px-2 py-0.5 rounded-full">
-              {cartItems.reduce((acc, i) => acc + i.quantity, 0)} items
+              {t('pos.items_count', { count: cartItems.reduce((acc, i) => acc + i.quantity, 0) })}
             </span>
           </div>
           <button
@@ -55,8 +57,7 @@ export default function CartDrawer({
           {cartItems.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-center p-8 text-slate-400">
               <ShoppingBag className="w-16 h-16 opacity-30 mb-2" />
-              <p className="font-semibold text-sm text-slate-600">Your cart is empty</p>
-              <p className="text-xs text-slate-400 mt-1">Tap products on the menu grid to add items to your order.</p>
+              <p className="font-semibold text-sm text-slate-600">{t('pos.no_drinks')}</p>
             </div>
           ) : (
             cartItems.map((item) => (
@@ -115,7 +116,7 @@ export default function CartDrawer({
             {/* Discount Row */}
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-slate-600 flex items-center gap-1">
-                <Tag className="w-3.5 h-3.5 text-indigo-500" /> Discount ($)
+                <Tag className="w-3.5 h-3.5 text-indigo-500" /> {t('pos.discount')}
               </span>
               <input
                 type="number"
@@ -131,17 +132,17 @@ export default function CartDrawer({
             {/* Totals */}
             <div className="space-y-1 pt-1 border-t border-slate-200/60 text-xs">
               <div className="flex justify-between text-slate-500">
-                <span>Subtotal</span>
+                <span>{t('common.subtotal')}</span>
                 <span>${subtotal.toFixed(2)}</span>
               </div>
               {discountAmount > 0 && (
                 <div className="flex justify-between text-rose-600 font-medium">
-                  <span>Discount</span>
+                  <span>{t('common.discount')}</span>
                   <span>-${discountAmount.toFixed(2)}</span>
                 </div>
               )}
               <div className="flex justify-between text-slate-900 font-bold text-base pt-1 border-t border-slate-200">
-                <span>Total Amount</span>
+                <span>{t('common.total_amount')}</span>
                 <span className="text-indigo-600">${total.toFixed(2)}</span>
               </div>
             </div>
@@ -150,7 +151,7 @@ export default function CartDrawer({
               onClick={onProceedCheckout}
               className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 px-4 rounded-xl shadow-lg transition flex items-center justify-center space-x-2 text-sm"
             >
-              <span>Checkout Order</span>
+              <span>{t('pos.checkout')}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>

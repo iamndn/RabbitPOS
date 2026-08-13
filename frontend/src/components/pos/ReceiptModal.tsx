@@ -61,18 +61,18 @@ export default function ReceiptModal({ isOpen, onClose, order }: ReceiptModalPro
             <p className="text-[10px] text-slate-600">123 Vo Van Kiet, D1, HCMC</p>
             <p className="text-[10px] text-slate-600">Tel: 0901-234-567</p>
             <div className="pt-2 text-[10px] font-bold text-slate-800">
-              <p>Receipt #{order.order_code}</p>
+              <p>{t('pos.receipt_no', { code: order.order_code })}</p>
               <p className="font-normal text-slate-500">{formattedDate}</p>
-              <p className="font-normal text-slate-500">Cashier: {order.created_by || 'Staff'}</p>
+              <p className="font-normal text-slate-500">{t('pos.cashier', { name: order.created_by || 'Staff' })}</p>
             </div>
           </div>
 
           {/* Itemized Table */}
           <div className="py-3 border-b border-dashed border-slate-300 space-y-2">
             <div className="flex justify-between font-bold text-[10px] uppercase border-b border-slate-200 pb-1">
-              <span>Item</span>
-              <span>Qty x Price</span>
-              <span>Total</span>
+              <span>{t('pos.item')}</span>
+              <span>{t('pos.qty_price')}</span>
+              <span>{t('pos.line_total')}</span>
             </div>
 
             {order.items.map((item, idx) => (
@@ -83,8 +83,8 @@ export default function ReceiptModal({ isOpen, onClose, order }: ReceiptModalPro
                   <span>${item.lineTotal.toFixed(2)}</span>
                 </div>
                 <div className="text-[10px] text-slate-500 pl-2">
-                  <span>Size: {item.selectedVariant.variant_name}</span>
-                  {item.notes && <span className="block italic">Note: {item.notes}</span>}
+                  <span>{t('pos.size', { size: item.selectedVariant.variant_name })}</span>
+                  {item.notes && <span className="block italic">{t('pos.note', { note: item.notes })}</span>}
                 </div>
               </div>
             ))}
@@ -93,29 +93,29 @@ export default function ReceiptModal({ isOpen, onClose, order }: ReceiptModalPro
           {/* Totals Summary */}
           <div className="py-3 border-b border-dashed border-slate-300 space-y-1 text-right">
             <div className="flex justify-between">
-              <span>Subtotal:</span>
+              <span>{t('pos.subtotal')}:</span>
               <span>${order.subtotal.toFixed(2)}</span>
             </div>
             {order.discount > 0 && (
               <div className="flex justify-between text-rose-600">
-                <span>Discount:</span>
+                <span>{t('common.discount')}:</span>
                 <span>-${order.discount.toFixed(2)}</span>
               </div>
             )}
             <div className="flex justify-between font-extrabold text-sm pt-1 border-t border-slate-200 text-slate-900">
-              <span>TOTAL:</span>
+              <span>{t('common.total_amount')}:</span>
               <span>${order.total.toFixed(2)}</span>
             </div>
             <div className="flex justify-between text-[10px] text-slate-500 pt-1">
-              <span>Payment:</span>
+              <span>{t('pos.payment')}:</span>
               <span className="font-bold uppercase">{order.payment_method || 'Cash'}</span>
             </div>
           </div>
 
           {/* Footer Thank You */}
           <div className="text-center pt-3 text-[10px] text-slate-500 space-y-1">
-            <p className="font-bold text-slate-700">Cảm ơn quý khách & Hẹn gặp lại!</p>
-            <p className="italic">Thank you for visiting Tho Juice & Coffee!</p>
+            <p className="font-bold text-slate-700">{t('pos.thank_you_title')}</p>
+            <p className="italic">{t('pos.thank_you_sub')}</p>
           </div>
         </div>
 
@@ -126,13 +126,13 @@ export default function ReceiptModal({ isOpen, onClose, order }: ReceiptModalPro
             className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-xl shadow-md transition flex items-center justify-center space-x-2 text-xs"
           >
             <Printer className="w-4 h-4" />
-            <span>Print Thermal Receipt</span>
+            <span>{t('pos.print_receipt')}</span>
           </button>
           <button
             onClick={onClose}
             className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-3 px-4 rounded-xl text-xs transition"
           >
-            Close
+            {t('common.close')}
           </button>
         </div>
       </div>

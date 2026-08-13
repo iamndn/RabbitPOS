@@ -1,6 +1,9 @@
 package middleware
 
 import (
+	"net/http"
+	"strings"
+
 	"github.com/RabbitPOS/backend/internal/config"
 	"github.com/gin-gonic/gin"
 )
@@ -9,13 +12,17 @@ import (
 func CORSMiddleware(cfg *config.Config) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		origin := c.Request.Header.Get("Origin")
+
 		if origin != "" {
 			allowed := false
+			reqOriginClean := strings.TrimRight(strings.TrimSpace(origin), "/")
+
 			if cfg.AppEnv == "development" {
 				allowed = true
 			} else {
 				for _, o := range cfg.CORSAllowedOrigins {
-					if o == "*" || o == origin {
+					cleanO := strings.TrimRight(strings.TrimSpace(o), "/")
+					if cleanO == "*" || cleanO == reqOriginClean {
 						allowed = true
 						break
 					}
@@ -31,9 +38,9 @@ func CORSMiddleware(cfg *config.Config) gin.HandlerFunc {
 			}
 		}
 
-		// Handle preflight OPTIONS requests immediately
+		// Handle preflight OPTIONS requests immediately with 204 No Content
 		if c.Request.Method == "OPTIONS" {
-			c.AbortWithStatus(204)
+			c.AbortWithStatus(http.StatusNoContent)
 			return
 		}
 

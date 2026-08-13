@@ -123,60 +123,73 @@ export default function PosPage() {
   };
 
   // Order Submission Logic
-  const submitOrder = async (fundId: number) => {
+  const submitOrder = async (targetFundId: number) => {
     if (cartItems.length === 0) return;
+
+    const fundIdNum = Number(targetFundId);
+    if (!fundIdNum || isNaN(fundIdNum)) {
+      alert(t('pos.order_failed', { message: 'Invalid payment fund selected' }));
+      return;
+    }
 
     const currentSubtotal = cartItems.reduce((acc, item) => acc + item.lineTotal, 0);
     const currentTotal = Math.max(0, currentSubtotal - discountAmount);
     const orderCartSnapshot = [...cartItems];
 
     const payload = {
-      fund_id: fundId,
-      discount_amount: discountAmount,
+      fund_id: fundIdNum,
+      discount_amount: Number(discountAmount),
       created_by: 'Cashier Staff',
       items: cartItems.map((ci) => ({
-        product_variant_id: ci.selectedVariant.id,
-        quantity: ci.quantity,
-        unit_price: ci.unitPrice,
-        notes: ci.notes,
+        product_variant_id: Number(ci.selectedVariant.id),
+        quantity: Number(ci.quantity),
+        unit_price: Number(ci.unitPrice),
+        notes: ci.notes || '',
       })),
     };
 
-    const res = await fetchApi<any>('/orders', {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    });
-
-    if (res.status === 'success' && res.data) {
-      const createdOrder = res.data;
-
-      // Purge persisted cart
-      localStorage.removeItem('rabbitpos_active_cart');
-      setCartItems([]);
-      setDiscountAmount(0);
-      setIsCheckoutModalOpen(false);
-      setIsVietQRModalOpen(false);
-      setIsCartDrawerOpen(false);
-
-      // Open Receipt Thermal Printing Modal
-      setCompletedOrder({
-        order_code: createdOrder.order_code,
-        created_at: createdOrder.created_at,
-        created_by: createdOrder.created_by || 'Cashier Staff',
-        payment_method: selectedFundId === 2 ? 'VietQR Transfer' : 'Cash',
-        items: orderCartSnapshot,
-        subtotal: currentSubtotal,
-        discount: discountAmount,
-        total: currentTotal,
+    try {
+      const res = await fetchApi<any>('/orders', {
+        method: 'POST',
+        body: JSON.stringify(payload),
       });
-      setIsReceiptModalOpen(true);
-    } else {
-      alert('Failed to submit order: ' + res.message);
+
+      if (res.status === 'success' && res.data) {
+        const createdOrder = res.data;
+
+        // Purge persisted cart
+        localStorage.removeItem('rabbitpos_active_cart');
+        setCartItems([]);
+        setDiscountAmount(0);
+        setIsCheckoutModalOpen(false);
+        setIsVietQRModalOpen(false);
+        setIsCartDrawerOpen(false);
+
+        // Open Receipt Thermal Printing Modal
+        setCompletedOrder({
+          order_code: createdOrder.order_code,
+          created_at: createdOrder.created_at,
+          created_by: createdOrder.created_by || 'Cashier Staff',
+          payment_method: fundIdNum === 2 ? 'VietQR Transfer' : 'Cash',
+          items: orderCartSnapshot,
+          subtotal: currentSubtotal,
+          discount: discountAmount,
+          total: currentTotal,
+        });
+        setIsReceiptModalOpen(true);
+        setOrderSuccessMessage(t('pos.order_completed'));
+        setTimeout(() => setOrderSuccessMessage(null), 4000);
+      } else {
+        alert(t('pos.order_failed', { message: res.message || 'Server error' }));
+      }
+    } catch (err: any) {
+      alert(t('pos.order_failed', { message: err?.message || 'Network connection failed' }));
     }
   };
 
-  const handleConfirmCashPayment = (fundId: number) => {
-    submitOrder(fundId);
+  const handleConfirmCashPayment = async (fundId: number) => {
+    setSelectedFundId(fundId);
+    await submitOrder(fundId);
   };
 
   const handleSelectBankTransfer = (fundId: number) => {
@@ -185,9 +198,9 @@ export default function PosPage() {
     setIsVietQRModalOpen(true);
   };
 
-  const handleConfirmVietQRPayment = () => {
+  const handleConfirmVietQRPayment = async () => {
     if (selectedFundId) {
-      submitOrder(selectedFundId);
+      await submitOrder(selectedFundId);
     }
   };
 
