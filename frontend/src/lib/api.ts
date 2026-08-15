@@ -13,27 +13,42 @@ declare const process: {
 };
 
 export function getApiBaseUrl(): string {
-  // NEXT_PUBLIC_API_URL is baked into the build artifact at compile time.
-  // If set, it is always correct for this build — use it unconditionally.
   const envUrl = typeof process !== 'undefined' ? process.env?.NEXT_PUBLIC_API_URL?.trim() : undefined;
-  if (envUrl && envUrl !== '') {
-    return envUrl;
-  }
 
-  // Fallback: dynamically derive API URL from the current window hostname.
-  // This path is only reached when NEXT_PUBLIC_API_URL was not set at build time.
+  // Dynamic resolution on client-side (in browser)
   if (typeof window !== 'undefined' && window.location?.hostname) {
-    const protocol = window.location.protocol || 'http:';
     const hostname = window.location.hostname;
-    // Production domain pattern: prepend 'api.' subdomain
+    const protocol = window.location.protocol || 'http:';
+
+    // 1. Localhost or LAN IP access (e.g. localhost, 127.0.0.1, 10.0.0.10, 192.168.x.x)
+    const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1';
+    const isIpAddress = /^(\d{1,3}\.){3}\d{1,3}$/.test(hostname);
+
+    if (isLocalhost || isIpAddress) {
+      return `http://${hostname}:8080/api/v1`;
+    }
+
+    // 2. Production domain (e.g. ndnworks.com or rabbitpos)
     if (hostname.includes('ndnworks.com') || hostname.includes('rabbitpos')) {
+      if (hostname.startsWith('api.')) {
+        return `https://${hostname}/api/v1`;
+      }
       return `https://api.${hostname}/api/v1`;
     }
-    // Local / Headscale IP access: same host, port 8080
+
+    // 3. Fallback for custom domains if valid absolute NEXT_PUBLIC_API_URL is present
+    if (envUrl && envUrl !== '' && (envUrl.startsWith('http://') || envUrl.startsWith('https://'))) {
+      return envUrl;
+    }
+
     return `${protocol}//${hostname}:8080/api/v1`;
   }
 
-  // Last resort local development fallback
+  // SSR / Build-time fallback
+  if (envUrl && envUrl !== '' && (envUrl.startsWith('http://') || envUrl.startsWith('https://'))) {
+    return envUrl;
+  }
+
   return 'http://localhost:8080/api/v1';
 }
 
@@ -81,15 +96,19 @@ export async function fetchApi<T>(
 export function getImageUrl(url?: string | null): string | null {
   if (!url || url.trim() === '') return null;
   const trimmed = url.trim();
-  const apiBase = getApiBaseUrl();
-  const origin = apiBase.replace(/\/api\/v1\/?$/, '');
 
-  if (trimmed.includes(':3000/uploads/')) {
-    return trimmed.replace(/^https?:\/\/[^\/]+:3000/, origin);
-  }
   if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
     return trimmed;
   }
+
+  const apiBase = getApiBaseUrl();
+  // Relative API base: serve upload from same origin
+  if (apiBase.startsWith('/')) {
+    return trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+  }
+
+  // Absolute API base: strip trailing /api/v1 and prefix
+  const origin = apiBase.replace(/\/api\/v1\/?$/, '');
   return `${origin}${trimmed.startsWith('/') ? '' : '/'}${trimmed}`;
 }
 

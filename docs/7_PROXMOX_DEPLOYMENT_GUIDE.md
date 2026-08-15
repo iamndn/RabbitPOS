@@ -12,8 +12,8 @@ This guide provides end-to-end instructions for deploying the **RabbitPOS (Rabbi
                                  ▼
                      [ Cloudflare Edge DNS ]
            (Proxy Mode: Orange Cloud - Orange IP Masking)
-               ├── rabbitpos.ndnworks.com     (App UI)
-               └── api.rabbitpos.ndnworks.com (Backend API)
+               ├── rabbitpos.ndnworks.com     (App UI & Unified /api/v1)
+               └── rabbitpos-api.ndnworks.com (Optional: Direct Backend API)
                                  │
                                  ▼
              [ Proxmox VE Host (Public Router / Port Forward) ]
@@ -33,7 +33,9 @@ This guide provides end-to-end instructions for deploying the **RabbitPOS (Rabbi
          │   ┌───────────────────┐       ┌───────────────────┐    │
          │   │  Next.js Frontend │       │  Go Backend API   │    │
          │   │    (Port 3000)    │       │    (Port 8080)    │    │
-         │   └───────────────────┘       └─────────┬─────────┘    │
+         │   └─────────┬─────────┘       └─────────┬─────────┘    │
+         │             │ (Internal Rewrites)       │              │
+         │             └───────────────────────────┤              │
          │                                         │              │
          │                                         ▼              │
          │                               ┌───────────────────┐    │
@@ -109,11 +111,12 @@ POSTGRES_PORT=5432
 # Backend API Settings
 BACKEND_PORT=8080
 APP_ENV=production
-CORS_ALLOWED_ORIGINS=https://rabbitpos.ndnworks.com,http://rabbitpos.ndnworks.com
+CORS_ALLOWED_ORIGINS=https://rabbitpos.ndnworks.com,https://rabbitpos-api.ndnworks.com
 
-# Frontend Settings
+# Frontend Settings (Unified single-domain reverse proxy)
 FRONTEND_PORT=3000
-NEXT_PUBLIC_API_URL=https://api.rabbitpos.ndnworks.com/api/v1
+NEXT_PUBLIC_API_URL=/api/v1
+INTERNAL_BACKEND_URL=http://backend:8080
 ```
 
 ### Step 3.3: Launch Production Docker Stack
@@ -136,12 +139,19 @@ docker compose -f docker-compose.prod.yml ps
 ### Step 4.1: Cloudflare DNS Records Setup
 Log in to your [Cloudflare Dashboard](https://dash.cloudflare.com/) and navigate to domain `ndnworks.com` -> **DNS** -> **Records**.
 
+> [!IMPORTANT]
+> **Cloudflare Universal SSL Limitation Note:**
+> Cloudflare's free Universal SSL certificate covers `ndnworks.com` and `*.ndnworks.com` (1-level subdomains).
+> It does **NOT** cover 2-level subdomains (such as `api.rabbitpos.ndnworks.com`), which causes `net::ERR_SSL_VERSION_OR_CIPHER_MISMATCH`.
+> - **Recommended:** Use unified single-domain routing with `rabbitpos.ndnworks.com`. All API requests (`/api/v1/*`) are proxied automatically.
+> - **Optional:** If you require a separate backend domain for external clients, use single-level **`rabbitpos-api.ndnworks.com`**.
+
 Add the following DNS records:
 
-| Type | Name | IPv4 Address / Target | Proxy Status | TTL |
+| Type | Name | IPv4 Address / Target | Proxy Status | Description |
 | :--- | :--- | :--- | :--- | :--- |
-| **A** | `rabbitpos` | `<YOUR_PROXMOX_PUBLIC_IP>` | **Proxied** (Orange Cloud) | Auto |
-| **A** | `api.rabbitpos` | `<YOUR_PROXMOX_PUBLIC_IP>` | **Proxied** (Orange Cloud) | Auto |
+| **A** | `rabbitpos` | `<YOUR_PROXMOX_PUBLIC_IP>` | **Proxied** (Orange Cloud) | App UI + Unified API (`/api/v1`) |
+| **A** *(Optional)* | `rabbitpos-api` | `<YOUR_PROXMOX_PUBLIC_IP>` | **Proxied** (Orange Cloud) | Dedicated API for external POS devices |
 
 > [!TIP]
 > **Cloudflare SSL/TLS Encryption Mode:**
@@ -160,7 +170,7 @@ Add the following DNS records:
 
 ---
 
-### Step 5.2: Configure Proxy Host for Frontend (`rabbitpos.ndnworks.com`)
+### Step 5.2: Configure Proxy Host for RabbitPOS (`rabbitpos.ndnworks.com`)
 1. Click **Hosts** -> **Proxy Hosts** -> **Add Proxy Host**.
 2. **Details Tab:**
    - **Domain Names:** `rabbitpos.ndnworks.com`
@@ -179,10 +189,11 @@ Add the following DNS records:
 
 ---
 
-### Step 5.3: Configure Proxy Host for Backend API (`api.rabbitpos.ndnworks.com`)
+### Step 5.3: (Optional) Configure Proxy Host for Dedicated API (`rabbitpos-api.ndnworks.com`)
+*Only required if you want a dedicated standalone subdomain for third-party clients:*
 1. Click **Hosts** -> **Proxy Hosts** -> **Add Proxy Host**.
 2. **Details Tab:**
-   - **Domain Names:** `api.rabbitpos.ndnworks.com`
+   - **Domain Names:** `rabbitpos-api.ndnworks.com`
    - **Scheme:** `http`
    - **Forward Hostname / IP:** `backend` (or internal LXC IP e.g. `127.0.0.1`)
    - **Forward Port:** `8080`
@@ -217,8 +228,8 @@ Verify your production endpoints in browser or terminal:
    - URL: `https://rabbitpos.ndnworks.com`
    - Expect: Next.js POS Landing Page with status badge showing **Online**.
 
-2. **Backend API Health Check Endpoint:**
-   - URL: `https://api.rabbitpos.ndnworks.com/api/v1/health`
+2. **Backend API Health Check Endpoint (Unified Domain):**
+   - URL: `https://rabbitpos.ndnworks.com/api/v1/health`
    - Expect JSON response:
      ```json
      {
@@ -233,7 +244,7 @@ Verify your production endpoints in browser or terminal:
      ```
 
 3. **Backend API Categories Endpoint:**
-   - URL: `https://api.rabbitpos.ndnworks.com/api/v1/categories`
+   - URL: `https://rabbitpos.ndnworks.com/api/v1/categories`
    - Expect JSON response:
      ```json
      {
@@ -242,3 +253,4 @@ Verify your production endpoints in browser or terminal:
        "message": "Categories retrieved successfully"
      }
      ```
+

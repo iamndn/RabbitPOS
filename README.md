@@ -134,10 +134,10 @@ bash scripts/setup-proxmox-lxc.sh
 4. Auto-installs Docker Engine, Docker Compose plugin, Git, UFW firewall.
 5. Clones repository and launches `docker-compose.prod.yml` (PostgreSQL, Go Backend, Next.js, Nginx Proxy Manager).
 
-### Step 2: Nginx Proxy Manager & Cloudflare DNS Setup
 - Access **NPM Admin Console:** `http://<LXC_IP>:81` (Default: `admin@example.com` / `changeme`).
-- Proxy Host 1: `rabbitpos.ndnworks.com` -> `http://127.0.0.1:3000` (Next.js Frontend).
-- Proxy Host 2: `api.rabbitpos.ndnworks.com` -> `http://127.0.0.1:8080` (Go Backend).
+- Proxy Host 1 (Unified): `rabbitpos.ndnworks.com` -> `http://127.0.0.1:3000` (Next.js Frontend & API Proxy).
+- Proxy Host 2 (Optional API): `rabbitpos-api.ndnworks.com` -> `http://127.0.0.1:8080` (Go Backend).
+
 
 ---
 
