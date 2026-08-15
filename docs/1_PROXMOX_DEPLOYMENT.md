@@ -5,16 +5,27 @@
 - **Environment:** Proxmox VE (Virtual Environment).
 - **Root Domain:** `ndnworks.com`
 - **Target Subdomains:**
-  - App UI & Unified API: `rabbitpos.ndnworks.com` (proxies `/api/v1` to Go backend)
-  - Dedicated API (Optional): `rabbitpos-api.ndnworks.com`
-
+  - App UI (Frontend): `rabbitpos.ndnworks.com`
+  - Backend API: `api.rabbitpos.ndnworks.com`
 
 ## 2. Server Architecture (LXC Container)
-We prioritize **Ubuntu 22.04/24.04 LXC (Linux Container)** on Proxmox to optimize hardware resources (RAM/CPU) compared to traditional VMs.
+We prioritize **Ubuntu 22.04/24.04 LTS LXC (Linux Container)** on Proxmox to optimize hardware resources (RAM/CPU) compared to traditional VMs.
 - **Initial Resource Allocation:** 2 Cores, 4GB RAM, 20GB Storage (Scalable on demand).
-- **Runtime Environment:** Docker Engine & Docker Compose. The Frontend, Backend, and Database will be containerized.
+- **Runtime Environment:** Docker Engine & Docker Compose plugin.
 
-## 3. Network & Security Architecture
-- **Reverse Proxy:** Use Nginx Proxy Manager (NPM) or Traefik (via Docker) to route traffic from the domain to the correct internal container ports.
-- **SSL/HTTPS:** Automatic certificate provisioning via Let's Encrypt inside the Reverse Proxy.
-- **DNS & Cloudflare:** DNS records of `ndnworks.com` managed by Cloudflare. Enable Proxy mode (Orange Cloud) for DDoS protection, IP masking, and edge HTTPS caching.
+## 3. Network & Ingress Architecture (Cloudflare Zero Trust Tunnel)
+Cloudflare Tunnel (`cloudflared`) establishes secure outbound encrypted tunnels directly to Cloudflare's global edge without opening inbound router ports (Port 80/443 forwarding is not required).
+
+- **Cloudflare Tunnel ID:** `1400d433-eaaf-4593-b991-4c8bbf25f4c9`
+- **Tunnel Container:** `rabbitpos-tunnel` (`cloudflare/cloudflared:latest`)
+- **Docker Network:** `rabbitpos-network` (bridge)
+
+### Hostname Routing Matrix:
+
+| Public Hostname | Service Protocol | Internal Target Host & Port | Description |
+| :--- | :--- | :--- | :--- |
+| `rabbitpos.ndnworks.com` | HTTP | `http://rabbitpos-frontend:3000` | Next.js 14 Web Application |
+| `api.rabbitpos.ndnworks.com` | HTTP | `http://rabbitpos-backend:8080` | Go Gin RESTful Backend API |
+
+### Fallback Reverse Proxy (Optional):
+- **Nginx Proxy Manager (NPM):** Running on container `rabbitpos-npm` (Port 80/443/81) for local direct reverse proxying or LAN access fallback.
