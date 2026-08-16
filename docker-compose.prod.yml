@@ -86,12 +86,13 @@ services:
     image: cloudflare/cloudflared:latest
     container_name: rabbitpos-tunnel
     restart: unless-stopped
-    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN:?CLOUDFLARE_TUNNEL_TOKEN_is_required}
+    command: tunnel --no-autoupdate --protocol http2 run --token ${CLOUDFLARE_TUNNEL_TOKEN:?CLOUDFLARE_TUNNEL_TOKEN_is_required}
     networks:
       - rabbitpos-network
     depends_on:
       - backend
       - frontend
+
 
 
 networks:
