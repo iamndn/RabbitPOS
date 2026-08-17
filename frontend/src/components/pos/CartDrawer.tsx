@@ -4,6 +4,7 @@ import React from 'react';
 import { X, Trash2, Minus, Plus, ShoppingBag, ArrowRight, Tag } from 'lucide-react';
 import { CartItem } from './VariantSelectorModal';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
+import { formatCurrency, SettingsMap } from '@/lib/utils';
 
 interface Props {
   isOpen: boolean;
@@ -14,6 +15,7 @@ interface Props {
   discountAmount: number;
   onDiscountChange: (amount: number) => void;
   onProceedCheckout: () => void;
+  settings?: SettingsMap | null;
 }
 
 export default function CartDrawer({
@@ -25,11 +27,13 @@ export default function CartDrawer({
   discountAmount,
   onDiscountChange,
   onProceedCheckout,
+  settings,
 }: Props) {
   const { t } = useTranslation();
   if (!isOpen) return null;
 
-  const subtotal = cartItems.reduce((acc, item) => acc + item.lineTotal, 0);
+  const safeCartItems = Array.isArray(cartItems) ? cartItems : [];
+  const subtotal = safeCartItems.reduce((acc, item) => acc + (item?.lineTotal || 0), 0);
   const total = Math.max(0, subtotal - discountAmount);
 
   return (
@@ -41,7 +45,7 @@ export default function CartDrawer({
             <ShoppingBag className="w-5 h-5 text-indigo-600" />
             <h2 className="font-bold text-slate-900 text-base">{t('pos.view_cart')}</h2>
             <span className="bg-indigo-100 text-indigo-700 text-xs font-bold px-2 py-0.5 rounded-full">
-              {t('pos.items_count', { count: cartItems.reduce((acc, i) => acc + i.quantity, 0) })}
+              {t('pos.items_count', { count: safeCartItems.reduce((acc, i) => acc + (i?.quantity || 0), 0) })}
             </span>
           </div>
           <button
@@ -54,22 +58,22 @@ export default function CartDrawer({
 
         {/* Cart Item List */}
         <div className="flex-1 overflow-y-auto p-4 space-y-3 divide-y divide-slate-100">
-          {cartItems.length === 0 ? (
+          {safeCartItems.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-center p-8 text-slate-400">
               <ShoppingBag className="w-16 h-16 opacity-30 mb-2" />
               <p className="font-semibold text-sm text-slate-600">{t('pos.no_drinks')}</p>
             </div>
           ) : (
-            cartItems.map((item) => (
+            safeCartItems.map((item) => (
               <div key={item.id} className="pt-3 first:pt-0 flex items-start justify-between space-x-3">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
                     <h4 className="font-bold text-slate-900 text-sm truncate">{item.product.name}</h4>
-                    <span className="font-bold text-slate-900 text-sm">${item.lineTotal.toFixed(2)}</span>
+                    <span className="font-bold text-slate-900 text-sm">{formatCurrency(item.lineTotal, settings)}</span>
                   </div>
 
                   <div className="text-xs font-medium text-indigo-600 mt-0.5">
-                    {item.selectedVariant.variant_name} (${item.selectedVariant.retail_price.toFixed(2)})
+                    {item.selectedVariant.variant_name} ({formatCurrency(item.selectedVariant.retail_price, settings)})
                   </div>
 
                   {item.notes && (
@@ -99,7 +103,7 @@ export default function CartDrawer({
                     <button
                       onClick={() => onRemoveItem(item.id)}
                       className="text-slate-400 hover:text-rose-500 p-1 transition"
-                      title="Remove Item"
+                      title={t('pos.remove_item')}
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -121,11 +125,14 @@ export default function CartDrawer({
               <input
                 type="number"
                 min="0"
-                step="0.5"
-                value={discountAmount || ''}
-                onChange={(e) => onDiscountChange(parseFloat(e.target.value) || 0)}
-                placeholder="0.00"
-                className="w-24 p-1.5 text-right text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                step="1000"
+                value={discountAmount === 0 ? '' : discountAmount}
+                onChange={(e) => {
+                  const raw = e.target.value.replace(/\D/g, '');
+                  onDiscountChange(raw === '' ? 0 : parseInt(raw, 10));
+                }}
+                placeholder="0"
+                className="w-28 p-1.5 text-right text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
               />
             </div>
 
@@ -133,17 +140,17 @@ export default function CartDrawer({
             <div className="space-y-1 pt-1 border-t border-slate-200/60 text-xs">
               <div className="flex justify-between text-slate-500">
                 <span>{t('common.subtotal')}</span>
-                <span>${subtotal.toFixed(2)}</span>
+                <span>{formatCurrency(subtotal, settings)}</span>
               </div>
               {discountAmount > 0 && (
                 <div className="flex justify-between text-rose-600 font-medium">
                   <span>{t('common.discount')}</span>
-                  <span>-${discountAmount.toFixed(2)}</span>
+                  <span>-{formatCurrency(discountAmount, settings)}</span>
                 </div>
               )}
               <div className="flex justify-between text-slate-900 font-bold text-base pt-1 border-t border-slate-200">
                 <span>{t('common.total_amount')}</span>
-                <span className="text-indigo-600">${total.toFixed(2)}</span>
+                <span className="text-indigo-600">{formatCurrency(total, settings)}</span>
               </div>
             </div>
 

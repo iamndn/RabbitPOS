@@ -30,6 +30,9 @@ func CheckPasswordHash(password, hash string) bool {
 
 // GenerateJWT creates a signed JWT string containing user identity & role
 func GenerateJWT(userID uint, username string, role models.UserRole, secret string, expiryHours int) (string, error) {
+	if secret == "" {
+		return "", errors.New("JWT secret cannot be empty")
+	}
 	claims := &JWTClaims{
 		UserID:   userID,
 		Username: username,

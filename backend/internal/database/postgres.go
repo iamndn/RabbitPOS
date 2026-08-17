@@ -1,6 +1,7 @@
 package database
 
 import (
+	"errors"
 	"log"
 	"time"
 
@@ -61,7 +62,7 @@ func InitDB(cfg *config.Config) (*gorm.DB, error) {
 
 	// ── Essential Core Seeds (always run, all environments) ─────────────────
 	// These are required for the application to function at all.
-	// They are idempotent — only insert when the table is empty.
+	// They are idempotent — only insert when the record/table is empty.
 	seedUsers(db, cfg)
 	seedFunds(db)
 	seedSettings(db)
@@ -80,47 +81,65 @@ func InitDB(cfg *config.Config) (*gorm.DB, error) {
 	return db, nil
 }
 
-// seedUsers creates the initial admin (and optionally staff) account if no users exist.
+// seedUsers creates the initial admin (and optionally staff) account if they do not exist.
 // Credentials are injected from environment variables — no hardcoded passwords.
 func seedUsers(db *gorm.DB, cfg *config.Config) {
-	var count int64
-	db.Model(&models.User{}).Count(&count)
-	if count > 0 {
-		return
-	}
-
-	log.Println("[SEED] No users found — seeding initial user accounts...")
-
-	// Admin account: always created if credentials are available
-	if cfg.InitialAdminUsername != "" && cfg.InitialAdminPassword != "" {
-		adminHash, err := bcrypt.GenerateFromPassword([]byte(cfg.InitialAdminPassword), bcrypt.DefaultCost)
-		if err != nil {
-			log.Printf("[SEED] ERROR: Failed to hash admin password: %v", err)
-		} else {
-			admin := models.User{
-				Username:     cfg.InitialAdminUsername,
-				PasswordHash: string(adminHash),
-				Role:         models.RoleAdmin,
-				IsActive:     true,
-			}
-			if result := db.Create(&admin); result.Error != nil {
-				log.Printf("[SEED] ERROR: Failed to create admin user: %v", result.Error)
+	// Admin account: ensure initial admin exists regardless of other users or ENABLE_SEEDING setting
+	if cfg.InitialAdminUsername != "" {
+		var adminUser models.User
+		err := db.Where("username = ?", cfg.InitialAdminUsername).First(&adminUser).Error
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			if cfg.InitialAdminPassword != "" {
+				adminHash, err := bcrypt.GenerateFromPassword([]byte(cfg.InitialAdminPassword), bcrypt.DefaultCost)
+				if err != nil {
+					log.Printf("[SEED] ERROR: Failed to hash admin password: %v", err)
+				} else {
+					admin := models.User{
+						Username:     cfg.InitialAdminUsername,
+						PasswordHash: string(adminHash),
+						Role:         models.RoleAdmin,
+						IsActive:     true,
+					}
+					if result := db.Create(&admin); result.Error != nil {
+						log.Printf("[SEED] ERROR: Failed to create admin user: %v", result.Error)
+					} else {
+						log.Printf("[SEED] Admin account '%s' created successfully.", cfg.InitialAdminUsername)
+					}
+				}
 			} else {
-				log.Printf("[SEED] Admin account '%s' created successfully.", cfg.InitialAdminUsername)
+				log.Printf("[SEED] WARNING: INITIAL_ADMIN_PASSWORD not set — skipping admin account creation for '%s'.", cfg.InitialAdminUsername)
 			}
+		} else if err == nil && cfg.InitialAdminPassword != "" {
+			// Update password hash to ensure admin password is in sync
+			adminHash, err := bcrypt.GenerateFromPassword([]byte(cfg.InitialAdminPassword), bcrypt.DefaultCost)
+			if err == nil {
+				db.Model(&adminUser).Update("password_hash", string(adminHash))
+			}
+		} else if err != nil {
+			log.Printf("[SEED] ERROR: Failed to check admin user existence: %v", err)
 		}
 	} else {
-		log.Println("[SEED] WARNING: INITIAL_ADMIN_USERNAME or INITIAL_ADMIN_PASSWORD not set — skipping admin account creation.")
+		log.Println("[SEED] WARNING: INITIAL_ADMIN_USERNAME not set — skipping admin account creation.")
 	}
 
-	// Staff account: only created when seeding is enabled (development mode)
-	if cfg.EnableSeeding && cfg.InitialStaffUsername != "" && cfg.InitialStaffPassword != "" {
-		staffHash, err := bcrypt.GenerateFromPassword([]byte(cfg.InitialStaffPassword), bcrypt.DefaultCost)
+	// Staff account: ensure staff user exists for testing and multi-role operations
+	var staffUser models.User
+	staffUsername := cfg.InitialStaffUsername
+	if staffUsername == "" {
+		staffUsername = "staff"
+	}
+	staffPassword := cfg.InitialStaffPassword
+	if staffPassword == "" {
+		staffPassword = "staff123"
+	}
+	err := db.Where("username = ?", staffUsername).First(&staffUser).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		staffHash, err := bcrypt.GenerateFromPassword([]byte(staffPassword), bcrypt.DefaultCost)
 		if err != nil {
 			log.Printf("[SEED] ERROR: Failed to hash staff password: %v", err)
 		} else {
 			staff := models.User{
-				Username:     cfg.InitialStaffUsername,
+				Username:     staffUsername,
 				PasswordHash: string(staffHash),
 				Role:         models.RoleStaff,
 				IsActive:     true,
@@ -128,8 +147,13 @@ func seedUsers(db *gorm.DB, cfg *config.Config) {
 			if result := db.Create(&staff); result.Error != nil {
 				log.Printf("[SEED] ERROR: Failed to create staff user: %v", result.Error)
 			} else {
-				log.Printf("[SEED] Staff account '%s' created successfully.", cfg.InitialStaffUsername)
+				log.Printf("[SEED] Staff account '%s' created successfully.", staffUsername)
 			}
+		}
+	} else if err == nil {
+		staffHash, err := bcrypt.GenerateFromPassword([]byte(staffPassword), bcrypt.DefaultCost)
+		if err == nil {
+			db.Model(&staffUser).Update("password_hash", string(staffHash))
 		}
 	}
 }
@@ -147,13 +171,13 @@ func seedFunds(db *gorm.DB) {
 
 	defaultFunds := []models.Fund{
 		{
-			Name:           "Cash Drawer",
+			Name:           "Tiền mặt tại quầy",
 			FundType:       models.FundTypeCash,
 			CurrentBalance: 0.00,
 			IsActive:       true,
 		},
 		{
-			Name:           "Bank Transfer",
+			Name:           "Chuyển khoản VietQR",
 			FundType:       models.FundTypeBank,
 			CurrentBalance: 0.00,
 			IsActive:       true,
@@ -181,15 +205,15 @@ func seedSettings(db *gorm.DB) {
 	log.Println("[SEED] No settings found — seeding default system configuration...")
 	now := time.Now()
 	defaultSettings := []models.Setting{
-		{Key: "store_name", Value: "Tho Juice & Coffee", UpdatedAt: now},
-		{Key: "store_address", Value: "", UpdatedAt: now},
-		{Key: "store_phone", Value: "", UpdatedAt: now},
+		{Key: "store_name", Value: "Thỏ Juice & Coffee", UpdatedAt: now},
+		{Key: "store_address", Value: "123 Vo Van Kiet, D1, HCMC", UpdatedAt: now},
+		{Key: "store_phone", Value: "0901234567", UpdatedAt: now},
 		{Key: "currency_code", Value: "VND", UpdatedAt: now},
 		{Key: "currency_symbol", Value: "đ", UpdatedAt: now},
 		{Key: "currency_position", Value: "suffix", UpdatedAt: now},
-		{Key: "vietqr_bank_id", Value: "", UpdatedAt: now},
-		{Key: "vietqr_account_no", Value: "", UpdatedAt: now},
-		{Key: "vietqr_account_name", Value: "", UpdatedAt: now},
+		{Key: "vietqr_bank_id", Value: "MB", UpdatedAt: now},
+		{Key: "vietqr_account_no", Value: "123456789", UpdatedAt: now},
+		{Key: "vietqr_account_name", Value: "THO JUICE AND COFFEE", UpdatedAt: now},
 	}
 
 	for _, s := range defaultSettings {
@@ -215,9 +239,9 @@ func seedDemoCatalog(db *gorm.DB) {
 
 	// Insert demo categories
 	categories := []models.Category{
-		{Name: "Coffee", DisplayOrder: 1, IsActive: true},
-		{Name: "Fruit Juices", DisplayOrder: 2, IsActive: true},
-		{Name: "Tea & Milk Tea", DisplayOrder: 3, IsActive: true},
+		{Name: "Cà phê", DisplayOrder: 1, IsActive: true},
+		{Name: "Nước ép tươi", DisplayOrder: 2, IsActive: true},
+		{Name: "Trà & Trà sữa", DisplayOrder: 3, IsActive: true},
 	}
 	if err := db.Create(&categories).Error; err != nil {
 		log.Printf("[SEED] ERROR: Failed to seed demo categories: %v", err)
@@ -242,43 +266,73 @@ func seedDemoCatalog(db *gorm.DB) {
 
 	demoProducts := []demoProduct{
 		{
-			name: "Espresso", categoryKey: "Coffee",
-			description: "Rich and bold single origin dark roast espresso",
+			name: "Cà phê Đen Đá", categoryKey: "Cà phê",
+			description: "Cà phê Robusta Đắk Lắk pha phin truyền thống đậm đà",
 			imageURL:    "https://images.unsplash.com/photo-1510591509098-f4fdc6d0ff04?w=500",
 			tag:         models.TagBestSeller,
 			variants: []models.ProductVariant{
-				{VariantName: "Size M (Single Shot)", CogsPrice: 0.80, RetailPrice: 2.50, SKU: "COF-ESP-M", IsActive: true},
-				{VariantName: "Size L (Double Shot)", CogsPrice: 1.10, RetailPrice: 3.20, SKU: "COF-ESP-L", IsActive: true},
+				{VariantName: "Size M", CogsPrice: 8000, RetailPrice: 20000, SKU: "CF-DEN-M", IsActive: true},
+				{VariantName: "Size L", CogsPrice: 10000, RetailPrice: 25000, SKU: "CF-DEN-L", IsActive: true},
 			},
 		},
 		{
-			name: "Orange Juice", categoryKey: "Fruit Juices",
-			description: "100% pure freshly squeezed navel orange juice",
+			name: "Cà phê Sữa Đá", categoryKey: "Cà phê",
+			description: "Cà phê phin hòa quyện sữa đặc béo ngậy thơm ngon",
+			imageURL:    "https://images.unsplash.com/photo-1541167760496-1628856ab772?w=500",
+			tag:         models.TagBestSeller,
+			variants: []models.ProductVariant{
+				{VariantName: "Size M", CogsPrice: 10000, RetailPrice: 25000, SKU: "CF-SUA-M", IsActive: true},
+				{VariantName: "Size L", CogsPrice: 12000, RetailPrice: 30000, SKU: "CF-SUA-L", IsActive: true},
+			},
+		},
+		{
+			name: "Bạc Xỉu", categoryKey: "Cà phê",
+			description: "Nhiều sữa ít cà phê ngọt dịu êm ái",
+			imageURL:    "https://images.unsplash.com/photo-1572442388796-11668a67e53d?w=500",
+			tag:         models.TagNew,
+			variants: []models.ProductVariant{
+				{VariantName: "Size M", CogsPrice: 11000, RetailPrice: 29000, SKU: "CF-BAC-M", IsActive: true},
+				{VariantName: "Size L", CogsPrice: 14000, RetailPrice: 35000, SKU: "CF-BAC-L", IsActive: true},
+			},
+		},
+		{
+			name: "Nước ép Cam Cà Rốt", categoryKey: "Nước ép tươi",
+			description: "100% cam sành vắt tươi kết hợp cà rốt giàu vitamin A & C",
 			imageURL:    "https://images.unsplash.com/photo-1613478223719-2ab802602423?w=500",
 			tag:         models.TagBestSeller,
 			variants: []models.ProductVariant{
-				{VariantName: "Size M (350ml)", CogsPrice: 1.00, RetailPrice: 3.00, SKU: "JUC-ORG-M", IsActive: true},
-				{VariantName: "Size L (500ml)", CogsPrice: 1.40, RetailPrice: 4.00, SKU: "JUC-ORG-L", IsActive: true},
+				{VariantName: "Size M (350ml)", CogsPrice: 15000, RetailPrice: 35000, SKU: "NE-CAM-M", IsActive: true},
+				{VariantName: "Size L (500ml)", CogsPrice: 18000, RetailPrice: 42000, SKU: "NE-CAM-L", IsActive: true},
 			},
 		},
 		{
-			name: "Avocado Smoothie", categoryKey: "Fruit Juices",
-			description: "Creamy fresh avocado blended with condensed milk",
+			name: "Nước ép Táo Dứa", categoryKey: "Nước ép tươi",
+			description: "Táo xanh giòn ngọt thanh mát hòa quyện dứa tươi chua nhẹ",
 			imageURL:    "https://images.unsplash.com/photo-1553530666-ba11a7da3888?w=500",
 			tag:         models.TagNew,
 			variants: []models.ProductVariant{
-				{VariantName: "Size M (350ml)", CogsPrice: 1.50, RetailPrice: 4.00, SKU: "JUC-AVO-M", IsActive: true},
-				{VariantName: "Size L (500ml)", CogsPrice: 2.00, RetailPrice: 5.00, SKU: "JUC-AVO-L", IsActive: true},
+				{VariantName: "Size M (350ml)", CogsPrice: 16000, RetailPrice: 39000, SKU: "NE-TAO-M", IsActive: true},
+				{VariantName: "Size L (500ml)", CogsPrice: 20000, RetailPrice: 46000, SKU: "NE-TAO-L", IsActive: true},
 			},
 		},
 		{
-			name: "Milk Tea Boba", categoryKey: "Tea & Milk Tea",
-			description: "Classic black milk tea with chewy tapioca pearls",
+			name: "Nước ép Ổi Hồng", categoryKey: "Nước ép tươi",
+			description: "Ổi hồng tươi thơm lừng, bổ sung vitamin tự nhiên mỗi ngày",
+			imageURL:    "https://images.unsplash.com/photo-1534353473418-4cfa6c56fd38?w=500",
+			tag:         models.TagBestSeller,
+			variants: []models.ProductVariant{
+				{VariantName: "Size M (350ml)", CogsPrice: 14000, RetailPrice: 35000, SKU: "NE-OI-M", IsActive: true},
+				{VariantName: "Size L (500ml)", CogsPrice: 17000, RetailPrice: 42000, SKU: "NE-OI-L", IsActive: true},
+			},
+		},
+		{
+			name: "Trà Sữa Trân Châu", categoryKey: "Trà & Trà sữa",
+			description: "Trà đen hảo hạng quyện sữa béo cùng trân châu dai giòn",
 			imageURL:    "https://images.unsplash.com/photo-1558857563-b371033873b8?w=500",
 			tag:         models.TagBestSeller,
 			variants: []models.ProductVariant{
-				{VariantName: "Regular (Size M)", CogsPrice: 1.20, RetailPrice: 3.50, SKU: "TEA-BOB-REG", IsActive: true},
-				{VariantName: "Large w/ Cream Cheese", CogsPrice: 1.80, RetailPrice: 4.80, SKU: "TEA-BOB-LRG", IsActive: true},
+				{VariantName: "Size M", CogsPrice: 14000, RetailPrice: 35000, SKU: "TS-TC-M", IsActive: true},
+				{VariantName: "Size L", CogsPrice: 18000, RetailPrice: 45000, SKU: "TS-TC-L", IsActive: true},
 			},
 		},
 	}

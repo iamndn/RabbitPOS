@@ -79,7 +79,7 @@ export default function LoginPage() {
               <input
                 type="text"
                 required
-                placeholder="Enter username..."
+                placeholder={t('login.username_placeholder')}
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 className="w-full pl-10 pr-4 py-3 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-slate-50 focus:bg-white"
@@ -94,7 +94,7 @@ export default function LoginPage() {
               <input
                 type="password"
                 required
-                placeholder="Enter password..."
+                placeholder={t('login.password_placeholder')}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full pl-10 pr-4 py-3 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-slate-50 focus:bg-white"
@@ -114,7 +114,9 @@ export default function LoginPage() {
 
         {/* Demo Quick Login Pills */}
         <div className="pt-2 border-t border-slate-100 space-y-2">
-          <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block text-center">Quick Demo Accounts</span>
+          <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block text-center">
+            {t('login.quick_demo_accounts')}
+          </span>
           <div className="grid grid-cols-2 gap-2">
             <button
               type="button"
@@ -123,7 +125,7 @@ export default function LoginPage() {
             >
               <Shield className="w-4 h-4 text-indigo-600 flex-shrink-0" />
               <div>
-                <span className="block font-bold text-xs text-indigo-900">Admin</span>
+                <span className="block font-bold text-xs text-indigo-900">{t('common.role_admin')}</span>
                 <span className="text-[10px] text-slate-500">admin / admin123</span>
               </div>
             </button>
@@ -135,7 +137,7 @@ export default function LoginPage() {
             >
               <UserCheck className="w-4 h-4 text-blue-600 flex-shrink-0" />
               <div>
-                <span className="block font-bold text-xs text-blue-900">Staff</span>
+                <span className="block font-bold text-xs text-blue-900">{t('common.role_staff')}</span>
                 <span className="text-[10px] text-slate-500">staff / staff123</span>
               </div>
             </button>

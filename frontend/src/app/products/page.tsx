@@ -120,24 +120,42 @@ export default function ProductsPage() {
     setLoading(true);
 
     // Load settings for currency formatting
-    const settingsRes = await fetchApi<{ key: string; value: string }[]>('/settings');
+    const settingsRes = await fetchApi<any>('/settings');
     if (settingsRes.status === 'success' && settingsRes.data) {
-      const map: SettingsMap = {};
-      settingsRes.data.forEach((s) => { map[s.key] = s.value; });
-      setSettings(map);
+      if (Array.isArray(settingsRes.data)) {
+        const map: SettingsMap = {};
+        settingsRes.data.forEach((s: any) => {
+          if (s && s.key) {
+            map[s.key] = s.value;
+          }
+        });
+        setSettings(map);
+      } else if (typeof settingsRes.data === 'object') {
+        setSettings(settingsRes.data as SettingsMap);
+      }
     }
 
     const catRes = await fetchApi<Category[]>('/categories');
-    if (catRes.status === 'success' && catRes.data) {
-      setCategories(catRes.data);
-      if (catRes.data.length > 0 && formCategoryId === 0) {
-        setFormCategoryId(catRes.data[0].id);
+    if (catRes.status === 'success') {
+      const catList = Array.isArray(catRes.data)
+        ? catRes.data
+        : Array.isArray(catRes)
+        ? (catRes as Category[])
+        : [];
+      setCategories(catList);
+      if (catList.length > 0 && formCategoryId === 0) {
+        setFormCategoryId(catList[0].id);
       }
     }
 
     const prodRes = await fetchApi<Product[]>('/products');
-    if (prodRes.status === 'success' && prodRes.data) {
-      setProducts(prodRes.data);
+    if (prodRes.status === 'success') {
+      const prodList = Array.isArray(prodRes.data)
+        ? prodRes.data
+        : Array.isArray(prodRes)
+        ? (prodRes as Product[])
+        : [];
+      setProducts(prodList);
     }
     setLoading(false);
   };
@@ -155,7 +173,7 @@ export default function ProductsPage() {
     setFormTag('none');
     setFormCategoryId(categories[0]?.id || 0);
     setFormVariants([
-      { variant_name: 'Size M', cogs_price: 1.0, retail_price: 3.5, sku: '' },
+      { variant_name: 'Size M', cogs_price: 8000, retail_price: 25000, sku: '' },
     ]);
     setIsProductModalOpen(true);
   };
@@ -178,7 +196,7 @@ export default function ProductsPage() {
   const handleAddVariantRow = () => {
     setFormVariants([
       ...formVariants,
-      { variant_name: 'Size L', cogs_price: 1.2, retail_price: 4.5, sku: '' },
+      { variant_name: 'Size L', cogs_price: 10000, retail_price: 30000, sku: '' },
     ]);
   };
 
@@ -216,7 +234,7 @@ export default function ProductsPage() {
         loadCatalog();
         setIsProductModalOpen(false);
       } else {
-        alert('Failed to update product: ' + res.message);
+        alert(t('products.update_product_failed', { error: res.message }));
       }
     } else {
       const res = await fetchApi<Product>('/products', {
@@ -239,7 +257,7 @@ export default function ProductsPage() {
         loadCatalog();
         setIsProductModalOpen(false);
       } else {
-        alert('Failed to create product: ' + res.message);
+        alert(t('products.create_product_failed', { error: res.message }));
       }
     }
   };
@@ -250,7 +268,7 @@ export default function ProductsPage() {
     if (res.status === 'success') {
       loadCatalog();
     } else {
-      alert('Failed to delete product: ' + res.message);
+      alert(t('products.delete_product_failed', { error: res.message }));
     }
   };
 
@@ -288,7 +306,7 @@ export default function ProductsPage() {
         loadCatalog();
         setIsCategoryModalOpen(false);
       } else {
-        alert('Failed to update category: ' + res.message);
+        alert(t('products.update_cat_failed', { error: res.message }));
       }
     } else {
       const res = await fetchApi<Category>('/categories', {
@@ -303,7 +321,7 @@ export default function ProductsPage() {
         loadCatalog();
         setIsCategoryModalOpen(false);
       } else {
-        alert('Failed to create category: ' + res.message);
+        alert(t('products.create_cat_failed', { error: res.message }));
       }
     }
   };
@@ -314,15 +332,18 @@ export default function ProductsPage() {
     if (res.status === 'success') {
       loadCatalog();
     } else {
-      alert('Failed to delete category: ' + res.message);
+      alert(t('products.delete_cat_failed', { error: res.message }));
     }
   };
 
   // ── Filtering ──────────────────────────────────────────────────────────────
-  const filteredProducts = products.filter((p) => {
+  const safeProducts = Array.isArray(products) ? products : [];
+  const safeCategories = Array.isArray(categories) ? categories : [];
+
+  const filteredProducts = safeProducts.filter((p) => {
     const matchesSearch =
-      p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.variants?.some((v) => v.sku.toLowerCase().includes(searchQuery.toLowerCase()));
+      (p.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (Array.isArray(p.variants) && p.variants.some((v) => (v.sku || '').toLowerCase().includes(searchQuery.toLowerCase())));
     const matchesCat = selectedCategory ? p.category_id === selectedCategory : true;
     return matchesSearch && matchesCat;
   });
@@ -367,7 +388,7 @@ export default function ProductsPage() {
               <FolderOpen className="w-4 h-4 text-indigo-500" />
               {t('products.manage_categories')}
               <span className="bg-indigo-50 text-indigo-600 text-[11px] font-bold px-2 py-0.5 rounded-full border border-indigo-200">
-                {categories.length}
+                {safeCategories.length}
               </span>
             </span>
             {catPanelOpen ? (
@@ -379,12 +400,12 @@ export default function ProductsPage() {
 
           {catPanelOpen && (
             <div className="border-t border-slate-100 divide-y divide-slate-100">
-              {categories.length === 0 ? (
+              {safeCategories.length === 0 ? (
                 <p className="text-xs text-slate-400 text-center py-6">
-                  No categories yet. Click "+ Add Category" to create one.
+                  {t('products.no_categories')}
                 </p>
               ) : (
-                categories.map((cat) => (
+                safeCategories.map((cat) => (
                   <div
                     key={cat.id}
                     className="flex items-center justify-between px-5 py-3 hover:bg-slate-50 transition"
@@ -404,7 +425,7 @@ export default function ProductsPage() {
                       <div>
                         <span className="text-sm font-semibold text-slate-800">{cat.name}</span>
                         <span className="ml-2 text-xs text-slate-400">
-                          #{cat.display_order} · {products.filter((p) => p.category_id === cat.id).length} items
+                          #{cat.display_order} · {t('pos.items_count', { count: safeProducts.filter((p) => p.category_id === cat.id).length })}
                         </span>
                       </div>
                     </div>
@@ -455,7 +476,7 @@ export default function ProductsPage() {
             >
               {t('common.all')}
             </button>
-            {categories.map((cat) => (
+            {safeCategories.map((cat) => (
               <button
                 key={cat.id}
                 onClick={() => setSelectedCategory(cat.id)}
@@ -517,7 +538,11 @@ export default function ProductsPage() {
                                 {product.name}
                                 {product.tag && product.tag !== 'none' && (
                                   <span className="text-[9px] uppercase font-extrabold px-1.5 py-0.5 bg-indigo-50 text-indigo-600 rounded">
-                                    {product.tag.replace('_', ' ')}
+                                    {product.tag === 'best_seller'
+                                      ? t('products.best_seller')
+                                      : product.tag === 'new'
+                                      ? t('products.new')
+                                      : product.tag.replace('_', ' ')}
                                   </span>
                                 )}
                               </div>
@@ -544,7 +569,7 @@ export default function ProductsPage() {
                             {formatCurrency(minRetail, settings)}{maxRetail > minRetail ? ` – ${formatCurrency(maxRetail, settings)}` : ''}
                           </div>
                           <div className="text-slate-400 text-[11px]">
-                            Avg COGS: {formatCurrency(avgCogs, settings)}
+                            {t('products.avg_cogs', { amount: formatCurrency(avgCogs, settings) })}
                           </div>
                         </td>
                         <td className="py-3 px-4 font-bold">
@@ -615,7 +640,7 @@ export default function ProductsPage() {
                     required
                     value={formName}
                     onChange={(e) => setFormName(e.target.value)}
-                    placeholder="e.g. Espresso"
+                    placeholder={t('products.product_name_placeholder')}
                     className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
@@ -643,7 +668,7 @@ export default function ProductsPage() {
                   rows={2}
                   value={formDescription}
                   onChange={(e) => setFormDescription(e.target.value)}
-                  placeholder="Optional details or ingredients..."
+                  placeholder={t('products.description_placeholder')}
                   className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
@@ -653,7 +678,7 @@ export default function ProductsPage() {
                 <div className="flex items-center space-x-3">
                   <div className="w-14 h-14 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center overflow-hidden shrink-0 relative">
                     {getImageUrl(formImageUrl) ? (
-                      <img src={getImageUrl(formImageUrl)!} alt="Product Preview" className="w-full h-full object-cover" />
+                      <img src={getImageUrl(formImageUrl)!} alt={t('products.image_preview')} className="w-full h-full object-cover" />
                     ) : (
                       <ImageIcon className="w-6 h-6 text-slate-400" />
                     )}
@@ -672,7 +697,7 @@ export default function ProductsPage() {
                       type="text"
                       value={formImageUrl}
                       onChange={(e) => setFormImageUrl(e.target.value)}
-                      placeholder="Or enter image URL (https://... or /uploads/...)"
+                      placeholder={t('products.image_url_placeholder')}
                       className="w-full p-2 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
                     />
                   </div>
@@ -726,20 +751,28 @@ export default function ProductsPage() {
                           <div className="flex items-center gap-2 w-full sm:w-auto">
                             <input
                               type="number"
-                              step="0.01"
+                              step="1000"
+                              min="0"
                               placeholder={t('products.retail_price_label')}
-                              value={v.retail_price}
-                              onChange={(e) => handleVariantChange(idx, 'retail_price', parseFloat(e.target.value) || 0)}
-                              className="w-24 p-2 border border-slate-200 rounded-lg text-xs"
+                              value={v.retail_price === 0 ? '' : v.retail_price}
+                              onChange={(e) => {
+                                const raw = e.target.value.replace(/\D/g, '');
+                                handleVariantChange(idx, 'retail_price', raw === '' ? 0 : parseInt(raw, 10));
+                              }}
+                              className="w-28 p-2 border border-slate-200 rounded-lg text-xs font-semibold"
                               required
                             />
                             <input
                               type="number"
-                              step="0.01"
+                              step="1000"
+                              min="0"
                               placeholder={t('products.cogs_price_label')}
-                              value={v.cogs_price}
-                              onChange={(e) => handleVariantChange(idx, 'cogs_price', parseFloat(e.target.value) || 0)}
-                              className="w-24 p-2 border border-slate-200 rounded-lg text-xs"
+                              value={v.cogs_price === 0 ? '' : v.cogs_price}
+                              onChange={(e) => {
+                                const raw = e.target.value.replace(/\D/g, '');
+                                handleVariantChange(idx, 'cogs_price', raw === '' ? 0 : parseInt(raw, 10));
+                              }}
+                              className="w-28 p-2 border border-slate-200 rounded-lg text-xs font-semibold"
                               required
                             />
                             <span className="text-[10px] font-bold text-emerald-600 w-12 text-right">
@@ -802,7 +835,7 @@ export default function ProductsPage() {
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Fresh Juices"
+                  placeholder={t('products.category_name_placeholder')}
                   value={catName}
                   onChange={(e) => setCatName(e.target.value)}
                   className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -814,7 +847,7 @@ export default function ProductsPage() {
                 <div className="flex items-center space-x-3">
                   <div className="w-12 h-12 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center overflow-hidden shrink-0 relative">
                     {getImageUrl(catImageUrl) ? (
-                      <img src={getImageUrl(catImageUrl)!} alt="Category Preview" className="w-full h-full object-cover" />
+                      <img src={getImageUrl(catImageUrl)!} alt={t('products.image_preview')} className="w-full h-full object-cover" />
                     ) : (
                       <ImageIcon className="w-5 h-5 text-slate-400" />
                     )}
@@ -833,7 +866,7 @@ export default function ProductsPage() {
                       type="text"
                       value={catImageUrl}
                       onChange={(e) => setCatImageUrl(e.target.value)}
-                      placeholder="Or enter image URL..."
+                      placeholder={t('products.image_url_placeholder')}
                       className="w-full p-2 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
                     />
                   </div>
@@ -844,8 +877,11 @@ export default function ProductsPage() {
                 <label className="font-semibold text-slate-700 mb-1 block">{t('products.display_order')}</label>
                 <input
                   type="number"
-                  value={catDisplayOrder}
-                  onChange={(e) => setCatDisplayOrder(Number(e.target.value))}
+                  value={catDisplayOrder === 0 ? '' : catDisplayOrder}
+                  onChange={(e) => {
+                    const raw = e.target.value.replace(/\D/g, '');
+                    setCatDisplayOrder(raw === '' ? 0 : parseInt(raw, 10));
+                  }}
                   className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>

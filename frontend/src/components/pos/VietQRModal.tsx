@@ -1,9 +1,8 @@
-'use client';
-
 import React, { useEffect, useState } from 'react';
 import { X, CheckCircle2, QrCode, RefreshCw, Copy, Building2 } from 'lucide-react';
 import { fetchApi } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
+import { formatCurrency, SettingsMap } from '@/lib/utils';
 
 interface VietQRData {
   order_code: string;
@@ -18,9 +17,10 @@ interface Props {
   totalAmount: number;
   onClose: () => void;
   onConfirmOrder: () => Promise<void> | void;
+  settings?: SettingsMap | null;
 }
 
-export default function VietQRModal({ totalAmount, onClose, onConfirmOrder }: Props) {
+export default function VietQRModal({ totalAmount, onClose, onConfirmOrder, settings }: Props) {
   const { t } = useTranslation();
   const [qrData, setQrData] = useState<VietQRData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -120,7 +120,7 @@ export default function VietQRModal({ totalAmount, onClose, onConfirmOrder }: Pr
             </div>
             <div className="flex items-center justify-between border-t border-indigo-100 pt-1.5 font-bold">
               <span className="text-slate-700">{t('pos.amount')}:</span>
-              <span className="text-indigo-600 text-sm">${qrData.amount.toFixed(2)}</span>
+              <span className="text-indigo-600 text-sm">{formatCurrency(qrData.amount, settings)}</span>
             </div>
           </div>
         )}

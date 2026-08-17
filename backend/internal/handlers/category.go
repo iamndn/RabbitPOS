@@ -19,7 +19,7 @@ func NewCategoryHandler(db *gorm.DB) *CategoryHandler {
 
 // ListCategories returns all categories ordered by display_order
 func (h *CategoryHandler) ListCategories(c *gin.Context) {
-	var categories []models.Category
+	categories := make([]models.Category, 0)
 	if err := h.db.Order("display_order asc, name asc").Find(&categories).Error; err != nil {
 		models.SendInternalError(c, "Failed to retrieve categories")
 		return

@@ -1,9 +1,8 @@
-'use client';
-
 import React, { useState, useEffect } from 'react';
 import { X, Wallet, Building2, Check, ArrowRight, RefreshCw } from 'lucide-react';
 import { fetchApi } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
+import { formatCurrency, SettingsMap } from '@/lib/utils';
 
 export interface Fund {
   id: number;
@@ -17,6 +16,7 @@ interface Props {
   onClose: () => void;
   onConfirmCashPayment: (fundId: number) => Promise<void> | void;
   onSelectBankTransfer: (fundId: number) => void;
+  settings?: SettingsMap | null;
 }
 
 export default function CheckoutModal({
@@ -24,6 +24,7 @@ export default function CheckoutModal({
   onClose,
   onConfirmCashPayment,
   onSelectBankTransfer,
+  settings,
 }: Props) {
   const { t } = useTranslation();
   const [funds, setFunds] = useState<Fund[]>([]);
@@ -35,10 +36,15 @@ export default function CheckoutModal({
     const loadFunds = async () => {
       setLoading(true);
       const res = await fetchApi<Fund[]>('/funds');
-      if (res.status === 'success' && res.data) {
-        setFunds(res.data);
-        if (res.data.length > 0) {
-          setSelectedFundId(res.data[0].id);
+      if (res.status === 'success') {
+        const fundList = Array.isArray(res.data)
+          ? res.data
+          : Array.isArray(res)
+          ? (res as Fund[])
+          : [];
+        setFunds(fundList);
+        if (fundList.length > 0) {
+          setSelectedFundId(fundList[0].id);
         }
       }
       setLoading(false);
@@ -80,7 +86,7 @@ export default function CheckoutModal({
         {/* Total Amount Display */}
         <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-4 text-center">
           <span className="text-xs font-semibold uppercase text-indigo-600 tracking-wider">{t('pos.total_payable')}</span>
-          <div className="text-3xl font-extrabold text-indigo-900 mt-1">${totalAmount.toFixed(2)}</div>
+          <div className="text-3xl font-extrabold text-indigo-900 mt-1">{formatCurrency(totalAmount, settings)}</div>
         </div>
 
         {/* Fund Selection */}

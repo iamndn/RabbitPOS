@@ -22,23 +22,32 @@ interface ReceiptModalProps {
   isOpen: boolean;
   onClose: () => void;
   order: CompletedOrderData | null;
+  settings?: SettingsMap | null;
 }
 
-export default function ReceiptModal({ isOpen, onClose, order }: ReceiptModalProps) {
+export default function ReceiptModal({ isOpen, onClose, order, settings: initialSettings }: ReceiptModalProps) {
   const { t } = useTranslation();
-  const [settings, setSettings] = useState<SettingsMap | null>(null);
+  const [settings, setSettings] = useState<SettingsMap | null>(initialSettings || null);
 
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && !settings) {
       const loadSettings = async () => {
-        const res = await fetchApi<SettingsMap>('/settings');
+        const res = await fetchApi<any>('/settings');
         if (res.status === 'success' && res.data) {
-          setSettings(res.data);
+          if (Array.isArray(res.data)) {
+            const map: SettingsMap = {};
+            res.data.forEach((s: any) => {
+              if (s && s.key) map[s.key] = s.value;
+            });
+            setSettings(map);
+          } else if (typeof res.data === 'object') {
+            setSettings(res.data as SettingsMap);
+          }
         }
       };
       loadSettings();
     }
-  }, [isOpen]);
+  }, [isOpen, settings]);
 
   if (!isOpen || !order) return null;
 
@@ -47,8 +56,8 @@ export default function ReceiptModal({ isOpen, onClose, order }: ReceiptModalPro
   };
 
   const formattedDate = order.created_at
-    ? new Date(order.created_at).toLocaleString()
-    : new Date().toLocaleString();
+    ? new Date(order.created_at).toLocaleString('vi-VN')
+    : new Date().toLocaleString('vi-VN');
 
   const storeName = settings?.store_name || 'Thỏ Juice & Coffee';
   const storeAddress = settings?.store_address || '123 Vo Van Kiet, D1, HCMC';
@@ -76,13 +85,27 @@ export default function ReceiptModal({ isOpen, onClose, order }: ReceiptModalPro
         <div id="thermal-receipt" className="bg-white p-4 font-mono text-xs text-slate-900 leading-tight border border-dashed border-slate-300 rounded-2xl print:border-none print:p-0 print:m-0 print:shadow-none">
           {/* Header */}
           <div className="text-center space-y-1 pb-3 border-b border-dashed border-slate-300">
-            <h2 className="text-base font-extrabold tracking-tight uppercase">{storeName}</h2>
+            <h2 className="text-base font-black tracking-tight uppercase text-slate-900">{storeName}</h2>
             <p className="text-[10px] text-slate-600">{storeAddress}</p>
-            <p className="text-[10px] text-slate-600">Tel: {storePhone}</p>
-            <div className="pt-2 text-[10px] font-bold text-slate-800">
-              <p>{t('pos.receipt_no', { code: order.order_code })}</p>
-              <p className="font-normal text-slate-500">{formattedDate}</p>
-              <p className="font-normal text-slate-500">{t('pos.cashier', { name: order.created_by || 'Staff' })}</p>
+            <p className="text-[10px] text-slate-600">Hotline: {storePhone}</p>
+            <div className="pt-2">
+              <span className="inline-block text-xs font-black tracking-widest uppercase border-y border-slate-800 py-0.5 my-1">
+                PHIẾU THANH TOÁN
+              </span>
+            </div>
+            <div className="pt-1 text-[10px] text-slate-700 text-left space-y-0.5">
+              <div className="flex justify-between">
+                <span>Số phiếu:</span>
+                <span className="font-bold">#{order.order_code}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Ngày giờ:</span>
+                <span>{formattedDate}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Thu ngân:</span>
+                <span>{order.created_by || 'Nhân viên'}</span>
+              </div>
             </div>
           </div>
 
@@ -94,7 +117,7 @@ export default function ReceiptModal({ isOpen, onClose, order }: ReceiptModalPro
               <span>{t('pos.line_total')}</span>
             </div>
 
-            {order.items.map((item, idx) => (
+            {(Array.isArray(order.items) ? order.items : []).map((item, idx) => (
               <div key={idx} className="space-y-0.5">
                 <div className="flex justify-between font-bold">
                   <span className="truncate max-w-[130px]">{item.product.name}</span>
@@ -121,19 +144,23 @@ export default function ReceiptModal({ isOpen, onClose, order }: ReceiptModalPro
                 <span>-{formatCurrency(order.discount, settings)}</span>
               </div>
             )}
-            <div className="flex justify-between font-extrabold text-sm pt-1 border-t border-slate-200 text-slate-900">
-              <span>{t('common.total_amount')}:</span>
-              <span>{formatCurrency(order.total, settings)}</span>
+            <div className="flex justify-between font-black text-sm pt-1 border-t border-slate-300 text-slate-900">
+              <span className="uppercase">Tổng cộng:</span>
+              <span className="text-base font-extrabold">{formatCurrency(order.total, settings)}</span>
             </div>
-            <div className="flex justify-between text-[10px] text-slate-500 pt-1">
+            <div className="flex justify-between text-[10px] text-slate-600 pt-1">
               <span>{t('pos.payment')}:</span>
-              <span className="font-bold uppercase">{order.payment_method || 'Cash'}</span>
+              <span className="font-bold">
+                {order.payment_method === 'bank' || order.payment_method === 'vietqr'
+                  ? 'Chuyển khoản VietQR'
+                  : 'Tiền mặt tại quầy'}
+              </span>
             </div>
           </div>
 
           {/* Footer Thank You */}
-          <div className="text-center pt-3 text-[10px] text-slate-500 space-y-1">
-            <p className="font-bold text-slate-700">{t('pos.thank_you_title')}</p>
+          <div className="text-center pt-3 text-[10px] text-slate-600 space-y-1">
+            <p className="font-bold text-slate-800">{t('pos.thank_you_title')}</p>
             <p className="italic">{t('pos.thank_you_sub')}</p>
           </div>
         </div>

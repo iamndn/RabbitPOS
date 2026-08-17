@@ -111,7 +111,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             <span>RabbitPOS</span>
           </Link>
           <span className="hidden sm:inline-block text-xs bg-indigo-700/80 px-2.5 py-1 rounded-full font-medium text-indigo-100 border border-indigo-500/30">
-            Tho Juice & Coffee
+            Thỏ Juice & Coffee
           </span>
         </div>
 
@@ -156,7 +156,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                   currentUser.role === 'admin' ? 'bg-purple-500/40 text-purple-200' : 'bg-blue-500/40 text-blue-200'
                 }`}
               >
-                {currentUser.role}
+                {currentUser.role === 'admin' ? t('common.role_admin') : t('common.role_staff')}
               </span>
             </div>
           )}

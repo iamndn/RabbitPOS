@@ -34,7 +34,7 @@ func (h *OrderHandler) ListOrders(c *gin.Context) {
 		query = query.Where("status = ?", status)
 	}
 
-	var orders []models.Order
+	orders := make([]models.Order, 0)
 	if err := query.Order("created_at desc").Find(&orders).Error; err != nil {
 		models.SendInternalError(c, "Failed to retrieve orders: "+err.Error())
 		return

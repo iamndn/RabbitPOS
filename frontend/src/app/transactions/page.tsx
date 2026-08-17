@@ -65,24 +65,42 @@ export default function TransactionsPage() {
     setLoading(true);
 
     // Load settings for currency formatting
-    const settingsRes = await fetchApi<{ key: string; value: string }[]>('/settings');
+    const settingsRes = await fetchApi<any>('/settings');
     if (settingsRes.status === 'success' && settingsRes.data) {
-      const map: SettingsMap = {};
-      settingsRes.data.forEach((s) => { map[s.key] = s.value; });
-      setSettings(map);
+      if (Array.isArray(settingsRes.data)) {
+        const map: SettingsMap = {};
+        settingsRes.data.forEach((s: any) => {
+          if (s && s.key) {
+            map[s.key] = s.value;
+          }
+        });
+        setSettings(map);
+      } else if (typeof settingsRes.data === 'object') {
+        setSettings(settingsRes.data as SettingsMap);
+      }
     }
 
     const fundRes = await fetchApi<Fund[]>('/funds');
-    if (fundRes.status === 'success' && fundRes.data) {
-      setFunds(fundRes.data);
-      if (fundRes.data.length > 0 && modalFundId === 0) {
-        setModalFundId(fundRes.data[0].id);
+    if (fundRes.status === 'success') {
+      const fundList = Array.isArray(fundRes.data)
+        ? fundRes.data
+        : Array.isArray(fundRes)
+        ? (fundRes as Fund[])
+        : [];
+      setFunds(fundList);
+      if (fundList.length > 0 && modalFundId === 0) {
+        setModalFundId(fundList[0].id);
       }
     }
 
     const txRes = await fetchApi<Transaction[]>('/transactions');
-    if (txRes.status === 'success' && txRes.data) {
-      setTransactions(txRes.data);
+    if (txRes.status === 'success') {
+      const txList = Array.isArray(txRes.data)
+        ? txRes.data
+        : Array.isArray(txRes)
+        ? (txRes as Transaction[])
+        : [];
+      setTransactions(txList);
     }
     setLoading(false);
   };
@@ -113,9 +131,12 @@ export default function TransactionsPage() {
       setModalDescription('');
       loadData();
     } else {
-      alert('Failed to log transaction: ' + res.message);
+      alert(t('tx.log_failed', { error: res.message }));
     }
   };
+
+  const safeTransactions = Array.isArray(transactions) ? transactions : [];
+  const safeFunds = Array.isArray(funds) ? funds : [];
 
   const handleExportCsv = () => {
     exportToCsv<Transaction>('rabbitpos_transactions', filteredTransactions, [
@@ -124,27 +145,27 @@ export default function TransactionsPage() {
       { header: 'Type', accessor: (tx) => tx.transaction_type },
       { header: 'Category', accessor: (tx) => tx.category },
       { header: 'Fund Account', accessor: (tx) => tx.fund?.name || tx.fund_id },
-      { header: 'Amount', accessor: (tx) => tx.amount.toFixed(2) },
+      { header: 'Amount', accessor: (tx) => formatCurrency(tx.amount, settings) },
       { header: 'Ref Order', accessor: (tx) => tx.reference_order?.order_code || '' },
       { header: 'Description', accessor: (tx) => tx.description },
       { header: 'Created By', accessor: (tx) => tx.created_by },
     ]);
   };
 
-  const filteredTransactions = transactions.filter((tx) => {
+  const filteredTransactions = safeTransactions.filter((tx) => {
     const matchesFund = selectedFundId ? tx.fund_id === selectedFundId : true;
     const matchesType = selectedType !== 'all' ? tx.transaction_type === selectedType : true;
     const matchesCat = selectedCategory !== 'all' ? tx.category === selectedCategory : true;
     return matchesFund && matchesType && matchesCat;
   });
 
-  const totalInflow = transactions
+  const totalInflow = safeTransactions
     .filter((tx) => tx.transaction_type === 'inflow')
-    .reduce((acc, tx) => acc + tx.amount, 0);
+    .reduce((acc, tx) => acc + (Number(tx.amount) || 0), 0);
 
-  const totalOutflow = transactions
+  const totalOutflow = safeTransactions
     .filter((tx) => tx.transaction_type === 'outflow')
-    .reduce((acc, tx) => acc + tx.amount, 0);
+    .reduce((acc, tx) => acc + (Number(tx.amount) || 0), 0);
 
   const netCashFlow = totalInflow - totalOutflow;
 
@@ -223,7 +244,7 @@ export default function TransactionsPage() {
               className="p-2 border border-slate-200 rounded-xl text-xs bg-white text-slate-700 font-medium"
             >
               <option value="">{t('tx.filter_all_funds')}</option>
-              {funds.map((f) => (
+              {safeFunds.map((f) => (
                 <option key={f.id} value={f.id}>
                   {f.name}
                 </option>
@@ -378,7 +399,7 @@ export default function TransactionsPage() {
                   onChange={(e) => setModalFundId(Number(e.target.value))}
                   className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
                 >
-                  {funds.map((f) => (
+                  {safeFunds.map((f) => (
                     <option key={f.id} value={f.id}>
                       {f.name} ({f.fund_type})
                     </option>
@@ -412,12 +433,15 @@ export default function TransactionsPage() {
                 <label className="font-semibold text-slate-700 mb-1 block">{t('tx.modal_amount_label')} *</label>
                 <input
                   type="number"
-                  step="0.01"
-                  min="0.01"
+                  step="1000"
+                  min="1"
                   required
-                  placeholder="0.00"
-                  value={modalAmount || ''}
-                  onChange={(e) => setModalAmount(parseFloat(e.target.value) || 0)}
+                  placeholder="35.000"
+                  value={modalAmount === 0 ? '' : modalAmount}
+                  onChange={(e) => {
+                    const raw = e.target.value.replace(/\D/g, '');
+                    setModalAmount(raw === '' ? 0 : parseInt(raw, 10));
+                  }}
                   className="w-full p-2.5 border border-slate-200 rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
@@ -426,7 +450,7 @@ export default function TransactionsPage() {
                 <label className="font-semibold text-slate-700 mb-1 block">{t('tx.modal_description_label')}</label>
                 <textarea
                   rows={2}
-                  placeholder="e.g. Purchased 10L condensed milk..."
+                  placeholder={t('tx.description_placeholder')}
                   value={modalDescription}
                   onChange={(e) => setModalDescription(e.target.value)}
                   className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"

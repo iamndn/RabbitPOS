@@ -49,8 +49,8 @@ services:
       DB_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD_is_required}
       DB_NAME: ${POSTGRES_DB:-rabbitpos}
       APP_ENV: production
-      CORS_ORIGIN: ${CORS_ORIGIN:-https://rabbitpos.ndnworks.com,https://rabbitpos-api.ndnworks.com}
-      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-https://rabbitpos.ndnworks.com,https://rabbitpos-api.ndnworks.com}
+      CORS_ORIGIN: ${CORS_ORIGIN:-https://rabbitpos.ndnworks.com,http://localhost:3000,http://10.0.0.10:3000}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-https://rabbitpos.ndnworks.com,http://localhost:3000,http://10.0.0.10:3000}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET_is_required}
       JWT_EXPIRY_HOURS: ${JWT_EXPIRY_HOURS:-24}
       ENABLE_SEEDING: "false"
@@ -69,11 +69,11 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-/api/v1}
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://rabbitpos-api.ndnworks.com/api/v1}
     container_name: rabbitpos-frontend
     restart: always
     environment:
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-/api/v1}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://rabbitpos-api.ndnworks.com/api/v1}
       INTERNAL_BACKEND_URL: ${INTERNAL_BACKEND_URL:-http://backend:8080}
     ports:
       - "${FRONTEND_PORT:-3000}:3000"

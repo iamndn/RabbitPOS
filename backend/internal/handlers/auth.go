@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"errors"
+	"log"
 	"net/http"
 
 	"github.com/RabbitPOS/backend/internal/config"
@@ -23,26 +25,37 @@ func NewAuthHandler(db *gorm.DB, cfg *config.Config) *AuthHandler {
 func (h *AuthHandler) Login(c *gin.Context) {
 	var req models.LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
+		log.Printf("[AUTH] Invalid login payload: %v", err)
 		models.SendError(c, http.StatusBadRequest, "Invalid login payload: "+err.Error())
+		return
+	}
+
+	if h.db == nil {
+		log.Printf("[AUTH] Database connection is nil")
+		models.SendInternalError(c, "Database service unavailable")
 		return
 	}
 
 	var user models.User
 	if err := h.db.Where("username = ?", req.Username).First(&user).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			log.Printf("[AUTH] User not found: %s", req.Username)
 			models.SendError(c, http.StatusUnauthorized, "Invalid username or password")
 			return
 		}
+		log.Printf("[AUTH] Database query error for user '%s': %v", req.Username, err)
 		models.SendInternalError(c, "Authentication query error")
 		return
 	}
 
 	if !user.IsActive {
+		log.Printf("[AUTH] Login attempt for deactivated account: %s", req.Username)
 		models.SendError(c, http.StatusForbidden, "User account is deactivated")
 		return
 	}
 
 	if !utils.CheckPasswordHash(req.Password, user.PasswordHash) {
+		log.Printf("[AUTH] Invalid password attempt for user: %s", req.Username)
 		models.SendError(c, http.StatusUnauthorized, "Invalid username or password")
 		return
 	}
@@ -50,7 +63,8 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	// Generate JWT Token
 	token, err := utils.GenerateJWT(user.ID, user.Username, user.Role, h.cfg.JWTSecret, h.cfg.JWTExpiryHours)
 	if err != nil {
-		models.SendInternalError(c, "Failed to generate JWT token: "+err.Error())
+		log.Printf("[AUTH] Failed to generate JWT token for user '%s': %v", user.Username, err)
+		models.SendInternalError(c, "Failed to generate authentication token")
 		return
 	}
 
@@ -64,6 +78,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		IsActive: user.IsActive,
 	}
 
+	log.Printf("[AUTH] User '%s' (%s) authenticated successfully", user.Username, user.Role)
 	models.SendSuccess(c, http.StatusOK, models.LoginResponse{
 		Token: token,
 		User:  userResp,
@@ -80,15 +95,32 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 func (h *AuthHandler) GetMe(c *gin.Context) {
 	userIDVal, exists := c.Get("user_id")
 	if !exists {
+		log.Printf("[AUTH] GetMe called without user context")
 		models.SendError(c, http.StatusUnauthorized, "User context missing")
 		return
 	}
 
-	userID := userIDVal.(uint)
+	userID, ok := userIDVal.(uint)
+	if !ok {
+		log.Printf("[AUTH] Invalid user_id context type: %T", userIDVal)
+		models.SendInternalError(c, "Invalid user context")
+		return
+	}
+
+	if h.db == nil {
+		log.Printf("[AUTH] Database connection is nil in GetMe")
+		models.SendInternalError(c, "Database service unavailable")
+		return
+	}
 
 	var user models.User
 	if err := h.db.First(&user, userID).Error; err != nil {
-		models.SendError(c, http.StatusNotFound, "User profile not found")
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			models.SendError(c, http.StatusNotFound, "User profile not found")
+			return
+		}
+		log.Printf("[AUTH] Database error in GetMe for user ID %d: %v", userID, err)
+		models.SendInternalError(c, "Failed to retrieve user profile")
 		return
 	}
 

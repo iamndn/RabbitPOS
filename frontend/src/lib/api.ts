@@ -15,6 +15,9 @@ declare const process: {
 export function getApiBaseUrl(): string {
   const envUrl = typeof process !== 'undefined' ? process.env?.NEXT_PUBLIC_API_URL?.trim() : undefined;
 
+  // Sanitize any legacy 2-level subdomain api.rabbitpos.ndnworks.com -> single-level rabbitpos-api.ndnworks.com
+  let cleanEnvUrl = envUrl ? envUrl.replace('api.rabbitpos.ndnworks.com', 'rabbitpos-api.ndnworks.com') : undefined;
+
   // Dynamic resolution on client-side (in browser)
   if (typeof window !== 'undefined' && window.location?.hostname) {
     const hostname = window.location.hostname;
@@ -28,28 +31,25 @@ export function getApiBaseUrl(): string {
       return `http://${hostname}:8080/api/v1`;
     }
 
-    // 2. Production domain (e.g. ndnworks.com or rabbitpos)
+    // 2. Production domain access (e.g. rabbitpos.ndnworks.com or ndnworks.com)
     if (hostname.includes('ndnworks.com') || hostname.includes('rabbitpos')) {
-      if (hostname.startsWith('api.')) {
-        return `https://${hostname}/api/v1`;
-      }
-      return `https://api.${hostname}/api/v1`;
+      return 'https://rabbitpos-api.ndnworks.com/api/v1';
     }
 
-    // 3. Fallback for custom domains if valid absolute NEXT_PUBLIC_API_URL is present
-    if (envUrl && envUrl !== '' && (envUrl.startsWith('http://') || envUrl.startsWith('https://'))) {
-      return envUrl;
+    // 3. Fallback for custom domains if valid clean absolute URL is provided in env
+    if (cleanEnvUrl && cleanEnvUrl !== '' && (cleanEnvUrl.startsWith('http://') || cleanEnvUrl.startsWith('https://'))) {
+      return cleanEnvUrl;
     }
 
     return `${protocol}//${hostname}:8080/api/v1`;
   }
 
   // SSR / Build-time fallback
-  if (envUrl && envUrl !== '' && (envUrl.startsWith('http://') || envUrl.startsWith('https://'))) {
-    return envUrl;
+  if (cleanEnvUrl && cleanEnvUrl !== '' && (cleanEnvUrl.startsWith('http://') || cleanEnvUrl.startsWith('https://'))) {
+    return cleanEnvUrl;
   }
 
-  return 'http://localhost:8080/api/v1';
+  return 'https://rabbitpos-api.ndnworks.com/api/v1';
 }
 
 export async function fetchApi<T>(
@@ -95,10 +95,19 @@ export async function fetchApi<T>(
 
 export function getImageUrl(url?: string | null): string | null {
   if (!url || url.trim() === '') return null;
-  const trimmed = url.trim();
+  let trimmed = url.trim().replace('api.rabbitpos.ndnworks.com', 'rabbitpos-api.ndnworks.com');
 
   if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
     return trimmed;
+  }
+
+  // If in browser on production domain
+  if (typeof window !== 'undefined' && window.location?.hostname) {
+    const hostname = window.location.hostname;
+    if (hostname.includes('ndnworks.com') || hostname.includes('rabbitpos')) {
+      const path = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+      return `https://rabbitpos-api.ndnworks.com${path}`;
+    }
   }
 
   const apiBase = getApiBaseUrl();

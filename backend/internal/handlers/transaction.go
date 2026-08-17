@@ -35,7 +35,7 @@ func (h *TransactionHandler) ListTransactions(c *gin.Context) {
 		query = query.Where("category = ?", category)
 	}
 
-	var transactions []models.Transaction
+	transactions := make([]models.Transaction, 0)
 	if err := query.Order("created_at desc").Find(&transactions).Error; err != nil {
 		models.SendInternalError(c, "Failed to retrieve transactions: "+err.Error())
 		return

@@ -6,7 +6,7 @@
 - **Root Domain:** `ndnworks.com`
 - **Target Subdomains:**
   - App UI (Frontend): `rabbitpos.ndnworks.com`
-  - Backend API: `api.rabbitpos.ndnworks.com`
+  - Backend API: `rabbitpos-api.ndnworks.com`
 
 ## 2. Server Architecture (LXC Container)
 We prioritize **Ubuntu 22.04/24.04 LTS LXC (Linux Container)** on Proxmox to optimize hardware resources (RAM/CPU) compared to traditional VMs.
@@ -25,7 +25,7 @@ Cloudflare Tunnel (`cloudflared`) establishes secure outbound encrypted tunnels 
 | Public Hostname | Service Protocol | Internal Target Host & Port | Description |
 | :--- | :--- | :--- | :--- |
 | `rabbitpos.ndnworks.com` | HTTP | `http://rabbitpos-frontend:3000` | Next.js 14 Web Application |
-| `api.rabbitpos.ndnworks.com` | HTTP | `http://rabbitpos-backend:8080` | Go Gin RESTful Backend API |
+| `rabbitpos-api.ndnworks.com` | HTTP | `http://rabbitpos-backend:8080` | Go Gin RESTful Backend API |
 
 ### Fallback Reverse Proxy (Optional):
 - **Nginx Proxy Manager (NPM):** Running on container `rabbitpos-npm` (Port 80/443/81) for local direct reverse proxying or LAN access fallback.

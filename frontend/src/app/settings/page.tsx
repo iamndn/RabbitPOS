@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import AppShell from '@/components/AppShell';
 import { fetchApi } from '@/lib/api';
-import { SettingsMap } from '@/lib/utils';
+import { SettingsMap, formatCurrency } from '@/lib/utils';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
 
 export default function SettingsPage() {
@@ -190,7 +190,7 @@ export default function SettingsPage() {
                       value={form.store_name || ''}
                       onChange={(e) => handleChange('store_name', e.target.value)}
                       className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
-                      placeholder="e.g. Thỏ Juice & Coffee"
+                      placeholder={t('settings.store_name_placeholder')}
                     />
                   </div>
 
@@ -203,7 +203,7 @@ export default function SettingsPage() {
                       value={form.store_address || ''}
                       onChange={(e) => handleChange('store_address', e.target.value)}
                       className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
-                      placeholder="e.g. 123 Vo Van Kiet, D1, HCMC"
+                      placeholder={t('settings.store_address_placeholder')}
                     />
                   </div>
 
@@ -216,7 +216,7 @@ export default function SettingsPage() {
                       value={form.store_phone || ''}
                       onChange={(e) => handleChange('store_phone', e.target.value)}
                       className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
-                      placeholder="e.g. 0901234567"
+                      placeholder={t('settings.store_phone_placeholder')}
                     />
                   </div>
                 </div>
@@ -257,7 +257,7 @@ export default function SettingsPage() {
                         value={form.currency_symbol || ''}
                         onChange={(e) => handleChange('currency_symbol', e.target.value)}
                         className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
-                        placeholder="đ, $, €..."
+                        placeholder="đ"
                       />
                     </div>
                   </div>
@@ -278,11 +278,9 @@ export default function SettingsPage() {
 
                   {/* Preview Box */}
                   <div className="bg-indigo-50/60 p-4 rounded-xl border border-indigo-100 mt-3">
-                    <p className="text-[11px] text-slate-500 font-medium mb-1">Formatted Output Preview:</p>
+                    <p className="text-[11px] text-slate-500 font-medium mb-1">{t('settings.preview_label')}</p>
                     <p className="text-sm font-extrabold text-indigo-700">
-                      {form.currency_position === 'prefix'
-                        ? `${form.currency_symbol || 'đ'}35,000.00`
-                        : `35,000.00 ${form.currency_symbol || 'đ'}`}
+                      {formatCurrency(35000, form)}
                     </p>
                   </div>
                 </div>
@@ -322,7 +320,7 @@ export default function SettingsPage() {
                       value={form.vietqr_account_no || ''}
                       onChange={(e) => handleChange('vietqr_account_no', e.target.value)}
                       className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
-                      placeholder="e.g. 123456789"
+                      placeholder={t('settings.vietqr_account_no_placeholder')}
                     />
                   </div>
 
@@ -336,7 +334,7 @@ export default function SettingsPage() {
                       value={form.vietqr_account_name || ''}
                       onChange={(e) => handleChange('vietqr_account_name', e.target.value)}
                       className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white uppercase"
-                      placeholder="e.g. THO JUICE AND COFFEE"
+                      placeholder={t('settings.vietqr_account_name_placeholder')}
                     />
                   </div>
                 </div>

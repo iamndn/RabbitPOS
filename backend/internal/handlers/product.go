@@ -37,7 +37,7 @@ func (h *ProductHandler) ListProducts(c *gin.Context) {
 		}
 	}
 
-	var products []models.Product
+	products := make([]models.Product, 0)
 	if err := query.Order("name asc").Find(&products).Error; err != nil {
 		models.SendInternalError(c, "Failed to retrieve products: "+err.Error())
 		return

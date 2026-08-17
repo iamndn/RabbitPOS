@@ -40,16 +40,29 @@ export default function FundsPage() {
     setLoading(true);
 
     // Load settings for currency formatting
-    const settingsRes = await fetchApi<{ key: string; value: string }[]>('/settings');
+    const settingsRes = await fetchApi<any>('/settings');
     if (settingsRes.status === 'success' && settingsRes.data) {
-      const map: SettingsMap = {};
-      settingsRes.data.forEach((s) => { map[s.key] = s.value; });
-      setSettings(map);
+      if (Array.isArray(settingsRes.data)) {
+        const map: SettingsMap = {};
+        settingsRes.data.forEach((s: any) => {
+          if (s && s.key) {
+            map[s.key] = s.value;
+          }
+        });
+        setSettings(map);
+      } else if (typeof settingsRes.data === 'object') {
+        setSettings(settingsRes.data as SettingsMap);
+      }
     }
 
     const res = await fetchApi<Fund[]>('/funds');
-    if (res.status === 'success' && res.data) {
-      setFunds(res.data);
+    if (res.status === 'success') {
+      const fundList = Array.isArray(res.data)
+        ? res.data
+        : Array.isArray(res)
+        ? (res as Fund[])
+        : [];
+      setFunds(fundList);
     }
     setLoading(false);
   };
@@ -81,9 +94,9 @@ export default function FundsPage() {
     if (res.status === 'success') {
       setSelectedFundForReconcile(null);
       loadFunds();
-      alert(`✅ ${selectedFundForReconcile.name} balance reconciled successfully!`);
+      alert(t('funds.reconcile_success', { name: selectedFundForReconcile.name }));
     } else {
-      alert('Failed to reconcile balance: ' + res.message);
+      alert(t('funds.reconcile_failed', { error: res.message }));
     }
     setReconciling(false);
   };
@@ -111,7 +124,7 @@ export default function FundsPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {funds.map((fund) => {
+            {(Array.isArray(funds) ? funds : []).map((fund) => {
               const isBank = fund.fund_type === 'bank';
 
               return (
@@ -201,11 +214,15 @@ export default function FundsPage() {
                 <label className="font-bold text-slate-800 mb-1 block">{t('funds.actual_balance_label')}</label>
                 <input
                   type="number"
-                  step="0.01"
+                  step="1000"
                   min="0"
                   required
-                  value={actualBalanceInput}
-                  onChange={(e) => setActualBalanceInput(parseFloat(e.target.value) || 0)}
+                  placeholder="500.000"
+                  value={actualBalanceInput === 0 ? '' : actualBalanceInput}
+                  onChange={(e) => {
+                    const raw = e.target.value.replace(/\D/g, '');
+                    setActualBalanceInput(raw === '' ? 0 : parseInt(raw, 10));
+                  }}
                   className="w-full p-3 border border-slate-200 rounded-xl text-base font-extrabold text-indigo-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
@@ -241,7 +258,7 @@ export default function FundsPage() {
                 <label className="font-semibold text-slate-700 mb-1 block">{t('funds.reconcile_notes_label')}</label>
                 <textarea
                   rows={2}
-                  placeholder="e.g. End of day cash drawer audit count..."
+                  placeholder={t('funds.reconcile_notes_placeholder')}
                   value={reconcileNotes}
                   onChange={(e) => setReconcileNotes(e.target.value)}
                   className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"

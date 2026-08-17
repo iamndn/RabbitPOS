@@ -21,7 +21,7 @@ func NewFundHandler(db *gorm.DB) *FundHandler {
 
 // ListFunds returns active payment funds (Cash Drawer, Bank Accounts, E-Wallets)
 func (h *FundHandler) ListFunds(c *gin.Context) {
-	var funds []models.Fund
+	funds := make([]models.Fund, 0)
 	if err := h.db.Where("is_active = ?", true).Order("id asc").Find(&funds).Error; err != nil {
 		models.SendInternalError(c, "Failed to retrieve funds: "+err.Error())
 		return

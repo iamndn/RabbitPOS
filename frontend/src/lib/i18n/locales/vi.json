@@ -28,10 +28,14 @@
     "discount": "Giảm giá",
     "back": "Quay lại",
     "export_csv": "Xuất CSV",
-    "close": "Đóng"
+    "close": "Đóng",
+    "role_admin": "Quản trị",
+    "role_staff": "Nhân viên",
+    "to": "đến",
+    "date": "Ngày"
   },
   "pos": {
-    "search_placeholder": "Tìm kiếm đồ uống...",
+    "search_placeholder": "Tìm kiếm đồ uống, cà phê...",
     "all_items": "Tất cả món",
     "no_drinks": "Không tìm thấy đồ uống nào.",
     "order_button": "Gọi món",
@@ -41,10 +45,10 @@
     "select_variant": "Chọn kích thước & Tùy chọn",
     "added_to_cart": "Đã thêm {name} vào giỏ hàng",
     "cash_drawer": "Tiền mặt tại quầy",
-    "bank_transfer": "Chuyển khoản ngân hàng",
+    "bank_transfer": "Chuyển khoản VietQR",
     "confirm_payment": "Xác nhận thanh toán",
     "subtotal": "Tạm tính",
-    "discount": "Giảm giá ($)",
+    "discount": "Giảm giá",
     "total": "Tổng tiền",
     "notes_placeholder": "Ghi chú đồ uống (ít đá, nhiều đường...)",
     "order_completed": "Thanh toán đơn hàng thành công!",
@@ -79,7 +83,11 @@
     "payment": "Thanh toán",
     "thank_you_title": "Cảm ơn quý khách & Hẹn gặp lại!",
     "thank_you_sub": "Chúc quý khách một ngày vui vẻ!",
-    "add_to_order": "Thêm vào đơn hàng"
+    "add_to_order": "Thêm vào đơn hàng",
+    "sugar_level": "Lượng đường",
+    "ice_level": "Lượng đá",
+    "toppings": "Topping thêm",
+    "remove_item": "Xóa món"
   },
   "products": {
     "title": "Quản lý Danh mục & Sản phẩm",
@@ -104,6 +112,7 @@
     "category_name": "Tên danh mục",
     "display_order": "Thứ tự hiển thị",
     "no_items": "Chưa có sản phẩm nào. Nhấn \"+ Thêm sản phẩm\" để tạo món đầu tiên.",
+    "no_categories": "Chưa có danh mục nào. Nhấn \"+ Thêm danh mục\" để tạo mới.",
     "manage_categories": "Quản lý danh mục",
     "edit_category": "Sửa danh mục",
     "create_category_btn": "Tạo danh mục",
@@ -119,7 +128,19 @@
     "save_product_btn": "Lưu sản phẩm",
     "upload_image": "Tải ảnh lên",
     "no_description": "Chưa có mô tả",
-    "unassigned": "Chưa phân loại"
+    "unassigned": "Chưa phân loại",
+    "product_name_placeholder": "VD: Cà phê Sữa Đá",
+    "description_placeholder": "Mô tả nguyên liệu, hương vị món...",
+    "image_preview": "Xem trước ảnh",
+    "image_url_placeholder": "Hoặc nhập đường dẫn ảnh (https://... hoặc /uploads/...)",
+    "category_name_placeholder": "VD: Nước ép tươi",
+    "avg_cogs": "Giá vốn TB: {amount}",
+    "update_failed": "Cập nhật sản phẩm thất bại: {message}",
+    "create_failed": "Tạo sản phẩm thất bại: {message}",
+    "delete_failed": "Xóa sản phẩm thất bại: {message}",
+    "update_cat_failed": "Cập nhật danh mục thất bại: {message}",
+    "create_cat_failed": "Tạo danh mục thất bại: {message}",
+    "delete_cat_failed": "Xóa danh mục thất bại: {message}"
   },
   "tx": {
     "title": "Sổ Thu Chi & Giao Dịch",
@@ -163,7 +184,9 @@
     "cat_manual_sale": "Doanh thu thủ công",
     "cat_other_inflow": "Thu nhập khác",
     "no_transactions": "Chưa có giao dịch nào được ghi nhận.",
-    "unknown_fund": "Quỹ không xác định"
+    "unknown_fund": "Quỹ không xác định",
+    "description_placeholder": "VD: Mua 10 hộp sữa đặc Ngôi Sao Phương Nam...",
+    "log_failed": "Ghi nhận giao dịch thất bại: {message}"
   },
   "funds": {
     "title": "Quản lý Quỹ & Số Dư",
@@ -188,7 +211,10 @@
     "fund_type_label": "Tài khoản {type}",
     "reconcile_count": "Đối soát két",
     "history": "Lịch sử",
-    "active_badge": "Đang hoạt động"
+    "active_badge": "Đang hoạt động",
+    "reconcile_notes_placeholder": "VD: Kiểm két cuối ca tối 22h...",
+    "reconcile_success": "Đã đối soát số dư quỹ {name} thành công!",
+    "reconcile_failed": "Đối soát thất bại: {message}"
   },
   "dashboard": {
     "title": "Báo cáo Doanh thu & Quản trị",
@@ -199,7 +225,34 @@
     "top_products": "Top 5 sản phẩm bán chạy",
     "cash_flow_summary": "Tóm tắt Dòng tiền",
     "sold_units": "Số ly bán ra",
-    "revenue": "Doanh thu ($)"
+    "revenue": "Doanh thu",
+    "shortcut_today": "Hôm nay",
+    "shortcut_yesterday": "Hôm qua",
+    "shortcut_week": "Tuần này",
+    "shortcut_month": "Tháng này",
+    "shortcut_custom": "Tùy chỉnh",
+    "completed_orders": "Đơn hoàn thành:",
+    "cogs_label": "Giá vốn COGS:",
+    "cogs_cost": "Giá vốn COGS:",
+    "net_profit": "Lợi nhuận thuần",
+    "after_outflows": "Sau các khoản chi:",
+    "aov": "Giá trị ĐH Trung bình (AOV)",
+    "per_tx": "Trung bình mỗi đơn",
+    "total_outflow_label": "Tổng chi phí dòng tiền",
+    "total_outflow": "Tổng chi phí dòng tiền",
+    "outflow_sub": "Nguyên liệu & Vận hành",
+    "ingredients_utilities": "Nguyên liệu & Vận hành",
+    "no_sales_data": "Chưa có dữ liệu bán hàng trong kỳ này.",
+    "variant_label": "Biến thể:",
+    "sold_margin": "Đã bán {qty} ly (Biên LN {margin}%)",
+    "units_sold_margin": "Đã bán {count} ly (Biên LN {margin}%)",
+    "inflow_vs_outflow": "Thu so với Chi",
+    "inflows_vs_outflows": "Thu so với Chi",
+    "no_cashflow_data": "Chưa có biến động dòng tiền trong kỳ này.",
+    "no_cash_flow_data": "Chưa có biến động dòng tiền trong kỳ này.",
+    "th_inflows": "Dòng thu (+)",
+    "th_outflows": "Dòng chi (-)",
+    "th_net_flow": "Dòng tiền thuần"
   },
   "login": {
     "title": "Đăng nhập hệ thống RabbitPOS",
@@ -207,7 +260,10 @@
     "username": "Tên đăng nhập",
     "password": "Mật khẩu",
     "sign_in": "Đăng nhập",
-    "demo_credentials": "Tài khoản mẫu: admin / admin123"
+    "demo_credentials": "Tài khoản mẫu: admin / admin123",
+    "username_placeholder": "Nhập tên đăng nhập...",
+    "password_placeholder": "Nhập mật khẩu...",
+    "quick_demo_accounts": "Tài khoản dùng thử nhanh"
   },
   "settings": {
     "title": "Cài đặt & Cấu hình hệ thống",
@@ -222,10 +278,16 @@
     "currency_symbol": "Ký hiệu tiền tệ",
     "currency_position": "Vị trí ký hiệu",
     "position_suffix": "Hậu tố (VD: 35.000 đ)",
-    "position_prefix": "Tiền tố (VD: $35.00)",
+    "position_prefix": "Tiền tố (VD: đ 35.000)",
     "vietqr_bank_id": "Mã ngân hàng (Bank ID)",
     "vietqr_account_no": "Số tài khoản",
     "vietqr_account_name": "Tên chủ tài khoản",
-    "save_success": "Đã lưu cài đặt thành công!"
+    "save_success": "Đã lưu cài đặt thành công!",
+    "preview_label": "Xem trước định dạng hiển thị:",
+    "store_name_placeholder": "VD: Thỏ Juice & Coffee",
+    "store_address_placeholder": "VD: 123 Võ Văn Kiệt, Q1, TP.HCM",
+    "store_phone_placeholder": "VD: 0901234567",
+    "vietqr_account_no_placeholder": "VD: 123456789",
+    "vietqr_account_name_placeholder": "VD: THO JUICE AND COFFEE"
   }
 }

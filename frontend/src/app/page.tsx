@@ -10,6 +10,7 @@ import VietQRModal from '@/components/pos/VietQRModal';
 import ReceiptModal, { CompletedOrderData } from '@/components/pos/ReceiptModal';
 import { fetchApi, ApiResponse, getImageUrl } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
+import { formatCurrency, SettingsMap } from '@/lib/utils';
 
 interface Category {
   id: number;
@@ -25,6 +26,7 @@ export default function PosPage() {
   const [activeCategoryId, setActiveCategoryId] = useState<number | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [settings, setSettings] = useState<SettingsMap | null>(null);
 
   // Cart State
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
@@ -44,14 +46,37 @@ export default function PosPage() {
 
   const loadData = async () => {
     setLoading(true);
+    const settingsRes = await fetchApi<any>('/settings');
+    if (settingsRes.status === 'success' && settingsRes.data) {
+      if (Array.isArray(settingsRes.data)) {
+        const map: SettingsMap = {};
+        settingsRes.data.forEach((s: any) => {
+          if (s && s.key) map[s.key] = s.value;
+        });
+        setSettings(map);
+      } else if (typeof settingsRes.data === 'object') {
+        setSettings(settingsRes.data as SettingsMap);
+      }
+    }
+
     const catRes = await fetchApi<Category[]>('/categories');
-    if (catRes.status === 'success' && catRes.data) {
-      setCategories(catRes.data);
+    if (catRes.status === 'success') {
+      const catList = Array.isArray(catRes.data)
+        ? catRes.data
+        : Array.isArray(catRes)
+        ? (catRes as Category[])
+        : [];
+      setCategories(catList);
     }
 
     const prodRes = await fetchApi<Product[]>('/products');
-    if (prodRes.status === 'success' && prodRes.data) {
-      setProducts(prodRes.data);
+    if (prodRes.status === 'success') {
+      const prodList = Array.isArray(prodRes.data)
+        ? prodRes.data
+        : Array.isArray(prodRes)
+        ? (prodRes as Product[])
+        : [];
+      setProducts(prodList);
     }
     setLoading(false);
   };
@@ -204,15 +229,19 @@ export default function PosPage() {
     }
   };
 
-  const filteredProducts = products.filter((p) => {
+  const safeProducts = Array.isArray(products) ? products : [];
+  const safeCategories = Array.isArray(categories) ? categories : [];
+  const safeCartItems = Array.isArray(cartItems) ? cartItems : [];
+
+  const filteredProducts = safeProducts.filter((p) => {
     const matchesCat = activeCategoryId ? p.category_id === activeCategoryId : true;
-    const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = (p.name || '').toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCat && matchesSearch;
   });
 
-  const cartSubtotal = cartItems.reduce((acc, item) => acc + item.lineTotal, 0);
+  const cartSubtotal = safeCartItems.reduce((acc, item) => acc + item.lineTotal, 0);
   const cartTotal = Math.max(0, cartSubtotal - discountAmount);
-  const totalItemCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
+  const totalItemCount = safeCartItems.reduce((acc, item) => acc + item.quantity, 0);
 
   return (
     <AppShell>
@@ -238,9 +267,9 @@ export default function PosPage() {
                   : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
               }`}
             >
-              {t('pos.all_items')} ({products.length})
+              {t('pos.all_items')} ({safeProducts.length})
             </button>
-            {categories.map((cat) => (
+            {safeCategories.map((cat) => (
               <button
                 key={cat.id}
                 onClick={() => setActiveCategoryId(cat.id)}
@@ -280,7 +309,7 @@ export default function PosPage() {
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
             {filteredProducts.map((product) => {
               const startingPrice =
-                product.variants && product.variants.length > 0
+                Array.isArray(product.variants) && product.variants.length > 0
                   ? Math.min(...product.variants.map((v) => v.retail_price))
                   : 0;
 
@@ -304,7 +333,11 @@ export default function PosPage() {
                     </div>
                     {product.tag && product.tag !== 'none' && (
                       <span className="text-[9px] uppercase font-extrabold px-1.5 py-0.5 bg-indigo-50 text-indigo-600 rounded">
-                        {product.tag.replace('_', ' ')}
+                        {product.tag === 'best_seller'
+                          ? t('products.best_seller')
+                          : product.tag === 'new'
+                          ? t('products.new')
+                          : product.tag.replace('_', ' ')}
                       </span>
                     )}
                     <h3 className="font-semibold text-slate-900 text-xs mt-1 leading-tight group-hover:text-indigo-600 transition">
@@ -312,7 +345,7 @@ export default function PosPage() {
                     </h3>
                   </div>
                   <div className="mt-3 flex items-center justify-between">
-                    <span className="font-bold text-indigo-600 text-xs">${startingPrice.toFixed(2)}</span>
+                    <span className="font-bold text-indigo-600 text-xs">{formatCurrency(startingPrice, settings)}</span>
                     <span className="bg-indigo-50 group-hover:bg-indigo-600 group-hover:text-white text-indigo-600 text-xs font-bold px-2 py-1 rounded-lg transition flex items-center gap-0.5">
                       <Plus className="w-3.5 h-3.5" /> {t('pos.order_button')}
                     </span>
@@ -338,8 +371,8 @@ export default function PosPage() {
               )}
             </div>
             <div>
-              <p className="text-[11px] text-slate-400 font-medium">{t('pos.cart_total')} ({totalItemCount} items)</p>
-              <p className="text-base font-bold text-white">${cartTotal.toFixed(2)}</p>
+              <p className="text-[11px] text-slate-400 font-medium">{t('pos.cart_total')} ({t('pos.items_count', { count: totalItemCount })})</p>
+              <p className="text-base font-bold text-white">{formatCurrency(cartTotal, settings)}</p>
             </div>
           </div>
 
@@ -367,6 +400,7 @@ export default function PosPage() {
           product={selectedProductForVariant}
           onClose={() => setSelectedProductForVariant(null)}
           onAddToCart={handleAddToCart}
+          settings={settings}
         />
       )}
 
@@ -382,6 +416,7 @@ export default function PosPage() {
           setIsCartDrawerOpen(false);
           setIsCheckoutModalOpen(true);
         }}
+        settings={settings}
       />
 
       {isCheckoutModalOpen && (
@@ -390,6 +425,7 @@ export default function PosPage() {
           onClose={() => setIsCheckoutModalOpen(false)}
           onConfirmCashPayment={handleConfirmCashPayment}
           onSelectBankTransfer={handleSelectBankTransfer}
+          settings={settings}
         />
       )}
 
@@ -398,6 +434,7 @@ export default function PosPage() {
           totalAmount={cartTotal}
           onClose={() => setIsVietQRModalOpen(false)}
           onConfirmOrder={handleConfirmVietQRPayment}
+          settings={settings}
         />
       )}
 
@@ -405,6 +442,7 @@ export default function PosPage() {
         isOpen={isReceiptModalOpen}
         onClose={() => setIsReceiptModalOpen(false)}
         order={completedOrder}
+        settings={settings}
       />
     </AppShell>
   );

@@ -149,7 +149,7 @@ func (h *AnalyticsHandler) GetTopProducts(c *gin.Context) {
 		return
 	}
 
-	var topProducts []models.TopProductVariantItem
+	topProducts := make([]models.TopProductVariantItem, 0)
 	for _, r := range results {
 		profit := r.TotalRevenue - r.TotalCogs
 		var margin float64 = 0
@@ -199,7 +199,7 @@ func (h *AnalyticsHandler) GetCashFlowSummary(c *gin.Context) {
 		return
 	}
 
-	var cashFlowList []models.CashFlowSummaryItem
+	cashFlowList := make([]models.CashFlowSummaryItem, 0)
 	for _, r := range results {
 		cashFlowList = append(cashFlowList, models.CashFlowSummaryItem{
 			Date:    r.Date,

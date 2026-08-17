@@ -1,6 +1,6 @@
 # RabbitPOS — Phase 6 Architecture Update
 **i18n · Image Management · Auth/CORS Hardening · Operational Enhancements**
-Domains: `rabbitpos.ndnworks.com` (Frontend) / `api.rabbitpos.ndnworks.com` (Backend) / LAN `10.0.0.10`
+Domains: `rabbitpos.ndnworks.com` (Frontend) / `rabbitpos-api.ndnworks.com` (Backend) / LAN `10.0.0.10`
 
 ---
 
@@ -89,7 +89,7 @@ Base path: `/api/v1` — envelope unchanged: `{ "status", "data", "message" }`
 
 ### 3.3 Auth Persistence & API Base URL Resolution
 - `ApiClientProvider` (update) — dynamic base URL resolution priority:
-  1. `NEXT_PUBLIC_API_URL` if explicitly set at build time (production default: `https://api.rabbitpos.ndnworks.com/api/v1`)
+  1. `NEXT_PUBLIC_API_URL` if explicitly set at build time (production default: `https://rabbitpos-api.ndnworks.com/api/v1`)
   2. Runtime fallback: derive from `window.location.hostname` — if hostname is a LAN IP (e.g. `10.0.0.10`), construct `http://{hostname}:8080/api/v1`; otherwise use the configured production URL.
   - This removes the need to rebuild the frontend image every time the access origin changes between LAN IP and domain.
 - `AuthGuard` (update) — on `401` response from any API call, clear local session and redirect to `/login`; attempt silent `POST /auth/refresh` once before redirecting, to avoid disrupting active POS sessions on token expiry mid-shift.

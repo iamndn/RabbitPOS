@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { X, Minus, Plus, Check } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
 import { getImageUrl } from '@/lib/api';
+import { formatCurrency, SettingsMap } from '@/lib/utils';
 
 export interface ProductVariant {
   id: number;
@@ -42,13 +43,15 @@ interface Props {
   product: Product;
   onClose: () => void;
   onAddToCart: (item: CartItem) => void;
+  settings?: SettingsMap | null;
 }
 
-export default function VariantSelectorModal({ product, onClose, onAddToCart }: Props) {
+export default function VariantSelectorModal({ product, onClose, onAddToCart, settings }: Props) {
   const { t } = useTranslation();
-  const defaultVariant = product.variants?.[0] || {
+  const safeVariants = Array.isArray(product?.variants) ? product.variants : [];
+  const defaultVariant = safeVariants[0] || {
     id: 0,
-    product_id: product.id,
+    product_id: product?.id || 0,
     variant_name: 'Regular',
     cogs_price: 0,
     retail_price: 0,
@@ -62,9 +65,9 @@ export default function VariantSelectorModal({ product, onClose, onAddToCart }: 
   const [quantity, setQuantity] = useState<number>(1);
 
   const availableToppings = [
-    { name: 'Boba Tapioca', price: 0.5 },
-    { name: 'Cream Cheese Foam', price: 0.75 },
-    { name: 'Egg Pudding', price: 0.5 },
+    { name: 'Trân châu trắng', price: 5000 },
+    { name: 'Kem Cheese', price: 10000 },
+    { name: 'Thạch nha đam', price: 5000 },
   ];
 
   const toggleTopping = (toppingName: string) => {
@@ -137,7 +140,7 @@ export default function VariantSelectorModal({ product, onClose, onAddToCart }: 
         <div className="space-y-2">
           <label className="text-xs font-bold text-slate-800 uppercase tracking-wider block">{t('pos.select_variant')}</label>
           <div className="grid grid-cols-2 gap-2">
-            {product.variants?.map((v) => (
+            {safeVariants.map((v) => (
               <button
                 key={v.id}
                 type="button"
@@ -150,7 +153,7 @@ export default function VariantSelectorModal({ product, onClose, onAddToCart }: 
               >
                 <div>
                   <span className="block text-xs font-bold text-slate-900">{v.variant_name}</span>
-                  <span className="text-xs text-indigo-600 font-semibold">${v.retail_price.toFixed(2)}</span>
+                  <span className="text-xs text-indigo-600 font-semibold">{formatCurrency(v.retail_price, settings)}</span>
                 </div>
                 {selectedVariant.id === v.id && <Check className="w-4 h-4 text-indigo-600" />}
               </button>
@@ -160,7 +163,7 @@ export default function VariantSelectorModal({ product, onClose, onAddToCart }: 
 
         {/* 2. Sugar Level */}
         <div className="space-y-1.5">
-          <label className="text-xs font-bold text-slate-800 uppercase tracking-wider block">Sugar / Đường</label>
+          <label className="text-xs font-bold text-slate-800 uppercase tracking-wider block">{t('pos.sugar_level')}</label>
           <div className="grid grid-cols-4 gap-1.5">
             {['100%', '70%', '50%', '30%'].map((lvl) => (
               <button
@@ -181,7 +184,7 @@ export default function VariantSelectorModal({ product, onClose, onAddToCart }: 
 
         {/* 3. Ice Level */}
         <div className="space-y-1.5">
-          <label className="text-xs font-bold text-slate-800 uppercase tracking-wider block">Ice / Đá</label>
+          <label className="text-xs font-bold text-slate-800 uppercase tracking-wider block">{t('pos.ice_level')}</label>
           <div className="grid grid-cols-4 gap-1.5">
             {['100%', '70%', '50%', '30%'].map((lvl) => (
               <button
@@ -202,7 +205,7 @@ export default function VariantSelectorModal({ product, onClose, onAddToCart }: 
 
         {/* 4. Extra Toppings */}
         <div className="space-y-1.5">
-          <label className="text-xs font-bold text-slate-800 uppercase tracking-wider block">Toppings</label>
+          <label className="text-xs font-bold text-slate-800 uppercase tracking-wider block">{t('pos.toppings')}</label>
           <div className="space-y-1.5">
             {availableToppings.map((topping) => {
               const isSelected = selectedToppings.includes(topping.name);
@@ -218,7 +221,7 @@ export default function VariantSelectorModal({ product, onClose, onAddToCart }: 
                   }`}
                 >
                   <span>{topping.name}</span>
-                  <span className="text-indigo-600 font-bold">+${topping.price.toFixed(2)}</span>
+                  <span className="text-indigo-600 font-bold">+{formatCurrency(topping.price, settings)}</span>
                 </button>
               );
             })}
@@ -248,7 +251,7 @@ export default function VariantSelectorModal({ product, onClose, onAddToCart }: 
             className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-xl shadow-md transition flex items-center justify-between text-sm"
           >
             <span>{t('pos.add_to_order')}</span>
-            <span>${lineTotal.toFixed(2)}</span>
+            <span>{formatCurrency(lineTotal, settings)}</span>
           </button>
         </div>
       </div>
