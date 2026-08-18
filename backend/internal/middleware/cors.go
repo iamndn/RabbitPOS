@@ -20,11 +20,21 @@ func CORSMiddleware(cfg *config.Config) gin.HandlerFunc {
 			if cfg.AppEnv == "development" {
 				allowed = true
 			} else {
-				for _, o := range cfg.CORSAllowedOrigins {
-					cleanO := strings.TrimRight(strings.TrimSpace(o), "/")
-					if cleanO == "*" || cleanO == reqOriginClean {
-						allowed = true
-						break
+				// Allow all localhost / 127.0.0.1 ports (e.g. localhost:3000, localhost:3001, etc.)
+				if strings.HasPrefix(reqOriginClean, "http://localhost") ||
+					strings.HasPrefix(reqOriginClean, "http://127.0.0.1") ||
+					strings.HasPrefix(reqOriginClean, "http://10.") ||
+					strings.HasPrefix(reqOriginClean, "http://192.168.") ||
+					strings.HasSuffix(reqOriginClean, ".ndnworks.com") ||
+					reqOriginClean == "https://ndnworks.com" {
+					allowed = true
+				} else {
+					for _, o := range cfg.CORSAllowedOrigins {
+						cleanO := strings.TrimRight(strings.TrimSpace(o), "/")
+						if cleanO == "*" || cleanO == reqOriginClean {
+							allowed = true
+							break
+						}
 					}
 				}
 			}

@@ -40,6 +40,7 @@ func SetupRouter(cfg *config.Config, db *gorm.DB) *gin.Engine {
 	txHandler := handlers.NewTransactionHandler(db)
 	analyticsHandler := handlers.NewAnalyticsHandler(db)
 	settingHandler := handlers.NewSettingHandler(db)
+	toppingHandler := handlers.NewToppingHandler(db)
 
 	// API v1 Group
 	v1 := router.Group("/api/v1")
@@ -70,6 +71,9 @@ func SetupRouter(cfg *config.Config, db *gorm.DB) *gin.Engine {
 			authenticated.POST("/orders", orderHandler.CreateOrder)
 			authenticated.GET("/vietqr/generate", orderHandler.GetVietQR)
 			authenticated.GET("/settings", settingHandler.GetSettings)
+			// Toppings: public read (for POS variant selector) + admin write
+			authenticated.GET("/toppings", toppingHandler.ListToppings)
+			authenticated.GET("/toppings/all", toppingHandler.ListAllToppings)
 
 			// Admin-Only Routes (Management, Financial Ledger, Analytics & Settings Update)
 			adminOnly := authenticated.Group("")
@@ -87,6 +91,11 @@ func SetupRouter(cfg *config.Config, db *gorm.DB) *gin.Engine {
 				adminOnly.POST("/products/:id/variants", variantHandler.AddVariantToProduct)
 				adminOnly.PUT("/variants/:id", variantHandler.UpdateVariant)
 				adminOnly.DELETE("/variants/:id", variantHandler.DeleteVariant)
+
+				// Topping Management (admin only writes)
+				adminOnly.POST("/toppings", toppingHandler.CreateTopping)
+				adminOnly.PUT("/toppings/:id", toppingHandler.UpdateTopping)
+				adminOnly.DELETE("/toppings/:id", toppingHandler.DeleteTopping)
 
 				// Fund Reconciliation
 				adminOnly.POST("/funds/:id/reconcile", fundHandler.ReconcileFund)

@@ -120,11 +120,19 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 		lineTotal := itemReq.UnitPrice * float64(itemReq.Quantity)
 		subtotal += lineTotal
 
+		// Serialize the topping snapshot to JSON string for JSONB storage
+		toppingsJSON, err := models.MarshalToppingSnapshots(itemReq.SelectedToppings)
+		if err != nil {
+			toppingsJSON = "[]"
+		}
+
 		orderItems = append(orderItems, models.OrderItem{
 			ProductVariantID: itemReq.ProductVariantID,
 			Quantity:         itemReq.Quantity,
 			UnitPrice:        itemReq.UnitPrice,
 			LineTotal:        lineTotal,
+			SelectedToppings: toppingsJSON,
+			ToppingsPrice:    itemReq.ToppingsPrice,
 			Notes:            itemReq.Notes,
 		})
 	}

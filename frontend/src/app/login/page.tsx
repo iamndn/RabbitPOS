@@ -215,6 +215,35 @@ export default function LoginPage() {
               </div>
             </button>
           </div>
+
+          <div className="grid grid-cols-3 gap-1.5 pt-1">
+            <button
+              type="button"
+              onClick={() => setDemoCredentials('NDN', 'ndn')}
+              className="p-2 rounded-xl border border-amber-200 bg-amber-50/60 hover:bg-amber-100 text-left transition"
+            >
+              <span className="block font-bold text-[11px] text-amber-900">NDN (Admin)</span>
+              <span className="text-[9px] text-amber-700 block">Pass: ndn</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setDemoCredentials('NHUNG', 'nhung')}
+              className="p-2 rounded-xl border border-amber-200 bg-amber-50/60 hover:bg-amber-100 text-left transition"
+            >
+              <span className="block font-bold text-[11px] text-amber-900">NHUNG (Admin)</span>
+              <span className="text-[9px] text-amber-700 block">Pass: nhung</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setDemoCredentials('DAT', 'dat')}
+              className="p-2 rounded-xl border border-amber-200 bg-amber-50/60 hover:bg-amber-100 text-left transition"
+            >
+              <span className="block font-bold text-[11px] text-amber-900">DAT (Admin)</span>
+              <span className="text-[9px] text-amber-700 block">Pass: dat</span>
+            </button>
+          </div>
         </div>
       </div>
 

@@ -19,6 +19,7 @@ import {
   FolderOpen,
   ChevronDown,
   ChevronUp,
+  Layers,
 } from 'lucide-react';
 import AppShell from '@/components/AppShell';
 import { fetchApi, getImageUrl, uploadImage } from '@/lib/api';
@@ -53,6 +54,15 @@ interface Product {
   created_at?: string;
 }
 
+interface Topping {
+  id: number;
+  name: string;
+  price: number;
+  cogs: number;
+  category_id: number | null;
+  is_active: boolean;
+}
+
 export default function ProductsPage() {
   const { t } = useTranslation();
   const [products, setProducts] = useState<Product[]>([]);
@@ -68,8 +78,15 @@ export default function ProductsPage() {
   // Modal States
   const [isProductModalOpen, setIsProductModalOpen] = useState<boolean>(false);
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState<boolean>(false);
+  const [isToppingModalOpen, setIsToppingModalOpen] = useState<boolean>(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [editingTopping, setEditingTopping] = useState<Topping | null>(null);
+
+  // Topping Panel
+  const [toppingPanelOpen, setToppingPanelOpen] = useState<boolean>(false);
+  const [toppings, setToppings] = useState<Topping[]>([]);
+  const [toppingForm, setToppingForm] = useState({ name: '', price: 0, cogs: 0, category_id: null as number | null, is_active: true });
 
   // Product Form State
   const [formName, setFormName] = useState<string>('');
@@ -160,8 +177,16 @@ export default function ProductsPage() {
     setLoading(false);
   };
 
+  const loadToppings = async () => {
+    const res = await fetchApi<Topping[]>('/toppings/all');
+    if (res.status === 'success' && Array.isArray(res.data)) {
+      setToppings(res.data);
+    }
+  };
+
   useEffect(() => {
     loadCatalog();
+    loadToppings();
   }, []);
 
   // ── Product Modal Helpers ──────────────────────────────────────────────────
@@ -336,9 +361,53 @@ export default function ProductsPage() {
     }
   };
 
+  // ── Topping Handlers ──────────────────────────────────────────────────────
+  const openCreateToppingModal = () => {
+    setEditingTopping(null);
+    setToppingForm({ name: '', price: 0, cogs: 0, category_id: null, is_active: true });
+    setIsToppingModalOpen(true);
+  };
+
+  const openEditToppingModal = (topping: Topping) => {
+    setEditingTopping(topping);
+    setToppingForm({ name: topping.name, price: topping.price, cogs: topping.cogs, category_id: topping.category_id, is_active: topping.is_active });
+    setIsToppingModalOpen(true);
+  };
+
+  const handleSaveTopping = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!toppingForm.name) return;
+
+    const payload = {
+      name: toppingForm.name,
+      price: Number(toppingForm.price),
+      cogs: Number(toppingForm.cogs) || 0,
+      category_id: toppingForm.category_id || null,
+      is_active: toppingForm.is_active,
+    };
+
+    if (editingTopping) {
+      const res = await fetchApi<Topping>(`/toppings/${editingTopping.id}`, { method: 'PUT', body: JSON.stringify(payload) });
+      if (res.status === 'success') { await loadToppings(); setIsToppingModalOpen(false); }
+      else alert('Cập nhật topping thất bại: ' + res.message);
+    } else {
+      const res = await fetchApi<Topping>('/toppings', { method: 'POST', body: JSON.stringify(payload) });
+      if (res.status === 'success') { await loadToppings(); setIsToppingModalOpen(false); }
+      else alert('Tạo topping thất bại: ' + res.message);
+    }
+  };
+
+  const handleDeleteTopping = async (id: number) => {
+    if (!confirm('Xác nhận xóa topping này?')) return;
+    const res = await fetchApi(`/toppings/${id}`, { method: 'DELETE' });
+    if (res.status === 'success') await loadToppings();
+    else alert('Xóa topping thất bại: ' + res.message);
+  };
+
   // ── Filtering ──────────────────────────────────────────────────────────────
   const safeProducts = Array.isArray(products) ? products : [];
   const safeCategories = Array.isArray(categories) ? categories : [];
+  const safeToppings = Array.isArray(toppings) ? toppings : [];
 
   const filteredProducts = safeProducts.filter((p) => {
     const matchesSearch =
@@ -447,6 +516,87 @@ export default function ProductsPage() {
                     </div>
                   </div>
                 ))
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Topping Management Panel */}
+        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+          <button
+            onClick={() => setToppingPanelOpen(!toppingPanelOpen)}
+            className="w-full flex items-center justify-between px-5 py-3.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition"
+          >
+            <span className="flex items-center gap-2">
+              <Layers className="w-4 h-4 text-violet-500" />
+              {t('products.manage_toppings')}
+              <span className="bg-violet-50 text-violet-600 text-[11px] font-bold px-2 py-0.5 rounded-full border border-violet-200">
+                {safeToppings.length}
+              </span>
+            </span>
+            {toppingPanelOpen ? (
+              <ChevronUp className="w-4 h-4 text-slate-400" />
+            ) : (
+              <ChevronDown className="w-4 h-4 text-slate-400" />
+            )}
+          </button>
+
+          {toppingPanelOpen && (
+            <div className="border-t border-slate-100">
+              {/* Add Topping Button */}
+              <div className="px-5 py-3 border-b border-slate-100 flex justify-end">
+                <button
+                  onClick={openCreateToppingModal}
+                  className="bg-violet-600 hover:bg-violet-700 text-white text-xs font-bold px-3 py-2 rounded-xl flex items-center gap-1.5 shadow-sm transition"
+                >
+                  <Plus className="w-3.5 h-3.5" /> {t('products.add_topping')}
+                </button>
+              </div>
+
+              {/* Topping Table */}
+              {safeToppings.length === 0 ? (
+                <p className="text-xs text-slate-400 text-center py-6">{t('products.no_toppings')}</p>
+              ) : (
+                <div className="divide-y divide-slate-100">
+                  {/* Table Header */}
+                  <div className="grid grid-cols-5 gap-2 px-5 py-2 bg-slate-50 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                    <span className="col-span-2">{t('products.topping_name')}</span>
+                    <span>{t('products.topping_price')}</span>
+                    <span>{t('products.topping_category')}</span>
+                    <span className="text-right">{t('common.actions')}</span>
+                  </div>
+                  {safeToppings.map((tp) => (
+                    <div key={tp.id} className="grid grid-cols-5 gap-2 px-5 py-3 items-center hover:bg-slate-50 transition">
+                      <div className="col-span-2 flex items-center gap-2">
+                        <span className={`w-2 h-2 rounded-full flex-shrink-0 ${tp.is_active ? 'bg-emerald-400' : 'bg-slate-300'}`} />
+                        <span className="text-sm font-semibold text-slate-800">{tp.name}</span>
+                      </div>
+                      <span className="text-sm text-indigo-600 font-bold">{formatCurrency(tp.price, settings)}</span>
+                      <span className="text-xs text-slate-500">
+                        {tp.category_id
+                          ? safeCategories.find((c) => c.id === tp.category_id)?.name || `#${tp.category_id}`
+                          : <span className="italic text-slate-400">{t('products.global')}</span>
+                        }
+                      </span>
+                      <div className="flex items-center justify-end gap-1">
+                        <button
+                          onClick={() => openEditToppingModal(tp)}
+                          className="p-1.5 text-slate-400 hover:text-violet-600 hover:bg-violet-50 rounded-lg transition"
+                          title={t('products.edit_topping')}
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteTopping(tp.id)}
+                          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
+                          title={t('products.delete_topping')}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
           )}
@@ -899,6 +1049,109 @@ export default function ProductsPage() {
                   className="px-5 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-sm"
                 >
                   {editingCategory ? t('products.save_category_btn') : t('products.create_category_btn')}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── Topping Create/Edit Modal ─────────────────────────────────── */}
+      {isToppingModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <Layers className="w-5 h-5 text-violet-600" />
+                {editingTopping ? t('products.edit_topping') : t('products.create_topping_title')}
+              </h3>
+              <button onClick={() => setIsToppingModalOpen(false)} className="p-1.5 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveTopping} className="space-y-4 text-sm">
+              {/* Name */}
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">{t('products.topping_name')} *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="VD: Trân châu trắng"
+                  value={toppingForm.name}
+                  onChange={(e) => setToppingForm({ ...toppingForm, name: e.target.value })}
+                  className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500 text-sm"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                {/* Retail Price */}
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">{t('products.topping_price')} *</label>
+                  <input
+                    type="number"
+                    required
+                    min="0"
+                    step="500"
+                    value={toppingForm.price === 0 ? '' : toppingForm.price}
+                    onChange={(e) => setToppingForm({ ...toppingForm, price: e.target.value === '' ? 0 : Number(e.target.value) })}
+                    className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500 text-sm"
+                  />
+                </div>
+                {/* COGS */}
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">{t('products.topping_cogs')}</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="500"
+                    value={toppingForm.cogs === 0 ? '' : toppingForm.cogs}
+                    onChange={(e) => setToppingForm({ ...toppingForm, cogs: e.target.value === '' ? 0 : Number(e.target.value) })}
+                    className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500 text-sm"
+                  />
+                </div>
+              </div>
+
+              {/* Category */}
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">{t('products.topping_category')}</label>
+                <select
+                  value={toppingForm.category_id ?? ''}
+                  onChange={(e) => setToppingForm({ ...toppingForm, category_id: e.target.value === '' ? null : Number(e.target.value) })}
+                  className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500 text-sm bg-white"
+                >
+                  <option value="">{t('products.topping_global')}</option>
+                  {safeCategories.map((cat) => (
+                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Is Active */}
+              <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200">
+                <span className="text-xs font-semibold text-slate-700">{t('products.is_active')}</span>
+                <button
+                  type="button"
+                  onClick={() => setToppingForm({ ...toppingForm, is_active: !toppingForm.is_active })}
+                  className={`w-10 h-5 rounded-full transition-colors ${toppingForm.is_active ? 'bg-violet-600' : 'bg-slate-300'} relative`}
+                >
+                  <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${toppingForm.is_active ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                </button>
+              </div>
+
+              <div className="flex justify-end space-x-2 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsToppingModalOpen(false)}
+                  className="px-4 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl"
+                >
+                  {t('common.cancel')}
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 text-xs font-bold text-white bg-violet-600 hover:bg-violet-700 rounded-xl shadow-sm"
+                >
+                  {editingTopping ? t('products.save_topping_btn') : t('products.create_topping_btn')}
                 </button>
               </div>
             </form>

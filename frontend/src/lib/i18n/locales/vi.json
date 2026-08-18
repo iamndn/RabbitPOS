@@ -1,11 +1,11 @@
 {
   "nav": {
-    "pos": "Điểm bán hàng (POS)",
-    "catalog": "Sản phẩm & Menu",
+    "pos": "POS",
+    "catalog": "Sản phẩm",
     "transactions": "Sổ Thu Chi",
     "funds": "Quản lý Quỹ",
-    "dashboard": "Báo cáo Tổng quan",
-    "settings": "Cài đặt hệ thống",
+    "dashboard": "Báo cáo",
+    "settings": "Cài đặt",
     "logout": "Đăng xuất"
   },
   "common": {
@@ -32,7 +32,8 @@
     "role_admin": "Quản trị",
     "role_staff": "Nhân viên",
     "to": "đến",
-    "date": "Ngày"
+    "date": "Ngày",
+    "app_title": "Thỏ POS"
   },
   "pos": {
     "search_placeholder": "Tìm kiếm đồ uống, cà phê...",
@@ -72,7 +73,7 @@
     "account_no": "Số tài khoản",
     "account_name": "Chủ tài khoản",
     "amount": "Số tiền",
-    "copied": "Đã chép!",
+    "copied": "Đã sao chép!",
     "receipt_no": "Hóa đơn #{code}",
     "cashier": "Thu ngân: {name}",
     "item": "Tên món",
@@ -97,7 +98,7 @@
     "search_placeholder": "Tìm tên món hoặc mã SKU...",
     "item": "Tên món",
     "category": "Danh mục",
-    "variants_pricing": "Biến thể / Giá bán",
+    "variants_pricing": "Giá bán",
     "cogs_vs_retail": "Giá vốn vs Giá bán",
     "margin": "Lợi nhuận %",
     "edit_product": "Sửa sản phẩm",
@@ -140,7 +141,23 @@
     "delete_failed": "Xóa sản phẩm thất bại: {message}",
     "update_cat_failed": "Cập nhật danh mục thất bại: {message}",
     "create_cat_failed": "Tạo danh mục thất bại: {message}",
-    "delete_cat_failed": "Xóa danh mục thất bại: {message}"
+    "delete_cat_failed": "Xóa danh mục thất bại: {message}",
+    "manage_toppings": "Quản lý Topping",
+    "add_topping": "Thêm Topping",
+    "edit_topping": "Sửa Topping",
+    "create_topping_title": "Thêm Topping mới",
+    "create_topping_btn": "Tạo Topping",
+    "save_topping_btn": "Lưu thay đổi",
+    "delete_topping": "Xóa Topping",
+    "confirm_delete_topping": "Bạn có chắc muốn xóa topping này? Thao tác không thể hoàn tác.",
+    "no_toppings": "Chưa có topping nào. Nhấn \"+ Thêm Topping\" để tạo topping đầu tiên.",
+    "topping_name": "Tên Topping",
+    "topping_price": "Giá bán (đ)",
+    "topping_cogs": "Giá vốn (đ)",
+    "topping_category": "Danh mục áp dụng",
+    "topping_global": "Toàn cục (áp dụng cho tất cả)",
+    "global": "Toàn cục",
+    "is_active": "Đang hoạt động"
   },
   "tx": {
     "title": "Sổ Thu Chi & Giao Dịch",
@@ -255,7 +272,7 @@
     "th_net_flow": "Dòng tiền thuần"
   },
   "login": {
-    "title": "Đăng nhập hệ thống RabbitPOS",
+    "title": "Đăng nhập Thỏ POS",
     "subtitle": "Quản lý bán hàng cho Thỏ Juice & Coffee",
     "username": "Tên đăng nhập",
     "password": "Mật khẩu",

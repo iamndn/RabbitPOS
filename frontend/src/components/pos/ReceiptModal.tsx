@@ -137,9 +137,22 @@ export default function ReceiptModal({ isOpen, onClose, order, settings: initial
                   <span className="text-[10px]">{item.quantity}x {formatCurrency(item.unitPrice, settings)}</span>
                   <span>{formatCurrency(item.lineTotal, settings)}</span>
                 </div>
-                <div className="text-[10px] text-slate-500 pl-2">
-                  <span>{t('pos.size', { size: item.selectedVariant.variant_name })}</span>
-                  {item.notes && <span className="block italic">{t('pos.note', { note: item.notes })}</span>}
+                <div className="text-[10px] text-slate-500 pl-2 space-y-0.5">
+                  <span className="block">{t('pos.size', { size: item.selectedVariant.variant_name })}</span>
+                  {/* Sugar & ice level display */}
+                  {(item.sugarLevel || item.iceLevel) && (
+                    <span className="block">
+                      {item.sugarLevel ? `Đường: ${item.sugarLevel}%` : ''}
+                      {item.sugarLevel && item.iceLevel ? ' · ' : ''}
+                      {item.iceLevel ? `Đá: ${item.iceLevel}%` : ''}
+                    </span>
+                  )}
+                  {/* Toppings display */}
+                  {Array.isArray(item.selectedToppings) && item.selectedToppings.length > 0 && (
+                    <span className="block">
+                      Topping: {item.selectedToppings.map((tp) => tp.name).join(', ')}
+                    </span>
+                  )}
                 </div>
               </div>
             ))}

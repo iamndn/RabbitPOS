@@ -40,6 +40,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [storeLogo, setStoreLogo] = useState<string | null>(null);
+  const [storeName, setStoreName] = useState<string>('Thỏ Juice & Coffee');
 
   useEffect(() => {
     setMounted(true);
@@ -63,15 +64,16 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
     checkHealth();
 
-    // 3. Load store logo from settings
-    const loadLogo = async () => {
+    // 3. Load store logo & store name from settings
+    const loadSettings = async () => {
       const res = await fetchApi<Record<string, string>>('/settings');
       if (res.status === 'success' && res.data) {
-        const logo = (res.data as Record<string, string>)['store_logo_url'];
-        if (logo) setStoreLogo(logo);
+        const data = res.data as Record<string, string>;
+        if (data.store_logo_url) setStoreLogo(data.store_logo_url);
+        if (data.store_name) setStoreName(data.store_name);
       }
     };
-    loadLogo();
+    loadSettings();
   }, [pathname]);
 
   const checkHealth = async () => {
@@ -113,26 +115,32 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex flex-col min-h-screen bg-slate-100 text-slate-800">
       {/* Top Application Header */}
-      <header className="sticky top-0 z-30 flex items-center justify-between px-4 py-3 bg-indigo-600 text-white shadow-md">
+      <header className="sticky top-0 z-30 flex items-center justify-between px-4 py-2.5 bg-indigo-600 text-white shadow-md">
         <div className="flex items-center space-x-3">
-          <Link href="/" className="flex items-center space-x-2 font-bold text-lg tracking-tight">
-            <div className="p-1.5 bg-white/10 rounded-lg">
-              {storeLogo ? (
+          <Link href="/" className="flex items-center space-x-2.5 font-bold text-lg tracking-tight group">
+            {storeLogo ? (
+              <div className="flex items-center justify-center">
                 <img
                   src={storeLogo}
                   alt="Store logo"
-                  className="w-5 h-5 object-contain rounded"
+                  className="h-9 max-w-[120px] object-contain drop-shadow-sm"
                   onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                 />
-              ) : (
+              </div>
+            ) : (
+              <div className="p-2 bg-white/10 rounded-xl flex items-center justify-center">
                 <Coffee className="w-5 h-5 text-indigo-200" />
-              )}
-            </div>
-            <span>RabbitPOS</span>
+              </div>
+            )}
+            <span className="text-lg sm:text-xl font-black tracking-tight group-hover:text-indigo-100 transition">
+              {t('common.app_title')}
+            </span>
           </Link>
-          <span className="hidden sm:inline-block text-xs bg-indigo-700/80 px-2.5 py-1 rounded-full font-medium text-indigo-100 border border-indigo-500/30">
-            Thỏ Juice & Coffee
-          </span>
+          {storeName && (
+            <span className="hidden sm:inline-block text-xs bg-indigo-700/80 px-2.5 py-1 rounded-full font-medium text-indigo-100 border border-indigo-500/30">
+              {storeName}
+            </span>
+          )}
         </div>
 
         {/* Desktop Navigation */}

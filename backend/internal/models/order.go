@@ -40,18 +40,24 @@ type OrderItem struct {
 	Quantity         int             `gorm:"not null;default:1" json:"quantity"`
 	UnitPrice        float64         `gorm:"type:numeric(10,2);not null;default:0.00" json:"unit_price"`
 	LineTotal        float64         `gorm:"type:numeric(10,2);not null;default:0.00" json:"line_total"`
-	Notes            string          `gorm:"type:text" json:"notes"`
-	CreatedAt        time.Time       `json:"created_at"`
-	UpdatedAt        time.Time       `json:"updated_at"`
+	// SelectedToppings stores a JSON snapshot of toppings chosen at order time
+	SelectedToppings string  `gorm:"type:jsonb;not null;default:'[]'" json:"selected_toppings"`
+	ToppingsPrice    float64 `gorm:"type:numeric(15,2);not null;default:0" json:"toppings_price"`
+	Notes            string  `gorm:"type:text" json:"notes"`
+	CreatedAt        time.Time `json:"created_at"`
+	UpdatedAt        time.Time `json:"updated_at"`
 }
 
 // Request & Response DTOs
 
 type CreateOrderItemRequest struct {
-	ProductVariantID uint    `json:"product_variant_id" binding:"required,gt=0"`
-	Quantity         int     `json:"quantity" binding:"required,gt=0"`
-	UnitPrice        float64 `json:"unit_price" binding:"gte=0"`
-	Notes            string  `json:"notes"`
+	ProductVariantID  uint              `json:"product_variant_id" binding:"required,gt=0"`
+	Quantity          int               `json:"quantity" binding:"required,gt=0"`
+	UnitPrice         float64           `json:"unit_price" binding:"gte=0"`
+	// SelectedToppings snapshots the toppings chosen; stored as JSONB in DB
+	SelectedToppings  []ToppingSnapshot `json:"selected_toppings"`
+	ToppingsPrice     float64           `json:"toppings_price"`
+	Notes             string            `json:"notes"`
 }
 
 type CreateOrderRequest struct {

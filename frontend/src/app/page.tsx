@@ -169,6 +169,8 @@ export default function PosPage() {
         product_variant_id: Number(ci.selectedVariant.id),
         quantity: Number(ci.quantity),
         unit_price: Number(ci.unitPrice),
+        selected_toppings: ci.selectedToppings || [],
+        toppings_price: Number(ci.toppingsPrice) || 0,
         notes: ci.notes || '',
       })),
     };
