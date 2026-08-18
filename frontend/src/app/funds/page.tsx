@@ -11,11 +11,19 @@ import {
   X,
   History,
   Scale,
+  Calendar,
+  ArrowDownLeft,
+  ArrowUpRight,
+  TrendingUp,
+  Coins,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import AppShell from '@/components/AppShell';
 import { fetchApi } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
 import { formatCurrency, SettingsMap } from '@/lib/utils';
+import { FundsPeriodSummaryResponse } from '@/types/analytics';
 
 interface Fund {
   id: number;
@@ -27,7 +35,10 @@ interface Fund {
 export default function FundsPage() {
   const { t } = useTranslation();
   const [funds, setFunds] = useState<Fund[]>([]);
+  const [periodSummary, setPeriodSummary] = useState<FundsPeriodSummaryResponse | null>(null);
+  const [selectedMonth, setSelectedMonth] = useState<string>(new Date().toISOString().slice(0, 7));
   const [loading, setLoading] = useState<boolean>(true);
+  const [summaryLoading, setSummaryLoading] = useState<boolean>(false);
   const [settings, setSettings] = useState<SettingsMap | null>(null);
 
   // Reconciliation Modal States
@@ -67,9 +78,22 @@ export default function FundsPage() {
     setLoading(false);
   };
 
+  const loadPeriodSummary = async () => {
+    setSummaryLoading(true);
+    const res = await fetchApi<FundsPeriodSummaryResponse>(`/funds/period-summary?month=${selectedMonth}`);
+    if (res.status === 'success' && res.data) {
+      setPeriodSummary(res.data);
+    }
+    setSummaryLoading(false);
+  };
+
   useEffect(() => {
     loadFunds();
   }, []);
+
+  useEffect(() => {
+    loadPeriodSummary();
+  }, [selectedMonth]);
 
   const openReconcileModal = (fund: Fund) => {
     setSelectedFundForReconcile(fund);
@@ -93,7 +117,8 @@ export default function FundsPage() {
 
     if (res.status === 'success') {
       setSelectedFundForReconcile(null);
-      loadFunds();
+      await loadFunds();
+      await loadPeriodSummary();
       alert(t('funds.reconcile_success', { name: selectedFundForReconcile.name }));
     } else {
       alert(t('funds.reconcile_failed', { error: res.message }));
@@ -117,7 +142,7 @@ export default function FundsPage() {
           </div>
         </div>
 
-        {/* Funds Grid */}
+        {/* Funds Real-Time Balance Cards */}
         {loading ? (
           <div className="flex justify-center py-16">
             <RefreshCw className="w-8 h-8 text-indigo-600 animate-spin" />
@@ -180,6 +205,138 @@ export default function FundsPage() {
             })}
           </div>
         )}
+
+        {/* ── PERIODIC BALANCE SUMMARY (Opening vs Closing Period Audit) ─── */}
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+            <div>
+              <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <Coins className="w-5 h-5 text-indigo-600" />
+                {t('funds.period_summary_title')}
+              </h2>
+              <p className="text-xs text-slate-500">{t('funds.period_summary_subtitle')}</p>
+            </div>
+
+            {/* Month Picker */}
+            <div className="flex items-center space-x-2">
+              <span className="text-xs font-semibold text-slate-600">{t('funds.select_month')}:</span>
+              <input
+                type="month"
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(e.target.value)}
+                className="p-1.5 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white font-bold text-slate-800"
+              />
+            </div>
+          </div>
+
+          {/* Period Summary Table */}
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold uppercase">
+                <tr>
+                  <th className="py-3 px-4">{t('funds.fund_name')}</th>
+                  <th className="py-3 px-4 text-right">{t('funds.opening_balance')}</th>
+                  <th className="py-3 px-4 text-right text-emerald-600">(+) {t('funds.period_inflow')}</th>
+                  <th className="py-3 px-4 text-right text-rose-600">(-) {t('funds.period_outflow')}</th>
+                  <th className="py-3 px-4 text-right">{t('funds.closing_balance')}</th>
+                  <th className="py-3 px-4 text-right">{t('funds.prev_closing_balance')}</th>
+                  <th className="py-3 px-4 text-right">{t('funds.growth_rate')}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {summaryLoading ? (
+                  <tr>
+                    <td colSpan={7} className="py-8 text-center text-slate-400">
+                      {t('common.loading')}
+                    </td>
+                  </tr>
+                ) : periodSummary?.funds && periodSummary.funds.length > 0 ? (
+                  <>
+                    {periodSummary.funds.map((f) => (
+                      <tr key={f.fund_id} className="hover:bg-slate-50 transition">
+                        <td className="py-3 px-4 font-bold text-slate-900 flex items-center gap-2">
+                          <span
+                            className={`w-2 h-2 rounded-full ${
+                              f.fund_type === 'bank' ? 'bg-blue-500' : 'bg-emerald-500'
+                            }`}
+                          />
+                          {f.fund_name}
+                        </td>
+                        <td className="py-3 px-4 text-right text-slate-600 font-medium">
+                          {formatCurrency(f.current_month.opening_balance, settings)}
+                        </td>
+                        <td className="py-3 px-4 text-right font-semibold text-emerald-600">
+                          +{formatCurrency(f.current_month.total_inflow, settings)}
+                        </td>
+                        <td className="py-3 px-4 text-right font-semibold text-rose-600">
+                          -{formatCurrency(f.current_month.total_outflow, settings)}
+                        </td>
+                        <td className="py-3 px-4 text-right font-extrabold text-slate-900">
+                          {formatCurrency(f.current_month.closing_balance, settings)}
+                        </td>
+                        <td className="py-3 px-4 text-right text-slate-400">
+                          {formatCurrency(f.prev_month.closing_balance, settings)}
+                        </td>
+                        <td className="py-3 px-4 text-right">
+                          <span
+                            className={`inline-block px-2 py-0.5 rounded-full font-bold text-[11px] ${
+                              f.growth_pct >= 0
+                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                : 'bg-rose-50 text-rose-700 border border-rose-200'
+                            }`}
+                          >
+                            {f.growth_pct >= 0 ? '+' : ''}
+                            {f.growth_pct.toFixed(1)}%
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+
+                    {/* Totals Row */}
+                    {periodSummary?.totals && (
+                      <tr className="bg-slate-50 font-extrabold text-slate-900 border-t-2 border-slate-200">
+                        <td className="py-3 px-4 uppercase">{t('common.all')}</td>
+                        <td className="py-3 px-4 text-right">
+                          {formatCurrency(periodSummary.totals.current_month.opening_balance, settings)}
+                        </td>
+                        <td className="py-3 px-4 text-right text-emerald-600">
+                          +{formatCurrency(periodSummary.totals.current_month.total_inflow, settings)}
+                        </td>
+                        <td className="py-3 px-4 text-right text-rose-600">
+                          -{formatCurrency(periodSummary.totals.current_month.total_outflow, settings)}
+                        </td>
+                        <td className="py-3 px-4 text-right text-indigo-600 text-sm">
+                          {formatCurrency(periodSummary.totals.current_month.closing_balance, settings)}
+                        </td>
+                        <td className="py-3 px-4 text-right text-slate-500">
+                          {formatCurrency(periodSummary.totals.prev_month.closing_balance, settings)}
+                        </td>
+                        <td className="py-3 px-4 text-right">
+                          <span
+                            className={`inline-block px-2.5 py-0.5 rounded-full font-bold text-xs ${
+                              periodSummary.totals.growth_pct >= 0
+                                ? 'bg-emerald-100 text-emerald-800'
+                                : 'bg-rose-100 text-rose-800'
+                            }`}
+                          >
+                            {periodSummary.totals.growth_pct >= 0 ? '+' : ''}
+                            {periodSummary.totals.growth_pct.toFixed(1)}%
+                          </span>
+                        </td>
+                      </tr>
+                    )}
+                  </>
+                ) : (
+                  <tr>
+                    <td colSpan={7} className="py-8 text-center text-slate-400">
+                      {t('funds.no_summary_data')}
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
 
       {/* Reconcile Dialog Modal */}

@@ -22,7 +22,10 @@ func NewOrderHandler(db *gorm.DB) *OrderHandler {
 
 // ListOrders retrieves orders with loaded relations and optional filters
 func (h *OrderHandler) ListOrders(c *gin.Context) {
-	query := h.db.Model(&models.Order{}).Preload("Fund").Preload("Items.Variant")
+	query := h.db.Model(&models.Order{}).
+		Preload("Fund").
+		Preload("Promotion").
+		Preload("Items.Variant")
 
 	if fundIDStr := c.Query("fund_id"); fundIDStr != "" {
 		if fundID, err := strconv.ParseUint(fundIDStr, 10, 32); err == nil {
@@ -53,7 +56,7 @@ func (h *OrderHandler) GetOrderByID(c *gin.Context) {
 	}
 
 	var order models.Order
-	if err := h.db.Preload("Fund").Preload("Items.Variant").First(&order, id).Error; err != nil {
+	if err := h.db.Preload("Fund").Preload("Promotion").Preload("Items.Variant").First(&order, id).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			models.SendError(c, http.StatusNotFound, "Order not found")
 			return
@@ -65,7 +68,7 @@ func (h *OrderHandler) GetOrderByID(c *gin.Context) {
 	models.SendSuccess(c, http.StatusOK, order, "Order details retrieved successfully")
 }
 
-// CreateOrder processes cart items, calculates totals, creates order, logs automated transaction, and increments target fund balance
+// CreateOrder processes cart items, calculates dynamic adjustments & promotions, creates order, logs automated transaction, and increments target fund balance
 func (h *OrderHandler) CreateOrder(c *gin.Context) {
 	var req models.CreateOrderRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -137,24 +140,30 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 		})
 	}
 
-	totalAmount := subtotal - req.DiscountAmount
+	// Compute Final Total with promotions and dynamic adjustments
+	totalAmount := subtotal - req.DiscountAmount - req.PromotionDiscount - req.PlatformFeeDiscount + req.ShippingFee + req.Surcharge
 	if totalAmount < 0 {
 		totalAmount = 0
 	}
 
 	order := models.Order{
-		OrderCode:      orderCode,
-		Status:         models.OrderStatusCompleted,
-		Subtotal:       subtotal,
-		DiscountAmount: req.DiscountAmount,
-		TotalAmount:    totalAmount,
-		FundID:         req.FundID,
-		CreatedBy:      createdBy,
-		CashierID:      cashierIDPtr,
-		CashierName:    cashierName,
+		OrderCode:           orderCode,
+		Status:              models.OrderStatusCompleted,
+		Subtotal:            subtotal,
+		DiscountAmount:      req.DiscountAmount,
+		PromotionID:         req.PromotionID,
+		PromotionDiscount:   req.PromotionDiscount,
+		ShippingFee:         req.ShippingFee,
+		PlatformFeeDiscount: req.PlatformFeeDiscount,
+		Surcharge:           req.Surcharge,
+		TotalAmount:         totalAmount,
+		FundID:              req.FundID,
+		CreatedBy:           createdBy,
+		CashierID:           cashierIDPtr,
+		CashierName:         cashierName,
 	}
 
-	// Database Transaction to save order, insert items, update fund balance, AND log inflow transaction
+	// Database Transaction to save order, insert items, update fund balance, increment promotion usage, AND log inflow transaction
 	err := h.db.Transaction(func(tx *gorm.DB) error {
 		// 1. Insert Order
 		if err := tx.Create(&order).Error; err != nil {
@@ -169,7 +178,15 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 			return err
 		}
 
-		// 3. Insert Automated Inflow Transaction for Sale (include cashier attribution)
+		// 3. Increment Promotion Usage Count if applied
+		if order.PromotionID != nil && *order.PromotionID > 0 {
+			if err := tx.Model(&models.Promotion{}).Where("id = ?", *order.PromotionID).
+				Update("usage_count", gorm.Expr("usage_count + 1")).Error; err != nil {
+				return err
+			}
+		}
+
+		// 4. Insert Automated Inflow Transaction for Sale (include cashier attribution)
 		transaction := models.Transaction{
 			FundID:           order.FundID,
 			TransactionType:  models.TransactionTypeInflow,
@@ -185,7 +202,7 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 			return err
 		}
 
-		// 4. Update Fund Current Balance
+		// 5. Update Fund Current Balance
 		if err := tx.Model(&fund).Update("current_balance", gorm.Expr("current_balance + ?", totalAmount)).Error; err != nil {
 			return err
 		}
@@ -199,9 +216,103 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 	}
 
 	// Load order relations for response
-	h.db.Preload("Fund").Preload("Items.Variant").First(&order, order.ID)
+	h.db.Preload("Fund").Preload("Promotion").Preload("Items.Variant").First(&order, order.ID)
 
 	models.SendSuccess(c, http.StatusCreated, order, "Order created successfully")
+}
+
+// CancelOrder handles order cancellation, status transition, and optional refund to fund account
+func (h *OrderHandler) CancelOrder(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		models.SendError(c, http.StatusBadRequest, "Invalid order ID")
+		return
+	}
+
+	var req models.CancelOrderRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		models.SendError(c, http.StatusBadRequest, "Invalid cancellation payload: "+err.Error())
+		return
+	}
+
+	var order models.Order
+	if err := h.db.Preload("Fund").First(&order, id).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			models.SendError(c, http.StatusNotFound, "Order not found")
+			return
+		}
+		models.SendInternalError(c, "Database error retrieving order")
+		return
+	}
+
+	if order.Status == models.OrderStatusCancelled {
+		models.SendError(c, http.StatusBadRequest, "Order has already been cancelled")
+		return
+	}
+
+	// Extract cashier info
+	cashierName := ""
+	var cashierIDPtr *uint
+	if usernameVal, ok := c.Get("username"); ok {
+		if uname, ok := usernameVal.(string); ok {
+			cashierName = uname
+		}
+	}
+	if userIDVal, ok := c.Get("user_id"); ok {
+		if uid, ok := userIDVal.(uint); ok {
+			cashierIDPtr = &uid
+		}
+	}
+
+	now := time.Now()
+
+	err = h.db.Transaction(func(tx *gorm.DB) error {
+		// 1. Update Order Status
+		order.Status = models.OrderStatusCancelled
+		order.CancelReason = req.CancelReason
+		order.CancelledAt = &now
+
+		if err := tx.Save(&order).Error; err != nil {
+			return err
+		}
+
+		// 2. If Refund requested, log Outflow transaction and deduct fund balance
+		if req.Refund && order.TotalAmount > 0 {
+			refundDesc := fmt.Sprintf("Hoàn tiền đơn hàng #%s - Lý do: %s", order.OrderCode, req.CancelReason)
+			refundTx := models.Transaction{
+				FundID:           order.FundID,
+				TransactionType:  models.TransactionTypeOutflow,
+				Category:         models.CategoryOther,
+				Amount:           order.TotalAmount,
+				ReferenceOrderID: &order.ID,
+				Description:      refundDesc,
+				CreatedBy:        cashierName,
+				CashierID:        cashierIDPtr,
+				CashierName:      cashierName,
+			}
+
+			if err := tx.Create(&refundTx).Error; err != nil {
+				return err
+			}
+
+			// Deduct from fund current balance
+			if err := tx.Model(&models.Fund{}).Where("id = ?", order.FundID).
+				Update("current_balance", gorm.Expr("current_balance - ?", order.TotalAmount)).Error; err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		models.SendInternalError(c, "Failed to cancel order: "+err.Error())
+		return
+	}
+
+	h.db.Preload("Fund").Preload("Promotion").Preload("Items.Variant").First(&order, order.ID)
+	models.SendSuccess(c, http.StatusOK, order, "Order cancelled successfully")
 }
 
 // GetVietQR generates Napas 247 VietQR payload & image URL for bank transfers

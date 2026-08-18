@@ -41,6 +41,8 @@ func SetupRouter(cfg *config.Config, db *gorm.DB) *gin.Engine {
 	analyticsHandler := handlers.NewAnalyticsHandler(db)
 	settingHandler := handlers.NewSettingHandler(db)
 	toppingHandler := handlers.NewToppingHandler(db)
+	promotionHandler := handlers.NewPromotionHandler(db)
+	txCategoryHandler := handlers.NewTransactionCategoryHandler(db)
 
 	// API v1 Group
 	v1 := router.Group("/api/v1")
@@ -59,7 +61,7 @@ func SetupRouter(cfg *config.Config, db *gorm.DB) *gin.Engine {
 			authenticated.GET("/auth/me", authHandler.GetMe)
 			authenticated.POST("/upload", uploadHandler.UploadImage)
 
-			// Staff & Admin Accessible Endpoints (POS Operations & Settings View)
+			// Staff & Admin Accessible Endpoints (POS Operations, Settings & Active Promotions View)
 			authenticated.GET("/categories", categoryHandler.ListCategories)
 			authenticated.GET("/products", productHandler.ListProducts)
 			authenticated.GET("/products/:id", productHandler.GetProductByID)
@@ -69,11 +71,19 @@ func SetupRouter(cfg *config.Config, db *gorm.DB) *gin.Engine {
 			authenticated.GET("/orders", orderHandler.ListOrders)
 			authenticated.GET("/orders/:id", orderHandler.GetOrderByID)
 			authenticated.POST("/orders", orderHandler.CreateOrder)
+			authenticated.POST("/orders/:id/cancel", orderHandler.CancelOrder)
 			authenticated.GET("/vietqr/generate", orderHandler.GetVietQR)
 			authenticated.GET("/settings", settingHandler.GetSettings)
+
 			// Toppings: public read (for POS variant selector) + admin write
 			authenticated.GET("/toppings", toppingHandler.ListToppings)
 			authenticated.GET("/toppings/all", toppingHandler.ListAllToppings)
+
+			// Promotions: active list for POS Cart application
+			authenticated.GET("/promotions/active", promotionHandler.GetActivePromotions)
+
+			// Transaction Categories: read list for manual transactions
+			authenticated.GET("/transaction-categories", txCategoryHandler.ListCategories)
 
 			// Admin-Only Routes (Management, Financial Ledger, Analytics & Settings Update)
 			adminOnly := authenticated.Group("")
@@ -97,14 +107,32 @@ func SetupRouter(cfg *config.Config, db *gorm.DB) *gin.Engine {
 				adminOnly.PUT("/toppings/:id", toppingHandler.UpdateTopping)
 				adminOnly.DELETE("/toppings/:id", toppingHandler.DeleteTopping)
 
-				// Fund Reconciliation
-				adminOnly.POST("/funds/:id/reconcile", fundHandler.ReconcileFund)
+				// Promotion Management (admin only CRUD)
+				adminOnly.GET("/promotions", promotionHandler.ListPromotions)
+				adminOnly.POST("/promotions", promotionHandler.CreatePromotion)
+				adminOnly.PUT("/promotions/:id", promotionHandler.UpdatePromotion)
+				adminOnly.DELETE("/promotions/:id", promotionHandler.DeletePromotion)
 
-				// Financial Ledger Transactions
+				// Transaction Category Management (admin only mutations)
+				adminOnly.POST("/transaction-categories", txCategoryHandler.CreateCategory)
+				adminOnly.PUT("/transaction-categories/:id", txCategoryHandler.UpdateCategory)
+				adminOnly.DELETE("/transaction-categories/:id", txCategoryHandler.DeleteCategory)
+
+				// Fund Reconciliation & Periodic Balance Summary
+				adminOnly.POST("/funds/:id/reconcile", fundHandler.ReconcileFund)
+				adminOnly.GET("/funds/period-summary", fundHandler.GetPeriodSummary)
+
+				// Financial Ledger Transactions & Category Breakdown
 				adminOnly.GET("/transactions", txHandler.ListTransactions)
 				adminOnly.POST("/transactions", txHandler.CreateTransaction)
+				adminOnly.PUT("/transactions/:id", txHandler.UpdateTransaction)
+				adminOnly.DELETE("/transactions/:id", txHandler.DeleteTransaction)
+				adminOnly.GET("/transactions/category-breakdown", txHandler.GetCategoryBreakdown)
 
-				// Executive Analytics
+				// Executive Analytics & BI Dashboards
+				adminOnly.GET("/analytics/revenue", analyticsHandler.GetRevenueAnalytics)
+				adminOnly.GET("/analytics/profit", analyticsHandler.GetProfitAnalytics)
+				adminOnly.GET("/analytics/products-ranking", analyticsHandler.GetProductsRanking)
 				adminOnly.GET("/analytics/dashboard", analyticsHandler.GetDashboardMetrics)
 				adminOnly.GET("/analytics/top-products", analyticsHandler.GetTopProducts)
 				adminOnly.GET("/analytics/cash-flow", analyticsHandler.GetCashFlowSummary)

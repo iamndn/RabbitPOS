@@ -47,17 +47,37 @@ func InitDB(cfg *config.Config) (*gorm.DB, error) {
 		&models.ProductVariant{},
 		&models.VariantGroup{},
 		&models.Fund{},
+		&models.Promotion{},
 		&models.Order{},
 		&models.OrderItem{},
 		&models.Transaction{},
 		&models.User{},
 		&models.Setting{},
 		&models.Topping{},
+		&models.TransactionCategoryItem{},
 	)
 	if err != nil {
 		log.Printf("Warning: Failed during DB auto-migration: %v", err)
 		return nil, err
 	}
+
+	// Ensure foreign key constraint fk_orders_promotion has ON DELETE SET NULL & ON UPDATE CASCADE
+	db.Exec(`
+		DO $$
+		BEGIN
+			IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_orders_promotion') THEN
+				ALTER TABLE orders DROP CONSTRAINT fk_orders_promotion;
+			END IF;
+			IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'orders_promotion_id_fkey') THEN
+				ALTER TABLE orders DROP CONSTRAINT orders_promotion_id_fkey;
+			END IF;
+			ALTER TABLE orders ADD CONSTRAINT fk_orders_promotion 
+				FOREIGN KEY (promotion_id) REFERENCES promotions(id) 
+				ON UPDATE CASCADE ON DELETE SET NULL;
+		EXCEPTION
+			WHEN others THEN NULL;
+		END $$;
+	`)
 
 	log.Println("Database auto-migration completed successfully")
 
@@ -67,6 +87,7 @@ func InitDB(cfg *config.Config) (*gorm.DB, error) {
 	seedUsers(db, cfg)
 	seedFunds(db)
 	seedSettings(db)
+	seedTransactionCategories(db)
 
 	// ── Development / Demo Seeds (controlled by ENABLE_SEEDING flag) ─────────
 	// Sample catalog data (products, categories) helps developers get started
@@ -419,3 +440,29 @@ func seedDemoCatalog(db *gorm.DB) {
 
 	log.Println("[SEED] Demo catalog seeded successfully.")
 }
+
+// seedTransactionCategories initializes default system transaction categories if table is empty
+func seedTransactionCategories(db *gorm.DB) {
+	var count int64
+	db.Model(&models.TransactionCategoryItem{}).Count(&count)
+	if count > 0 {
+		return
+	}
+
+	defaultCategories := []models.TransactionCategoryItem{
+		{Name: "Mua nguyên liệu", Type: "outflow", Code: "ingredient_purchase", IsSystem: true},
+		{Name: "Chi phí vận hành", Type: "outflow", Code: "utility_bill", IsSystem: true},
+		{Name: "Chi phí khác", Type: "outflow", Code: "other", IsSystem: true},
+		{Name: "Doanh thu bán hàng", Type: "inflow", Code: "sale", IsSystem: true},
+		{Name: "Thu nhập khác", Type: "inflow", Code: "other", IsSystem: true},
+		{Name: "Chênh lệch đối soát", Type: "both", Code: "reconciliation_variance", IsSystem: true},
+	}
+
+	for _, cat := range defaultCategories {
+		if err := db.Create(&cat).Error; err != nil {
+			log.Printf("[SEED] Failed to seed transaction category %s: %v", cat.Name, err)
+		}
+	}
+	log.Println("[SEED] Default transaction categories initialized successfully.")
+}
+

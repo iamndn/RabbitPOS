@@ -51,6 +51,14 @@ type CreateTransactionRequest struct {
 	CreatedBy string `json:"created_by"`
 }
 
+type UpdateTransactionRequest struct {
+	FundID          uint                `json:"fund_id" binding:"required"`
+	TransactionType TransactionType     `json:"transaction_type" binding:"required,oneof=inflow outflow"`
+	Category        TransactionCategory `json:"category" binding:"required"`
+	Amount          float64             `json:"amount" binding:"required,gt=0"`
+	Description     string              `json:"description"`
+}
+
 type ReconcileFundRequest struct {
 	ActualBalance float64 `json:"actual_balance" binding:"gte=0"`
 	Notes         string  `json:"notes"`

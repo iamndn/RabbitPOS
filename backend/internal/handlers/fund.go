@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"fmt"
+	"math"
 	"net/http"
 	"strconv"
 	"time"
@@ -256,4 +257,146 @@ func (h *FundHandler) GetCashierShiftSummary(c *gin.Context) {
 	}
 
 	models.SendSuccess(c, http.StatusOK, summary, "Cashier shift summary retrieved successfully")
+}
+
+// GetPeriodSummary calculates monthly opening, inflows, outflows, and closing balances for all funds
+func (h *FundHandler) GetPeriodSummary(c *gin.Context) {
+	now := time.Now()
+	monthStr := c.DefaultQuery("month", now.Format("2006-01"))
+
+	selectedMonthTime, err := time.ParseInLocation("2006-01", monthStr, now.Location())
+	if err != nil {
+		selectedMonthTime = time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+		monthStr = selectedMonthTime.Format("2006-01")
+	}
+
+	loc := now.Location()
+	startOfCurrMonth := time.Date(selectedMonthTime.Year(), selectedMonthTime.Month(), 1, 0, 0, 0, 0, loc)
+	endOfCurrMonth := startOfCurrMonth.AddDate(0, 1, 0).Add(-time.Nanosecond)
+
+	prevMonthTime := selectedMonthTime.AddDate(0, -1, 0)
+	startOfPrevMonth := time.Date(prevMonthTime.Year(), prevMonthTime.Month(), 1, 0, 0, 0, 0, loc)
+	endOfPrevMonth := startOfPrevMonth.AddDate(0, 1, 0).Add(-time.Nanosecond)
+
+	var funds []models.Fund
+	if err := h.db.Where("is_active = ?", true).Order("id asc").Find(&funds).Error; err != nil {
+		models.SendInternalError(c, "Failed to retrieve funds: "+err.Error())
+		return
+	}
+
+	fundItems := make([]models.FundPeriodItem, 0)
+	var totCurrOpening, totCurrInflow, totCurrOutflow, totCurrClosing float64
+	var totPrevOpening, totPrevInflow, totPrevOutflow, totPrevClosing float64
+
+	for _, f := range funds {
+		// 1. Current Month Inflow & Outflow
+		var currInflow, currOutflow float64
+		h.db.Model(&models.Transaction{}).
+			Where("fund_id = ? AND transaction_type = ? AND created_at BETWEEN ? AND ?",
+				f.ID, models.TransactionTypeInflow, startOfCurrMonth, endOfCurrMonth).
+			Select("COALESCE(SUM(amount), 0)").Scan(&currInflow)
+
+		h.db.Model(&models.Transaction{}).
+			Where("fund_id = ? AND transaction_type = ? AND created_at BETWEEN ? AND ?",
+				f.ID, models.TransactionTypeOutflow, startOfCurrMonth, endOfCurrMonth).
+			Select("COALESCE(SUM(amount), 0)").Scan(&currOutflow)
+
+		// Inflows & Outflows strictly after start of current month (to derive exact opening balance)
+		var inflowAfterCurrStart, outflowAfterCurrStart float64
+		h.db.Model(&models.Transaction{}).
+			Where("fund_id = ? AND transaction_type = ? AND created_at >= ?",
+				f.ID, models.TransactionTypeInflow, startOfCurrMonth).
+			Select("COALESCE(SUM(amount), 0)").Scan(&inflowAfterCurrStart)
+
+		h.db.Model(&models.Transaction{}).
+			Where("fund_id = ? AND transaction_type = ? AND created_at >= ?",
+				f.ID, models.TransactionTypeOutflow, startOfCurrMonth).
+			Select("COALESCE(SUM(amount), 0)").Scan(&outflowAfterCurrStart)
+
+		currOpening := f.CurrentBalance - (inflowAfterCurrStart - outflowAfterCurrStart)
+		currClosing := currOpening + currInflow - currOutflow
+		currNet := currInflow - currOutflow
+
+		// 2. Previous Month Inflow & Outflow
+		var prevInflow, prevOutflow float64
+		h.db.Model(&models.Transaction{}).
+			Where("fund_id = ? AND transaction_type = ? AND created_at BETWEEN ? AND ?",
+				f.ID, models.TransactionTypeInflow, startOfPrevMonth, endOfPrevMonth).
+			Select("COALESCE(SUM(amount), 0)").Scan(&prevInflow)
+
+		h.db.Model(&models.Transaction{}).
+			Where("fund_id = ? AND transaction_type = ? AND created_at BETWEEN ? AND ?",
+				f.ID, models.TransactionTypeOutflow, startOfPrevMonth, endOfPrevMonth).
+			Select("COALESCE(SUM(amount), 0)").Scan(&prevOutflow)
+
+		prevOpening := currOpening - (prevInflow - prevOutflow)
+		prevClosing := prevOpening + prevInflow - prevOutflow
+		prevNet := prevInflow - prevOutflow
+
+		var growthPct float64 = 0
+		if prevClosing != 0 {
+			growthPct = ((currClosing - prevClosing) / math.Abs(prevClosing)) * 100
+		}
+
+		fundItems = append(fundItems, models.FundPeriodItem{
+			FundID:   f.ID,
+			FundName: f.Name,
+			FundType: f.FundType,
+			CurrentMonth: models.FundPeriodStats{
+				OpeningBalance: currOpening,
+				TotalInflow:    currInflow,
+				TotalOutflow:   currOutflow,
+				ClosingBalance: currClosing,
+				NetChange:      currNet,
+			},
+			PrevMonth: models.FundPeriodStats{
+				OpeningBalance: prevOpening,
+				TotalInflow:    prevInflow,
+				TotalOutflow:   prevOutflow,
+				ClosingBalance: prevClosing,
+				NetChange:      prevNet,
+			},
+			GrowthPct: growthPct,
+		})
+
+		totCurrOpening += currOpening
+		totCurrInflow += currInflow
+		totCurrOutflow += currOutflow
+		totCurrClosing += currClosing
+
+		totPrevOpening += prevOpening
+		totPrevInflow += prevInflow
+		totPrevOutflow += prevOutflow
+		totPrevClosing += prevClosing
+	}
+
+	var totalGrowthPct float64 = 0
+	if totPrevClosing != 0 {
+		totalGrowthPct = ((totCurrClosing - totPrevClosing) / math.Abs(totPrevClosing)) * 100
+	}
+
+	response := models.FundsPeriodSummaryResponse{
+		SelectedMonth: monthStr,
+		PreviousMonth: prevMonthTime.Format("2006-01"),
+		Funds:         fundItems,
+		Totals: models.FundPeriodTotals{
+			CurrentMonth: models.FundPeriodStats{
+				OpeningBalance: totCurrOpening,
+				TotalInflow:    totCurrInflow,
+				TotalOutflow:   totCurrOutflow,
+				ClosingBalance: totCurrClosing,
+				NetChange:      totCurrInflow - totCurrOutflow,
+			},
+			PrevMonth: models.FundPeriodStats{
+				OpeningBalance: totPrevOpening,
+				TotalInflow:    totPrevInflow,
+				TotalOutflow:   totPrevOutflow,
+				ClosingBalance: totPrevClosing,
+				NetChange:      totPrevInflow - totPrevOutflow,
+			},
+			GrowthPct: totalGrowthPct,
+		},
+	}
+
+	models.SendSuccess(c, http.StatusOK, response, "Funds period summary retrieved successfully")
 }

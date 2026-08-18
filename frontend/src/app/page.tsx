@@ -1,13 +1,14 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { ShoppingBag, Coffee, RefreshCw, CheckCircle2, AlertCircle, Plus, Search, Check } from 'lucide-react';
+import { ShoppingBag, Coffee, RefreshCw, CheckCircle2, AlertCircle, Plus, Search, Check, Tag } from 'lucide-react';
 import AppShell from '@/components/AppShell';
 import VariantSelectorModal, { CartItem, Product } from '@/components/pos/VariantSelectorModal';
 import CartDrawer from '@/components/pos/CartDrawer';
 import CheckoutModal from '@/components/pos/CheckoutModal';
 import VietQRModal from '@/components/pos/VietQRModal';
 import ReceiptModal, { CompletedOrderData } from '@/components/pos/ReceiptModal';
+import { Promotion } from '@/app/promotions/page';
 import { fetchApi, ApiResponse, getImageUrl } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
 import { formatCurrency, SettingsMap } from '@/lib/utils';
@@ -31,6 +32,11 @@ export default function PosPage() {
   // Cart State
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [discountAmount, setDiscountAmount] = useState<number>(0);
+  const [selectedPromotion, setSelectedPromotion] = useState<Promotion | null>(null);
+  const [promotionDiscount, setPromotionDiscount] = useState<number>(0);
+  const [shippingFee, setShippingFee] = useState<number>(0);
+  const [platformFeeDiscount, setPlatformFeeDiscount] = useState<number>(0);
+  const [surcharge, setSurcharge] = useState<number>(0);
 
   // Modal Control States
   const [selectedProductForVariant, setSelectedProductForVariant] = useState<Product | null>(null);
@@ -84,7 +90,7 @@ export default function PosPage() {
   useEffect(() => {
     loadData();
 
-    // 1. Restore Cart from LocalStorage (Offline Resiliency)
+    // 1. Restore Cart & Adjustments from LocalStorage (Offline Resiliency & Re-order support)
     try {
       const savedCart = localStorage.getItem('rabbitpos_active_cart');
       if (savedCart) {
@@ -95,6 +101,18 @@ export default function PosPage() {
         if (typeof parsed.discountAmount === 'number') {
           setDiscountAmount(parsed.discountAmount);
         }
+        if (parsed.selectedPromotion) {
+          setSelectedPromotion(parsed.selectedPromotion);
+        }
+        if (typeof parsed.shippingFee === 'number') {
+          setShippingFee(parsed.shippingFee);
+        }
+        if (typeof parsed.platformFeeDiscount === 'number') {
+          setPlatformFeeDiscount(parsed.platformFeeDiscount);
+        }
+        if (typeof parsed.surcharge === 'number') {
+          setSurcharge(parsed.surcharge);
+        }
       }
     } catch (e) {
       console.error('Failed to restore active cart', e);
@@ -104,10 +122,24 @@ export default function PosPage() {
   // 2. Persist Active Cart to LocalStorage
   useEffect(() => {
     try {
-      if (cartItems.length > 0 || discountAmount > 0) {
+      if (
+        cartItems.length > 0 ||
+        discountAmount > 0 ||
+        selectedPromotion ||
+        shippingFee > 0 ||
+        platformFeeDiscount > 0 ||
+        surcharge > 0
+      ) {
         localStorage.setItem(
           'rabbitpos_active_cart',
-          JSON.stringify({ cartItems, discountAmount })
+          JSON.stringify({
+            cartItems,
+            discountAmount,
+            selectedPromotion,
+            shippingFee,
+            platformFeeDiscount,
+            surcharge,
+          })
         );
       } else {
         localStorage.removeItem('rabbitpos_active_cart');
@@ -115,12 +147,41 @@ export default function PosPage() {
     } catch (e) {
       console.error('Failed to save cart to localStorage', e);
     }
-  }, [cartItems, discountAmount]);
+  }, [cartItems, discountAmount, selectedPromotion, shippingFee, platformFeeDiscount, surcharge]);
+
+  // 3. Dynamic Promotion Discount Evaluation
+  useEffect(() => {
+    if (!selectedPromotion) {
+      setPromotionDiscount(0);
+      return;
+    }
+    const currentSubtotal = cartItems.reduce((acc, item) => acc + item.lineTotal, 0);
+    const totalQty = cartItems.reduce((acc, item) => acc + item.quantity, 0);
+
+    if (selectedPromotion.min_order_amount > 0 && currentSubtotal < selectedPromotion.min_order_amount) {
+      setPromotionDiscount(0);
+      return;
+    }
+    if (selectedPromotion.min_quantity > 0 && totalQty < selectedPromotion.min_quantity) {
+      setPromotionDiscount(0);
+      return;
+    }
+
+    if (selectedPromotion.promo_type === 'discount_amount') {
+      setPromotionDiscount(Math.min(currentSubtotal, selectedPromotion.discount_value));
+    } else if (selectedPromotion.promo_type === 'discount_percent') {
+      setPromotionDiscount((currentSubtotal * selectedPromotion.discount_value) / 100);
+    } else {
+      setPromotionDiscount(0);
+    }
+  }, [selectedPromotion, cartItems]);
 
   // Cart Handlers
   const handleAddToCart = (newItem: CartItem) => {
     setCartItems((prev) => [...prev, newItem]);
-    setOrderSuccessMessage(t('pos.added_to_cart', { name: `${newItem.product.name} (${newItem.selectedVariant.variant_name})` }));
+    setOrderSuccessMessage(
+      t('pos.added_to_cart', { name: `${newItem.product.name} (${newItem.selectedVariant.variant_name})` })
+    );
     setTimeout(() => setOrderSuccessMessage(null), 3000);
   };
 
@@ -143,6 +204,21 @@ export default function PosPage() {
     );
   };
 
+  const handleUpdateUnitPrice = (id: string, newUnitPrice: number) => {
+    setCartItems((prev) =>
+      prev.map((item) => {
+        if (item.id === id) {
+          return {
+            ...item,
+            unitPrice: newUnitPrice,
+            lineTotal: newUnitPrice * item.quantity,
+          };
+        }
+        return item;
+      })
+    );
+  };
+
   const handleRemoveItem = (id: string) => {
     setCartItems((prev) => prev.filter((i) => i.id !== id));
   };
@@ -158,12 +234,20 @@ export default function PosPage() {
     }
 
     const currentSubtotal = cartItems.reduce((acc, item) => acc + item.lineTotal, 0);
-    const currentTotal = Math.max(0, currentSubtotal - discountAmount);
+    const currentTotal = Math.max(
+      0,
+      currentSubtotal - discountAmount - promotionDiscount - platformFeeDiscount + shippingFee + surcharge
+    );
     const orderCartSnapshot = [...cartItems];
 
     const payload = {
       fund_id: fundIdNum,
       discount_amount: Number(discountAmount) || 0,
+      promotion_id: selectedPromotion ? selectedPromotion.id : null,
+      promotion_discount: Number(promotionDiscount) || 0,
+      shipping_fee: Number(shippingFee) || 0,
+      platform_fee_discount: Number(platformFeeDiscount) || 0,
+      surcharge: Number(surcharge) || 0,
       created_by: 'Cashier Staff',
       items: cartItems.map((ci) => ({
         product_variant_id: Number(ci.selectedVariant.id),
@@ -184,10 +268,16 @@ export default function PosPage() {
       if (res.status === 'success' && res.data) {
         const createdOrder = res.data;
 
-        // Purge persisted cart
+        // Purge persisted cart and adjustments
         localStorage.removeItem('rabbitpos_active_cart');
         setCartItems([]);
         setDiscountAmount(0);
+        setSelectedPromotion(null);
+        setPromotionDiscount(0);
+        setShippingFee(0);
+        setPlatformFeeDiscount(0);
+        setSurcharge(0);
+
         setIsCheckoutModalOpen(false);
         setIsVietQRModalOpen(false);
         setIsCartDrawerOpen(false);
@@ -201,6 +291,10 @@ export default function PosPage() {
           items: orderCartSnapshot,
           subtotal: currentSubtotal,
           discount: discountAmount,
+          promotion_discount: promotionDiscount,
+          shipping_fee: shippingFee,
+          platform_fee_discount: platformFeeDiscount,
+          surcharge: surcharge,
           total: currentTotal,
         });
         setIsReceiptModalOpen(true);
@@ -242,7 +336,10 @@ export default function PosPage() {
   });
 
   const cartSubtotal = safeCartItems.reduce((acc, item) => acc + item.lineTotal, 0);
-  const cartTotal = Math.max(0, cartSubtotal - discountAmount);
+  const cartTotal = Math.max(
+    0,
+    cartSubtotal - discountAmount - promotionDiscount - platformFeeDiscount + shippingFee + surcharge
+  );
   const totalItemCount = safeCartItems.reduce((acc, item) => acc + item.quantity, 0);
 
   return (
@@ -358,7 +455,7 @@ export default function PosPage() {
           </div>
         )}
 
-        {/* Mobile Sticky Cart Sheet Bar */}
+        {/* Mobile & Bottom Sticky Cart Bar */}
         <div className="fixed bottom-14 md:bottom-4 left-4 right-4 max-w-7xl mx-auto z-20 bg-slate-900 text-white p-3 rounded-2xl shadow-xl flex items-center justify-between">
           <div
             onClick={() => setIsCartDrawerOpen(true)}
@@ -373,8 +470,17 @@ export default function PosPage() {
               )}
             </div>
             <div>
-              <p className="text-[11px] text-slate-400 font-medium">{t('pos.cart_total')} ({t('pos.items_count', { count: totalItemCount })})</p>
-              <p className="text-base font-bold text-white">{formatCurrency(cartTotal, settings)}</p>
+              <p className="text-[11px] text-slate-400 font-medium">
+                {t('pos.cart_total')} ({t('pos.items_count', { count: totalItemCount })})
+              </p>
+              <div className="flex items-center gap-2">
+                <p className="text-base font-bold text-white">{formatCurrency(cartTotal, settings)}</p>
+                {selectedPromotion && (
+                  <span className="text-[10px] bg-indigo-500/30 text-indigo-200 border border-indigo-400/40 px-1.5 py-0.5 rounded">
+                    {selectedPromotion.name}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
 
@@ -411,9 +517,19 @@ export default function PosPage() {
         onClose={() => setIsCartDrawerOpen(false)}
         cartItems={cartItems}
         onUpdateQty={handleUpdateQty}
+        onUpdateUnitPrice={handleUpdateUnitPrice}
         onRemoveItem={handleRemoveItem}
         discountAmount={discountAmount}
         onDiscountChange={setDiscountAmount}
+        selectedPromotion={selectedPromotion}
+        onSelectPromotion={setSelectedPromotion}
+        promotionDiscount={promotionDiscount}
+        shippingFee={shippingFee}
+        onShippingFeeChange={setShippingFee}
+        platformFeeDiscount={platformFeeDiscount}
+        onPlatformFeeDiscountChange={setPlatformFeeDiscount}
+        surcharge={surcharge}
+        onSurchargeChange={setSurcharge}
         onProceedCheckout={() => {
           setIsCartDrawerOpen(false);
           setIsCheckoutModalOpen(true);

@@ -16,6 +16,10 @@ export interface CompletedOrderData {
   items: CartItem[];
   subtotal: number;
   discount: number;
+  promotion_discount?: number;
+  shipping_fee?: number;
+  platform_fee_discount?: number;
+  surcharge?: number;
   total: number;
 }
 
@@ -86,7 +90,7 @@ export default function ReceiptModal({ isOpen, onClose, order, settings: initial
         <div id="thermal-receipt" className="bg-white p-4 font-mono text-xs text-slate-900 leading-tight border border-dashed border-slate-300 rounded-2xl print:border-none print:p-0 print:m-0 print:shadow-none">
           {/* Header */}
           <div className="text-center space-y-1 pb-3 border-b border-dashed border-slate-300">
-            {/* Store logo — only renders when store_logo_url is set in settings */}
+            {/* Store logo */}
             {settings?.store_logo_url && (
               <div className="flex justify-center mb-2">
                 <img
@@ -116,7 +120,6 @@ export default function ReceiptModal({ isOpen, onClose, order, settings: initial
               </div>
               <div className="flex justify-between">
                 <span>Thu ngân:</span>
-                {/* Prefer cashier_name (from JWT attribution) over created_by */}
                 <span>{order.cashier_name || order.created_by || 'Nhân viên'}</span>
               </div>
             </div>
@@ -164,16 +167,47 @@ export default function ReceiptModal({ isOpen, onClose, order, settings: initial
               <span>{t('pos.subtotal')}:</span>
               <span>{formatCurrency(order.subtotal, settings)}</span>
             </div>
+
             {order.discount > 0 && (
               <div className="flex justify-between text-rose-600">
                 <span>{t('common.discount')}:</span>
                 <span>-{formatCurrency(order.discount, settings)}</span>
               </div>
             )}
+
+            {order.promotion_discount && order.promotion_discount > 0 ? (
+              <div className="flex justify-between text-emerald-600">
+                <span>{t('pos.promotion_discount')}:</span>
+                <span>-{formatCurrency(order.promotion_discount, settings)}</span>
+              </div>
+            ) : null}
+
+            {order.platform_fee_discount && order.platform_fee_discount > 0 ? (
+              <div className="flex justify-between text-amber-600">
+                <span>{t('pos.platform_discount')}:</span>
+                <span>-{formatCurrency(order.platform_fee_discount, settings)}</span>
+              </div>
+            ) : null}
+
+            {order.shipping_fee && order.shipping_fee > 0 ? (
+              <div className="flex justify-between text-cyan-600">
+                <span>{t('pos.shipping_fee')}:</span>
+                <span>+{formatCurrency(order.shipping_fee, settings)}</span>
+              </div>
+            ) : null}
+
+            {order.surcharge && order.surcharge > 0 ? (
+              <div className="flex justify-between text-indigo-600">
+                <span>{t('pos.surcharge')}:</span>
+                <span>+{formatCurrency(order.surcharge, settings)}</span>
+              </div>
+            ) : null}
+
             <div className="flex justify-between font-black text-sm pt-1 border-t border-slate-300 text-slate-900">
               <span className="uppercase">Tổng cộng:</span>
               <span className="text-base font-extrabold">{formatCurrency(order.total, settings)}</span>
             </div>
+
             <div className="flex justify-between text-[10px] text-slate-600 pt-1">
               <span>{t('pos.payment')}:</span>
               <span className="font-bold">
