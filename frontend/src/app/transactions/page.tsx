@@ -433,8 +433,8 @@ export default function TransactionsPage() {
                 <label className="font-semibold text-slate-700 mb-1 block">{t('tx.modal_amount_label')} *</label>
                 <input
                   type="number"
-                  step="1000"
-                  min="1"
+                  step="any"
+                  min="0"
                   required
                   placeholder="35.000"
                   value={modalAmount === 0 ? '' : modalAmount}

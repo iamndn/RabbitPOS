@@ -398,10 +398,29 @@ export default function ProductsPage() {
   };
 
   const handleDeleteTopping = async (id: number) => {
-    if (!confirm('Xác nhận xóa topping này?')) return;
+    if (!confirm(t('products.confirm_delete_topping'))) return;
     const res = await fetchApi(`/toppings/${id}`, { method: 'DELETE' });
     if (res.status === 'success') await loadToppings();
     else alert('Xóa topping thất bại: ' + res.message);
+  };
+
+  const handleToggleToppingStatus = async (topping: Topping) => {
+    const newStatus = !topping.is_active;
+    const res = await fetchApi<Topping>(`/toppings/${topping.id}`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        name: topping.name,
+        price: Number(topping.price),
+        cogs: Number(topping.cogs) || 0,
+        category_id: topping.category_id,
+        is_active: newStatus,
+      }),
+    });
+    if (res.status === 'success') {
+      setToppings((prev) => prev.map((tp) => (tp.id === topping.id ? { ...tp, is_active: newStatus } : tp)));
+    } else {
+      alert('Cập nhật trạng thái thất bại: ' + res.message);
+    }
   };
 
   // ── Filtering ──────────────────────────────────────────────────────────────
@@ -559,25 +578,43 @@ export default function ProductsPage() {
               ) : (
                 <div className="divide-y divide-slate-100">
                   {/* Table Header */}
-                  <div className="grid grid-cols-5 gap-2 px-5 py-2 bg-slate-50 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                  <div className="grid grid-cols-6 gap-2 px-5 py-2.5 bg-slate-50 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
                     <span className="col-span-2">{t('products.topping_name')}</span>
                     <span>{t('products.topping_price')}</span>
                     <span>{t('products.topping_category')}</span>
+                    <span className="text-center">{t('common.status')}</span>
                     <span className="text-right">{t('common.actions')}</span>
                   </div>
                   {safeToppings.map((tp) => (
-                    <div key={tp.id} className="grid grid-cols-5 gap-2 px-5 py-3 items-center hover:bg-slate-50 transition">
+                    <div key={tp.id} className="grid grid-cols-6 gap-2 px-5 py-3 items-center hover:bg-slate-50 transition">
                       <div className="col-span-2 flex items-center gap-2">
-                        <span className={`w-2 h-2 rounded-full flex-shrink-0 ${tp.is_active ? 'bg-emerald-400' : 'bg-slate-300'}`} />
-                        <span className="text-sm font-semibold text-slate-800">{tp.name}</span>
+                        <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${tp.is_active ? 'bg-emerald-500 ring-4 ring-emerald-100' : 'bg-slate-300'}`} />
+                        <span className={`text-sm font-semibold ${tp.is_active ? 'text-slate-800' : 'text-slate-400 line-through'}`}>{tp.name}</span>
                       </div>
                       <span className="text-sm text-indigo-600 font-bold">{formatCurrency(tp.price, settings)}</span>
                       <span className="text-xs text-slate-500">
                         {tp.category_id
                           ? safeCategories.find((c) => c.id === tp.category_id)?.name || `#${tp.category_id}`
-                          : <span className="italic text-slate-400">{t('products.global')}</span>
+                          : <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-600">{t('products.global')}</span>
                         }
                       </span>
+                      {/* Interactive On/Off Quick Toggle Button */}
+                      <div className="flex justify-center">
+                        <button
+                          type="button"
+                          onClick={() => handleToggleToppingStatus(tp)}
+                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold transition ${
+                            tp.is_active
+                              ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 shadow-sm'
+                              : 'bg-slate-100 text-slate-500 hover:bg-slate-200 border border-slate-200'
+                          }`}
+                          title={tp.is_active ? 'Bấm để Tắt' : 'Bấm để Bật'}
+                        >
+                          <span className={`w-1.5 h-1.5 rounded-full ${tp.is_active ? 'bg-emerald-500' : 'bg-slate-400'}`} />
+                          {tp.is_active ? t('common.active') : t('common.inactive')}
+                        </button>
+                      </div>
+                      {/* Action buttons */}
                       <div className="flex items-center justify-end gap-1">
                         <button
                           onClick={() => openEditToppingModal(tp)}
@@ -1127,15 +1164,28 @@ export default function ProductsPage() {
                 </select>
               </div>
 
-              {/* Is Active */}
-              <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200">
-                <span className="text-xs font-semibold text-slate-700">{t('products.is_active')}</span>
+              {/* Is Active On/Off Switch */}
+              <div className="flex items-center justify-between p-3.5 bg-slate-50 rounded-2xl border border-slate-200">
+                <div>
+                  <span className="block text-xs font-bold text-slate-800 uppercase tracking-wide">{t('products.is_active')}</span>
+                  <span className="text-[11px] text-slate-500">
+                    {toppingForm.is_active ? 'Topping đang BẬT (sẵn sàng phục vụ)' : 'Topping đang TẮT (tạm hết)'}
+                  </span>
+                </div>
                 <button
                   type="button"
+                  role="switch"
+                  aria-checked={toppingForm.is_active}
                   onClick={() => setToppingForm({ ...toppingForm, is_active: !toppingForm.is_active })}
-                  className={`w-10 h-5 rounded-full transition-colors ${toppingForm.is_active ? 'bg-violet-600' : 'bg-slate-300'} relative`}
+                  className={`w-12 h-6 flex items-center rounded-full p-1 transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2 ${
+                    toppingForm.is_active ? 'bg-violet-600' : 'bg-slate-300'
+                  }`}
                 >
-                  <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${toppingForm.is_active ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                  <span
+                    className={`w-4 h-4 bg-white rounded-full shadow-md transform transition-transform duration-200 ease-in-out ${
+                      toppingForm.is_active ? 'translate-x-6' : 'translate-x-0'
+                    }`}
+                  />
                 </button>
               </div>
 
