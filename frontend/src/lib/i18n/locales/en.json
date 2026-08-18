@@ -263,7 +263,16 @@
     "demo_credentials": "Demo Credentials: admin / admin123",
     "username_placeholder": "Enter username...",
     "password_placeholder": "Enter password...",
-    "quick_demo_accounts": "Quick Demo Accounts"
+    "quick_demo_accounts": "Quick Demo Accounts",
+    "setup_password_title": "Set Up Your Password",
+    "setup_password_subtitle": "Your account requires a new password to be set before your first login.",
+    "new_password": "New Password",
+    "new_password_placeholder": "Enter new password (min. 6 characters)...",
+    "confirm_password": "Confirm Password",
+    "confirm_password_placeholder": "Re-enter new password...",
+    "setup_submit": "Set Password & Sign In",
+    "password_mismatch": "Passwords do not match. Please try again.",
+    "setup_success": "Password set successfully! Redirecting..."
   },
   "settings": {
     "title": "System Settings & Configuration",
@@ -274,6 +283,10 @@
     "store_name": "Store Name",
     "store_address": "Store Address",
     "store_phone": "Phone Number",
+    "store_logo": "Store Logo",
+    "store_logo_placeholder": "Logo URL (https://... or /uploads/...)",
+    "upload_logo": "Upload Logo",
+    "logo_preview": "Logo Preview",
     "currency_code": "Currency Code",
     "currency_symbol": "Currency Symbol",
     "currency_position": "Symbol Position",

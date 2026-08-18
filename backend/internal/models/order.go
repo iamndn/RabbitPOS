@@ -23,9 +23,12 @@ type Order struct {
 	FundID         uint        `gorm:"not null;index" json:"fund_id"`
 	Fund           *Fund       `gorm:"foreignKey:FundID" json:"fund,omitempty"`
 	Items          []OrderItem `gorm:"foreignKey:OrderID;constraint:OnDelete:CASCADE" json:"items,omitempty"`
-	CreatedBy      string      `gorm:"type:varchar(100);default:'cashier'" json:"created_by"`
-	CreatedAt      time.Time   `json:"created_at"`
-	UpdatedAt      time.Time   `json:"updated_at"`
+	// CreatedBy is kept for backward compatibility; prefer CashierName for new code
+	CreatedBy   string `gorm:"type:varchar(100);default:'cashier'" json:"created_by"`
+	CashierID   *uint  `gorm:"index" json:"cashier_id,omitempty"`
+	CashierName string `gorm:"type:varchar(100);default:''" json:"cashier_name"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
 }
 
 // OrderItem represents an individual line item in an order
@@ -55,7 +58,8 @@ type CreateOrderRequest struct {
 	FundID         uint                     `json:"fund_id" binding:"required,gt=0"`
 	DiscountAmount float64                  `json:"discount_amount"`
 	Items          []CreateOrderItemRequest `json:"items" binding:"required,min=1,dive"`
-	CreatedBy      string                   `json:"created_by"`
+	// CreatedBy is optional; will be overridden by JWT context if available
+	CreatedBy string `json:"created_by"`
 }
 
 type VietQRResponse struct {

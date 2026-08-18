@@ -62,7 +62,24 @@ func (h *TransactionHandler) CreateTransaction(c *gin.Context) {
 		return
 	}
 
+	// Extract cashier identity from JWT context for attribution
+	cashierName := ""
+	var cashierIDPtr *uint
+	if usernameVal, ok := c.Get("username"); ok {
+		if uname, ok := usernameVal.(string); ok {
+			cashierName = uname
+		}
+	}
+	if userIDVal, ok := c.Get("user_id"); ok {
+		if uid, ok := userIDVal.(uint); ok {
+			cashierIDPtr = &uid
+		}
+	}
+
 	createdBy := req.CreatedBy
+	if createdBy == "" {
+		createdBy = cashierName
+	}
 	if createdBy == "" {
 		createdBy = "manager"
 	}
@@ -74,6 +91,8 @@ func (h *TransactionHandler) CreateTransaction(c *gin.Context) {
 		Amount:          req.Amount,
 		Description:     req.Description,
 		CreatedBy:       createdBy,
+		CashierID:       cashierIDPtr,
+		CashierName:     cashierName,
 	}
 
 	err := h.db.Transaction(func(tx *gorm.DB) error {

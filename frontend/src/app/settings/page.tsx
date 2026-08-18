@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Settings as SettingsIcon,
   Store,
@@ -10,6 +10,8 @@ import {
   CheckCircle2,
   AlertCircle,
   RefreshCw,
+  ImageIcon,
+  Upload,
 } from 'lucide-react';
 import AppShell from '@/components/AppShell';
 import { fetchApi } from '@/lib/api';
@@ -23,12 +25,15 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [logoUploading, setLogoUploading] = useState<boolean>(false);
+  const logoInputRef = useRef<HTMLInputElement>(null);
 
   // Form State
   const [form, setForm] = useState<SettingsMap>({
     store_name: 'Thỏ Juice & Coffee',
     store_address: '123 Vo Van Kiet, D1, HCMC',
     store_phone: '0901234567',
+    store_logo_url: '',
     currency_code: 'VND',
     currency_symbol: 'đ',
     currency_position: 'suffix',
@@ -218,6 +223,81 @@ export default function SettingsPage() {
                       className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
                       placeholder={t('settings.store_phone_placeholder')}
                     />
+                  </div>
+
+                  {/* Store Logo Upload */}
+                  <div>
+                    <label className="font-semibold text-slate-700 mb-1 block">
+                      {t('settings.store_logo')}
+                    </label>
+                    <div className="flex items-center gap-2 mb-2">
+                      <input
+                        type="text"
+                        value={form.store_logo_url || ''}
+                        onChange={(e) => handleChange('store_logo_url', e.target.value)}
+                        className="flex-1 p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                        placeholder={t('settings.store_logo_placeholder')}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => logoInputRef.current?.click()}
+                        disabled={logoUploading}
+                        className="flex items-center gap-1.5 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 font-semibold px-3 py-2.5 rounded-xl transition text-xs whitespace-nowrap disabled:opacity-50"
+                      >
+                        {logoUploading ? (
+                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Upload className="w-3.5 h-3.5" />
+                        )}
+                        {t('settings.upload_logo')}
+                      </button>
+                      <input
+                        ref={logoInputRef}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          setLogoUploading(true);
+                          const fd = new FormData();
+                          fd.append('image', file);
+                          try {
+                            const res = await fetch(
+                              `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080'}/api/v1/upload`,
+                              {
+                                method: 'POST',
+                                headers: {
+                                  Authorization: `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('rabbitpos_jwt_token') : ''}`,
+                                },
+                                body: fd,
+                              }
+                            );
+                            const data = await res.json();
+                            if (data.status === 'success' && data.data?.url) {
+                              handleChange('store_logo_url', data.data.url);
+                            }
+                          } catch (err) {
+                            console.error('Logo upload failed:', err);
+                          }
+                          setLogoUploading(false);
+                          if (logoInputRef.current) logoInputRef.current.value = '';
+                        }}
+                      />
+                    </div>
+                    {/* Logo preview */}
+                    {form.store_logo_url && (
+                      <div className="mt-2 flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-200">
+                        <ImageIcon className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                        <span className="text-xs text-slate-500 flex-shrink-0">{t('settings.logo_preview')}:</span>
+                        <img
+                          src={form.store_logo_url}
+                          alt="Store logo preview"
+                          className="h-10 max-w-[120px] object-contain rounded-lg"
+                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

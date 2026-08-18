@@ -91,7 +91,24 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 	now := time.Now()
 	orderCode := fmt.Sprintf("ORD-%s-%04d", now.Format("20060102-150405"), now.Nanosecond()/100000)
 
+	// Extract cashier identity from JWT context for attribution
+	cashierName := ""
+	var cashierIDPtr *uint
+	if usernameVal, ok := c.Get("username"); ok {
+		if uname, ok := usernameVal.(string); ok {
+			cashierName = uname
+		}
+	}
+	if userIDVal, ok := c.Get("user_id"); ok {
+		if uid, ok := userIDVal.(uint); ok {
+			cashierIDPtr = &uid
+		}
+	}
+
 	createdBy := req.CreatedBy
+	if createdBy == "" {
+		createdBy = cashierName
+	}
 	if createdBy == "" {
 		createdBy = "cashier"
 	}
@@ -125,6 +142,8 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 		TotalAmount:    totalAmount,
 		FundID:         req.FundID,
 		CreatedBy:      createdBy,
+		CashierID:      cashierIDPtr,
+		CashierName:    cashierName,
 	}
 
 	// Database Transaction to save order, insert items, update fund balance, AND log inflow transaction
@@ -142,7 +161,7 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 			return err
 		}
 
-		// 3. Insert Automated Inflow Transaction for Sale
+		// 3. Insert Automated Inflow Transaction for Sale (include cashier attribution)
 		transaction := models.Transaction{
 			FundID:           order.FundID,
 			TransactionType:  models.TransactionTypeInflow,
@@ -151,6 +170,8 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 			ReferenceOrderID: &order.ID,
 			Description:      fmt.Sprintf("POS Sale Order: %s", order.OrderCode),
 			CreatedBy:        createdBy,
+			CashierID:        cashierIDPtr,
+			CashierName:      cashierName,
 		}
 		if err := tx.Create(&transaction).Error; err != nil {
 			return err

@@ -39,6 +39,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [health, setHealth] = useState<HealthData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [storeLogo, setStoreLogo] = useState<string | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -61,6 +62,16 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     }
 
     checkHealth();
+
+    // 3. Load store logo from settings
+    const loadLogo = async () => {
+      const res = await fetchApi<Record<string, string>>('/settings');
+      if (res.status === 'success' && res.data) {
+        const logo = (res.data as Record<string, string>)['store_logo_url'];
+        if (logo) setStoreLogo(logo);
+      }
+    };
+    loadLogo();
   }, [pathname]);
 
   const checkHealth = async () => {
@@ -106,7 +117,16 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         <div className="flex items-center space-x-3">
           <Link href="/" className="flex items-center space-x-2 font-bold text-lg tracking-tight">
             <div className="p-1.5 bg-white/10 rounded-lg">
-              <Coffee className="w-5 h-5 text-indigo-200" />
+              {storeLogo ? (
+                <img
+                  src={storeLogo}
+                  alt="Store logo"
+                  className="w-5 h-5 object-contain rounded"
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                />
+              ) : (
+                <Coffee className="w-5 h-5 text-indigo-200" />
+              )}
             </div>
             <span>RabbitPOS</span>
           </Link>

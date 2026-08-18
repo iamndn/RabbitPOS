@@ -156,6 +156,46 @@ func seedUsers(db *gorm.DB, cfg *config.Config) {
 			db.Model(&staffUser).Update("password_hash", string(staffHash))
 		}
 	}
+
+	// Mandatory cashier accounts: NDN, NHUNG, DAT
+	// These are seeded with needs_password_setup=true — users MUST change their password on first login.
+	// Temporary password is the username itself (lowercase) — e.g. "ndn", "nhung", "dat"
+	mandatoryCashiers := []struct {
+		Username string
+		TempPass string
+	}{
+		{"NDN", "ndn"},
+		{"NHUNG", "nhung"},
+		{"DAT", "dat"},
+	}
+
+	for _, cashier := range mandatoryCashiers {
+		var existingUser models.User
+		cashierErr := db.Where("username = ?", cashier.Username).First(&existingUser).Error
+		if errors.Is(cashierErr, gorm.ErrRecordNotFound) {
+			tempHash, hashErr := bcrypt.GenerateFromPassword([]byte(cashier.TempPass), bcrypt.DefaultCost)
+			if hashErr != nil {
+				log.Printf("[SEED] ERROR: Failed to hash temp password for '%s': %v", cashier.Username, hashErr)
+				continue
+			}
+			newCashier := models.User{
+				Username:           cashier.Username,
+				PasswordHash:       string(tempHash),
+				Role:               models.RoleAdmin,
+				IsActive:           true,
+				NeedsPasswordSetup: true,
+			}
+			if result := db.Create(&newCashier); result.Error != nil {
+				log.Printf("[SEED] ERROR: Failed to create cashier account '%s': %v", cashier.Username, result.Error)
+			} else {
+				log.Printf("[SEED] Cashier account '%s' created (needs_password_setup=true).", cashier.Username)
+			}
+		} else if cashierErr == nil {
+			log.Printf("[SEED] Cashier account '%s' already exists — skipping.", cashier.Username)
+		} else {
+			log.Printf("[SEED] ERROR: Failed to check cashier '%s': %v", cashier.Username, cashierErr)
+		}
+	}
 }
 
 // seedFunds creates the essential payment fund accounts if none exist.
@@ -214,6 +254,7 @@ func seedSettings(db *gorm.DB) {
 		{Key: "vietqr_bank_id", Value: "MB", UpdatedAt: now},
 		{Key: "vietqr_account_no", Value: "123456789", UpdatedAt: now},
 		{Key: "vietqr_account_name", Value: "THO JUICE AND COFFEE", UpdatedAt: now},
+		{Key: "store_logo_url", Value: "", UpdatedAt: now},
 	}
 
 	for _, s := range defaultSettings {
@@ -222,6 +263,15 @@ func seedSettings(db *gorm.DB) {
 		}
 	}
 	log.Println("[SEED] Default system settings seeded successfully.")
+
+	// Ensure store_logo_url exists even if settings were already seeded previously
+	var logoSetting models.Setting
+	if err := db.Where("key = ?", "store_logo_url").First(&logoSetting).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			db.Create(&models.Setting{Key: "store_logo_url", Value: "", UpdatedAt: now})
+			log.Println("[SEED] Setting 'store_logo_url' added to existing settings.")
+		}
+	}
 }
 
 // seedDemoCatalog inserts sample products and categories for development/demo purposes.

@@ -11,6 +11,7 @@ export interface CompletedOrderData {
   order_code: string;
   created_at?: string;
   created_by?: string;
+  cashier_name?: string;
   payment_method?: string;
   items: CartItem[];
   subtotal: number;
@@ -85,6 +86,17 @@ export default function ReceiptModal({ isOpen, onClose, order, settings: initial
         <div id="thermal-receipt" className="bg-white p-4 font-mono text-xs text-slate-900 leading-tight border border-dashed border-slate-300 rounded-2xl print:border-none print:p-0 print:m-0 print:shadow-none">
           {/* Header */}
           <div className="text-center space-y-1 pb-3 border-b border-dashed border-slate-300">
+            {/* Store logo — only renders when store_logo_url is set in settings */}
+            {settings?.store_logo_url && (
+              <div className="flex justify-center mb-2">
+                <img
+                  src={settings.store_logo_url}
+                  alt="Store logo"
+                  className="h-12 max-w-[120px] object-contain"
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                />
+              </div>
+            )}
             <h2 className="text-base font-black tracking-tight uppercase text-slate-900">{storeName}</h2>
             <p className="text-[10px] text-slate-600">{storeAddress}</p>
             <p className="text-[10px] text-slate-600">Hotline: {storePhone}</p>
@@ -104,7 +116,8 @@ export default function ReceiptModal({ isOpen, onClose, order, settings: initial
               </div>
               <div className="flex justify-between">
                 <span>Thu ngân:</span>
-                <span>{order.created_by || 'Nhân viên'}</span>
+                {/* Prefer cashier_name (from JWT attribution) over created_by */}
+                <span>{order.cashier_name || order.created_by || 'Nhân viên'}</span>
               </div>
             </div>
           </div>

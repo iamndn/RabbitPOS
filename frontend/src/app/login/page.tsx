@@ -2,7 +2,18 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Coffee, Lock, User, LogIn, AlertCircle, RefreshCw, Shield, UserCheck } from 'lucide-react';
+import {
+  Coffee,
+  Lock,
+  User,
+  LogIn,
+  AlertCircle,
+  RefreshCw,
+  Shield,
+  UserCheck,
+  KeyRound,
+  CheckCircle2,
+} from 'lucide-react';
 import { fetchApi } from '@/lib/api';
 import { setAuth, UserInfo } from '@/lib/auth';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
@@ -13,31 +24,93 @@ interface LoginData {
   user: UserInfo;
 }
 
+interface NeedsSetupData {
+  username: string;
+  temp_token: string;
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const { t } = useTranslation();
+
+  // Login form state
   const [username, setUsername] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Password setup modal state
+  const [showSetupModal, setShowSetupModal] = useState<boolean>(false);
+  const [setupData, setSetupData] = useState<NeedsSetupData | null>(null);
+  const [newPassword, setNewPassword] = useState<string>('');
+  const [confirmPassword, setConfirmPassword] = useState<string>('');
+  const [setupLoading, setSetupLoading] = useState<boolean>(false);
+  const [setupError, setSetupError] = useState<string | null>(null);
+  const [setupSuccess, setSetupSuccess] = useState<boolean>(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
 
-    const res = await fetchApi<LoginData>('/auth/login', {
+    const res = await fetchApi<LoginData | NeedsSetupData>('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ username, password }),
     });
 
-    if (res.status === 'success' && res.data) {
-      setAuth(res.data.token, res.data.user);
+    // Check for all three possible status values from the login endpoint
+    const resStatus = (res as { status: string }).status;
+
+    if (resStatus === 'success' && res.data) {
+      // Normal successful login
+      const loginData = res.data as LoginData;
+      setAuth(loginData.token, loginData.user);
       router.push('/');
+    } else if (resStatus === 'needs_setup' && res.data) {
+      // First-time setup required — show the setup modal
+      setSetupData(res.data as NeedsSetupData);
+      setShowSetupModal(true);
     } else {
       setError(res.message || 'Invalid credentials');
     }
     setLoading(false);
+  };
+
+  const handleSetupPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSetupError(null);
+
+    if (newPassword !== confirmPassword) {
+      setSetupError(t('login.password_mismatch'));
+      return;
+    }
+    if (newPassword.length < 6) {
+      setSetupError('Password must be at least 6 characters.');
+      return;
+    }
+    if (!setupData) return;
+
+    setSetupLoading(true);
+    const res = await fetchApi<LoginData>('/auth/setup-password', {
+      method: 'POST',
+      body: JSON.stringify({
+        username: setupData.username,
+        temp_token: setupData.temp_token,
+        new_password: newPassword,
+      }),
+    });
+
+    if (res.status === 'success' && res.data) {
+      setSetupSuccess(true);
+      setAuth(res.data.token, res.data.user);
+      // Brief success flash before redirecting
+      setTimeout(() => {
+        router.push('/');
+      }, 1000);
+    } else {
+      setSetupError(res.message || 'Failed to set password. Please try again.');
+    }
+    setSetupLoading(false);
   };
 
   const setDemoCredentials = (u: string, p: string) => {
@@ -51,7 +124,7 @@ export default function LoginPage() {
         <LanguageToggle />
       </div>
 
-      {/* Container */}
+      {/* Main Login Card */}
       <div className="w-full max-w-md bg-white rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 animate-in zoom-in-95 duration-200">
         {/* Brand Header */}
         <div className="text-center space-y-2">
@@ -70,7 +143,7 @@ export default function LoginPage() {
           </div>
         )}
 
-        {/* Form */}
+        {/* Login Form */}
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
             <label className="text-xs font-bold text-slate-700 mb-1 block uppercase tracking-wider">{t('login.username')}</label>
@@ -144,6 +217,98 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
+
+      {/* ── Password Setup Modal ─────────────────────────────────────── */}
+      {showSetupModal && setupData && (
+        <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-white rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 animate-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="text-center space-y-2">
+              <div className="inline-flex p-3 bg-amber-50 text-amber-600 rounded-2xl border border-amber-100 shadow-sm">
+                <KeyRound className="w-8 h-8" />
+              </div>
+              <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">
+                {t('login.setup_password_title')}
+              </h2>
+              <p className="text-xs text-slate-500 font-medium leading-relaxed">
+                {t('login.setup_password_subtitle')}
+              </p>
+              <span className="inline-block bg-indigo-100 text-indigo-800 text-xs font-bold px-3 py-1 rounded-full">
+                {setupData.username}
+              </span>
+            </div>
+
+            {/* Success state */}
+            {setupSuccess ? (
+              <div className="flex flex-col items-center space-y-3 py-4">
+                <CheckCircle2 className="w-10 h-10 text-emerald-500" />
+                <p className="text-sm font-bold text-emerald-700">{t('login.setup_success')}</p>
+              </div>
+            ) : (
+              <>
+                {/* Setup Error */}
+                {setupError && (
+                  <div className="bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold p-3.5 rounded-2xl flex items-center space-x-2">
+                    <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0" />
+                    <span>{setupError}</span>
+                  </div>
+                )}
+
+                {/* Setup Form */}
+                <form onSubmit={handleSetupPassword} className="space-y-4">
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 mb-1 block uppercase tracking-wider">
+                      {t('login.new_password')}
+                    </label>
+                    <div className="relative">
+                      <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+                      <input
+                        id="setup-new-password"
+                        type="password"
+                        required
+                        minLength={6}
+                        placeholder={t('login.new_password_placeholder')}
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        className="w-full pl-10 pr-4 py-3 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 bg-slate-50 focus:bg-white"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 mb-1 block uppercase tracking-wider">
+                      {t('login.confirm_password')}
+                    </label>
+                    <div className="relative">
+                      <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+                      <input
+                        id="setup-confirm-password"
+                        type="password"
+                        required
+                        minLength={6}
+                        placeholder={t('login.confirm_password_placeholder')}
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        className="w-full pl-10 pr-4 py-3 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 bg-slate-50 focus:bg-white"
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    id="setup-submit-btn"
+                    type="submit"
+                    disabled={setupLoading}
+                    className="w-full bg-amber-500 hover:bg-amber-600 disabled:bg-slate-300 text-white font-bold py-3.5 px-4 rounded-xl shadow-lg transition flex items-center justify-center space-x-2 text-sm"
+                  >
+                    {setupLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <KeyRound className="w-4 h-4" />}
+                    <span>{t('login.setup_submit')}</span>
+                  </button>
+                </form>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

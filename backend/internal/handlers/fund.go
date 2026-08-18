@@ -174,3 +174,86 @@ func (h *FundHandler) ReconcileFund(c *gin.Context) {
 		"variance":            variance,
 	}, "Fund balance reconciled successfully")
 }
+
+// GetCashierShiftSummary returns financial totals for a specific cashier's shift
+// Query params: cashier_name (required), date (optional, YYYY-MM-DD, defaults to today)
+func (h *FundHandler) GetCashierShiftSummary(c *gin.Context) {
+	cashierName := c.Query("cashier_name")
+	if cashierName == "" {
+		// Default to the requesting user's own cashier name from JWT context
+		if usernameVal, ok := c.Get("username"); ok {
+			if uname, ok := usernameVal.(string); ok {
+				cashierName = uname
+			}
+		}
+	}
+	if cashierName == "" {
+		models.SendError(c, http.StatusBadRequest, "cashier_name query parameter is required")
+		return
+	}
+
+	dateStr := c.Query("date")
+	var startTime, endTime time.Time
+	if dateStr == "" {
+		// Default to today in local time
+		now := time.Now()
+		startTime = time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+		endTime = startTime.Add(24 * time.Hour)
+	} else {
+		parsed, err := time.Parse("2006-01-02", dateStr)
+		if err != nil {
+			models.SendError(c, http.StatusBadRequest, "Invalid date format. Use YYYY-MM-DD")
+			return
+		}
+		startTime = parsed
+		endTime = parsed.Add(24 * time.Hour)
+	}
+
+	// Query inflows attributed to this cashier in the date range
+	var totalInflows float64
+	h.db.Model(&models.Transaction{}).
+		Where("cashier_name = ? AND transaction_type = ? AND created_at >= ? AND created_at < ?",
+			cashierName, models.TransactionTypeInflow, startTime, endTime).
+		Select("COALESCE(SUM(amount), 0)").Scan(&totalInflows)
+
+	// Query outflows attributed to this cashier in the date range
+	var totalOutflows float64
+	h.db.Model(&models.Transaction{}).
+		Where("cashier_name = ? AND transaction_type = ? AND created_at >= ? AND created_at < ?",
+			cashierName, models.TransactionTypeOutflow, startTime, endTime).
+		Select("COALESCE(SUM(amount), 0)").Scan(&totalOutflows)
+
+	// Count orders attributed to this cashier in the date range
+	var orderCount int64
+	h.db.Model(&models.Order{}).
+		Where("cashier_name = ? AND created_at >= ? AND created_at < ?",
+			cashierName, startTime, endTime).
+		Count(&orderCount)
+
+	// Find shift start and end times from transactions
+	var firstTx models.Transaction
+	var lastTx models.Transaction
+	var shiftStart, shiftEnd *time.Time
+
+	if err := h.db.Where("cashier_name = ? AND created_at >= ? AND created_at < ?",
+		cashierName, startTime, endTime).Order("created_at asc").First(&firstTx).Error; err == nil {
+		shiftStart = &firstTx.CreatedAt
+	}
+	if err := h.db.Where("cashier_name = ? AND created_at >= ? AND created_at < ?",
+		cashierName, startTime, endTime).Order("created_at desc").First(&lastTx).Error; err == nil {
+		shiftEnd = &lastTx.CreatedAt
+	}
+
+	summary := models.CashierShiftSummary{
+		CashierName:   cashierName,
+		Date:          startTime.Format("2006-01-02"),
+		TotalInflows:  totalInflows,
+		TotalOutflows: totalOutflows,
+		NetCash:       totalInflows - totalOutflows,
+		OrderCount:    orderCount,
+		StartTime:     shiftStart,
+		EndTime:       shiftEnd,
+	}
+
+	models.SendSuccess(c, http.StatusOK, summary, "Cashier shift summary retrieved successfully")
+}

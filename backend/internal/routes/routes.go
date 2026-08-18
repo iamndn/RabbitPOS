@@ -47,6 +47,7 @@ func SetupRouter(cfg *config.Config, db *gorm.DB) *gin.Engine {
 		// Public Endpoints
 		v1.GET("/health", healthHandler.CheckHealth)
 		v1.POST("/auth/login", authHandler.Login)
+		v1.POST("/auth/setup-password", authHandler.SetupPassword)
 
 		// Authenticated Routes Group
 		authenticated := v1.Group("")
@@ -63,6 +64,7 @@ func SetupRouter(cfg *config.Config, db *gorm.DB) *gin.Engine {
 			authenticated.GET("/products/:id", productHandler.GetProductByID)
 			authenticated.GET("/funds", fundHandler.ListFunds)
 			authenticated.GET("/funds/:id/balance", fundHandler.GetFundBalance)
+			authenticated.GET("/funds/cashier-shift-summary", fundHandler.GetCashierShiftSummary)
 			authenticated.GET("/orders", orderHandler.ListOrders)
 			authenticated.GET("/orders/:id", orderHandler.GetOrderByID)
 			authenticated.POST("/orders", orderHandler.CreateOrder)

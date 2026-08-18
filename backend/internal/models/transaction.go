@@ -32,8 +32,11 @@ type Transaction struct {
 	ReferenceOrderID *uint               `gorm:"index" json:"reference_order_id,omitempty"`
 	ReferenceOrder   *Order              `gorm:"foreignKey:ReferenceOrderID" json:"reference_order,omitempty"`
 	Description      string              `gorm:"type:text" json:"description"`
-	CreatedBy        string              `gorm:"type:varchar(100);default:'system'" json:"created_by"`
-	CreatedAt        time.Time           `json:"created_at"`
+	// CreatedBy is kept for backward compatibility; prefer CashierName for new code
+	CreatedBy   string `gorm:"type:varchar(100);default:'system'" json:"created_by"`
+	CashierID   *uint  `gorm:"index" json:"cashier_id,omitempty"`
+	CashierName string `gorm:"type:varchar(100);default:''" json:"cashier_name"`
+	CreatedAt   time.Time `json:"created_at"`
 }
 
 // Request & Response DTOs
@@ -44,7 +47,8 @@ type CreateTransactionRequest struct {
 	Category        TransactionCategory `json:"category" binding:"required"`
 	Amount          float64             `json:"amount" binding:"required,gt=0"`
 	Description     string              `json:"description"`
-	CreatedBy       string              `json:"created_by"`
+	// CreatedBy is optional; will be overridden by JWT context if available
+	CreatedBy string `json:"created_by"`
 }
 
 type ReconcileFundRequest struct {
@@ -60,4 +64,16 @@ type FundBalanceResponse struct {
 	TotalInflows       float64    `json:"total_inflows"`
 	TotalOutflows      float64    `json:"total_outflows"`
 	LastTransactionAt  *time.Time `json:"last_transaction_at"`
+}
+
+// CashierShiftSummary contains financial totals for a specific cashier's shift
+type CashierShiftSummary struct {
+	CashierName   string     `json:"cashier_name"`
+	Date          string     `json:"date"`
+	TotalInflows  float64    `json:"total_inflows"`
+	TotalOutflows float64    `json:"total_outflows"`
+	NetCash       float64    `json:"net_cash"`
+	OrderCount    int64      `json:"order_count"`
+	StartTime     *time.Time `json:"start_time"`
+	EndTime       *time.Time `json:"end_time"`
 }
