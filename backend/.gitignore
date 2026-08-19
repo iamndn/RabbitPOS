@@ -1,4 +1,20 @@
-.env.development
-.env.production
+# Compiled binaries
+main
+main.exe
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Environment variables
 .env
+.env.*
+!.env.example
+
+# Go build & cache
 .gomodcache/
+vendor/
+
+# Uploads & local data
+uploads/
+*.log

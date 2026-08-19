@@ -1,18 +1,77 @@
+# ==============================================================================
+# RabbitPOS - Root .gitignore
+# ==============================================================================
+
+# Node & Frontend Build Artifacts
 node_modules/
 frontend/node_modules/
 .next/
 frontend/.next/
+out/
+frontend/out/
+build/
+frontend/build/
+.turbo/
 
-# Local environment files (never commit real credentials)
+# Environment Variables & Secrets (NEVER COMMIT)
 .env
-.env.local
-
-# Production environment files contain real secrets — NEVER commit these
-.env.production
-backend/*.env.production
-frontend/.env.production
+.env.*
+!.env.example
+*.env
 *.env.production
- 
-# Compiled Go binary
+*.env.development
+*.env.local
+backend/.env*
+!backend/.env.example
+frontend/.env*
+!frontend/.env.example
+
+# Compiled Binaries & Executables
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.bin
+main
+main.exe
 backend/main
 backend/main.exe
+
+# Go Module Cache & Dependencies
+.gomodcache/
+backend/.gomodcache/
+vendor/
+backend/vendor/
+
+# Uploaded Media & Files
+uploads/
+backend/uploads/
+
+# Database Backups & Dumps
+backups/
+*.sql
+*.sql.gz
+*.dump
+*.tar
+*.bak
+
+# Nginx Proxy Manager & SSL Certificates
+npm_data/
+npm_letsencrypt/
+*.pem
+*.crt
+*.key
+*.csr
+
+# Logs & Debugging
+*.log
+logs/
+
+# OS & Editor Metadata
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*~
