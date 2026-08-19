@@ -25,6 +25,7 @@ import { Promotion } from '@/app/promotions/page';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
 import { fetchApi } from '@/lib/api';
 import { formatCurrency, SettingsMap } from '@/lib/utils';
+import ModernSelect from '@/components/common/ModernSelect';
 
 interface Props {
   isOpen: boolean;
@@ -238,10 +239,13 @@ export default function CartDrawer({
                 <Tag className="w-3.5 h-3.5 text-indigo-600" />
                 {t('pos.apply_promotion')}
               </label>
-              <select
+              <ModernSelect
                 value={selectedPromotion?.id ?? ''}
-                onChange={(e) => {
-                  const val = e.target.value;
+                placeholder={`-- ${t('pos.no_promotion')} --`}
+                searchable={activePromotions.length > 5}
+                searchPlaceholder="Tìm khuyến mãi..."
+                clearable={true}
+                onChange={(val) => {
                   if (!val) {
                     onSelectPromotion(null);
                   } else {
@@ -249,23 +253,26 @@ export default function CartDrawer({
                     onSelectPromotion(promo || null);
                   }
                 }}
-                className="w-full p-2 border border-slate-200 rounded-xl text-xs bg-white text-slate-800 font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              >
-                <option value="">-- {t('pos.no_promotion')} --</option>
-                {activePromotions.map((p) => {
-                  const discountLabel =
-                    p.promo_type === 'discount_amount'
-                      ? `-${formatCurrency(p.discount_value, settings)}`
-                      : p.promo_type === 'discount_percent'
-                      ? `-${p.discount_value}%`
-                      : `🎁 Tặng kèm`;
-                  return (
-                    <option key={p.id} value={p.id}>
-                      {p.name} ({discountLabel})
-                    </option>
-                  );
-                })}
-              </select>
+                options={[
+                  ...activePromotions.map((p) => {
+                    const discountLabel =
+                      p.promo_type === 'discount_amount'
+                        ? `-${formatCurrency(p.discount_value, settings)}`
+                        : p.promo_type === 'discount_percent'
+                        ? `-${p.discount_value}%`
+                        : `🎁 Tặng kèm`;
+
+                    return {
+                      value: p.id,
+                      label: p.name,
+                      badge: discountLabel,
+                      badgeColor: (p.promo_type === 'discount_percent' ? 'emerald' : 'indigo') as any,
+                      subLabel: p.min_order_amount > 0 ? `Đơn tối thiểu ${formatCurrency(p.min_order_amount, settings)}` : undefined,
+                      icon: <Sparkles className="w-3.5 h-3.5 text-amber-500" />,
+                    };
+                  }),
+                ]}
+              />
             </div>
 
             {/* 2. Order Note Field */}

@@ -9,10 +9,10 @@ frontend/.next/
 
 # Production environment files contain real secrets — NEVER commit these
 .env.production
-backend/.env.production
+backend/*.env.production
 frontend/.env.production
 *.env.production
-
+ 
 # Compiled Go binary
 backend/main
 backend/main.exe

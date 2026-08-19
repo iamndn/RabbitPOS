@@ -25,6 +25,7 @@ import AppShell from '@/components/AppShell';
 import { fetchApi } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
 import { formatCurrency, SettingsMap } from '@/lib/utils';
+import ModernSelect from '@/components/common/ModernSelect';
 
 export type PromoType = 'discount_amount' | 'discount_percent' | 'gift_item';
 export type PromoScope = 'all' | 'category' | 'product';
@@ -366,27 +367,33 @@ export default function PromotionsPage() {
           </div>
 
           <div className="flex items-center space-x-2 w-full sm:w-auto">
-            <select
-              value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value)}
-              className="p-2 border border-slate-200 rounded-xl text-xs bg-white text-slate-700 font-medium"
-            >
-              <option value="all">{t('promotions.filter_all_types')}</option>
-              <option value="discount_amount">{t('promotions.type_discount_amount')}</option>
-              <option value="discount_percent">{t('promotions.type_discount_percent')}</option>
-              <option value="gift_item">{t('promotions.type_gift_item')}</option>
-            </select>
+            <div className="w-40 sm:w-44">
+              <ModernSelect
+                size="sm"
+                value={typeFilter}
+                onChange={(val) => setTypeFilter(String(val))}
+                options={[
+                  { value: 'all', label: t('promotions.filter_all_types') || 'Tất cả loại' },
+                  { value: 'discount_amount', label: t('promotions.type_discount_amount') || 'Giảm số tiền', icon: <Coins className="w-3.5 h-3.5 text-indigo-500" /> },
+                  { value: 'discount_percent', label: t('promotions.type_discount_percent') || 'Giảm %', icon: <Percent className="w-3.5 h-3.5 text-emerald-500" /> },
+                  { value: 'gift_item', label: t('promotions.type_gift_item') || 'Tặng món', icon: <Gift className="w-3.5 h-3.5 text-amber-500" /> },
+                ]}
+              />
+            </div>
 
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="p-2 border border-slate-200 rounded-xl text-xs bg-white text-slate-700 font-medium"
-            >
-              <option value="all">{t('promotions.filter_all_status')}</option>
-              <option value="active">{t('promotions.status_active')}</option>
-              <option value="inactive">{t('promotions.status_inactive')}</option>
-              <option value="expired">{t('promotions.status_expired')}</option>
-            </select>
+            <div className="w-36 sm:w-40">
+              <ModernSelect
+                size="sm"
+                value={statusFilter}
+                onChange={(val) => setStatusFilter(String(val))}
+                options={[
+                  { value: 'all', label: t('promotions.filter_all_status') || 'Tất cả trạng thái' },
+                  { value: 'active', label: t('promotions.status_active') || 'Đang chạy', badge: 'Active', badgeColor: 'emerald' },
+                  { value: 'inactive', label: t('promotions.status_inactive') || 'Tạm dừng', badge: 'Paused', badgeColor: 'slate' },
+                  { value: 'expired', label: t('promotions.status_expired') || 'Hết hạn', badge: 'Expired', badgeColor: 'rose' },
+                ]}
+              />
+            </div>
           </div>
         </div>
 
@@ -664,19 +671,20 @@ export default function PromotionsPage() {
                     <label className="font-bold text-slate-700 uppercase tracking-wide block mb-1">
                       {t('promotions.select_gift_variant')} *
                     </label>
-                    <select
+                    <ModernSelect
                       value={formGiftVariantId || ''}
-                      onChange={(e) => setFormGiftVariantId(e.target.value ? Number(e.target.value) : null)}
-                      className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-sm"
-                      required
-                    >
-                      <option value="">-- {t('promotions.choose_gift_item')} --</option>
-                      {allVariants.map((v) => (
-                        <option key={v.id} value={v.id}>
-                          {v.productName} ({v.variantName}) - {formatCurrency(v.price, settings)}
-                        </option>
-                      ))}
-                    </select>
+                      placeholder={`-- ${t('promotions.choose_gift_item') || 'Chọn món tặng'} --`}
+                      searchable={true}
+                      searchPlaceholder="Tìm món tặng kèm..."
+                      onChange={(val) => setFormGiftVariantId(val ? Number(val) : null)}
+                      options={allVariants.map((v) => ({
+                        value: v.id,
+                        label: `${v.productName} (${v.variantName})`,
+                        subLabel: formatCurrency(v.price, settings),
+                        badge: '🎁 Quà tặng',
+                        badgeColor: 'amber',
+                      }))}
+                    />
                   </div>
                 )}
 
@@ -685,18 +693,18 @@ export default function PromotionsPage() {
                   <label className="font-bold text-slate-700 uppercase tracking-wide block mb-1">
                     {t('promotions.scope_label')}
                   </label>
-                  <select
+                  <ModernSelect
                     value={formScope}
-                    onChange={(e) => {
-                      setFormScope(e.target.value as PromoScope);
+                    onChange={(val) => {
+                      setFormScope(val as PromoScope);
                       setFormTargetIds([]);
                     }}
-                    className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
-                  >
-                    <option value="all">{t('promotions.scope_all')}</option>
-                    <option value="category">{t('promotions.scope_category')}</option>
-                    <option value="product">{t('promotions.scope_product')}</option>
-                  </select>
+                    options={[
+                      { value: 'all', label: t('promotions.scope_all') || 'Toàn bộ hóa đơn', badge: 'Tất cả', badgeColor: 'indigo' },
+                      { value: 'category', label: t('promotions.scope_category') || 'Theo danh mục món', badge: 'Danh mục', badgeColor: 'blue' },
+                      { value: 'product', label: t('promotions.scope_product') || 'Theo từng món cụ thể', badge: 'Món cụ thể', badgeColor: 'emerald' },
+                    ]}
+                  />
                 </div>
 
                 {/* Scope Target IDs Multi-selector */}

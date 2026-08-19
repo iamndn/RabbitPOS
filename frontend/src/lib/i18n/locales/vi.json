@@ -44,6 +44,7 @@
     "cart_total": "Tổng giỏ hàng",
     "view_cart": "Xem giỏ hàng",
     "checkout": "Thanh toán",
+    "checkout_now": "Thanh toán ngay",
     "select_variant": "Chọn kích thước & Tùy chọn",
     "added_to_cart": "Đã thêm {name} vào giỏ hàng",
     "cash_drawer": "Tiền mặt tại quầy",
@@ -96,7 +97,7 @@
     "direct_discount": "Giảm giá trực tiếp (đ)",
     "platform_discount": "Chiết khấu sàn đối tác (đ)",
     "shipping_fee": "Phí giao hàng (đ)",
-    "surcharge": "Phụ thu lễ / đêm (đ)",
+    "surcharge": "Phụ thu (đ)",
     "promotion_discount": "Khuyến mãi",
     "order_note": "Ghi chú đơn hàng",
     "order_note_placeholder": "Nhập ghi chú cho toàn bộ đơn hàng..."

@@ -15,6 +15,7 @@ import {
 import { fetchApi } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
 import { TransactionCategory } from '@/types/transaction_category';
+import ModernSelect from '@/components/common/ModernSelect';
 
 interface TransactionCategoryModalProps {
   isOpen: boolean;
@@ -261,15 +262,16 @@ export default function TransactionCategoryModal({
                   <label className="text-xs font-semibold text-slate-600 mb-1 block">
                     {t('tx_cat.type_label') || 'Loại giao dịch'} *
                   </label>
-                  <select
+                  <ModernSelect
+                    size="sm"
                     value={formData.type}
-                    onChange={(e) => setFormData({ ...formData, type: e.target.value as any })}
-                    className="w-full px-3 py-2 text-xs font-medium border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
-                  >
-                    <option value="outflow">{t('tx_cat.type_outflow') || 'Khoản chi (-)'}</option>
-                    <option value="inflow">{t('tx_cat.type_inflow') || 'Khoản thu (+)'}</option>
-                    <option value="both">{t('tx_cat.type_both') || 'Cả hai (+/-)'}</option>
-                  </select>
+                    onChange={(val) => setFormData({ ...formData, type: val as any })}
+                    options={[
+                      { value: 'outflow', label: t('tx_cat.type_outflow') || 'Khoản chi (-)', badge: '-', badgeColor: 'rose' },
+                      { value: 'inflow', label: t('tx_cat.type_inflow') || 'Khoản thu (+)', badge: '+', badgeColor: 'emerald' },
+                      { value: 'both', label: t('tx_cat.type_both') || 'Cả hai (+/-)', badge: '+/-', badgeColor: 'indigo' },
+                    ]}
+                  />
                 </div>
               </div>
 

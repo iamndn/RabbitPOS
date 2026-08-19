@@ -19,6 +19,7 @@ import AppShell from '@/components/AppShell';
 import { fetchApi, uploadImage, getImageUrl } from '@/lib/api';
 import { SettingsMap, formatCurrency } from '@/lib/utils';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
+import ModernSelect from '@/components/common/ModernSelect';
 
 export default function SettingsPage() {
   const { t } = useTranslation();
@@ -390,14 +391,14 @@ export default function SettingsPage() {
                     <label className="font-semibold text-slate-700 mb-1 block">
                       {t('settings.currency_position')}
                     </label>
-                    <select
+                    <ModernSelect
                       value={form.currency_position || 'suffix'}
-                      onChange={(e) => handleChange('currency_position', e.target.value)}
-                      className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
-                    >
-                      <option value="suffix">{t('settings.position_suffix')}</option>
-                      <option value="prefix">{t('settings.position_prefix')}</option>
-                    </select>
+                      onChange={(val) => handleChange('currency_position', String(val))}
+                      options={[
+                        { value: 'suffix', label: t('settings.position_suffix') || 'Hậu tố (VD: 35.000 đ)', badge: 'Suffix', badgeColor: 'indigo' },
+                        { value: 'prefix', label: t('settings.position_prefix') || 'Tiền tố (VD: $35.000)', badge: 'Prefix', badgeColor: 'emerald' },
+                      ]}
+                    />
                   </div>
 
                   {/* Preview Box */}

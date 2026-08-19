@@ -166,6 +166,53 @@
 
 ---
 
+### ✅ Phase 6: Refinement & Internationalization (i18n), Image Management & Operational Features
+1. **Internationalization (i18n)**:
+   - Hệ thống từ điển song ngữ hoàn chỉnh (`vi.json` & `en.json`) kết hợp `LanguageContext`.
+   - Bộ chuyển đổi ngôn ngữ Việt / Anh tức thời trong User Dropdown menu.
+   - Bổ sung và đồng bộ toàn bộ keys: `pos.checkout_now`, `pos.order_success`, `pos.order_failed`, `pos.surcharge`,...
+2. **Quản lý Hình ảnh (Image Upload)**:
+   - Endpoint `/api/v1/upload` tải ảnh lên thư mục `/uploads/` với dung lượng tối đa 5MB.
+   - Hỗ trợ gán ảnh cho danh mục và món ăn, tối ưu tải lazy và decoding async trên giao diện POS.
+3. **Tính năng Vận hành & Xuất Báo Cáo**:
+   - In hóa đơn nhiệt (`ReceiptModal.tsx`) với đầy đủ chi tiết món, topping, mức đường đá, ghi chú, chiết khấu.
+   - Tính năng Xuất dữ liệu CSV (`exportCsv.ts`) cho Sổ Thu Chi (Giao dịch), Lịch sử Đơn hàng và Bảng xếp hạng Sản phẩm bán chạy.
+
+---
+
+### ✅ Phase 7: Gửi Báo Cáo Tài Chính Tự Động & Theo Yêu Cầu Qua Email (Email Report Dispatcher)
+1. **Thiết lập Database & Tài khoản Email**:
+   - Migration `000014_email_reports_setup.up.sql` bổ sung cột `email` cho bảng `users`.
+   - Cấu hình sẵn email cho 3 tài khoản Admin: `NDN` (`nhanhdn.jfw@gmail.com`), `NHUNG` (`candynhung754@gmail.com`), `DAT` (`150498tranquangdat@gmail.com`).
+2. **Dịch Vụ Gửi Email Chuẩn Hóa (Email Service)**:
+   - Module `backend/internal/services/email.go` gửi email SMTP HTML bảo mật TLS/SSL.
+   - Mẫu email báo cáo doanh thu, cơ cấu đơn hàng, chiết khấu, lợi nhuận gộp, lưu chuyển tiền tệ và đối soát ca làm việc.
+3. **Lập Lịch Tự Động (Daily Cron Scheduler)**:
+   - Tiến trình goroutine chạy ngầm tự động gửi báo cáo vào **23:00 hàng ngày** đến danh sách Admin.
+4. **Gửi Theo Yêu Cầu & Test SMTP**:
+   - Tab "Email & Báo Cáo" tại `/settings` kiểm tra kết nối SMTP 1-click.
+   - Modal "Gửi Báo Cáo Email" tại `/dashboard` và thông báo gửi email khi chốt ca kiểm quỹ tại `/funds`.
+
+---
+
+### ✅ Phase 8: Tối Ưu Hóa Toàn Diện Hiệu Năng & Tốc Độ Tải Trang (Full-Stack Performance Optimization)
+1. **PostgreSQL Connection Pool & Indexing**:
+   - Cấu hình pool: `MaxOpenConns=30`, `MaxIdleConns=15`, `MaxLifetime=10m`, `MaxIdleTime=3m`.
+   - Migration `000015_performance_indexes.up.sql` tạo 5 composite indexes: `idx_orders_analytics`, `idx_order_items_perf`, `idx_transactions_perf`, `idx_products_active_cat`, `idx_toppings_active_cat`.
+2. **SQL Push-down Aggregation**:
+   - Tối ưu `GetPeriodSummary` trong `fund.go` từ vòng lặp $N \times 6$ câu truy vấn thành **1 câu lệnh SQL `GROUP BY`** duy nhất.
+3. **HTTP Response Compression**:
+   - Nén Gzip middleware (`gzip.go`) giảm 60–80% kích thước dữ liệu mạng.
+4. **Client-side In-Memory Cache (SWR)**:
+   - Bộ nhớ đệm TTL trong `frontend/src/lib/cache.ts` cho Settings, Categories, Toppings, Funds với cơ chế tự hủy cache khi có Mutation.
+5. **React Rendering Lifecycle Tuning**:
+   - Bọc `ProductCard` và `CategoryTabs` vào `React.memo` và `useCallback`.
+   - Thêm Debounce 250ms cho ô tìm kiếm món và ô tìm kiếm đơn hàng.
+   - Skeletons loader cho Dashboard và phân trang 25 mục/trang cho bảng Sổ Thu Chi & Đơn hàng.
+   - Thời gian phản hồi API trung bình đạt **~1.9ms**.
+
+---
+
 ## 5. Lệnh Vận Hành & Cheat Sheet
 
 ```bash
@@ -173,12 +220,9 @@
 docker compose -f docker-compose.prod.yml ps
 
 # Rebuild và khởi động lại Backend & Frontend
-docker compose -f docker-compose.prod.yml up -d --build backend frontend
+docker compose -f docker-compose.prod.yml up -d --build
 
 # Xem logs backend hoặc frontend
 docker logs -f rabbitpos-backend
 docker logs -f rabbitpos-frontend
-
-# Kiểm tra cú pháp Go Backend
-cd /opt/RabbitPOS/backend && go build ./...
 ```

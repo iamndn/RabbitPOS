@@ -32,6 +32,7 @@ import {
 import AppShell from '@/components/AppShell';
 import TransactionCategoryModal from '@/components/transactions/TransactionCategoryModal';
 import ModernDateRangePicker, { DatePeriod, computeDateRange } from '@/components/common/ModernDateRangePicker';
+import ModernSelect from '@/components/common/ModernSelect';
 import { fetchApi } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
 import { exportToCsv } from '@/lib/exportCsv';
@@ -101,6 +102,7 @@ interface OrderApi {
   cashier_name?: string;
   cancel_reason?: string;
   cancelled_at?: string;
+  note?: string;
   created_at: string;
 }
 
@@ -171,9 +173,13 @@ export default function TransactionsPage() {
   // Expanded Order Items Row
   const [expandedOrderId, setExpandedOrderId] = useState<number | null>(null);
 
-  // Category Breakdown State
-  const [categoryBreakdown, setCategoryBreakdown] = useState<CategoryBreakdownResponse | null>(null);
+  // Breakdown States
   const [breakdownType, setBreakdownType] = useState<'outflow' | 'inflow'>('outflow');
+  const [categoryBreakdown, setCategoryBreakdown] = useState<CategoryBreakdownResponse | null>(null);
+  const [breakdownPeriod, setBreakdownPeriod] = useState<DatePeriod>('month');
+  const [breakdownFromDate, setBreakdownFromDate] = useState<string>(() => computeDateRange('month').from);
+  const [breakdownToDate, setBreakdownToDate] = useState<string>(() => computeDateRange('month').to);
+  const [breakdownLoading, setBreakdownLoading] = useState<boolean>(false);
 
   const loadCategories = async () => {
     const res = await fetchApi<TransactionCategory[]>('/transaction-categories');
@@ -182,11 +188,27 @@ export default function TransactionsPage() {
     }
   };
 
-  const loadCategoryBreakdown = async (t: 'outflow' | 'inflow') => {
+  const loadCategoryBreakdown = async (
+    t: 'outflow' | 'inflow' = breakdownType,
+    p: DatePeriod = breakdownPeriod,
+    f: string = breakdownFromDate,
+    to: string = breakdownToDate
+  ) => {
+    setBreakdownLoading(true);
     setBreakdownType(t);
-    const catRes = await fetchApi<CategoryBreakdownResponse>(`/transactions/category-breakdown?type=${t}`);
-    if (catRes.status === 'success' && catRes.data) {
-      setCategoryBreakdown(catRes.data);
+    try {
+      let url = `/transactions/category-breakdown?type=${t}&period=${p}`;
+      if (p === 'custom' && f && to) {
+        url += `&from=${encodeURIComponent(f)}&to=${encodeURIComponent(to)}`;
+      }
+      const catRes = await fetchApi<CategoryBreakdownResponse>(url);
+      if (catRes.status === 'success' && catRes.data) {
+        setCategoryBreakdown(catRes.data);
+      }
+    } catch (err) {
+      console.error('Failed to load category breakdown', err);
+    } finally {
+      setBreakdownLoading(false);
     }
   };
 
@@ -450,17 +472,33 @@ export default function TransactionsPage() {
   const safeFunds = Array.isArray(funds) ? funds : [];
 
   const handleExportCsv = () => {
-    exportToCsv<Transaction>('rabbitpos_transactions', filteredTransactions, [
-      { header: 'ID', accessor: (tx) => tx.id },
-      { header: 'Date', accessor: (tx) => new Date(tx.created_at).toLocaleString() },
-      { header: 'Type', accessor: (tx) => tx.transaction_type },
-      { header: 'Category', accessor: (tx) => tx.category },
-      { header: 'Fund Account', accessor: (tx) => tx.fund?.name || tx.fund_id },
-      { header: 'Amount', accessor: (tx) => formatCurrency(tx.amount, settings) },
-      { header: 'Ref Order', accessor: (tx) => tx.reference_order?.order_code || '' },
-      { header: 'Description', accessor: (tx) => tx.description },
-      { header: 'Created By', accessor: (tx) => tx.cashier_name || tx.created_by },
-    ]);
+    if (activeTab === 'orders') {
+      exportToCsv<OrderApi>('rabbitpos_orders', filteredOrders, [
+        { header: 'Order Code', accessor: (o) => o.order_code },
+        { header: 'Date', accessor: (o) => new Date(o.created_at).toLocaleString() },
+        { header: 'Status', accessor: (o) => o.status },
+        { header: 'Fund Account', accessor: (o) => o.fund?.name || (o.fund_id === 1 ? 'Tiền mặt' : 'Chuyển khoản') },
+        { header: 'Cashier', accessor: (o) => o.cashier_name || o.created_by || '' },
+        { header: 'Subtotal', accessor: (o) => formatCurrency(o.subtotal, settings) },
+        { header: 'Discount', accessor: (o) => formatCurrency((o.discount_amount || 0) + (o.promotion_discount || 0) + (o.platform_fee_discount || 0), settings) },
+        { header: 'Shipping Fee', accessor: (o) => formatCurrency(o.shipping_fee || 0, settings) },
+        { header: 'Surcharge', accessor: (o) => formatCurrency(o.surcharge || 0, settings) },
+        { header: 'Total Amount', accessor: (o) => formatCurrency(o.total_amount, settings) },
+        { header: 'Notes', accessor: (o) => o.note || '' },
+      ]);
+    } else {
+      exportToCsv<Transaction>('rabbitpos_transactions', filteredTransactions, [
+        { header: 'ID', accessor: (tx) => tx.id },
+        { header: 'Date', accessor: (tx) => new Date(tx.created_at).toLocaleString() },
+        { header: 'Type', accessor: (tx) => tx.transaction_type },
+        { header: 'Category', accessor: (tx) => tx.category },
+        { header: 'Fund Account', accessor: (tx) => tx.fund?.name || tx.fund_id },
+        { header: 'Amount', accessor: (tx) => formatCurrency(tx.amount, settings) },
+        { header: 'Ref Order', accessor: (tx) => tx.reference_order?.order_code || '' },
+        { header: 'Description', accessor: (tx) => tx.description },
+        { header: 'Created By', accessor: (tx) => tx.cashier_name || tx.created_by },
+      ]);
+    }
   };
 
   const filteredTransactions = safeTransactions.filter((tx) => {
@@ -616,9 +654,9 @@ export default function TransactionsPage() {
               </div>
             </div>
 
-            {/* Expense Category Breakdown Section */}
+            {/* Expense / Income Category Breakdown Section */}
             <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-slate-100 pb-3">
                 <div>
                   <h3 className="font-bold text-sm text-slate-900 flex items-center gap-2">
                     <Tag className="w-4 h-4 text-indigo-600" />
@@ -626,130 +664,187 @@ export default function TransactionsPage() {
                   </h3>
                   <p className="text-xs text-slate-400">{t('tx.category_breakdown_subtitle')}</p>
                 </div>
-                <div className="flex items-center space-x-1 bg-slate-100 p-1 rounded-xl text-xs">
-                  <button
-                    type="button"
-                    onClick={() => loadCategoryBreakdown('outflow')}
-                    className={`px-3 py-1 rounded-lg font-bold transition ${
-                      breakdownType === 'outflow'
-                        ? 'bg-white text-rose-600 shadow-sm'
-                        : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    {t('tx.outflows')}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => loadCategoryBreakdown('inflow')}
-                    className={`px-3 py-1 rounded-lg font-bold transition ${
-                      breakdownType === 'inflow'
-                        ? 'bg-white text-emerald-600 shadow-sm'
-                        : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    {t('tx.inflows')}
-                  </button>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  {/* Date Range Picker for Breakdown */}
+                  <ModernDateRangePicker
+                    period={breakdownPeriod}
+                    customFrom={breakdownFromDate}
+                    customTo={breakdownToDate}
+                    onChange={({ period, from, to }) => {
+                      setBreakdownPeriod(period);
+                      setBreakdownFromDate(from);
+                      setBreakdownToDate(to);
+                      loadCategoryBreakdown(breakdownType, period, from, to);
+                    }}
+                  />
+
+                  {/* Inflow vs Outflow Type Switch */}
+                  <div className="flex items-center space-x-1 bg-slate-100 p-1 rounded-xl text-xs">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        loadCategoryBreakdown('outflow', breakdownPeriod, breakdownFromDate, breakdownToDate);
+                      }}
+                      className={`px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 ${
+                        breakdownType === 'outflow'
+                          ? 'bg-white text-rose-600 shadow-sm'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      <span className="w-2 h-2 rounded-full bg-rose-500" />
+                      {t('tx.outflows')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        loadCategoryBreakdown('inflow', breakdownPeriod, breakdownFromDate, breakdownToDate);
+                      }}
+                      className={`px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 ${
+                        breakdownType === 'inflow'
+                          ? 'bg-white text-emerald-600 shadow-sm'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                      {t('tx.inflows')}
+                    </button>
+                  </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-                {categoryBreakdown?.categories && categoryBreakdown.categories.length > 0 ? (
-                  categoryBreakdown.categories.map((c, idx) => (
-                    <div
-                      key={idx}
-                      className="p-3 bg-slate-50 rounded-xl border border-slate-200/80 space-y-2 flex flex-col justify-between"
-                    >
-                      <div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-[11px] font-bold text-slate-500 uppercase truncate pr-1">
-                            {c.category_label}
-                          </span>
-                          <span
-                            className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded ${
-                              breakdownType === 'outflow'
-                                ? 'bg-rose-50 text-rose-700 border border-rose-200'
-                                : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+              {breakdownLoading ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                  {[...Array(4)].map((_, i) => (
+                    <div key={i} className="p-3 bg-slate-50 rounded-xl border border-slate-200/80 space-y-2 animate-pulse">
+                      <div className="h-3 bg-slate-200 rounded w-24" />
+                      <div className="h-6 bg-slate-200 rounded w-32" />
+                      <div className="h-1.5 bg-slate-200 rounded-full w-full" />
+                      <div className="h-2.5 bg-slate-100 rounded w-16 ml-auto" />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                  {categoryBreakdown?.categories && categoryBreakdown.categories.length > 0 ? (
+                    categoryBreakdown.categories.map((c, idx) => (
+                      <div
+                        key={idx}
+                        className="p-3 bg-slate-50 rounded-xl border border-slate-200/80 space-y-2 flex flex-col justify-between"
+                      >
+                        <div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-[11px] font-bold text-slate-500 uppercase truncate pr-1">
+                              {c.category_label}
+                            </span>
+                            <span
+                              className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded ${
+                                breakdownType === 'outflow'
+                                  ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                                  : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                              }`}
+                            >
+                              {c.percentage}%
+                            </span>
+                          </div>
+                          <div
+                            className={`text-base font-extrabold mt-1 ${
+                              breakdownType === 'outflow' ? 'text-rose-600' : 'text-emerald-600'
                             }`}
                           >
-                            {c.percentage}%
-                          </span>
+                            {formatCurrency(c.total_amount, settings)}
+                          </div>
                         </div>
-                        <div
-                          className={`text-base font-extrabold mt-1 ${
-                            breakdownType === 'outflow' ? 'text-rose-600' : 'text-emerald-600'
-                          }`}
-                        >
-                          {formatCurrency(c.total_amount, settings)}
+                        <div className="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
+                          <div
+                            style={{ width: `${c.percentage}%` }}
+                            className={`h-full rounded-full ${
+                              breakdownType === 'outflow' ? 'bg-rose-500' : 'bg-emerald-500'
+                            }`}
+                          />
                         </div>
+                        <span className="text-[10px] text-slate-400 text-right font-medium">
+                          {c.count} {t('tx.transactions_count')}
+                        </span>
                       </div>
-                      <div className="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
-                        <div
-                          style={{ width: `${c.percentage}%` }}
-                          className={`h-full rounded-full ${
-                            breakdownType === 'outflow' ? 'bg-rose-500' : 'bg-emerald-500'
-                          }`}
-                        />
-                      </div>
-                      <span className="text-[10px] text-slate-400 text-right font-medium">
-                        {c.count} {t('tx.transactions_count')}
-                      </span>
-                    </div>
-                  ))
-                ) : (
-                  <p className="col-span-4 text-center text-slate-400 py-4 text-xs">{t('tx.no_transactions')}</p>
-                )}
-              </div>
+                    ))
+                  ) : (
+                    <p className="col-span-4 text-center text-slate-400 py-4 text-xs">{t('tx.no_transactions')}</p>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Filters Bar */}
             <div className="flex flex-col sm:flex-row gap-3 items-center justify-between bg-white p-3 rounded-2xl border border-slate-200 shadow-sm">
-              <div className="flex items-center space-x-2 w-full sm:w-auto">
-                <Filter className="w-4 h-4 text-slate-400" />
-                <select
-                  value={selectedFundId || ''}
-                  onChange={(e) => setSelectedFundId(e.target.value ? Number(e.target.value) : null)}
-                  className="p-2 border border-slate-200 rounded-xl text-xs bg-white text-slate-700 font-medium"
-                >
-                  <option value="">{t('tx.filter_all_funds')}</option>
-                  {safeFunds.map((f) => (
-                    <option key={f.id} value={f.id}>
-                      {f.name}
-                    </option>
-                  ))}
-                </select>
+              <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                <Filter className="w-4 h-4 text-slate-400 shrink-0" />
+                <div className="w-40 sm:w-44">
+                  <ModernSelect
+                    size="sm"
+                    value={selectedFundId ?? ''}
+                    placeholder={t('tx.filter_all_funds')}
+                    clearable={true}
+                    onChange={(val) => {
+                      setSelectedFundId(val ? Number(val) : null);
+                      setTxPage(1);
+                    }}
+                    options={[
+                      { value: '', label: t('tx.filter_all_funds') || 'Tất cả nguồn tiền' },
+                      ...safeFunds.map((f) => ({
+                        value: f.id,
+                        label: f.name,
+                        subLabel: f.fund_type,
+                        icon: <Wallet className="w-3.5 h-3.5 text-indigo-500" />,
+                      })),
+                    ]}
+                  />
+                </div>
 
-                <select
-                  value={selectedType}
-                  onChange={(e) => setSelectedType(e.target.value)}
-                  className="p-2 border border-slate-200 rounded-xl text-xs bg-white text-slate-700 font-medium"
-                >
-                  <option value="all">{t('tx.filter_all_types')}</option>
-                  <option value="inflow">{t('tx.type_inflow')}</option>
-                  <option value="outflow">{t('tx.type_outflow')}</option>
-                </select>
+                <div className="w-36">
+                  <ModernSelect
+                    size="sm"
+                    value={selectedType}
+                    onChange={(val) => {
+                      setSelectedType(String(val));
+                      setTxPage(1);
+                    }}
+                    options={[
+                      { value: 'all', label: t('tx.filter_all_types') || 'Tất cả loại' },
+                      { value: 'inflow', label: t('tx.type_inflow') || 'Khoản thu (+)', badge: '+', badgeColor: 'emerald' },
+                      { value: 'outflow', label: t('tx.type_outflow') || 'Khoản chi (-)', badge: '-', badgeColor: 'rose' },
+                    ]}
+                  />
+                </div>
 
-                <select
-                  value={selectedCategory}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="p-2 border border-slate-200 rounded-xl text-xs bg-white text-slate-700 font-medium"
-                >
-                  <option value="all">{t('tx.filter_all_categories')}</option>
-                  {txCategories.length > 0 ? (
-                    txCategories.map((c) => (
-                      <option key={c.id} value={c.code || c.name}>
-                        {c.name}
-                      </option>
-                    ))
-                  ) : (
-                    <>
-                      <option value="sale">{t('tx.cat_sale')}</option>
-                      <option value="ingredient_purchase">{t('tx.cat_ingredient')}</option>
-                      <option value="utility_bill">{t('tx.cat_utility')}</option>
-                      <option value="reconciliation_variance">{t('tx.cat_reconciliation')}</option>
-                      <option value="other">{t('tx.cat_other')}</option>
-                    </>
-                  )}
-                </select>
+                <div className="w-44 sm:w-48">
+                  <ModernSelect
+                    size="sm"
+                    searchable={true}
+                    searchPlaceholder="Tìm danh mục..."
+                    value={selectedCategory}
+                    onChange={(val) => {
+                      setSelectedCategory(String(val));
+                      setTxPage(1);
+                    }}
+                    options={[
+                      { value: 'all', label: t('tx.filter_all_categories') || 'Tất cả danh mục' },
+                      ...(txCategories.length > 0
+                        ? txCategories.map((c) => ({
+                            value: c.code || c.name,
+                            label: c.name,
+                            badge: c.type === 'inflow' ? 'Thu' : c.type === 'outflow' ? 'Chi' : 'Thu/Chi',
+                            badgeColor: (c.type === 'inflow' ? 'emerald' : c.type === 'outflow' ? 'rose' : 'indigo') as any,
+                          }))
+                        : [
+                            { value: 'sale', label: t('tx.cat_sale') || 'Doanh thu bán hàng' },
+                            { value: 'ingredient_purchase', label: t('tx.cat_ingredient') || 'Mua nguyên liệu' },
+                            { value: 'utility_bill', label: t('tx.cat_utility') || 'Chi phí vận hành' },
+                            { value: 'reconciliation_variance', label: t('tx.cat_reconciliation') || 'Chênh lệch đối soát' },
+                          ]),
+                    ]}
+                  />
+                </div>
               </div>
             </div>
 
@@ -892,15 +987,21 @@ export default function TransactionsPage() {
                 />
               </div>
 
-              <select
-                value={orderStatusFilter}
-                onChange={(e) => setOrderStatusFilter(e.target.value)}
-                className="p-2 border border-slate-200 rounded-xl text-xs bg-white text-slate-700 font-medium"
-              >
-                <option value="all">{t('tx.filter_all_order_status')}</option>
-                <option value="completed">{t('tx.order_status_completed')}</option>
-                <option value="cancelled">{t('tx.order_status_cancelled')}</option>
-              </select>
+              <div className="w-40 sm:w-44">
+                <ModernSelect
+                  size="sm"
+                  value={orderStatusFilter}
+                  onChange={(val) => {
+                    setOrderStatusFilter(String(val));
+                    setOrderPage(1);
+                  }}
+                  options={[
+                    { value: 'all', label: t('tx.filter_all_order_status') || 'Tất cả trạng thái' },
+                    { value: 'completed', label: t('tx.order_status_completed') || 'Hoàn thành', badge: 'Completed', badgeColor: 'emerald' },
+                    { value: 'cancelled', label: t('tx.order_status_cancelled') || 'Đã hủy', badge: 'Cancelled', badgeColor: 'rose' },
+                  ]}
+                />
+              </div>
             </div>
 
             {/* Orders Table */}
@@ -1152,17 +1253,17 @@ export default function TransactionsPage() {
 
               <div>
                 <label className="font-semibold text-slate-700 mb-1 block">{t('tx.modal_fund_label')} *</label>
-                <select
+                <ModernSelect
                   value={modalFundId}
-                  onChange={(e) => setModalFundId(Number(e.target.value))}
-                  className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
-                >
-                  {safeFunds.map((f) => (
-                    <option key={f.id} value={f.id}>
-                      {f.name} ({f.fund_type})
-                    </option>
-                  ))}
-                </select>
+                  placeholder="Chọn nguồn tiền..."
+                  onChange={(val) => setModalFundId(Number(val))}
+                  options={safeFunds.map((f) => ({
+                    value: f.id,
+                    label: f.name,
+                    subLabel: f.fund_type,
+                    icon: <Wallet className="w-3.5 h-3.5 text-indigo-500" />,
+                  }))}
+                />
               </div>
 
               <div>
@@ -1177,36 +1278,34 @@ export default function TransactionsPage() {
                     <span>{t('tx_cat.btn_manage_categories') || 'Quản lý danh mục'}</span>
                   </button>
                 </div>
-                <select
+                <ModernSelect
+                  searchable={true}
+                  searchPlaceholder="Tìm danh mục thu/chi..."
                   value={modalCategory}
-                  onChange={(e) => setModalCategory(e.target.value)}
-                  className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
-                >
-                  {(() => {
-                    const activeCats = txCategories.filter(
-                      (c) => c.type === modalType || c.type === 'both'
-                    );
-                    if (activeCats.length > 0) {
-                      return activeCats.map((c) => (
-                        <option key={c.id} value={c.code || c.name}>
-                          {c.name}
-                        </option>
-                      ));
-                    }
-                    return modalType === 'outflow' ? (
-                      <>
-                        <option value="ingredient_purchase">{t('tx.cat_ingredient_purchase_detail')}</option>
-                        <option value="utility_bill">{t('tx.cat_utility_detail')}</option>
-                        <option value="other">{t('tx.cat_other_expense')}</option>
-                      </>
-                    ) : (
-                      <>
-                        <option value="sale">{t('tx.cat_manual_sale')}</option>
-                        <option value="other">{t('tx.cat_other_inflow')}</option>
-                      </>
-                    );
-                  })()}
-                </select>
+                  onChange={(val) => setModalCategory(String(val))}
+                  options={
+                    txCategories.filter((c) => c.type === modalType || c.type === 'both').length > 0
+                      ? txCategories
+                          .filter((c) => c.type === modalType || c.type === 'both')
+                          .map((c) => ({
+                            value: c.code || c.name,
+                            label: c.name,
+                            badge: c.type === 'inflow' ? 'Thu' : c.type === 'outflow' ? 'Chi' : 'Thu/Chi',
+                            badgeColor: (c.type === 'inflow' ? 'emerald' : c.type === 'outflow' ? 'rose' : 'indigo') as any,
+                          }))
+                      : modalType === 'outflow'
+                      ? [
+                          { value: 'ingredient_purchase', label: t('tx.cat_ingredient') || 'Mua nguyên liệu' },
+                          { value: 'utility_bill', label: t('tx.cat_utility') || 'Chi phí vận hành' },
+                          { value: 'reconciliation_variance', label: t('tx.cat_reconciliation') || 'Chênh lệch đối soát' },
+                          { value: 'other', label: 'Khác' },
+                        ]
+                      : [
+                          { value: 'sale', label: t('tx.cat_manual_sale') || 'Bán hàng' },
+                          { value: 'other', label: t('tx.cat_other_inflow') || 'Thu khác' },
+                        ]
+                  }
+                />
               </div>
 
               <div>

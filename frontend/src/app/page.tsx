@@ -173,46 +173,59 @@ export default function PosPage() {
     return () => clearTimeout(handler);
   }, [searchQuery]);
 
-  // Parallelized initial data loading with in-memory caching
-  const loadData = useCallback(async () => {
+  // Parallelized initial data loading with in-memory caching and automatic retry
+  const loadData = useCallback(async (retryCount = 0) => {
     setLoading(true);
 
-    const [settingsRes, catRes, prodRes] = await Promise.all([
-      fetchApi<any>('/settings'),
-      fetchApi<Category[]>('/categories'),
-      fetchApi<Product[]>('/products'),
-    ]);
+    try {
+      const [settingsRes, catRes, prodRes] = await Promise.all([
+        fetchApi<any>('/settings'),
+        fetchApi<Category[]>('/categories'),
+        fetchApi<Product[]>('/products'),
+      ]);
 
-    if (settingsRes.status === 'success' && settingsRes.data) {
-      if (Array.isArray(settingsRes.data)) {
-        const map: SettingsMap = {};
-        settingsRes.data.forEach((s: any) => {
-          if (s && s.key) map[s.key] = s.value;
-        });
-        setSettings(map);
-      } else if (typeof settingsRes.data === 'object') {
-        setSettings(settingsRes.data as SettingsMap);
+      if (settingsRes.status === 'success' && settingsRes.data) {
+        if (Array.isArray(settingsRes.data)) {
+          const map: SettingsMap = {};
+          settingsRes.data.forEach((s: any) => {
+            if (s && s.key) map[s.key] = s.value;
+          });
+          setSettings(map);
+        } else if (typeof settingsRes.data === 'object') {
+          setSettings(settingsRes.data as SettingsMap);
+        }
       }
-    }
 
-    if (catRes.status === 'success') {
-      const catList = Array.isArray(catRes.data)
-        ? catRes.data
-        : Array.isArray(catRes)
-        ? (catRes as Category[])
-        : [];
-      setCategories(catList);
-    }
+      if (catRes.status === 'success') {
+        const catList = Array.isArray(catRes.data)
+          ? catRes.data
+          : Array.isArray(catRes)
+          ? (catRes as Category[])
+          : [];
+        setCategories(catList);
+      }
 
-    if (prodRes.status === 'success') {
-      const prodList = Array.isArray(prodRes.data)
-        ? prodRes.data
-        : Array.isArray(prodRes)
-        ? (prodRes as Product[])
-        : [];
-      setProducts(prodList);
+      if (prodRes.status === 'success') {
+        const prodList = Array.isArray(prodRes.data)
+          ? prodRes.data
+          : Array.isArray(prodRes)
+          ? (prodRes as Product[])
+          : [];
+        setProducts(prodList);
+      } else if (retryCount < 2) {
+        // Cold-start retry
+        setTimeout(() => loadData(retryCount + 1), 800);
+        return;
+      }
+    } catch (err) {
+      console.error('Failed to load POS catalog data:', err);
+      if (retryCount < 2) {
+        setTimeout(() => loadData(retryCount + 1), 800);
+        return;
+      }
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, []);
 
   useEffect(() => {
@@ -397,7 +410,7 @@ export default function PosPage() {
         quantity: item.quantity,
         unit_price: item.unitPrice,
         line_total: item.lineTotal,
-        selected_toppings: JSON.stringify(item.selectedToppings || []),
+        selected_toppings: item.selectedToppings || [],
         toppings_price: item.toppingsPrice || 0,
         notes: item.notes || '',
       })),
@@ -422,17 +435,18 @@ export default function PosPage() {
       setIsCartDrawerOpen(false);
 
       const orderData: CompletedOrderData = {
-        orderId: res.data.id,
-        orderCode: res.data.order_code,
-        createdAt: res.data.created_at || new Date().toISOString(),
+        order_code: res.data.order_code,
+        created_at: res.data.created_at || new Date().toISOString(),
         items: orderCartSnapshot,
         subtotal: currentSubtotal,
-        discountAmount: discountAmount + promotionDiscount + platformFeeDiscount,
-        shippingFee: shippingFee,
+        discount: discountAmount,
+        promotion_discount: promotionDiscount,
+        platform_fee_discount: platformFeeDiscount,
+        shipping_fee: shippingFee,
         surcharge: surcharge,
-        totalAmount: currentTotal,
-        fundName: res.data.fund?.name || (fundIdNum === 1 ? 'Tiền mặt' : 'Chuyển khoản'),
-        cashierName: res.data.cashier_name || 'Thu ngân',
+        total: currentTotal,
+        payment_method: res.data.fund?.name || (fundIdNum === 1 ? 'Tiền mặt' : 'Chuyển khoản'),
+        cashier_name: res.data.cashier_name || 'Thu ngân',
         note: orderNote,
       };
 
@@ -603,13 +617,14 @@ export default function PosPage() {
         </div>
 
         {/* Modal Components */}
-        <VariantSelectorModal
-          product={selectedProductForVariant}
-          isOpen={!!selectedProductForVariant}
-          onClose={() => setSelectedProductForVariant(null)}
-          onAddToCart={handleAddToCart}
-          settings={settings}
-        />
+        {selectedProductForVariant && (
+          <VariantSelectorModal
+            product={selectedProductForVariant}
+            onClose={() => setSelectedProductForVariant(null)}
+            onAddToCart={handleAddToCart}
+            settings={settings}
+          />
+        )}
 
         <CartDrawer
           isOpen={isCartDrawerOpen}
@@ -618,45 +633,48 @@ export default function PosPage() {
           onUpdateQty={handleUpdateQty}
           onUpdateUnitPrice={handleUpdateUnitPrice}
           onRemoveItem={handleRemoveItem}
-          orderNote={orderNote}
-          onChangeOrderNote={setOrderNote}
           discountAmount={discountAmount}
-          onChangeDiscountAmount={setDiscountAmount}
+          onDiscountChange={setDiscountAmount}
           selectedPromotion={selectedPromotion}
           onSelectPromotion={setSelectedPromotion}
           promotionDiscount={promotionDiscount}
           shippingFee={shippingFee}
-          onChangeShippingFee={setShippingFee}
+          onShippingFeeChange={setShippingFee}
           platformFeeDiscount={platformFeeDiscount}
-          onChangePlatformFeeDiscount={setPlatformFeeDiscount}
+          onPlatformFeeDiscountChange={setPlatformFeeDiscount}
           surcharge={surcharge}
-          onChangeSurcharge={setSurcharge}
-          subtotal={cartSubtotal}
-          total={cartTotal}
-          onOpenCheckout={() => {
+          onSurchargeChange={setSurcharge}
+          orderNote={orderNote}
+          onOrderNoteChange={setOrderNote}
+          onProceedCheckout={() => {
             setIsCartDrawerOpen(false);
             setIsCheckoutModalOpen(true);
           }}
           settings={settings}
         />
 
-        <CheckoutModal
-          isOpen={isCheckoutModalOpen}
-          onClose={() => setIsCheckoutModalOpen(false)}
-          totalAmount={cartTotal}
-          itemCount={totalItemCount}
-          onSelectFund={handleInitiatePayment}
-          settings={settings}
-        />
+        {isCheckoutModalOpen && (
+          <CheckoutModal
+            totalAmount={cartTotal}
+            onClose={() => setIsCheckoutModalOpen(false)}
+            onConfirmCashPayment={(fundId) => submitOrder(fundId)}
+            onSelectBankTransfer={(fundId) => {
+              setSelectedFundId(fundId);
+              setIsCheckoutModalOpen(false);
+              setIsVietQRModalOpen(true);
+            }}
+            settings={settings}
+          />
+        )}
 
-        <VietQRModal
-          isOpen={isVietQRModalOpen}
-          onClose={() => setIsVietQRModalOpen(false)}
-          amount={cartTotal}
-          orderInfo={`ThoJuice ${cartItems.length} mon`}
-          onConfirmPayment={() => submitOrder(2)}
-          settings={settings}
-        />
+        {isVietQRModalOpen && (
+          <VietQRModal
+            totalAmount={cartTotal}
+            onClose={() => setIsVietQRModalOpen(false)}
+            onConfirmOrder={() => submitOrder(selectedFundId || 2)}
+            settings={settings}
+          />
+        )}
 
         <ReceiptModal
           isOpen={isReceiptModalOpen}
@@ -664,7 +682,7 @@ export default function PosPage() {
             setIsReceiptModalOpen(false);
             setCompletedOrder(null);
           }}
-          orderData={completedOrder}
+          order={completedOrder}
           settings={settings}
         />
       </div>

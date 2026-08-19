@@ -25,6 +25,7 @@ import AppShell from '@/components/AppShell';
 import { fetchApi, getImageUrl, uploadImage } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
 import { formatCurrency, SettingsMap } from '@/lib/utils';
+import ModernSelect from '@/components/common/ModernSelect';
 
 interface Category {
   id: number;
@@ -133,48 +134,62 @@ export default function ProductsPage() {
     setUploadingCatImg(false);
   };
 
-  const loadCatalog = async () => {
+  const loadCatalog = async (retryCount = 0) => {
     setLoading(true);
 
-    // Load settings for currency formatting
-    const settingsRes = await fetchApi<any>('/settings');
-    if (settingsRes.status === 'success' && settingsRes.data) {
-      if (Array.isArray(settingsRes.data)) {
-        const map: SettingsMap = {};
-        settingsRes.data.forEach((s: any) => {
-          if (s && s.key) {
-            map[s.key] = s.value;
-          }
-        });
-        setSettings(map);
-      } else if (typeof settingsRes.data === 'object') {
-        setSettings(settingsRes.data as SettingsMap);
-      }
-    }
+    try {
+      const [settingsRes, catRes, prodRes] = await Promise.all([
+        fetchApi<any>('/settings'),
+        fetchApi<Category[]>('/categories'),
+        fetchApi<Product[]>('/products'),
+      ]);
 
-    const catRes = await fetchApi<Category[]>('/categories');
-    if (catRes.status === 'success') {
-      const catList = Array.isArray(catRes.data)
-        ? catRes.data
-        : Array.isArray(catRes)
-        ? (catRes as Category[])
-        : [];
-      setCategories(catList);
-      if (catList.length > 0 && formCategoryId === 0) {
-        setFormCategoryId(catList[0].id);
+      if (settingsRes.status === 'success' && settingsRes.data) {
+        if (Array.isArray(settingsRes.data)) {
+          const map: SettingsMap = {};
+          settingsRes.data.forEach((s: any) => {
+            if (s && s.key) {
+              map[s.key] = s.value;
+            }
+          });
+          setSettings(map);
+        } else if (typeof settingsRes.data === 'object') {
+          setSettings(settingsRes.data as SettingsMap);
+        }
       }
-    }
 
-    const prodRes = await fetchApi<Product[]>('/products');
-    if (prodRes.status === 'success') {
-      const prodList = Array.isArray(prodRes.data)
-        ? prodRes.data
-        : Array.isArray(prodRes)
-        ? (prodRes as Product[])
-        : [];
-      setProducts(prodList);
+      if (catRes.status === 'success') {
+        const catList = Array.isArray(catRes.data)
+          ? catRes.data
+          : Array.isArray(catRes)
+          ? (catRes as Category[])
+          : [];
+        setCategories(catList);
+        if (catList.length > 0 && formCategoryId === 0) {
+          setFormCategoryId(catList[0].id);
+        }
+      }
+
+      if (prodRes.status === 'success') {
+        const prodList = Array.isArray(prodRes.data)
+          ? prodRes.data
+          : Array.isArray(prodRes)
+          ? (prodRes as Product[])
+          : [];
+        setProducts(prodList);
+      } else if (retryCount < 2) {
+        setTimeout(() => loadCatalog(retryCount + 1), 800);
+        return;
+      }
+    } catch (e) {
+      console.error('Failed to load catalog:', e);
+      if (retryCount < 2) {
+        setTimeout(() => loadCatalog(retryCount + 1), 800);
+        return;
+      }
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const loadToppings = async () => {
@@ -698,7 +713,26 @@ export default function ProductsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {filteredProducts.length === 0 ? (
+                {loading ? (
+                  [...Array(6)].map((_, i) => (
+                    <tr key={i} className="animate-pulse">
+                      <td className="py-3 px-4">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-10 h-10 rounded-lg bg-slate-200" />
+                          <div className="space-y-1.5 flex-1">
+                            <div className="h-3.5 bg-slate-200 rounded w-28" />
+                            <div className="h-2.5 bg-slate-100 rounded w-16" />
+                          </div>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4"><div className="h-3 bg-slate-200 rounded w-20" /></td>
+                      <td className="py-3 px-4"><div className="h-3 bg-slate-200 rounded w-24" /></td>
+                      <td className="py-3 px-4"><div className="h-3 bg-slate-200 rounded w-28" /></td>
+                      <td className="py-3 px-4"><div className="h-3 bg-slate-200 rounded w-16" /></td>
+                      <td className="py-3 px-4 text-right"><div className="h-4 bg-slate-200 rounded w-12 ml-auto" /></td>
+                    </tr>
+                  ))
+                ) : filteredProducts.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="py-8 text-center text-slate-400">
                       {t('products.no_items')}
@@ -839,17 +873,16 @@ export default function ProductsPage() {
                   <label className="font-semibold text-slate-700 mb-1 block">
                     {t('products.category')} *
                   </label>
-                  <select
+                  <ModernSelect
                     value={formCategoryId}
-                    onChange={(e) => setFormCategoryId(Number(e.target.value))}
-                    className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  >
-                    {categories.map((cat) => (
-                      <option key={cat.id} value={cat.id}>
-                        {cat.name}
-                      </option>
-                    ))}
-                  </select>
+                    placeholder="Chọn danh mục..."
+                    onChange={(val) => setFormCategoryId(Number(val))}
+                    options={categories.map((cat) => ({
+                      value: cat.id,
+                      label: cat.name,
+                      icon: <FolderOpen className="w-3.5 h-3.5 text-indigo-500" />,
+                    }))}
+                  />
                 </div>
               </div>
 
@@ -897,15 +930,15 @@ export default function ProductsPage() {
 
               <div>
                 <label className="font-semibold text-slate-700 mb-1 block">{t('products.badge')}</label>
-                <select
+                <ModernSelect
                   value={formTag}
-                  onChange={(e) => setFormTag(e.target.value)}
-                  className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                >
-                  <option value="none">{t('products.none')}</option>
-                  <option value="best_seller">{t('products.best_seller')}</option>
-                  <option value="new">{t('products.new')}</option>
-                </select>
+                  onChange={(val) => setFormTag(String(val))}
+                  options={[
+                    { value: 'none', label: t('products.none') || 'Không gắn nhãn' },
+                    { value: 'best_seller', label: t('products.best_seller') || 'Best Seller', badge: '🔥 Bán chạy', badgeColor: 'rose' },
+                    { value: 'new', label: t('products.new') || 'Món mới', badge: '✨ New', badgeColor: 'emerald' },
+                  ]}
+                />
               </div>
 
               {/* Variants Section (Create only) */}
@@ -1156,16 +1189,20 @@ export default function ProductsPage() {
               {/* Category */}
               <div className="space-y-1">
                 <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">{t('products.topping_category')}</label>
-                <select
+                <ModernSelect
                   value={toppingForm.category_id ?? ''}
-                  onChange={(e) => setToppingForm({ ...toppingForm, category_id: e.target.value === '' ? null : Number(e.target.value) })}
-                  className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500 text-sm bg-white"
-                >
-                  <option value="">{t('products.topping_global')}</option>
-                  {safeCategories.map((cat) => (
-                    <option key={cat.id} value={cat.id}>{cat.name}</option>
-                  ))}
-                </select>
+                  placeholder={t('products.topping_global')}
+                  clearable={true}
+                  onChange={(val) => setToppingForm({ ...toppingForm, category_id: val === '' || val === null ? null : Number(val) })}
+                  options={[
+                    { value: '', label: t('products.topping_global'), badge: 'Toàn cục', badgeColor: 'indigo' },
+                    ...safeCategories.map((cat) => ({
+                      value: cat.id,
+                      label: cat.name,
+                      icon: <FolderOpen className="w-3.5 h-3.5 text-slate-400" />,
+                    })),
+                  ]}
+                />
               </div>
 
               {/* Is Active On/Off Switch */}

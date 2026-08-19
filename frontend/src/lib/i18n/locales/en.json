@@ -44,6 +44,7 @@
     "cart_total": "Cart Total",
     "view_cart": "View Cart",
     "checkout": "Checkout",
+    "checkout_now": "Checkout Now",
     "select_variant": "Select Size & Options",
     "added_to_cart": "Added {name} to cart",
     "cash_drawer": "Cash Drawer",

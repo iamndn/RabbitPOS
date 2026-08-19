@@ -1,8 +1,10 @@
 package handlers
 
 import (
+	"context"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/RabbitPOS/backend/internal/models"
 	"github.com/gin-gonic/gin"
@@ -19,7 +21,15 @@ func NewProductHandler(db *gorm.DB) *ProductHandler {
 
 // ListProducts lists products with optional filters (category_id, tag, is_active)
 func (h *ProductHandler) ListProducts(c *gin.Context) {
-	query := h.db.Model(&models.Product{}).Preload("Category").Preload("Variants").Preload("VariantGroups")
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
+	defer cancel()
+
+	query := h.db.WithContext(ctx).Model(&models.Product{}).
+		Preload("Category").
+		Preload("Variants", func(db *gorm.DB) *gorm.DB {
+			return db.Where("is_active = ?", true).Order("retail_price asc")
+		}).
+		Preload("VariantGroups")
 
 	if categoryIDStr := c.Query("category_id"); categoryIDStr != "" {
 		if categoryID, err := strconv.ParseUint(categoryIDStr, 10, 32); err == nil {
@@ -55,8 +65,17 @@ func (h *ProductHandler) GetProductByID(c *gin.Context) {
 		return
 	}
 
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
+	defer cancel()
+
 	var product models.Product
-	if err := h.db.Preload("Category").Preload("Variants").Preload("VariantGroups").First(&product, id).Error; err != nil {
+	if err := h.db.WithContext(ctx).
+		Preload("Category").
+		Preload("Variants", func(db *gorm.DB) *gorm.DB {
+			return db.Where("is_active = ?", true).Order("retail_price asc")
+		}).
+		Preload("VariantGroups").
+		First(&product, id).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			models.SendError(c, http.StatusNotFound, "Product not found")
 			return

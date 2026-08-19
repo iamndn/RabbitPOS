@@ -19,6 +19,7 @@ import { fetchApi } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
 import { formatCurrency, SettingsMap } from '@/lib/utils';
 import { exportToCsv } from '@/lib/exportCsv';
+import ModernSelect from '@/components/common/ModernSelect';
 
 export interface ProductRankingItem {
   product_id: number;
@@ -175,21 +176,25 @@ export default function AllProductsRankingModal({
             </div>
 
             {/* Category Filter */}
-            <select
-              value={selectedCategoryId}
-              onChange={(e) => {
-                setSelectedCategoryId(e.target.value);
-                setPage(1);
-              }}
-              className="p-2 text-xs border border-slate-200 rounded-xl bg-white text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            >
-              <option value="">{t('dashboard.all_categories')}</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
+            <div className="w-44">
+              <ModernSelect
+                size="sm"
+                value={selectedCategoryId}
+                placeholder={t('dashboard.all_categories')}
+                clearable={true}
+                onChange={(val) => {
+                  setSelectedCategoryId(val ? String(val) : '');
+                  setPage(1);
+                }}
+                options={[
+                  { value: '', label: t('dashboard.all_categories') || 'Tất cả danh mục' },
+                  ...categories.map((c) => ({
+                    value: c.id,
+                    label: c.name,
+                  })),
+                ]}
+              />
+            </div>
           </div>
 
           {/* Sort By & Export Buttons */}
