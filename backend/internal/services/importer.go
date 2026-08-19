@@ -781,7 +781,7 @@ func (s *ImporterService) importTransactions(
 		}
 
 		// Map or create transaction category
-		var txCategory models.TransactionCategory
+		var txCategory models.TransactionCategoryItem
 		catType := "both"
 		if txType == models.TransactionTypeInflow {
 			catType = "inflow"
@@ -789,7 +789,7 @@ func (s *ImporterService) importTransactions(
 			catType = "outflow"
 		}
 		if err := tx.Where("LOWER(name) = LOWER(?)", categoryName).First(&txCategory).Error; err != nil {
-			txCategory = models.TransactionCategory{
+			txCategory = models.TransactionCategoryItem{
 				Name:     categoryName,
 				Type:     catType,
 				IsSystem: false,
@@ -807,7 +807,6 @@ func (s *ImporterService) importTransactions(
 			CashierID:       currentUserID,
 			CashierName:     cashierName,
 			CreatedAt:       createdAt,
-			UpdatedAt:       createdAt,
 		}
 
 		if err := tx.Create(&transaction).Error; err != nil {
