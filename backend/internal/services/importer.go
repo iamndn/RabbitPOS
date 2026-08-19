@@ -655,6 +655,7 @@ func (s *ImporterService) importProducts(tx *gorm.DB, sheet string, rows [][]str
 			}
 			product.IsActive = isActive
 			tx.Save(&product)
+			res.Stats.ProductsCount++
 		}
 
 		// 2. Find or create ProductVariant

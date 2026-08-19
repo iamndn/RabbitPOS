@@ -27,9 +27,9 @@ type BackupData struct {
 	ProductVariants       []ProductVariant      `json:"product_variants"`
 	VariantGroups         []VariantGroup        `json:"variant_groups"`
 	Toppings              []Topping             `json:"toppings"`
-	Funds                 []Fund                `json:"funds"`
-	TransactionCategories []TransactionCategory `json:"transaction_categories"`
-	Transactions          []Transaction         `json:"transactions"`
+	Funds                 []Fund                    `json:"funds"`
+	TransactionCategories []TransactionCategoryItem `json:"transaction_categories"`
+	Transactions          []Transaction             `json:"transactions"`
 	Promotions            []Promotion           `json:"promotions"`
 	Orders                []Order               `json:"orders"`
 	OrderItems            []OrderItem           `json:"order_items"`

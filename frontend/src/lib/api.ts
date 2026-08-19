@@ -140,7 +140,13 @@ export function getImageUrl(url?: string | null): string | null {
     return trimmed;
   }
 
-  // If in browser on production domain
+  // If it's a frontend public asset (e.g. /logo.png, /favicon.ico, /icon.png, /images/...)
+  // and does not start with /uploads, return as-is for frontend domain serving
+  if (!trimmed.startsWith('/uploads') && !trimmed.startsWith('uploads/')) {
+    return trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+  }
+
+  // If in browser on production domain and is an uploaded media file (/uploads/...)
   if (typeof window !== 'undefined' && window.location?.hostname) {
     const hostname = window.location.hostname;
     if (hostname.includes('ndnworks.com') || hostname.includes('rabbitpos')) {

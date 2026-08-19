@@ -26,8 +26,10 @@ func SetupRouter(cfg *config.Config, db *gorm.DB, emailSvc *services.EmailServic
 	// Global CORS Middleware
 	router.Use(middleware.CORSMiddleware(cfg))
 
-	// Serve uploaded image assets statically
+	// Serve uploaded image assets and brand logo statically
 	router.Static("/uploads", "./uploads")
+	router.StaticFile("/logo.png", "./uploads/logo.png")
+	router.StaticFile("/favicon.ico", "./uploads/logo.png")
 
 	// Instantiate Handlers
 	healthHandler := handlers.NewHealthHandler(db)
