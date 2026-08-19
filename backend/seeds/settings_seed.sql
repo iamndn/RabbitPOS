@@ -7,6 +7,7 @@ INSERT INTO settings (key, value, updated_at) VALUES
 ('store_name', 'Thỏ Juice & Coffee', NOW()),
 ('store_address', '123 Vo Van Kiet, D1, HCMC', NOW()),
 ('store_phone', '0901234567', NOW()),
+('store_logo_url', '/logo.png', NOW()),
 ('currency_code', 'VND', NOW()),
 ('currency_symbol', 'đ', NOW()),
 ('currency_position', 'suffix', NOW()),

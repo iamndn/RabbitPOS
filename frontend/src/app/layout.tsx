@@ -3,8 +3,13 @@ import "./globals.css";
 import { LanguageProvider } from "@/lib/i18n/LanguageContext";
 
 export const metadata: Metadata = {
-  title: "RabbitPOS - Takeaway Point of Sale",
-  description: "High-performance POS and financial management for Tho Juice & Coffee",
+  title: "Thỏ Juice & Coffee - RabbitPOS",
+  description: "Phần mềm quản lý bán hàng POS & Sổ thu chi cho Thỏ Juice & Coffee",
+  icons: {
+    icon: "/favicon.ico",
+    shortcut: "/favicon.ico",
+    apple: "/apple-touch-icon.png",
+  },
 };
 
 export const viewport: Viewport = {
