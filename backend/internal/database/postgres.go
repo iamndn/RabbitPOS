@@ -122,80 +122,11 @@ func InitDB(cfg *config.Config) (*gorm.DB, error) {
 	return db, nil
 }
 
-// seedUsers creates the initial admin (and optionally staff) account if they do not exist.
-// Credentials are injected from environment variables — no hardcoded passwords.
+// seedUsers manages initial accounts and ensures legacy default accounts are removed.
 func seedUsers(db *gorm.DB, cfg *config.Config) {
-	// Admin account: ensure initial admin exists regardless of other users or ENABLE_SEEDING setting
-	if cfg.InitialAdminUsername != "" {
-		var adminUser models.User
-		err := db.Where("username = ?", cfg.InitialAdminUsername).First(&adminUser).Error
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			if cfg.InitialAdminPassword != "" {
-				adminHash, err := bcrypt.GenerateFromPassword([]byte(cfg.InitialAdminPassword), bcrypt.DefaultCost)
-				if err != nil {
-					log.Printf("[SEED] ERROR: Failed to hash admin password: %v", err)
-				} else {
-					admin := models.User{
-						Username:     cfg.InitialAdminUsername,
-						PasswordHash: string(adminHash),
-						Role:         models.RoleAdmin,
-						IsActive:     true,
-					}
-					if result := db.Create(&admin); result.Error != nil {
-						log.Printf("[SEED] ERROR: Failed to create admin user: %v", result.Error)
-					} else {
-						log.Printf("[SEED] Admin account '%s' created successfully.", cfg.InitialAdminUsername)
-					}
-				}
-			} else {
-				log.Printf("[SEED] WARNING: INITIAL_ADMIN_PASSWORD not set — skipping admin account creation for '%s'.", cfg.InitialAdminUsername)
-			}
-		} else if err == nil && cfg.InitialAdminPassword != "" {
-			// Update password hash to ensure admin password is in sync
-			adminHash, err := bcrypt.GenerateFromPassword([]byte(cfg.InitialAdminPassword), bcrypt.DefaultCost)
-			if err == nil {
-				db.Model(&adminUser).Update("password_hash", string(adminHash))
-			}
-		} else if err != nil {
-			log.Printf("[SEED] ERROR: Failed to check admin user existence: %v", err)
-		}
-	} else {
-		log.Println("[SEED] WARNING: INITIAL_ADMIN_USERNAME not set — skipping admin account creation.")
-	}
-
-	// Staff account: ensure staff user exists for testing and multi-role operations
-	var staffUser models.User
-	staffUsername := cfg.InitialStaffUsername
-	if staffUsername == "" {
-		staffUsername = "staff"
-	}
-	staffPassword := cfg.InitialStaffPassword
-	if staffPassword == "" {
-		staffPassword = "staff123"
-	}
-	err := db.Where("username = ?", staffUsername).First(&staffUser).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		staffHash, err := bcrypt.GenerateFromPassword([]byte(staffPassword), bcrypt.DefaultCost)
-		if err != nil {
-			log.Printf("[SEED] ERROR: Failed to hash staff password: %v", err)
-		} else {
-			staff := models.User{
-				Username:     staffUsername,
-				PasswordHash: string(staffHash),
-				Role:         models.RoleStaff,
-				IsActive:     true,
-			}
-			if result := db.Create(&staff); result.Error != nil {
-				log.Printf("[SEED] ERROR: Failed to create staff user: %v", result.Error)
-			} else {
-				log.Printf("[SEED] Staff account '%s' created successfully.", staffUsername)
-			}
-		}
-	} else if err == nil {
-		staffHash, err := bcrypt.GenerateFromPassword([]byte(staffPassword), bcrypt.DefaultCost)
-		if err == nil {
-			db.Model(&staffUser).Update("password_hash", string(staffHash))
-		}
+	// Remove legacy default accounts 'admin' and 'staff' if they exist
+	if result := db.Where("username IN ?", []string{"admin", "staff"}).Delete(&models.User{}); result.Error == nil && result.RowsAffected > 0 {
+		log.Printf("[SEED] Removed %d legacy default user account(s) (admin/staff).", result.RowsAffected)
 	}
 
 	// Mandatory cashier accounts: NDN, NHUNG, DAT
@@ -252,13 +183,13 @@ func seedFunds(db *gorm.DB) {
 
 	defaultFunds := []models.Fund{
 		{
-			Name:           "Tiền mặt tại quầy",
+			Name:           "Tiền mặt",
 			FundType:       models.FundTypeCash,
 			CurrentBalance: 0.00,
 			IsActive:       true,
 		},
 		{
-			Name:           "Chuyển khoản VietQR",
+			Name:           "Chuyển khoản",
 			FundType:       models.FundTypeBank,
 			CurrentBalance: 0.00,
 			IsActive:       true,
@@ -286,15 +217,15 @@ func seedSettings(db *gorm.DB) {
 	log.Println("[SEED] No settings found — seeding default system configuration...")
 	now := time.Now()
 	defaultSettings := []models.Setting{
-		{Key: "store_name", Value: "Thỏ Juice & Coffee", UpdatedAt: now},
-		{Key: "store_address", Value: "123 Vo Van Kiet, D1, HCMC", UpdatedAt: now},
-		{Key: "store_phone", Value: "0901234567", UpdatedAt: now},
+		{Key: "store_name", Value: "Tho Juice & Coffee", UpdatedAt: now},
+		{Key: "store_address", Value: "Số 72 Ngõ 245 Định Công, P.Định Công, Hà Nội", UpdatedAt: now},
+		{Key: "store_phone", Value: "0869910956", UpdatedAt: now},
 		{Key: "currency_code", Value: "VND", UpdatedAt: now},
 		{Key: "currency_symbol", Value: "đ", UpdatedAt: now},
 		{Key: "currency_position", Value: "suffix", UpdatedAt: now},
 		{Key: "vietqr_bank_id", Value: "MB", UpdatedAt: now},
-		{Key: "vietqr_account_no", Value: "123456789", UpdatedAt: now},
-		{Key: "vietqr_account_name", Value: "THO JUICE AND COFFEE", UpdatedAt: now},
+		{Key: "vietqr_account_no", Value: "0298618519999", UpdatedAt: now},
+		{Key: "vietqr_account_name", Value: "TRAN THI HONG NHUNG", UpdatedAt: now},
 		{Key: "store_logo_url", Value: "", UpdatedAt: now},
 	}
 

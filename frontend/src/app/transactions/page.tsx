@@ -28,6 +28,11 @@ import {
   Tag,
   Pencil,
   Trash2,
+  Scale,
+  Coins,
+  History,
+  Mail,
+  RefreshCw,
 } from 'lucide-react';
 import AppShell from '@/components/AppShell';
 import TransactionCategoryModal from '@/components/transactions/TransactionCategoryModal';
@@ -38,13 +43,14 @@ import { useTranslation } from '@/lib/i18n/LanguageContext';
 import { exportToCsv } from '@/lib/exportCsv';
 import { formatCurrency, SettingsMap } from '@/lib/utils';
 import { CartItem, ProductVariant, Product } from '@/components/pos/VariantSelectorModal';
-import { CategoryBreakdownResponse } from '@/types/analytics';
+import { CategoryBreakdownResponse, FundsPeriodSummaryResponse } from '@/types/analytics';
 import { TransactionCategory } from '@/types/transaction_category';
 
 interface Fund {
   id: number;
   name: string;
   fund_type: string;
+  current_balance: number;
 }
 
 interface Transaction {
@@ -110,8 +116,8 @@ export default function TransactionsPage() {
   const router = useRouter();
   const { t } = useTranslation();
 
-  // Active View Tab: 'transactions' | 'orders'
-  const [activeTab, setActiveTab] = useState<'transactions' | 'orders'>('transactions');
+  // Active View Tab: 'transactions' | 'orders' | 'funds'
+  const [activeTab, setActiveTab] = useState<'transactions' | 'orders' | 'funds'>('transactions');
 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [orders, setOrders] = useState<OrderApi[]>([]);
@@ -119,6 +125,27 @@ export default function TransactionsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [settings, setSettings] = useState<SettingsMap | null>(null);
+
+  // Funds Management & Audit States
+  const [periodSummary, setPeriodSummary] = useState<FundsPeriodSummaryResponse | null>(null);
+  const [selectedMonth, setSelectedMonth] = useState<string>(new Date().toISOString().slice(0, 7));
+  const [fundsPeriod, setFundsPeriod] = useState<DatePeriod>('month');
+  const [fundsCustomFrom, setFundsCustomFrom] = useState<string>(() => computeDateRange('month').from);
+  const [fundsCustomTo, setFundsCustomTo] = useState<string>(() => computeDateRange('month').to);
+  const [summaryLoading, setSummaryLoading] = useState<boolean>(false);
+
+  // Reconciliation Modal States
+  const [selectedFundForReconcile, setSelectedFundForReconcile] = useState<Fund | null>(null);
+  const [actualBalanceInput, setActualBalanceInput] = useState<number>(0);
+  const [reconcileNotes, setReconcileNotes] = useState<string>('');
+  const [reconciling, setReconciling] = useState<boolean>(false);
+  const [sendEmailAfterReconcile, setSendEmailAfterReconcile] = useState<boolean>(false);
+  const [reconcileToast, setReconcileToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  const showToast = (type: 'success' | 'error', message: string) => {
+    setReconcileToast({ type, message });
+    setTimeout(() => setReconcileToast(null), 5000);
+  };
 
   // Filters for Transactions
   const [selectedFundId, setSelectedFundId] = useState<number | null>(null);
@@ -137,6 +164,24 @@ export default function TransactionsPage() {
   const PAGE_SIZE = 25;
   const [txPage, setTxPage] = useState<number>(1);
   const [orderPage, setOrderPage] = useState<number>(1);
+
+  // Read URL query params on mount (?tab=funds&fund_id=1)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const tabParam = params.get('tab');
+      if (tabParam === 'funds' || tabParam === 'orders' || tabParam === 'transactions') {
+        setActiveTab(tabParam);
+      }
+      const fundIdParam = params.get('fund_id');
+      if (fundIdParam) {
+        const parsed = parseInt(fundIdParam, 10);
+        if (!isNaN(parsed)) {
+          setSelectedFundId(parsed);
+        }
+      }
+    }
+  }, []);
 
   // Debounce order search
   useEffect(() => {
@@ -279,6 +324,64 @@ export default function TransactionsPage() {
       default:
         return categoryKey.replace('_', ' ');
     }
+  };
+
+  const loadPeriodSummary = async () => {
+    setSummaryLoading(true);
+    const res = await fetchApi<FundsPeriodSummaryResponse>(`/funds/period-summary?month=${selectedMonth}`);
+    if (res.status === 'success' && res.data) {
+      setPeriodSummary(res.data);
+    }
+    setSummaryLoading(false);
+  };
+
+  useEffect(() => {
+    loadPeriodSummary();
+  }, [selectedMonth]);
+
+  const openReconcileModal = (fund: Fund) => {
+    setSelectedFundForReconcile(fund);
+    setActualBalanceInput(fund.current_balance || 0);
+    setReconcileNotes('');
+  };
+
+  const handleSaveReconciliation = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedFundForReconcile) return;
+
+    setReconciling(true);
+    const fundName = selectedFundForReconcile.name;
+    const res = await fetchApi<any>(`/funds/${selectedFundForReconcile.id}/reconcile`, {
+      method: 'POST',
+      body: JSON.stringify({
+        actual_balance: Number(actualBalanceInput),
+        notes: reconcileNotes,
+        created_by: 'Store Manager',
+      }),
+    });
+
+    if (res.status === 'success') {
+      setSelectedFundForReconcile(null);
+      await loadData();
+      await loadPeriodSummary();
+      showToast('success', t('funds.reconcile_success', { name: fundName }));
+
+      if (sendEmailAfterReconcile) {
+        const today = new Date().toISOString().slice(0, 10);
+        fetchApi<any>('/analytics/send-daily-report-email', {
+          method: 'POST',
+          body: JSON.stringify({ date: today }),
+        }).then((emailRes) => {
+          if (emailRes.status !== 'success') {
+            console.warn('[TransactionsPage] Email report dispatch failed after reconciliation:', emailRes.message);
+          }
+        }).catch(console.warn);
+      }
+      setSendEmailAfterReconcile(false);
+    } else {
+      showToast('error', t('funds.reconcile_failed', { error: res.message }));
+    }
+    setReconciling(false);
   };
 
   useEffect(() => {
@@ -550,51 +653,65 @@ export default function TransactionsPage() {
             <p className="text-xs text-slate-500 mt-1">{t('tx.subtitle')}</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <ModernDateRangePicker
-              period={period}
-              customFrom={customFrom}
-              customTo={customTo}
-              onChange={({ period: newP, from, to }) => {
-                setPeriod(newP);
-                setCustomFrom(from);
-                setCustomTo(to);
-              }}
-              align="right"
-            />
-            <button
-              onClick={() => setIsCategoryModalOpen(true)}
-              className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-3.5 py-2 rounded-xl border border-slate-200 flex items-center gap-1.5 transition"
-            >
-              <Tag className="w-4 h-4 text-indigo-600" /> {t('tx_cat.btn_manage_categories') || 'Quản lý danh mục'}
-            </button>
-            <button
-              onClick={handleExportCsv}
-              className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-3.5 py-2 rounded-xl border border-slate-200 flex items-center gap-1.5 transition"
-            >
-              <Download className="w-4 h-4 text-slate-500" /> {t('common.export_csv')}
-            </button>
-            <button
-              onClick={handleOpenCreateModal}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-2 rounded-xl flex items-center gap-1.5 shadow-sm transition"
-            >
-              <Plus className="w-4 h-4" /> {t('tx.add_expense')}
-            </button>
+            {activeTab !== 'funds' ? (
+              <>
+                <ModernDateRangePicker
+                  period={period}
+                  customFrom={customFrom}
+                  customTo={customTo}
+                  onChange={({ period: newP, from, to }) => {
+                    setPeriod(newP);
+                    setCustomFrom(from);
+                    setCustomTo(to);
+                  }}
+                  align="right"
+                />
+                <button
+                  onClick={() => setIsCategoryModalOpen(true)}
+                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-3.5 py-2 rounded-xl border border-slate-200 flex items-center gap-1.5 transition"
+                >
+                  <Tag className="w-4 h-4 text-indigo-600" /> {t('tx_cat.btn_manage_categories') || 'Danh mục'}
+                </button>
+                <button
+                  onClick={handleExportCsv}
+                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-3.5 py-2 rounded-xl border border-slate-200 flex items-center gap-1.5 transition"
+                >
+                  <Download className="w-4 h-4 text-slate-500" /> {t('common.export_csv')}
+                </button>
+                <button
+                  onClick={handleOpenCreateModal}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-2 rounded-xl flex items-center gap-1.5 shadow-sm transition"
+                >
+                  <Plus className="w-4 h-4" /> {t('tx.add_expense')}
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={() => {
+                  loadData();
+                  loadPeriodSummary();
+                }}
+                className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-3.5 py-2 rounded-xl border border-slate-200 flex items-center gap-1.5 transition"
+              >
+                <RefreshCw className={`w-4 h-4 text-indigo-600 ${loading || summaryLoading ? 'animate-spin' : ''}`} />
+                <span>{t('common.loading') === 'Đang tải...' ? 'Làm mới dữ liệu' : 'Refresh'}</span>
+              </button>
+            )}
           </div>
         </div>
 
-        {/* Tab Navigation: Ledger vs Orders */}
+        {/* Tab Navigation: Ledger vs Orders vs Funds */}
         <div className="flex space-x-2 border-b border-slate-200">
           <button
             type="button"
             onClick={() => setActiveTab('transactions')}
-            className={`pb-3 px-4 text-sm font-bold border-b-2 transition flex items-center gap-2 ${
-              activeTab === 'transactions'
-                ? 'border-indigo-600 text-indigo-600'
-                : 'border-transparent text-slate-500 hover:text-slate-700'
-            }`}
+            className={`pb-3 px-4 text-sm font-bold border-b-2 transition flex items-center gap-2 ${activeTab === 'transactions'
+              ? 'border-indigo-600 text-indigo-600'
+              : 'border-transparent text-slate-500 hover:text-slate-700'
+              }`}
           >
             <TrendingUp className="w-4 h-4" />
-            {t('tx.tab_transactions')}
+            {t('tx.tab_transactions') || 'Sổ Thu Chi'}
             <span className="bg-slate-100 text-slate-600 text-xs px-2 py-0.5 rounded-full font-bold">
               {safeTransactions.length}
             </span>
@@ -602,16 +719,29 @@ export default function TransactionsPage() {
           <button
             type="button"
             onClick={() => setActiveTab('orders')}
-            className={`pb-3 px-4 text-sm font-bold border-b-2 transition flex items-center gap-2 ${
-              activeTab === 'orders'
-                ? 'border-indigo-600 text-indigo-600'
-                : 'border-transparent text-slate-500 hover:text-slate-700'
-            }`}
+            className={`pb-3 px-4 text-sm font-bold border-b-2 transition flex items-center gap-2 ${activeTab === 'orders'
+              ? 'border-indigo-600 text-indigo-600'
+              : 'border-transparent text-slate-500 hover:text-slate-700'
+              }`}
           >
             <Receipt className="w-4 h-4" />
-            {t('tx.tab_orders')}
+            {t('tx.tab_orders') || 'Lịch sử Đơn hàng'}
             <span className="bg-indigo-50 text-indigo-600 text-xs px-2 py-0.5 rounded-full font-bold">
               {safeOrders.length}
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('funds')}
+            className={`pb-3 px-4 text-sm font-bold border-b-2 transition flex items-center gap-2 ${activeTab === 'funds'
+              ? 'border-indigo-600 text-indigo-600'
+              : 'border-transparent text-slate-500 hover:text-slate-700'
+              }`}
+          >
+            <Wallet className="w-4 h-4" />
+            {t('tx.tab_funds') || 'Quỹ'}
+            <span className="bg-emerald-50 text-emerald-700 text-xs px-2 py-0.5 rounded-full font-bold">
+              {funds.length}
             </span>
           </button>
         </div>
@@ -686,11 +816,10 @@ export default function TransactionsPage() {
                       onClick={() => {
                         loadCategoryBreakdown('outflow', breakdownPeriod, breakdownFromDate, breakdownToDate);
                       }}
-                      className={`px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 ${
-                        breakdownType === 'outflow'
-                          ? 'bg-white text-rose-600 shadow-sm'
-                          : 'text-slate-600 hover:text-slate-900'
-                      }`}
+                      className={`px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 ${breakdownType === 'outflow'
+                        ? 'bg-white text-rose-600 shadow-sm'
+                        : 'text-slate-600 hover:text-slate-900'
+                        }`}
                     >
                       <span className="w-2 h-2 rounded-full bg-rose-500" />
                       {t('tx.outflows')}
@@ -700,11 +829,10 @@ export default function TransactionsPage() {
                       onClick={() => {
                         loadCategoryBreakdown('inflow', breakdownPeriod, breakdownFromDate, breakdownToDate);
                       }}
-                      className={`px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 ${
-                        breakdownType === 'inflow'
-                          ? 'bg-white text-emerald-600 shadow-sm'
-                          : 'text-slate-600 hover:text-slate-900'
-                      }`}
+                      className={`px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 ${breakdownType === 'inflow'
+                        ? 'bg-white text-emerald-600 shadow-sm'
+                        : 'text-slate-600 hover:text-slate-900'
+                        }`}
                     >
                       <span className="w-2 h-2 rounded-full bg-emerald-500" />
                       {t('tx.inflows')}
@@ -738,19 +866,17 @@ export default function TransactionsPage() {
                               {c.category_label}
                             </span>
                             <span
-                              className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded ${
-                                breakdownType === 'outflow'
-                                  ? 'bg-rose-50 text-rose-700 border border-rose-200'
-                                  : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                              }`}
+                              className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded ${breakdownType === 'outflow'
+                                ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                                : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                }`}
                             >
                               {c.percentage}%
                             </span>
                           </div>
                           <div
-                            className={`text-base font-extrabold mt-1 ${
-                              breakdownType === 'outflow' ? 'text-rose-600' : 'text-emerald-600'
-                            }`}
+                            className={`text-base font-extrabold mt-1 ${breakdownType === 'outflow' ? 'text-rose-600' : 'text-emerald-600'
+                              }`}
                           >
                             {formatCurrency(c.total_amount, settings)}
                           </div>
@@ -758,9 +884,8 @@ export default function TransactionsPage() {
                         <div className="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
                           <div
                             style={{ width: `${c.percentage}%` }}
-                            className={`h-full rounded-full ${
-                              breakdownType === 'outflow' ? 'bg-rose-500' : 'bg-emerald-500'
-                            }`}
+                            className={`h-full rounded-full ${breakdownType === 'outflow' ? 'bg-rose-500' : 'bg-emerald-500'
+                              }`}
                           />
                         </div>
                         <span className="text-[10px] text-slate-400 text-right font-medium">
@@ -779,7 +904,7 @@ export default function TransactionsPage() {
             <div className="flex flex-col sm:flex-row gap-3 items-center justify-between bg-white p-3 rounded-2xl border border-slate-200 shadow-sm">
               <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                 <Filter className="w-4 h-4 text-slate-400 shrink-0" />
-                <div className="w-40 sm:w-44">
+                <div className="flex-1 min-w-[130px] sm:w-44 sm:flex-initial">
                   <ModernSelect
                     size="sm"
                     value={selectedFundId ?? ''}
@@ -801,7 +926,7 @@ export default function TransactionsPage() {
                   />
                 </div>
 
-                <div className="w-36">
+                <div className="flex-1 min-w-[110px] sm:w-36 sm:flex-initial">
                   <ModernSelect
                     size="sm"
                     value={selectedType}
@@ -817,7 +942,7 @@ export default function TransactionsPage() {
                   />
                 </div>
 
-                <div className="w-44 sm:w-48">
+                <div className="w-full sm:w-48 sm:flex-initial">
                   <ModernSelect
                     size="sm"
                     searchable={true}
@@ -831,17 +956,17 @@ export default function TransactionsPage() {
                       { value: 'all', label: t('tx.filter_all_categories') || 'Tất cả danh mục' },
                       ...(txCategories.length > 0
                         ? txCategories.map((c) => ({
-                            value: c.code || c.name,
-                            label: c.name,
-                            badge: c.type === 'inflow' ? 'Thu' : c.type === 'outflow' ? 'Chi' : 'Thu/Chi',
-                            badgeColor: (c.type === 'inflow' ? 'emerald' : c.type === 'outflow' ? 'rose' : 'indigo') as any,
-                          }))
+                          value: c.code || c.name,
+                          label: c.name,
+                          badge: c.type === 'inflow' ? 'Thu' : c.type === 'outflow' ? 'Chi' : 'Thu/Chi',
+                          badgeColor: (c.type === 'inflow' ? 'emerald' : c.type === 'outflow' ? 'rose' : 'indigo') as any,
+                        }))
                         : [
-                            { value: 'sale', label: t('tx.cat_sale') || 'Doanh thu bán hàng' },
-                            { value: 'ingredient_purchase', label: t('tx.cat_ingredient') || 'Mua nguyên liệu' },
-                            { value: 'utility_bill', label: t('tx.cat_utility') || 'Chi phí vận hành' },
-                            { value: 'reconciliation_variance', label: t('tx.cat_reconciliation') || 'Chênh lệch đối soát' },
-                          ]),
+                          { value: 'sale', label: t('tx.cat_sale') || 'Doanh thu bán hàng' },
+                          { value: 'ingredient_purchase', label: t('tx.cat_ingredient') || 'Mua nguyên liệu' },
+                          { value: 'utility_bill', label: t('tx.cat_utility') || 'Chi phí vận hành' },
+                          { value: 'reconciliation_variance', label: t('tx.cat_reconciliation') || 'Chênh lệch đối soát' },
+                        ]),
                     ]}
                   />
                 </div>
@@ -884,11 +1009,10 @@ export default function TransactionsPage() {
                             </td>
                             <td className="py-3 px-4">
                               <span
-                                className={`px-2.5 py-1 rounded-full text-[11px] font-bold flex items-center gap-1 w-fit ${
-                                  isInflow
-                                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                                    : 'bg-rose-50 text-rose-700 border border-rose-200'
-                                }`}
+                                className={`px-2.5 py-1 rounded-full text-[11px] font-bold flex items-center gap-1 w-fit ${isInflow
+                                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                  : 'bg-rose-50 text-rose-700 border border-rose-200'
+                                  }`}
                               >
                                 {isInflow ? <ArrowDownLeft className="w-3.5 h-3.5" /> : <ArrowUpRight className="w-3.5 h-3.5" />}
                                 {isInflow ? t('tx.type_inflow') : t('tx.type_outflow')}
@@ -987,7 +1111,7 @@ export default function TransactionsPage() {
                 />
               </div>
 
-              <div className="w-40 sm:w-44">
+              <div className="w-full sm:w-44">
                 <ModernSelect
                   size="sm"
                   value={orderStatusFilter}
@@ -1184,6 +1308,213 @@ export default function TransactionsPage() {
             </div>
           </div>
         )}
+
+        {/* ── TAB 3: FUND MANAGEMENT & RECONCILIATION ──────────────────── */}
+        {activeTab === 'funds' && (
+          <div className="space-y-6">
+            {/* Funds Real-Time Balance Cards */}
+            {loading ? (
+              <div className="flex justify-center py-16">
+                <RefreshCw className="w-8 h-8 text-indigo-600 animate-spin" />
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {(Array.isArray(funds) ? funds : []).map((fund) => {
+                  const isBank = fund.fund_type === 'bank';
+
+                  return (
+                    <div
+                      key={fund.id}
+                      className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between space-y-4 hover:border-indigo-200 transition"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center space-x-3">
+                          <div className={`p-3 rounded-2xl ${isBank ? 'bg-blue-50 text-blue-600' : 'bg-emerald-50 text-emerald-600'}`}>
+                            {isBank ? <Building2 className="w-6 h-6" /> : <Wallet className="w-6 h-6" />}
+                          </div>
+                          <div>
+                            <h3 className="font-bold text-slate-900 text-base">{fund.name}</h3>
+                            <span className="text-xs font-semibold text-slate-400 capitalize">
+                              {t('funds.fund_type_label', { type: fund.fund_type })}
+                            </span>
+                          </div>
+                        </div>
+
+                        <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold px-2.5 py-1 rounded-full flex items-center gap-1">
+                          <CheckCircle2 className="w-3.5 h-3.5" /> {t('funds.active_badge')}
+                        </span>
+                      </div>
+
+                      {/* Balance Display */}
+                      <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex items-center justify-between">
+                        <div>
+                          <span className="text-xs text-slate-500 font-medium">{t('funds.theoretical_balance')}</span>
+                          <div className="text-2xl font-extrabold text-slate-900 mt-0.5">
+                            {formatCurrency(fund.current_balance, settings)}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="flex items-center space-x-2 pt-2 border-t border-slate-100">
+                        <button
+                          onClick={() => openReconcileModal(fund)}
+                          className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold py-2.5 px-3 rounded-xl flex items-center justify-center gap-1.5 shadow-sm transition"
+                        >
+                          <Scale className="w-4 h-4" /> {t('funds.reconcile_count')}
+                        </button>
+                        <button
+                          onClick={() => {
+                            setSelectedFundId(fund.id);
+                            setActiveTab('transactions');
+                          }}
+                          className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold py-2.5 px-3 rounded-xl flex items-center gap-1 transition"
+                        >
+                          <History className="w-4 h-4" /> {t('funds.history')}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* ── PERIODIC BALANCE SUMMARY (Opening vs Closing Period Audit) ─── */}
+            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+                <div>
+                  <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                    <Coins className="w-5 h-5 text-indigo-600" />
+                    {t('funds.period_summary_title')}
+                  </h2>
+                  <p className="text-xs text-slate-500">{t('funds.period_summary_subtitle')}</p>
+                </div>
+
+                {/* Modern Date Range / Month Picker */}
+                <div className="flex items-center space-x-2">
+                  <span className="text-xs font-semibold text-slate-600">{t('funds.select_month')}:</span>
+                  <ModernDateRangePicker
+                    period={fundsPeriod}
+                    customFrom={fundsCustomFrom}
+                    customTo={fundsCustomTo}
+                    onChange={({ period: newP, from, to }) => {
+                      setFundsPeriod(newP);
+                      setFundsCustomFrom(from);
+                      setFundsCustomTo(to);
+                      setSelectedMonth(from.slice(0, 7));
+                    }}
+                    align="right"
+                  />
+                </div>
+              </div>
+
+              {/* Period Summary Table */}
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold uppercase">
+                    <tr>
+                      <th className="py-3 px-4">{t('funds.fund_name')}</th>
+                      <th className="py-3 px-4 text-right">{t('funds.opening_balance')}</th>
+                      <th className="py-3 px-4 text-right text-emerald-600">(+) {t('funds.period_inflow')}</th>
+                      <th className="py-3 px-4 text-right text-rose-600">(-) {t('funds.period_outflow')}</th>
+                      <th className="py-3 px-4 text-right">{t('funds.closing_balance')}</th>
+                      <th className="py-3 px-4 text-right">{t('funds.prev_closing_balance')}</th>
+                      <th className="py-3 px-4 text-right">{t('funds.growth_rate')}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {summaryLoading ? (
+                      <tr>
+                        <td colSpan={7} className="py-8 text-center text-slate-400">
+                          {t('common.loading')}
+                        </td>
+                      </tr>
+                    ) : periodSummary?.funds && periodSummary.funds.length > 0 ? (
+                      <>
+                        {periodSummary.funds.map((f) => (
+                          <tr key={f.fund_id} className="hover:bg-slate-50 transition">
+                            <td className="py-3 px-4 font-bold text-slate-900 flex items-center gap-2">
+                              <span
+                                className={`w-2 h-2 rounded-full ${f.fund_type === 'bank' ? 'bg-blue-500' : 'bg-emerald-500'
+                                  }`}
+                              />
+                              {f.fund_name}
+                            </td>
+                            <td className="py-3 px-4 text-right text-slate-600 font-medium">
+                              {formatCurrency(f.current_month.opening_balance, settings)}
+                            </td>
+                            <td className="py-3 px-4 text-right font-semibold text-emerald-600">
+                              +{formatCurrency(f.current_month.total_inflow, settings)}
+                            </td>
+                            <td className="py-3 px-4 text-right font-semibold text-rose-600">
+                              -{formatCurrency(f.current_month.total_outflow, settings)}
+                            </td>
+                            <td className="py-3 px-4 text-right font-extrabold text-slate-900">
+                              {formatCurrency(f.current_month.closing_balance, settings)}
+                            </td>
+                            <td className="py-3 px-4 text-right text-slate-400">
+                              {formatCurrency(f.prev_month.closing_balance, settings)}
+                            </td>
+                            <td className="py-3 px-4 text-right">
+                              <span
+                                className={`inline-block px-2 py-0.5 rounded-full font-bold text-[11px] ${f.growth_pct >= 0
+                                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                  : 'bg-rose-50 text-rose-700 border border-rose-200'
+                                  }`}
+                              >
+                                {f.growth_pct >= 0 ? '+' : ''}
+                                {f.growth_pct.toFixed(1)}%
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+
+                        {/* Totals Row */}
+                        {periodSummary?.totals && (
+                          <tr className="bg-slate-50 font-extrabold text-slate-900 border-t-2 border-slate-200">
+                            <td className="py-3 px-4 uppercase">{t('common.all')}</td>
+                            <td className="py-3 px-4 text-right">
+                              {formatCurrency(periodSummary.totals.current_month.opening_balance, settings)}
+                            </td>
+                            <td className="py-3 px-4 text-right text-emerald-600">
+                              +{formatCurrency(periodSummary.totals.current_month.total_inflow, settings)}
+                            </td>
+                            <td className="py-3 px-4 text-right text-rose-600">
+                              -{formatCurrency(periodSummary.totals.current_month.total_outflow, settings)}
+                            </td>
+                            <td className="py-3 px-4 text-right text-indigo-600 text-sm">
+                              {formatCurrency(periodSummary.totals.current_month.closing_balance, settings)}
+                            </td>
+                            <td className="py-3 px-4 text-right text-slate-500">
+                              {formatCurrency(periodSummary.totals.prev_month.closing_balance, settings)}
+                            </td>
+                            <td className="py-3 px-4 text-right">
+                              <span
+                                className={`inline-block px-2.5 py-0.5 rounded-full font-bold text-xs ${periodSummary.totals.growth_pct >= 0
+                                  ? 'bg-emerald-100 text-emerald-800'
+                                  : 'bg-rose-100 text-rose-800'
+                                  }`}
+                              >
+                                {periodSummary.totals.growth_pct >= 0 ? '+' : ''}
+                                {periodSummary.totals.growth_pct.toFixed(1)}%
+                              </span>
+                            </td>
+                          </tr>
+                        )}
+                      </>
+                    ) : (
+                      <tr>
+                        <td colSpan={7} className="py-8 text-center text-slate-400">
+                          {t('funds.no_summary_data')}
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Manual Expense / Inflow Modal */}
@@ -1221,11 +1552,10 @@ export default function TransactionsPage() {
                         setModalCategory('ingredient_purchase');
                       }
                     }}
-                    className={`py-2 rounded-xl text-xs font-bold border transition ${
-                      modalType === 'outflow'
-                        ? 'border-rose-600 bg-rose-50 text-rose-700 ring-2 ring-rose-500/20'
-                        : 'border-slate-200 bg-white text-slate-600'
-                    }`}
+                    className={`py-2 rounded-xl text-xs font-bold border transition ${modalType === 'outflow'
+                      ? 'border-rose-600 bg-rose-50 text-rose-700 ring-2 ring-rose-500/20'
+                      : 'border-slate-200 bg-white text-slate-600'
+                      }`}
                   >
                     {t('tx.outflow_label')}
                   </button>
@@ -1240,11 +1570,10 @@ export default function TransactionsPage() {
                         setModalCategory('other');
                       }
                     }}
-                    className={`py-2 rounded-xl text-xs font-bold border transition ${
-                      modalType === 'inflow'
-                        ? 'border-emerald-600 bg-emerald-50 text-emerald-700 ring-2 ring-emerald-500/20'
-                        : 'border-slate-200 bg-white text-slate-600'
-                    }`}
+                    className={`py-2 rounded-xl text-xs font-bold border transition ${modalType === 'inflow'
+                      ? 'border-emerald-600 bg-emerald-50 text-emerald-700 ring-2 ring-emerald-500/20'
+                      : 'border-slate-200 bg-white text-slate-600'
+                      }`}
                   >
                     {t('tx.inflow_label')}
                   </button>
@@ -1275,7 +1604,7 @@ export default function TransactionsPage() {
                     className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
                   >
                     <Tag className="w-3 h-3" />
-                    <span>{t('tx_cat.btn_manage_categories') || 'Quản lý danh mục'}</span>
+                    <span>{t('tx_cat.btn_manage_categories') || 'Danh mục'}</span>
                   </button>
                 </div>
                 <ModernSelect
@@ -1286,21 +1615,21 @@ export default function TransactionsPage() {
                   options={
                     txCategories.filter((c) => c.type === modalType || c.type === 'both').length > 0
                       ? txCategories
-                          .filter((c) => c.type === modalType || c.type === 'both')
-                          .map((c) => ({
-                            value: c.code || c.name,
-                            label: c.name,
-                            badge: c.type === 'inflow' ? 'Thu' : c.type === 'outflow' ? 'Chi' : 'Thu/Chi',
-                            badgeColor: (c.type === 'inflow' ? 'emerald' : c.type === 'outflow' ? 'rose' : 'indigo') as any,
-                          }))
+                        .filter((c) => c.type === modalType || c.type === 'both')
+                        .map((c) => ({
+                          value: c.code || c.name,
+                          label: c.name,
+                          badge: c.type === 'inflow' ? 'Thu' : c.type === 'outflow' ? 'Chi' : 'Thu/Chi',
+                          badgeColor: (c.type === 'inflow' ? 'emerald' : c.type === 'outflow' ? 'rose' : 'indigo') as any,
+                        }))
                       : modalType === 'outflow'
-                      ? [
+                        ? [
                           { value: 'ingredient_purchase', label: t('tx.cat_ingredient') || 'Mua nguyên liệu' },
                           { value: 'utility_bill', label: t('tx.cat_utility') || 'Chi phí vận hành' },
                           { value: 'reconciliation_variance', label: t('tx.cat_reconciliation') || 'Chênh lệch đối soát' },
                           { value: 'other', label: 'Khác' },
                         ]
-                      : [
+                        : [
                           { value: 'sale', label: t('tx.cat_manual_sale') || 'Bán hàng' },
                           { value: 'other', label: t('tx.cat_other_inflow') || 'Thu khác' },
                         ]
@@ -1350,9 +1679,8 @@ export default function TransactionsPage() {
                 </button>
                 <button
                   type="submit"
-                  className={`px-5 py-2.5 text-xs font-bold text-white rounded-xl shadow-sm transition flex items-center gap-1.5 ${
-                    modalType === 'outflow' ? 'bg-rose-600 hover:bg-rose-700' : 'bg-emerald-600 hover:bg-emerald-700'
-                  }`}
+                  className={`px-5 py-2.5 text-xs font-bold text-white rounded-xl shadow-sm transition flex items-center gap-1.5 ${modalType === 'outflow' ? 'bg-rose-600 hover:bg-rose-700' : 'bg-emerald-600 hover:bg-emerald-700'
+                    }`}
                 >
                   {editingTransaction ? (t('common.save_changes') || 'Lưu thay đổi') : (t('tx.modal_submit') || 'Lưu giao dịch')}
                 </button>
@@ -1522,6 +1850,131 @@ export default function TransactionsPage() {
           loadCategoryBreakdown(breakdownType);
         }}
       />
+
+      {/* Reconcile Dialog Modal */}
+      {selectedFundForReconcile && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center space-x-2 text-indigo-600">
+                <Scale className="w-5 h-5" />
+                <h2 className="font-bold text-base text-slate-900">
+                  {t('funds.reconcile_fund_title', { name: selectedFundForReconcile.name })}
+                </h2>
+              </div>
+              <button
+                onClick={() => setSelectedFundForReconcile(null)}
+                className="p-1 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveReconciliation} className="space-y-4 text-xs">
+              {/* Theoretical Balance Card */}
+              <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 flex justify-between items-center">
+                <span className="text-slate-500 font-semibold">{t('funds.theoretical_balance_label')}</span>
+                <span className="font-bold text-slate-900 text-sm">
+                  {formatCurrency(selectedFundForReconcile.current_balance, settings)}
+                </span>
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-800 mb-1 block">{t('funds.actual_balance_label')}</label>
+                <input
+                  type="number"
+                  step="1000"
+                  min="0"
+                  required
+                  placeholder="500.000"
+                  value={actualBalanceInput === 0 ? '' : actualBalanceInput}
+                  onChange={(e) => {
+                    const raw = e.target.value.replace(/\D/g, '');
+                    setActualBalanceInput(raw === '' ? 0 : parseInt(raw, 10));
+                  }}
+                  className="w-full p-3 border border-slate-200 rounded-xl text-base font-extrabold text-indigo-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              {/* Live Variance Calculation */}
+              {(() => {
+                const variance = actualBalanceInput - selectedFundForReconcile.current_balance;
+                if (variance === 0) {
+                  return (
+                    <div className="p-3 bg-emerald-50 text-emerald-800 rounded-xl border border-emerald-200 flex items-center gap-2 font-medium">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                      <span>{t('funds.variance_none')}</span>
+                    </div>
+                  );
+                } else if (variance > 0) {
+                  return (
+                    <div className="p-3 bg-amber-50 text-amber-900 rounded-xl border border-amber-200 flex items-center gap-2 font-medium">
+                      <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                      <span>{t('funds.variance_surplus', { amount: formatCurrency(variance, settings) })}</span>
+                    </div>
+                  );
+                } else {
+                  return (
+                    <div className="p-3 bg-rose-50 text-rose-900 rounded-xl border border-rose-200 flex items-center gap-2 font-medium">
+                      <AlertTriangle className="w-4 h-4 text-rose-600 flex-shrink-0" />
+                      <span>{t('funds.variance_deficit', { amount: formatCurrency(Math.abs(variance), settings) })}</span>
+                    </div>
+                  );
+                }
+              })()}
+
+              <div>
+                <label className="font-semibold text-slate-700 mb-1 block">{t('funds.reconcile_notes_label')}</label>
+                <textarea
+                  rows={2}
+                  placeholder={t('funds.reconcile_notes_placeholder')}
+                  value={reconcileNotes}
+                  onChange={(e) => setReconcileNotes(e.target.value)}
+                  className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              {/* Email report option after reconciliation */}
+              <label className="flex items-center gap-2.5 cursor-pointer bg-emerald-50 border border-emerald-200 rounded-xl p-3">
+                <input
+                  type="checkbox"
+                  checked={sendEmailAfterReconcile}
+                  onChange={(e) => setSendEmailAfterReconcile(e.target.checked)}
+                  className="w-4 h-4 accent-emerald-600 rounded"
+                />
+                <Mail className="w-4 h-4 text-emerald-600" />
+                <span className="text-xs font-semibold text-emerald-800">{t('email_report.funds_prompt_label')}</span>
+              </label>
+
+              <div className="flex justify-end space-x-2 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setSelectedFundForReconcile(null)}
+                  className="px-4 py-2.5 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl"
+                >
+                  {t('common.cancel')}
+                </button>
+                <button
+                  type="submit"
+                  disabled={reconciling}
+                  className="px-5 py-2.5 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 rounded-xl shadow-sm flex items-center gap-1.5"
+                >
+                  {reconciling && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+                  <span>{t('funds.submit_reconcile')}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Reconciliation Toast Notification */}
+      {reconcileToast && (
+        <div className={`fixed top-4 right-4 z-[60] px-4 py-3 rounded-2xl shadow-2xl text-sm font-semibold ${reconcileToast.type === 'success' ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'
+          }`}>
+          {reconcileToast.message}
+        </div>
+      )}
     </AppShell>
   );
 }

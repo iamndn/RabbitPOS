@@ -366,8 +366,8 @@ export default function PromotionsPage() {
             />
           </div>
 
-          <div className="flex items-center space-x-2 w-full sm:w-auto">
-            <div className="w-40 sm:w-44">
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+            <div className="flex-1 min-w-[130px] sm:w-44 sm:flex-initial">
               <ModernSelect
                 size="sm"
                 value={typeFilter}
@@ -381,7 +381,7 @@ export default function PromotionsPage() {
               />
             </div>
 
-            <div className="w-36 sm:w-40">
+            <div className="flex-1 min-w-[120px] sm:w-40 sm:flex-initial">
               <ModernSelect
                 size="sm"
                 value={statusFilter}

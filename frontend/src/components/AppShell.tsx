@@ -115,7 +115,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     { label: t('nav.catalog'), href: '/products', icon: Package, adminOnly: true },
     { label: t('nav.promotions'), href: '/promotions', icon: Tag, adminOnly: true },
     { label: t('nav.transactions'), href: '/transactions', icon: ArrowUpRight, adminOnly: true },
-    { label: t('nav.funds'), href: '/funds', icon: Wallet, adminOnly: true },
     { label: t('nav.dashboard'), href: '/dashboard', icon: LayoutDashboard, adminOnly: true },
   ];
 

@@ -26,6 +26,7 @@ export interface ModernSelectProps {
   className?: string;
   dropdownClassName?: string;
   size?: 'sm' | 'md' | 'lg';
+  align?: 'left' | 'right';
 }
 
 export default function ModernSelect({
@@ -41,6 +42,7 @@ export default function ModernSelect({
   className = '',
   dropdownClassName = '',
   size = 'md',
+  align = 'left',
 }: ModernSelectProps) {
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -142,14 +144,17 @@ export default function ModernSelect({
           isOpen ? 'ring-2 ring-indigo-500/20 border-indigo-500' : ''
         } ${sizeClasses[size]} ${className}`}
       >
-        <div className="flex items-center gap-2 truncate pr-1">
+        <div
+          className="flex items-center gap-2 truncate pr-1 min-w-0 flex-1"
+          title={selectedOption ? selectedOption.label : placeholder}
+        >
           {leadingIcon && <span className="flex-shrink-0 text-slate-400">{leadingIcon}</span>}
           {selectedOption ? (
-            <div className="flex items-center gap-2 truncate">
+            <div className="flex items-center gap-1.5 truncate min-w-0">
               {selectedOption.icon && <span className="flex-shrink-0">{selectedOption.icon}</span>}
               <span className="truncate font-semibold text-slate-900">{selectedOption.label}</span>
               {selectedOption.badge && (
-                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${getBadgeStyle(selectedOption.badgeColor)}`}>
+                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border flex-shrink-0 ${getBadgeStyle(selectedOption.badgeColor)}`}>
                   {selectedOption.badge}
                 </span>
               )}
@@ -177,83 +182,93 @@ export default function ModernSelect({
 
       {/* Popover Dropdown Menu */}
       {isOpen && (
-        <div
-          className={`absolute left-0 right-0 z-50 mt-1.5 bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden animate-in fade-in-0 zoom-in-95 duration-150 ${dropdownClassName}`}
-          style={{ minWidth: '100%' }}
-        >
-          {/* Search Box */}
-          {searchable && (
-            <div className="p-2 border-b border-slate-100 bg-slate-50/70">
-              <div className="relative">
-                <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input
-                  ref={searchInputRef}
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder={searchPlaceholder}
-                  className="w-full pl-8 pr-7 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
-                />
-                {searchQuery && (
-                  <button
-                    type="button"
-                    onClick={() => setSearchQuery('')}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                )}
+        <>
+          {/* Mobile backdrop for easy dismissal */}
+          <div
+            className="fixed inset-0 z-40 bg-slate-900/10 sm:hidden"
+            onClick={() => setIsOpen(false)}
+          />
+          <div
+            className={`absolute z-50 mt-1.5 bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in-0 zoom-in-95 duration-150 ${
+              align === 'right' ? 'right-0' : 'left-0'
+            } ${dropdownClassName}`}
+            style={{ minWidth: 'max(100%, 210px)', maxWidth: 'calc(100vw - 1.5rem)' }}
+          >
+            {/* Search Box */}
+            {searchable && (
+              <div className="p-2 border-b border-slate-100 bg-slate-50/70">
+                <div className="relative">
+                  <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    ref={searchInputRef}
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder={searchPlaceholder}
+                    className="w-full pl-8 pr-7 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+                  />
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery('')}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
               </div>
-            </div>
-          )}
-
-          {/* Options List */}
-          <div className="max-h-60 overflow-y-auto p-1.5 space-y-0.5 custom-scrollbar">
-            {filteredOptions.length === 0 ? (
-              <div className="py-4 text-center text-xs text-slate-400 font-medium">Không tìm thấy kết quả</div>
-            ) : (
-              filteredOptions.map((option) => {
-                const isSelected = String(option.value) === String(value);
-
-                return (
-                  <button
-                    key={String(option.value)}
-                    type="button"
-                    disabled={option.disabled}
-                    onClick={() => !option.disabled && handleSelect(option.value)}
-                    className={`w-full px-3 py-2 rounded-xl text-left flex items-center justify-between text-xs transition ${
-                      option.disabled
-                        ? 'opacity-40 cursor-not-allowed bg-slate-50'
-                        : isSelected
-                        ? 'bg-indigo-50 text-indigo-900 font-bold border border-indigo-100'
-                        : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 truncate pr-2">
-                      {option.icon && <span className="flex-shrink-0">{option.icon}</span>}
-                      <div className="truncate">
-                        <div className="flex items-center gap-1.5">
-                          <span className={`truncate ${isSelected ? 'font-bold text-indigo-600' : 'font-medium text-slate-900'}`}>
-                            {option.label}
-                          </span>
-                          {option.badge && (
-                            <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded border ${getBadgeStyle(option.badgeColor)}`}>
-                              {option.badge}
-                            </span>
-                          )}
-                        </div>
-                        {option.subLabel && <span className="text-[11px] text-slate-400 block truncate">{option.subLabel}</span>}
-                      </div>
-                    </div>
-
-                    {isSelected && <Check className="w-4 h-4 text-indigo-600 flex-shrink-0 ml-2" />}
-                  </button>
-                );
-              })
             )}
+
+            {/* Options List */}
+            <div className="max-h-60 overflow-y-auto p-1.5 space-y-0.5 custom-scrollbar">
+              {filteredOptions.length === 0 ? (
+                <div className="py-4 text-center text-xs text-slate-400 font-medium">Không tìm thấy kết quả</div>
+              ) : (
+                filteredOptions.map((option) => {
+                  const isSelected = String(option.value) === String(value);
+
+                  return (
+                    <button
+                      key={String(option.value)}
+                      type="button"
+                      disabled={option.disabled}
+                      onClick={() => !option.disabled && handleSelect(option.value)}
+                      className={`w-full px-3 py-2.5 rounded-xl text-left flex items-center justify-between text-xs transition ${
+                        option.disabled
+                          ? 'opacity-40 cursor-not-allowed bg-slate-50'
+                          : isSelected
+                          ? 'bg-indigo-50 text-indigo-900 font-bold border border-indigo-100'
+                          : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5 pr-2 min-w-0 flex-1">
+                        {option.icon && <span className="flex-shrink-0">{option.icon}</span>}
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className={`${isSelected ? 'font-bold text-indigo-600' : 'font-medium text-slate-900'} leading-tight break-words`}>
+                              {option.label}
+                            </span>
+                            {option.badge && (
+                              <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded border flex-shrink-0 ${getBadgeStyle(option.badgeColor)}`}>
+                                {option.badge}
+                              </span>
+                            )}
+                          </div>
+                          {option.subLabel && <span className="text-[11px] text-slate-400 block mt-0.5">{option.subLabel}</span>}
+                        </div>
+                      </div>
+
+                      {isSelected && <Check className="w-4 h-4 text-indigo-600 flex-shrink-0 ml-2" />}
+                    </button>
+                  );
+                })
+              )}
+            </div>
           </div>
-        </div>
+        </>
       )}
     </div>
   );
 }
+

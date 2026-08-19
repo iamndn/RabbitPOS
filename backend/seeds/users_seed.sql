@@ -1,13 +1,12 @@
 -- ==============================================================================
 -- Seed File: users_seed.sql
--- Description: Default admin and staff user accounts for RabbitPOS
--- Default Accounts:
---   1. admin / admin123 (Role: admin)
---   2. staff / staff123 (Role: staff)
+-- Description: Official staff/cashier user accounts for RabbitPOS
 -- ==============================================================================
 
-INSERT INTO users (username, password_hash, role, is_active)
+INSERT INTO users (username, password_hash, role, is_active, needs_password_setup)
 VALUES
-    ('admin', '$2a$10$iM.Gv6f19tQ6Y9M04rQ/IeE1kQ3n4N5P6Q7R8S9T0U1V2W3X4Y5Z6', 'admin', true),
-    ('staff', '$2a$10$iM.Gv6f19tQ6Y9M04rQ/IeE1kQ3n4N5P6Q7R8S9T0U1V2W3X4Y5Z6', 'staff', true)
+    ('NDN', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin', true, true),
+    ('NHUNG', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin', true, true),
+    ('DAT', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin', true, true)
 ON CONFLICT (username) DO NOTHING;
+
