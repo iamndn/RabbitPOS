@@ -19,16 +19,17 @@ import {
   UploadCloud,
   FileJson,
   AlertTriangle,
+  FileSpreadsheet,
 } from 'lucide-react';
 import AppShell from '@/components/AppShell';
-import { fetchApi, uploadImage, getImageUrl } from '@/lib/api';
+import { fetchApi, uploadImage, getImageUrl, getApiBaseUrl } from '@/lib/api';
 import { SettingsMap, formatCurrency } from '@/lib/utils';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
 import ModernSelect from '@/components/common/ModernSelect';
 
 export default function SettingsPage() {
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState<'store' | 'currency' | 'vietqr' | 'email' | 'backup'>('store');
+  const [activeTab, setActiveTab] = useState<'store' | 'currency' | 'vietqr' | 'email' | 'backup' | 'import'>('store');
   const [loading, setLoading] = useState<boolean>(true);
   const [saving, setSaving] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -140,6 +141,88 @@ export default function SettingsPage() {
       setErrorMessage(e.message || 'Phục hồi dữ liệu thất bại.');
     } finally {
       setRestoringBackup(false);
+    }
+  };
+
+  // Data Import State
+  const [downloadingTemplate, setDownloadingTemplate] = useState<boolean>(false);
+  const [importingData, setImportingData] = useState<boolean>(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importTarget, setImportTarget] = useState<string>('all');
+  const [upsertProducts, setUpsertProducts] = useState<boolean>(true);
+  const [updateFunds, setUpdateFunds] = useState<boolean>(true);
+  const [importResult, setImportResult] = useState<any | null>(null);
+  const importInputRef = useRef<HTMLInputElement>(null);
+
+  const handleDownloadTemplate = async () => {
+    setDownloadingTemplate(true);
+    setErrorMessage(null);
+    try {
+      const baseUrl = getApiBaseUrl();
+      const token = typeof window !== 'undefined' ? localStorage.getItem('rabbitpos_jwt_token') : null;
+      const res = await fetch(`${baseUrl}/import/template`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) throw new Error('Không thể tải file mẫu');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'Mau_Nhap_Du_Lieu_RabbitPOS.xlsx';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (e: any) {
+      setErrorMessage(e.message || 'Tải file mẫu thất bại');
+    } finally {
+      setDownloadingTemplate(false);
+    }
+  };
+
+  const handleImportFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImportFile(file);
+    setImportResult(null);
+  };
+
+  const handleExecuteImport = async () => {
+    if (!importFile) return;
+    setImportingData(true);
+    setErrorMessage(null);
+    setToastMessage(null);
+    setImportResult(null);
+
+    try {
+      const baseUrl = getApiBaseUrl();
+      const token = typeof window !== 'undefined' ? localStorage.getItem('rabbitpos_jwt_token') : null;
+      const formData = new FormData();
+      formData.append('file', importFile);
+      formData.append('target', importTarget);
+      formData.append('upsert_products', upsertProducts ? 'true' : 'false');
+      formData.append('update_funds', updateFunds ? 'true' : 'false');
+
+      const res = await fetch(`${baseUrl}/import/excel`, {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (res.ok && data.status === 'success' && data.data) {
+        setImportResult(data.data);
+        setToastMessage(t('settings.import_success_title'));
+      } else {
+        setErrorMessage(data.message || 'Nhập dữ liệu thất bại.');
+        if (data.data) {
+          setImportResult(data.data);
+        }
+      }
+    } catch (e: any) {
+      setErrorMessage(e.message || 'Nhập dữ liệu thất bại.');
+    } finally {
+      setImportingData(false);
     }
   };
 
@@ -257,11 +340,11 @@ export default function SettingsPage() {
         ) : (
           <form onSubmit={handleSave} className="space-y-6">
             {/* Tab Navigation Controls */}
-            <div className="flex border-b border-slate-200 bg-white p-1.5 rounded-2xl border shadow-sm space-x-1">
+            <div className="flex border-b border-slate-200 bg-white p-1.5 rounded-2xl border shadow-sm space-x-1 overflow-x-auto">
               <button
                 type="button"
                 onClick={() => setActiveTab('store')}
-                className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 ${
+                className={`py-2.5 px-3.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shrink-0 ${
                   activeTab === 'store'
                     ? 'bg-indigo-600 text-white shadow-sm'
                     : 'text-slate-600 hover:bg-slate-50'
@@ -274,7 +357,7 @@ export default function SettingsPage() {
               <button
                 type="button"
                 onClick={() => setActiveTab('currency')}
-                className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 ${
+                className={`py-2.5 px-3.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shrink-0 ${
                   activeTab === 'currency'
                     ? 'bg-indigo-600 text-white shadow-sm'
                     : 'text-slate-600 hover:bg-slate-50'
@@ -287,7 +370,7 @@ export default function SettingsPage() {
               <button
                 type="button"
                 onClick={() => setActiveTab('vietqr')}
-                className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 ${
+                className={`py-2.5 px-3.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shrink-0 ${
                   activeTab === 'vietqr'
                     ? 'bg-indigo-600 text-white shadow-sm'
                     : 'text-slate-600 hover:bg-slate-50'
@@ -300,7 +383,7 @@ export default function SettingsPage() {
               <button
                 type="button"
                 onClick={() => setActiveTab('email')}
-                className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 ${
+                className={`py-2.5 px-3.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shrink-0 ${
                   activeTab === 'email'
                     ? 'bg-emerald-600 text-white shadow-sm'
                     : 'text-slate-600 hover:bg-slate-50'
@@ -313,7 +396,7 @@ export default function SettingsPage() {
               <button
                 type="button"
                 onClick={() => setActiveTab('backup')}
-                className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 ${
+                className={`py-2.5 px-3.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shrink-0 ${
                   activeTab === 'backup'
                     ? 'bg-violet-600 text-white shadow-sm'
                     : 'text-slate-600 hover:bg-slate-50'
@@ -321,6 +404,19 @@ export default function SettingsPage() {
               >
                 <Database className="w-4 h-4" />
                 <span>{t('settings.tab_backup')}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('import')}
+                className={`py-2.5 px-3.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shrink-0 ${
+                  activeTab === 'import'
+                    ? 'bg-emerald-600 text-white shadow-sm'
+                    : 'text-slate-600 hover:bg-slate-50'
+                }`}
+              >
+                <FileSpreadsheet className="w-4 h-4" />
+                <span>Nhập Dữ Liệu Excel</span>
               </button>
             </div>
 
@@ -799,8 +895,238 @@ export default function SettingsPage() {
                 </div>
               )}
 
-              {/* Save Button (hidden on backup tab) */}
-              {activeTab !== 'backup' && (
+              {/* TAB 6: Automated Data Import Engine */}
+              {activeTab === 'import' && (
+                <div className="space-y-6 text-xs animate-in fade-in duration-150">
+                  {/* 1. Download Template Card */}
+                  <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                    <div className="pb-3 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div>
+                        <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
+                          <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+                          {t('settings.import_section_title')}
+                        </h3>
+                        <p className="text-slate-500 text-xs mt-0.5">
+                          {t('settings.import_section_desc')}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleDownloadTemplate}
+                        disabled={downloadingTemplate}
+                        className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white font-bold text-xs py-2.5 px-4 rounded-xl shadow-sm transition flex items-center gap-2 shrink-0 self-start sm:self-auto"
+                      >
+                        {downloadingTemplate ? (
+                          <RefreshCw className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Download className="w-4 h-4" />
+                        )}
+                        <span>{t('settings.download_template_btn')}</span>
+                      </button>
+                    </div>
+
+                    {/* Supported Sheets Overview Pills */}
+                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 pt-1">
+                      <div className="bg-indigo-50/70 border border-indigo-100 rounded-xl p-3 space-y-1">
+                        <span className="font-bold text-indigo-900 block text-xs">📁 Danh Mục</span>
+                        <p className="text-slate-500 text-[11px]">Tên danh mục, thứ tự, trạng thái</p>
+                      </div>
+                      <div className="bg-violet-50/70 border border-violet-100 rounded-xl p-3 space-y-1">
+                        <span className="font-bold text-violet-900 block text-xs">🧋 Topping</span>
+                        <p className="text-slate-500 text-[11px]">Giá bán, giá vốn COGS, phân loại</p>
+                      </div>
+                      <div className="bg-emerald-50/70 border border-emerald-100 rounded-xl p-3 space-y-1">
+                        <span className="font-bold text-emerald-900 block text-xs">🍹 Sản Phẩm & Size</span>
+                        <p className="text-slate-500 text-[11px]">Món ăn, Size M/L, giá vốn, giá bán</p>
+                      </div>
+                      <div className="bg-amber-50/70 border border-amber-100 rounded-xl p-3 space-y-1">
+                        <span className="font-bold text-amber-900 block text-xs">💸 Sổ Thu Chi</span>
+                        <p className="text-slate-500 text-[11px]">Khoản thu, khoản chi, quỹ tiền</p>
+                      </div>
+                      <div className="bg-rose-50/70 border border-rose-100 rounded-xl p-3 space-y-1">
+                        <span className="font-bold text-rose-900 block text-xs">🧾 Lịch Sử Đơn Hàng</span>
+                        <p className="text-slate-500 text-[11px]">Đơn hàng, chi tiết món & topping</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 2. File Upload & Ingestion Settings Card */}
+                  <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-5">
+                    <div className="pb-3 border-b border-slate-100">
+                      <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
+                        <UploadCloud className="w-4 h-4 text-emerald-600" />
+                        {t('settings.upload_import_title')}
+                      </h3>
+                      <p className="text-slate-500 text-xs mt-0.5">
+                        Chọn file mẫu Excel (.xlsx) hoặc file (.csv) đã điền dữ liệu để tiến hành nhập.
+                      </p>
+                    </div>
+
+                    {/* File Dropzone */}
+                    <div
+                      onClick={() => importInputRef.current?.click()}
+                      className="border-2 border-dashed border-slate-200 hover:border-emerald-400 rounded-2xl p-6 text-center cursor-pointer transition bg-slate-50/50 hover:bg-emerald-50/20 space-y-2"
+                    >
+                      <input
+                        ref={importInputRef}
+                        type="file"
+                        accept=".xlsx,.xls,.csv"
+                        onChange={handleImportFileSelect}
+                        className="hidden"
+                      />
+                      <div className="w-12 h-12 rounded-2xl bg-white border border-slate-200 text-emerald-600 flex items-center justify-center mx-auto shadow-sm">
+                        <FileSpreadsheet className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <span className="font-bold text-slate-700 block text-xs">
+                          {importFile ? importFile.name : t('settings.upload_import_title')}
+                        </span>
+                        <span className="text-slate-400 text-[11px]">
+                          {importFile
+                            ? `${(importFile.size / 1024).toFixed(1)} KB · Bấm để đổi file khác`
+                            : t('settings.upload_import_drag_hint')}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Configuration Options */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2 border-t border-slate-100">
+                      <div>
+                        <label className="font-semibold text-slate-700 mb-1.5 block">
+                          {t('settings.import_target_label')}
+                        </label>
+                        <ModernSelect
+                          size="sm"
+                          value={importTarget}
+                          onChange={(val) => setImportTarget(String(val))}
+                          options={[
+                            { value: 'all', label: t('settings.target_all') },
+                            { value: 'categories', label: t('settings.target_categories') },
+                            { value: 'toppings', label: t('settings.target_toppings') },
+                            { value: 'products', label: t('settings.target_products') },
+                            { value: 'transactions', label: t('settings.target_transactions') },
+                            { value: 'orders', label: t('settings.target_orders') },
+                          ]}
+                        />
+                      </div>
+
+                      <div className="sm:col-span-2 flex flex-col justify-end space-y-2.5">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={upsertProducts}
+                            onChange={(e) => setUpsertProducts(e.target.checked)}
+                            className="w-4 h-4 accent-emerald-600 rounded"
+                          />
+                          <span className="text-slate-700 font-medium">
+                            {t('settings.opt_upsert_products')}
+                          </span>
+                        </label>
+
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={updateFunds}
+                            onChange={(e) => setUpdateFunds(e.target.checked)}
+                            className="w-4 h-4 accent-emerald-600 rounded"
+                          />
+                          <span className="text-slate-700 font-medium">
+                            {t('settings.opt_update_funds')}
+                          </span>
+                        </label>
+                      </div>
+                    </div>
+
+                    {/* Action Button */}
+                    <div className="pt-3 border-t border-slate-100 flex justify-end">
+                      <button
+                        type="button"
+                        onClick={handleExecuteImport}
+                        disabled={!importFile || importingData}
+                        className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white font-bold text-xs py-3 px-6 rounded-xl shadow-md transition flex items-center gap-2"
+                      >
+                        {importingData ? (
+                          <RefreshCw className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <UploadCloud className="w-4 h-4" />
+                        )}
+                        <span>{importingData ? t('settings.importing_loading') : t('settings.start_import_btn')}</span>
+                      </button>
+                    </div>
+
+                    {/* Import Result Breakdown */}
+                    {importResult && (
+                      <div className="space-y-4 pt-2 animate-in fade-in">
+                        <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <span className="flex items-center gap-2 text-emerald-800 font-bold text-xs">
+                              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                              {importResult.message || t('settings.import_success_title')}
+                            </span>
+                          </div>
+
+                          {importResult.stats && (
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-[11px] text-slate-600">
+                              <div className="bg-white/80 p-2.5 rounded-xl border border-emerald-100">
+                                <span className="font-bold text-slate-900 text-sm block">{importResult.stats.categories_count}</span>
+                                Danh mục món
+                              </div>
+                              <div className="bg-white/80 p-2.5 rounded-xl border border-emerald-100">
+                                <span className="font-bold text-slate-900 text-sm block">{importResult.stats.toppings_count}</span>
+                                Topping
+                              </div>
+                              <div className="bg-white/80 p-2.5 rounded-xl border border-emerald-100">
+                                <span className="font-bold text-slate-900 text-sm block">{importResult.stats.products_count}</span>
+                                Món ăn ({importResult.stats.variants_count} size)
+                              </div>
+                              <div className="bg-white/80 p-2.5 rounded-xl border border-emerald-100">
+                                <span className="font-bold text-slate-900 text-sm block">{importResult.stats.transactions_count}</span>
+                                Giao dịch thu chi
+                              </div>
+                              <div className="bg-white/80 p-2.5 rounded-xl border border-emerald-100">
+                                <span className="font-bold text-slate-900 text-sm block">{importResult.stats.orders_count}</span>
+                                Đơn hàng ({importResult.stats.order_items_count} chi tiết món)
+                              </div>
+                              <div className="bg-white/80 p-2.5 rounded-xl border border-emerald-100">
+                                <span className="font-bold text-slate-900 text-sm block">{importResult.stats.total_errors}</span>
+                                Cảnh báo / Lỗi
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Error Log Table */}
+                        {importResult.errors && importResult.errors.length > 0 && (
+                          <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4 space-y-2">
+                            <h4 className="font-bold text-rose-800 text-xs flex items-center gap-1.5">
+                              <AlertTriangle className="w-4 h-4 text-rose-600" />
+                              {t('settings.import_errors_title')} ({importResult.errors.length})
+                            </h4>
+                            <div className="max-h-48 overflow-y-auto divide-y divide-rose-100 border border-rose-100 rounded-xl bg-white text-[11px]">
+                              {importResult.errors.map((err: any, idx: number) => (
+                                <div key={idx} className="p-2.5 flex items-start gap-2">
+                                  <span className="font-mono font-bold text-rose-600 shrink-0">#{idx + 1}</span>
+                                  <div className="space-y-0.5 flex-1">
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-semibold text-slate-800">{err.sheet}</span>
+                                      <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded text-[10px]">Dòng {err.row}</span>
+                                      {err.field && <span className="text-slate-400">({err.field})</span>}
+                                    </div>
+                                    <p className="text-rose-700">{err.message}</p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Save Button (hidden on backup and import tabs) */}
+              {activeTab !== 'backup' && activeTab !== 'import' && (
                 <div className="flex justify-end pt-2">
                   <button
                     type="submit"

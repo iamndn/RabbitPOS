@@ -34,7 +34,7 @@ func (s *ImporterService) GenerateExcelTemplate() ([]byte, error) {
 	// Styles
 	headerStyle, _ := f.NewStyle(&excelize.Style{
 		Font:      &excelize.Font{Bold: true, Color: "FFFFFF", Size: 11, Family: "Segoe UI"},
-		Fill:      &excelize.Fill{Type: "pattern", Color: []string{"4F46E5"}, Pattern: 1}, // Indigo
+		Fill:      excelize.Fill{Type: "pattern", Color: []string{"4F46E5"}, Pattern: 1}, // Indigo
 		Alignment: &excelize.Alignment{Horizontal: "center", Vertical: "center", WrapText: true},
 		Border: []excelize.Border{
 			{Type: "left", Color: "CBD5E1", Style: 1},
@@ -46,25 +46,25 @@ func (s *ImporterService) GenerateExcelTemplate() ([]byte, error) {
 
 	emeraldHeaderStyle, _ := f.NewStyle(&excelize.Style{
 		Font:      &excelize.Font{Bold: true, Color: "FFFFFF", Size: 11, Family: "Segoe UI"},
-		Fill:      &excelize.Fill{Type: "pattern", Color: []string{"059669"}, Pattern: 1}, // Emerald
+		Fill:      excelize.Fill{Type: "pattern", Color: []string{"059669"}, Pattern: 1}, // Emerald
 		Alignment: &excelize.Alignment{Horizontal: "center", Vertical: "center", WrapText: true},
 	})
 
 	amberHeaderStyle, _ := f.NewStyle(&excelize.Style{
 		Font:      &excelize.Font{Bold: true, Color: "FFFFFF", Size: 11, Family: "Segoe UI"},
-		Fill:      &excelize.Fill{Type: "pattern", Color: []string{"D97706"}, Pattern: 1}, // Amber
+		Fill:      excelize.Fill{Type: "pattern", Color: []string{"D97706"}, Pattern: 1}, // Amber
 		Alignment: &excelize.Alignment{Horizontal: "center", Vertical: "center", WrapText: true},
 	})
 
 	violetHeaderStyle, _ := f.NewStyle(&excelize.Style{
 		Font:      &excelize.Font{Bold: true, Color: "FFFFFF", Size: 11, Family: "Segoe UI"},
-		Fill:      &excelize.Fill{Type: "pattern", Color: []string{"7C3AED"}, Pattern: 1}, // Violet
+		Fill:      excelize.Fill{Type: "pattern", Color: []string{"7C3AED"}, Pattern: 1}, // Violet
 		Alignment: &excelize.Alignment{Horizontal: "center", Vertical: "center", WrapText: true},
 	})
 
 	roseHeaderStyle, _ := f.NewStyle(&excelize.Style{
 		Font:      &excelize.Font{Bold: true, Color: "FFFFFF", Size: 11, Family: "Segoe UI"},
-		Fill:      &excelize.Fill{Type: "pattern", Color: []string{"E11D48"}, Pattern: 1}, // Rose
+		Fill:      excelize.Fill{Type: "pattern", Color: []string{"E11D48"}, Pattern: 1}, // Rose
 		Alignment: &excelize.Alignment{Horizontal: "center", Vertical: "center", WrapText: true},
 	})
 
@@ -245,7 +245,7 @@ func (s *ImporterService) GenerateExcelTemplate() ([]byte, error) {
 
 // ImportExcel processes an uploaded .xlsx file and ingests records into PostgreSQL
 func (s *ImporterService) ImportExcel(
-	reader io.ReaderAt,
+	reader io.Reader,
 	size int64,
 	opts models.ImportOptions,
 	currentUserID *uint,
@@ -517,7 +517,7 @@ func (s *ImporterService) importToppings(tx *gorm.DB, sheet string, rows [][]str
 			topping = models.Topping{
 				Name:       name,
 				Price:      price,
-				Cogs:       cogs,
+				COGS:       cogs,
 				CategoryID: categoryID,
 				IsActive:   isActive,
 			}
@@ -532,7 +532,7 @@ func (s *ImporterService) importToppings(tx *gorm.DB, sheet string, rows [][]str
 			}
 		} else {
 			topping.Price = price
-			topping.Cogs = cogs
+			topping.COGS = cogs
 			topping.CategoryID = categoryID
 			topping.IsActive = isActive
 			tx.Save(&topping)
@@ -729,9 +729,9 @@ func (s *ImporterService) importTransactions(
 		txTypeStr := strings.ToLower(strings.TrimSpace(row[1]))
 		var txType models.TransactionType
 		if strings.Contains(txTypeStr, "thu") || strings.Contains(txTypeStr, "inflow") || strings.Contains(txTypeStr, "+") {
-			txType = models.TxInflow
+			txType = models.TransactionTypeInflow
 		} else {
-			txType = models.TxOutflow
+			txType = models.TransactionTypeOutflow
 		}
 
 		categoryName := strings.TrimSpace(row[2])
@@ -783,7 +783,7 @@ func (s *ImporterService) importTransactions(
 		// Map or create transaction category
 		var txCategory models.TransactionCategory
 		catType := "both"
-		if txType == models.TxInflow {
+		if txType == models.TransactionTypeInflow {
 			catType = "inflow"
 		} else {
 			catType = "outflow"
@@ -800,7 +800,7 @@ func (s *ImporterService) importTransactions(
 		transaction := models.Transaction{
 			FundID:          fundID,
 			TransactionType: txType,
-			Category:        categoryName,
+			Category:        models.TransactionCategory(categoryName),
 			Amount:          amount,
 			Description:     description,
 			CreatedBy:       cashierName,
@@ -822,7 +822,7 @@ func (s *ImporterService) importTransactions(
 
 		// Adjust fund balance
 		if updateFunds {
-			if txType == models.TxInflow {
+			if txType == models.TransactionTypeInflow {
 				tx.Model(&models.Fund{}).Where("id = ?", fundID).UpdateColumn("current_balance", gorm.Expr("current_balance + ?", amount))
 			} else {
 				tx.Model(&models.Fund{}).Where("id = ?", fundID).UpdateColumn("current_balance", gorm.Expr("current_balance - ?", amount))
