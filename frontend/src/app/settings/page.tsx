@@ -20,6 +20,13 @@ import {
   FileJson,
   AlertTriangle,
   FileSpreadsheet,
+  Building2,
+  HelpCircle,
+  FileCheck,
+  Check,
+  CreditCard,
+  Clock,
+  Trash2,
 } from 'lucide-react';
 import AppShell from '@/components/AppShell';
 import { fetchApi, uploadImage, getImageUrl, getApiBaseUrl } from '@/lib/api';
@@ -29,7 +36,9 @@ import ModernSelect from '@/components/common/ModernSelect';
 
 export default function SettingsPage() {
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState<'store' | 'currency' | 'vietqr' | 'email' | 'backup' | 'import'>('store');
+  const [activeTab, setActiveTab] = useState<'store' | 'currency' | 'vietqr' | 'email' | 'backup'>('store');
+  const [backupSubTab, setBackupSubTab] = useState<'json_backup' | 'excel_import'>('json_backup');
+
   const [loading, setLoading] = useState<boolean>(true);
   const [saving, setSaving] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -40,7 +49,7 @@ export default function SettingsPage() {
   // Form State
   const [form, setForm] = useState<SettingsMap>({
     store_name: 'Thỏ Juice & Coffee',
-    store_address: '123 Vo Van Kiet, D1, HCMC',
+    store_address: '123 Võ Văn Kiệt, Q1, TP.HCM',
     store_phone: '0901234567',
     store_logo_url: '',
     currency_code: 'VND',
@@ -63,7 +72,7 @@ export default function SettingsPage() {
   const [testingSmtp, setTestingSmtp] = useState<boolean>(false);
   const [smtpTestResult, setSmtpTestResult] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
-  // Backup & Restore State
+  // JSON Backup & Restore State
   const [exportingBackup, setExportingBackup] = useState<boolean>(false);
   const [restoringBackup, setRestoringBackup] = useState<boolean>(false);
   const [backupFile, setBackupFile] = useState<File | null>(null);
@@ -72,6 +81,77 @@ export default function SettingsPage() {
   const [restoreResult, setRestoreResult] = useState<any | null>(null);
   const backupInputRef = useRef<HTMLInputElement>(null);
 
+  // Excel & CSV Data Import State
+  const [downloadingTemplate, setDownloadingTemplate] = useState<boolean>(false);
+  const [importingData, setImportingData] = useState<boolean>(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importTarget, setImportTarget] = useState<string>('all');
+  const [upsertProducts, setUpsertProducts] = useState<boolean>(true);
+  const [updateFunds, setUpdateFunds] = useState<boolean>(true);
+  const [importResult, setImportResult] = useState<any | null>(null);
+  const importInputRef = useRef<HTMLInputElement>(null);
+
+  const loadSettings = async () => {
+    setLoading(true);
+    setErrorMessage(null);
+    try {
+      const res = await fetchApi<SettingsMap>('/settings');
+      if (res.status === 'success' && res.data) {
+        setForm((prev) => ({
+          ...prev,
+          ...res.data,
+        }));
+      } else {
+        setErrorMessage(res.message || 'Không thể tải thông tin cài đặt');
+      }
+    } catch (e: any) {
+      setErrorMessage(e.message || 'Không thể kết nối đến máy chủ');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadSettings();
+  }, []);
+
+  const handleChange = (key: string, value: string) => {
+    setForm((prev) => ({
+      ...prev,
+      [key]: value,
+    }));
+  };
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    setErrorMessage(null);
+    setToastMessage(null);
+
+    try {
+      const res = await fetchApi<SettingsMap>('/settings', {
+        method: 'PUT',
+        body: JSON.stringify(form),
+      });
+
+      if (res.status === 'success' && res.data) {
+        setForm((prev) => ({
+          ...prev,
+          ...res.data,
+        }));
+        setToastMessage(t('settings.save_success'));
+        setTimeout(() => setToastMessage(null), 3500);
+      } else {
+        setErrorMessage(res.message || 'Lưu cài đặt thất bại');
+      }
+    } catch (e: any) {
+      setErrorMessage(e.message || 'Lưu cài đặt thất bại');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // JSON Export Handler
   const handleExportBackup = async () => {
     setExportingBackup(true);
     setErrorMessage(null);
@@ -91,6 +171,7 @@ export default function SettingsPage() {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
         setToastMessage(t('settings.export_backup_success'));
+        setTimeout(() => setToastMessage(null), 3500);
       } else {
         setErrorMessage(res.message || 'Tải bản sao lưu thất bại');
       }
@@ -101,6 +182,7 @@ export default function SettingsPage() {
     }
   };
 
+  // JSON File Selection Handler
   const handleBackupFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -117,6 +199,7 @@ export default function SettingsPage() {
     }
   };
 
+  // JSON Restore Execute Handler
   const handleExecuteRestore = async () => {
     if (!backupPreview) return;
     setRestoringBackup(true);
@@ -131,29 +214,20 @@ export default function SettingsPage() {
       if (res.status === 'success' && res.data) {
         setRestoreResult(res.data);
         setToastMessage(t('settings.restore_success'));
-        setTimeout(() => {
-          loadSettings();
-        }, 1000);
+        setBackupFile(null);
+        setBackupPreview(null);
+        setTimeout(() => setToastMessage(null), 3500);
       } else {
-        setErrorMessage(res.message || 'Phục hồi dữ liệu thất bại.');
+        setErrorMessage(res.message || 'Phục hồi dữ liệu thất bại');
       }
     } catch (e: any) {
-      setErrorMessage(e.message || 'Phục hồi dữ liệu thất bại.');
+      setErrorMessage(e.message || 'Phục hồi dữ liệu thất bại');
     } finally {
       setRestoringBackup(false);
     }
   };
 
-  // Data Import State
-  const [downloadingTemplate, setDownloadingTemplate] = useState<boolean>(false);
-  const [importingData, setImportingData] = useState<boolean>(false);
-  const [importFile, setImportFile] = useState<File | null>(null);
-  const [importTarget, setImportTarget] = useState<string>('all');
-  const [upsertProducts, setUpsertProducts] = useState<boolean>(true);
-  const [updateFunds, setUpdateFunds] = useState<boolean>(true);
-  const [importResult, setImportResult] = useState<any | null>(null);
-  const importInputRef = useRef<HTMLInputElement>(null);
-
+  // Excel Template Download Handler
   const handleDownloadTemplate = async () => {
     setDownloadingTemplate(true);
     setErrorMessage(null);
@@ -163,7 +237,7 @@ export default function SettingsPage() {
       const res = await fetch(`${baseUrl}/import/template`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
-      if (!res.ok) throw new Error('Không thể tải file mẫu');
+      if (!res.ok) throw new Error('Không thể tải file mẫu từ máy chủ');
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -180,6 +254,7 @@ export default function SettingsPage() {
     }
   };
 
+  // Excel File Select Handler
   const handleImportFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -187,6 +262,7 @@ export default function SettingsPage() {
     setImportResult(null);
   };
 
+  // Excel Import Execute Handler
   const handleExecuteImport = async () => {
     if (!importFile) return;
     setImportingData(true);
@@ -213,6 +289,7 @@ export default function SettingsPage() {
       if (res.ok && data.status === 'success' && data.data) {
         setImportResult(data.data);
         setToastMessage(t('settings.import_success_title'));
+        setTimeout(() => setToastMessage(null), 3500);
       } else {
         setErrorMessage(data.message || 'Nhập dữ liệu thất bại.');
         if (data.data) {
@@ -226,96 +303,51 @@ export default function SettingsPage() {
     }
   };
 
+  // SMTP Test Handler
   const handleTestSMTP = async () => {
     setTestingSmtp(true);
     setSmtpTestResult(null);
     try {
       const res = await fetchApi<any>('/settings/test-smtp', {
         method: 'POST',
-        body: JSON.stringify({}),
+        body: JSON.stringify(form),
       });
       if (res.status === 'success') {
         setSmtpTestResult({ type: 'success', message: t('email_report.test_smtp_success') });
       } else {
         setSmtpTestResult({ type: 'error', message: res.message || t('email_report.test_smtp_error') });
       }
-    } catch {
-      setSmtpTestResult({ type: 'error', message: t('email_report.test_smtp_error') });
+    } catch (e: any) {
+      setSmtpTestResult({ type: 'error', message: e.message || t('email_report.test_smtp_error') });
     } finally {
       setTestingSmtp(false);
-      setTimeout(() => setSmtpTestResult(null), 6000);
+      setTimeout(() => setSmtpTestResult(null), 5000);
     }
-  };
-
-  const loadSettings = async () => {
-    setLoading(true);
-    setErrorMessage(null);
-    const res = await fetchApi<SettingsMap>('/settings');
-    if (res.status === 'success' && res.data) {
-      setForm((prev) => ({
-        ...prev,
-        ...res.data,
-      }));
-    } else {
-      setErrorMessage(res.message || 'Failed to load settings');
-    }
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    loadSettings();
-  }, []);
-
-  const handleChange = (key: string, value: string) => {
-    setForm((prev) => ({
-      ...prev,
-      [key]: value,
-    }));
-  };
-
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSaving(true);
-    setErrorMessage(null);
-    setToastMessage(null);
-
-    const res = await fetchApi<SettingsMap>('/settings', {
-      method: 'PUT',
-      body: JSON.stringify(form),
-    });
-
-    if (res.status === 'success' && res.data) {
-      setForm((prev) => ({
-        ...prev,
-        ...res.data,
-      }));
-      setToastMessage(t('settings.save_success'));
-      setTimeout(() => setToastMessage(null), 3500);
-    } else {
-      setErrorMessage(res.message || 'Failed to save settings');
-    }
-    setSaving(false);
   };
 
   return (
     <AppShell>
       <div className="p-4 sm:p-6 max-w-5xl mx-auto space-y-6">
         {/* Page Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-sm">
-          <div>
-            <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-              <SettingsIcon className="w-6 h-6 text-indigo-600" />
-              {t('settings.title')}
-            </h1>
-            <p className="text-xs text-slate-500 mt-1">
-              {t('settings.subtitle')}
-            </p>
+        <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="w-11 h-11 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shadow-xs">
+              <SettingsIcon className="w-6 h-6" />
+            </div>
+            <div>
+              <h1 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">
+                {t('settings.title')}
+              </h1>
+              <p className="text-xs text-slate-500 mt-0.5">
+                {t('settings.subtitle')}
+              </p>
+            </div>
           </div>
         </div>
 
         {/* Success Toast Banner */}
         {toastMessage && (
-          <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold px-4 py-3 rounded-xl shadow-sm flex items-center justify-between animate-in fade-in duration-150">
+          <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold px-4 py-3 rounded-2xl shadow-xs flex items-center justify-between animate-in fade-in duration-150">
             <span className="flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
               {toastMessage}
@@ -325,7 +357,7 @@ export default function SettingsPage() {
 
         {/* Error Banner */}
         {errorMessage && (
-          <div className="bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold px-4 py-3 rounded-xl shadow-sm flex items-center justify-between animate-in fade-in duration-150">
+          <div className="bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold px-4 py-3 rounded-2xl shadow-xs flex items-center justify-between animate-in fade-in duration-150">
             <span className="flex items-center gap-2">
               <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
               {errorMessage}
@@ -334,167 +366,192 @@ export default function SettingsPage() {
         )}
 
         {loading ? (
-          <div className="bg-white p-12 rounded-2xl border border-slate-200 flex justify-center items-center">
+          <div className="bg-white p-16 rounded-2xl border border-slate-200 flex flex-col justify-center items-center gap-3">
             <RefreshCw className="w-8 h-8 text-indigo-600 animate-spin" />
+            <span className="text-xs font-medium text-slate-400">Đang tải cài đặt hệ thống...</span>
           </div>
         ) : (
           <form onSubmit={handleSave} className="space-y-6">
-            {/* Tab Navigation Controls */}
-            <div className="flex border-b border-slate-200 bg-white p-1.5 rounded-2xl border shadow-sm space-x-1 overflow-x-auto">
+            {/* Main Tab Navigation Bar (5 Main Tabs) */}
+            <div className="bg-slate-100/90 p-1.5 rounded-2xl border border-slate-200/80 flex space-x-1.5 overflow-x-auto scrollbar-none">
+              {/* Tab 1: Store */}
               <button
                 type="button"
                 onClick={() => setActiveTab('store')}
-                className={`py-2.5 px-3.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shrink-0 ${
+                className={`py-2.5 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 shrink-0 ${
                   activeTab === 'store'
-                    ? 'bg-indigo-600 text-white shadow-sm'
-                    : 'text-slate-600 hover:bg-slate-50'
+                    ? 'bg-white text-indigo-700 shadow-sm border border-slate-200/60'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
                 }`}
               >
-                <Store className="w-4 h-4" />
+                <Store className={`w-4 h-4 ${activeTab === 'store' ? 'text-indigo-600' : 'text-slate-400'}`} />
                 <span>{t('settings.tab_store')}</span>
               </button>
 
+              {/* Tab 2: Currency */}
               <button
                 type="button"
                 onClick={() => setActiveTab('currency')}
-                className={`py-2.5 px-3.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shrink-0 ${
+                className={`py-2.5 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 shrink-0 ${
                   activeTab === 'currency'
-                    ? 'bg-indigo-600 text-white shadow-sm'
-                    : 'text-slate-600 hover:bg-slate-50'
+                    ? 'bg-white text-indigo-700 shadow-sm border border-slate-200/60'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
                 }`}
               >
-                <Coins className="w-4 h-4" />
+                <Coins className={`w-4 h-4 ${activeTab === 'currency' ? 'text-indigo-600' : 'text-slate-400'}`} />
                 <span>{t('settings.tab_currency')}</span>
               </button>
 
+              {/* Tab 3: VietQR */}
               <button
                 type="button"
                 onClick={() => setActiveTab('vietqr')}
-                className={`py-2.5 px-3.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shrink-0 ${
+                className={`py-2.5 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 shrink-0 ${
                   activeTab === 'vietqr'
-                    ? 'bg-indigo-600 text-white shadow-sm'
-                    : 'text-slate-600 hover:bg-slate-50'
+                    ? 'bg-white text-indigo-700 shadow-sm border border-slate-200/60'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
                 }`}
               >
-                <QrCode className="w-4 h-4" />
+                <QrCode className={`w-4 h-4 ${activeTab === 'vietqr' ? 'text-indigo-600' : 'text-slate-400'}`} />
                 <span>{t('settings.tab_vietqr')}</span>
               </button>
 
+              {/* Tab 4: Email */}
               <button
                 type="button"
                 onClick={() => setActiveTab('email')}
-                className={`py-2.5 px-3.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shrink-0 ${
+                className={`py-2.5 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 shrink-0 ${
                   activeTab === 'email'
-                    ? 'bg-emerald-600 text-white shadow-sm'
-                    : 'text-slate-600 hover:bg-slate-50'
+                    ? 'bg-white text-emerald-700 shadow-sm border border-slate-200/60'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
                 }`}
               >
-                <Mail className="w-4 h-4" />
+                <Mail className={`w-4 h-4 ${activeTab === 'email' ? 'text-emerald-600' : 'text-slate-400'}`} />
                 <span>{t('email_report.settings_section_title').split(' ')[0]}</span>
               </button>
 
+              {/* Tab 5: Backup & Data Management */}
               <button
                 type="button"
                 onClick={() => setActiveTab('backup')}
-                className={`py-2.5 px-3.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shrink-0 ${
+                className={`py-2.5 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 shrink-0 ${
                   activeTab === 'backup'
-                    ? 'bg-violet-600 text-white shadow-sm'
-                    : 'text-slate-600 hover:bg-slate-50'
+                    ? 'bg-white text-violet-700 shadow-sm border border-slate-200/60'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
                 }`}
               >
-                <Database className="w-4 h-4" />
+                <Database className={`w-4 h-4 ${activeTab === 'backup' ? 'text-violet-600' : 'text-slate-400'}`} />
                 <span>{t('settings.tab_backup')}</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setActiveTab('import')}
-                className={`py-2.5 px-3.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shrink-0 ${
-                  activeTab === 'import'
-                    ? 'bg-emerald-600 text-white shadow-sm'
-                    : 'text-slate-600 hover:bg-slate-50'
-                }`}
-              >
-                <FileSpreadsheet className="w-4 h-4" />
-                <span>Nhập Dữ Liệu Excel</span>
               </button>
             </div>
 
             {/* TAB 1: Store Information */}
             {activeTab === 'store' && (
-              <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4 text-xs animate-in fade-in duration-150">
-                <h3 className="font-bold text-slate-900 text-sm pb-2 border-b border-slate-100 flex items-center gap-2">
-                  <Store className="w-4 h-4 text-indigo-600" />
-                  {t('settings.tab_store')}
-                </h3>
-
-                <div className="space-y-4 max-w-xl">
+              <div className="bg-white p-5 sm:p-7 rounded-2xl border border-slate-200/80 shadow-xs space-y-6 text-xs animate-in fade-in duration-150">
+                <div className="pb-4 border-b border-slate-100 flex items-center gap-3">
+                  <div className="p-2.5 bg-indigo-50 rounded-xl border border-indigo-100 text-indigo-600">
+                    <Store className="w-5 h-5" />
+                  </div>
                   <div>
-                    <label className="font-semibold text-slate-700 mb-1 block">
-                      {t('settings.store_name')} *
+                    <h3 className="font-bold text-slate-900 text-sm">
+                      {t('settings.tab_store')}
+                    </h3>
+                    <p className="text-slate-500 text-xs mt-0.5">
+                      Thông tin cơ bản hiển thị trên hóa đơn và tiêu đề hệ thống.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div className="md:col-span-2">
+                    <label className="font-semibold text-slate-700 mb-1.5 block">
+                      {t('settings.store_name')} <span className="text-rose-500">*</span>
                     </label>
                     <input
                       type="text"
                       required
                       value={form.store_name || ''}
                       onChange={(e) => handleChange('store_name', e.target.value)}
-                      className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                      className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 bg-slate-50/50 hover:bg-white focus:bg-white transition"
                       placeholder={t('settings.store_name_placeholder')}
                     />
                   </div>
 
                   <div>
-                    <label className="font-semibold text-slate-700 mb-1 block">
-                      {t('settings.store_address')}
-                    </label>
-                    <input
-                      type="text"
-                      value={form.store_address || ''}
-                      onChange={(e) => handleChange('store_address', e.target.value)}
-                      className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
-                      placeholder={t('settings.store_address_placeholder')}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="font-semibold text-slate-700 mb-1 block">
+                    <label className="font-semibold text-slate-700 mb-1.5 block">
                       {t('settings.store_phone')}
                     </label>
                     <input
                       type="text"
                       value={form.store_phone || ''}
                       onChange={(e) => handleChange('store_phone', e.target.value)}
-                      className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                      className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 bg-slate-50/50 hover:bg-white focus:bg-white transition"
                       placeholder={t('settings.store_phone_placeholder')}
                     />
                   </div>
 
-                  {/* Store Logo Upload */}
                   <div>
-                    <label className="font-semibold text-slate-700 mb-1 block">
+                    <label className="font-semibold text-slate-700 mb-1.5 block">
+                      {t('settings.store_address')}
+                    </label>
+                    <input
+                      type="text"
+                      value={form.store_address || ''}
+                      onChange={(e) => handleChange('store_address', e.target.value)}
+                      className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 bg-slate-50/50 hover:bg-white focus:bg-white transition"
+                      placeholder={t('settings.store_address_placeholder')}
+                    />
+                  </div>
+
+                  {/* Store Logo Upload Section */}
+                  <div className="md:col-span-2 pt-2 border-t border-slate-100 space-y-3">
+                    <label className="font-semibold text-slate-700 block">
                       {t('settings.store_logo')}
                     </label>
-                    <div className="flex items-center gap-2 mb-2">
-                      <input
-                        type="text"
-                        value={form.store_logo_url || ''}
-                        onChange={(e) => handleChange('store_logo_url', e.target.value)}
-                        className="flex-1 p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
-                        placeholder={t('settings.store_logo_placeholder')}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => logoInputRef.current?.click()}
-                        disabled={logoUploading}
-                        className="flex items-center gap-1.5 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 font-semibold px-3 py-2.5 rounded-xl transition text-xs whitespace-nowrap disabled:opacity-50"
-                      >
-                        {logoUploading ? (
-                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                      {/* Logo Preview box */}
+                      <div className="w-20 h-20 rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden shrink-0">
+                        {form.store_logo_url ? (
+                          <img
+                            src={getImageUrl(form.store_logo_url) || form.store_logo_url}
+                            alt="Logo preview"
+                            className="w-full h-full object-contain p-1.5"
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                          />
                         ) : (
-                          <Upload className="w-3.5 h-3.5" />
+                          <ImageIcon className="w-8 h-8 text-slate-300" />
                         )}
-                        {t('settings.upload_logo')}
-                      </button>
+                      </div>
+
+                      <div className="space-y-2 flex-1 w-full">
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="text"
+                            value={form.store_logo_url || ''}
+                            onChange={(e) => handleChange('store_logo_url', e.target.value)}
+                            className="flex-1 px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 bg-slate-50/50 hover:bg-white focus:bg-white transition text-xs"
+                            placeholder={t('settings.store_logo_placeholder')}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => logoInputRef.current?.click()}
+                            disabled={logoUploading}
+                            className="flex items-center gap-1.5 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 font-semibold px-4 py-2.5 rounded-xl transition text-xs whitespace-nowrap disabled:opacity-50"
+                          >
+                            {logoUploading ? (
+                              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <Upload className="w-3.5 h-3.5" />
+                            )}
+                            <span>{t('settings.upload_logo')}</span>
+                          </button>
+                        </div>
+                        <p className="text-[11px] text-slate-400">
+                          Hỗ trợ định dạng ảnh PNG, JPG, SVG, WebP. Khuyến nghị ảnh vuông hoặc chữ nhật nhỏ.
+                        </p>
+                      </div>
+
                       <input
                         ref={logoInputRef}
                         type="file"
@@ -512,32 +569,17 @@ export default function SettingsPage() {
                               setToastMessage(t('settings.logo_upload_success') || 'Tải ảnh logo thành công');
                               setTimeout(() => setToastMessage(null), 3000);
                             } else {
-                              setErrorMessage(res.message || 'Failed to upload logo image');
-                              setTimeout(() => setErrorMessage(null), 5000);
+                              setErrorMessage(res.message || 'Tải ảnh logo thất bại');
                             }
                           } catch (err: any) {
-                            console.error('Logo upload failed:', err);
-                            setErrorMessage(err?.message || 'Failed to upload logo image');
-                            setTimeout(() => setErrorMessage(null), 5000);
+                            setErrorMessage(err?.message || 'Tải ảnh logo thất bại');
+                          } finally {
+                            setLogoUploading(false);
+                            if (logoInputRef.current) logoInputRef.current.value = '';
                           }
-                          setLogoUploading(false);
-                          if (logoInputRef.current) logoInputRef.current.value = '';
                         }}
                       />
                     </div>
-                    {/* Logo preview */}
-                    {form.store_logo_url && (
-                      <div className="mt-2 flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-200">
-                        <ImageIcon className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                        <span className="text-xs text-slate-500 flex-shrink-0">{t('settings.logo_preview')}:</span>
-                        <img
-                          src={getImageUrl(form.store_logo_url) || form.store_logo_url}
-                          alt="Store logo preview"
-                          className="h-10 max-w-[120px] object-contain rounded-lg"
-                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                        />
-                      </div>
-                    )}
                   </div>
                 </div>
               </div>
@@ -545,63 +587,73 @@ export default function SettingsPage() {
 
             {/* TAB 2: Currency & Pricing */}
             {activeTab === 'currency' && (
-              <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4 text-xs animate-in fade-in duration-150">
-                <h3 className="font-bold text-slate-900 text-sm pb-2 border-b border-slate-100 flex items-center gap-2">
-                  <Coins className="w-4 h-4 text-indigo-600" />
-                  {t('settings.tab_currency')}
-                </h3>
+              <div className="bg-white p-5 sm:p-7 rounded-2xl border border-slate-200/80 shadow-xs space-y-6 text-xs animate-in fade-in duration-150">
+                <div className="pb-4 border-b border-slate-100 flex items-center gap-3">
+                  <div className="p-2.5 bg-indigo-50 rounded-xl border border-indigo-100 text-indigo-600">
+                    <Coins className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-slate-900 text-sm">
+                      {t('settings.tab_currency')}
+                    </h3>
+                    <p className="text-slate-500 text-xs mt-0.5">
+                      Cấu hình định dạng hiển thị đơn vị tiền tệ trên toàn bộ ứng dụng và hóa đơn.
+                    </p>
+                  </div>
+                </div>
 
-                <div className="space-y-4 max-w-xl">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="font-semibold text-slate-700 mb-1 block">
-                        {t('settings.currency_code')} *
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={form.currency_code || ''}
-                        onChange={(e) => handleChange('currency_code', e.target.value)}
-                        className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
-                        placeholder="VND, USD, EUR..."
-                      />
-                    </div>
-
-                    <div>
-                      <label className="font-semibold text-slate-700 mb-1 block">
-                        {t('settings.currency_symbol')} *
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={form.currency_symbol || ''}
-                        onChange={(e) => handleChange('currency_symbol', e.target.value)}
-                        className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
-                        placeholder="đ"
-                      />
-                    </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                  <div>
+                    <label className="font-semibold text-slate-700 mb-1.5 block">
+                      {t('settings.currency_code')} <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={form.currency_code || ''}
+                      onChange={(e) => handleChange('currency_code', e.target.value)}
+                      className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 bg-slate-50/50 hover:bg-white focus:bg-white transition"
+                      placeholder="VND, USD, EUR..."
+                    />
                   </div>
 
                   <div>
-                    <label className="font-semibold text-slate-700 mb-1 block">
+                    <label className="font-semibold text-slate-700 mb-1.5 block">
+                      {t('settings.currency_symbol')} <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={form.currency_symbol || ''}
+                      onChange={(e) => handleChange('currency_symbol', e.target.value)}
+                      className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 bg-slate-50/50 hover:bg-white focus:bg-white transition"
+                      placeholder="đ, $, €..."
+                    />
+                  </div>
+
+                  <div>
+                    <label className="font-semibold text-slate-700 mb-1.5 block">
                       {t('settings.currency_position')}
                     </label>
                     <ModernSelect
                       value={form.currency_position || 'suffix'}
                       onChange={(val) => handleChange('currency_position', String(val))}
                       options={[
-                        { value: 'suffix', label: t('settings.position_suffix') || 'Hậu tố (VD: 35.000 đ)', badge: 'Suffix', badgeColor: 'indigo' },
-                        { value: 'prefix', label: t('settings.position_prefix') || 'Tiền tố (VD: $35.000)', badge: 'Prefix', badgeColor: 'emerald' },
+                        { value: 'suffix', label: t('settings.position_suffix') || 'Hậu tố (35.000 đ)', badge: 'Suffix', badgeColor: 'indigo' },
+                        { value: 'prefix', label: t('settings.position_prefix') || 'Tiền tố ($35.000)', badge: 'Prefix', badgeColor: 'emerald' },
                       ]}
                     />
                   </div>
 
                   {/* Preview Box */}
-                  <div className="bg-indigo-50/60 p-4 rounded-xl border border-indigo-100 mt-3">
-                    <p className="text-[11px] text-slate-500 font-medium mb-1">{t('settings.preview_label')}</p>
-                    <p className="text-sm font-extrabold text-indigo-700">
+                  <div className="sm:col-span-3 bg-indigo-50/60 p-4 rounded-2xl border border-indigo-100/80 flex items-center justify-between">
+                    <div>
+                      <span className="text-[11px] text-indigo-900 font-semibold block">{t('settings.preview_label')}</span>
+                      <span className="text-xs text-slate-500">Mẫu định dạng tiền tệ thực tế</span>
+                    </div>
+                    <span className="text-base font-extrabold text-indigo-700 bg-white px-3.5 py-1.5 rounded-xl border border-indigo-200 shadow-2xs">
                       {formatCurrency(35000, form)}
-                    </p>
+                    </span>
                   </div>
                 </div>
               </div>
@@ -609,53 +661,95 @@ export default function SettingsPage() {
 
             {/* TAB 3: VietQR Payment Settings */}
             {activeTab === 'vietqr' && (
-              <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4 text-xs animate-in fade-in duration-150">
-                <h3 className="font-bold text-slate-900 text-sm pb-2 border-b border-slate-100 flex items-center gap-2">
-                  <QrCode className="w-4 h-4 text-indigo-600" />
-                  {t('settings.tab_vietqr')}
-                </h3>
-
-                <div className="space-y-4 max-w-xl">
+              <div className="bg-white p-5 sm:p-7 rounded-2xl border border-slate-200/80 shadow-xs space-y-6 text-xs animate-in fade-in duration-150">
+                <div className="pb-4 border-b border-slate-100 flex items-center gap-3">
+                  <div className="p-2.5 bg-indigo-50 rounded-xl border border-indigo-100 text-indigo-600">
+                    <QrCode className="w-5 h-5" />
+                  </div>
                   <div>
-                    <label className="font-semibold text-slate-700 mb-1 block">
-                      {t('settings.vietqr_bank_id')} *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={form.vietqr_bank_id || ''}
-                      onChange={(e) => handleChange('vietqr_bank_id', e.target.value)}
-                      className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
-                      placeholder="MB, VCB, ACB, TCB..."
-                    />
+                    <h3 className="font-bold text-slate-900 text-sm">
+                      {t('settings.tab_vietqr')}
+                    </h3>
+                    <p className="text-slate-500 text-xs mt-0.5">
+                      Cấu hình tài khoản ngân hàng để tự động tạo mã VietQR động khi thanh toán tại quầy POS.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+                  <div className="space-y-4">
+                    <div>
+                      <label className="font-semibold text-slate-700 mb-1.5 block">
+                        {t('settings.vietqr_bank_id')} <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={form.vietqr_bank_id || ''}
+                        onChange={(e) => handleChange('vietqr_bank_id', e.target.value)}
+                        className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 bg-slate-50/50 hover:bg-white focus:bg-white transition"
+                        placeholder="MB, VCB, ACB, TCB, VPB, TPB, BIDV..."
+                      />
+                      <p className="text-[11px] text-slate-400 mt-1">Mã ngân hàng chuẩn VietQR (VD: MB, VCB, ACB, VPB...)</p>
+                    </div>
+
+                    <div>
+                      <label className="font-semibold text-slate-700 mb-1.5 block">
+                        {t('settings.vietqr_account_no')} <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={form.vietqr_account_no || ''}
+                        onChange={(e) => handleChange('vietqr_account_no', e.target.value)}
+                        className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 bg-slate-50/50 hover:bg-white focus:bg-white transition font-mono"
+                        placeholder={t('settings.vietqr_account_no_placeholder')}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="font-semibold text-slate-700 mb-1.5 block">
+                        {t('settings.vietqr_account_name')} <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={form.vietqr_account_name || ''}
+                        onChange={(e) => handleChange('vietqr_account_name', e.target.value)}
+                        className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 bg-slate-50/50 hover:bg-white focus:bg-white transition uppercase font-semibold"
+                        placeholder={t('settings.vietqr_account_name_placeholder')}
+                      />
+                    </div>
                   </div>
 
-                  <div>
-                    <label className="font-semibold text-slate-700 mb-1 block">
-                      {t('settings.vietqr_account_no')} *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={form.vietqr_account_no || ''}
-                      onChange={(e) => handleChange('vietqr_account_no', e.target.value)}
-                      className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
-                      placeholder={t('settings.vietqr_account_no_placeholder')}
-                    />
-                  </div>
+                  {/* Visual Bank Card Mock Preview */}
+                  <div className="bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white p-6 rounded-3xl shadow-lg border border-slate-800 space-y-5">
+                    <div className="flex items-center justify-between">
+                      <span className="font-extrabold text-sm tracking-wider text-indigo-300">VIETQR DYNAMIC</span>
+                      <CreditCard className="w-6 h-6 text-indigo-400" />
+                    </div>
 
-                  <div>
-                    <label className="font-semibold text-slate-700 mb-1 block">
-                      {t('settings.vietqr_account_name')} *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={form.vietqr_account_name || ''}
-                      onChange={(e) => handleChange('vietqr_account_name', e.target.value)}
-                      className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white uppercase"
-                      placeholder={t('settings.vietqr_account_name_placeholder')}
-                    />
+                    <div className="space-y-1">
+                      <span className="text-[10px] uppercase tracking-wider text-slate-400 block">Số tài khoản</span>
+                      <span className="font-mono text-lg font-bold tracking-widest text-white block">
+                        {form.vietqr_account_no || '•••• •••• ••••'}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-2 border-t border-slate-800 text-xs">
+                      <div>
+                        <span className="text-[9px] uppercase tracking-wider text-slate-400 block">Chủ tài khoản</span>
+                        <span className="font-bold text-slate-200 uppercase">
+                          {form.vietqr_account_name || 'CHỦ TÀI KHOẢN'}
+                        </span>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-[9px] uppercase tracking-wider text-slate-400 block">Ngân hàng</span>
+                        <span className="font-bold text-indigo-300">
+                          {form.vietqr_bank_id || 'MBBANK'}
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -663,557 +757,634 @@ export default function SettingsPage() {
 
             {/* TAB 4: Email & Automated Reports */}
             {activeTab === 'email' && (
-              <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-5 text-xs animate-in fade-in duration-150">
-                <div>
-                  <h3 className="font-bold text-slate-900 text-sm pb-2 border-b border-slate-100 flex items-center gap-2">
-                    <Mail className="w-4 h-4 text-emerald-600" />
-                    {t('email_report.settings_section_title')}
-                  </h3>
-                  <p className="text-slate-500 text-xs mt-2">{t('email_report.settings_section_desc')}</p>
-                </div>
+              <div className="space-y-6 text-xs animate-in fade-in duration-150">
+                {/* 1. SMTP Server Settings Card */}
+                <div className="bg-white p-5 sm:p-7 rounded-2xl border border-slate-200/80 shadow-xs space-y-5">
+                  <div className="pb-4 border-b border-slate-100 flex items-center gap-3">
+                    <div className="p-2.5 bg-emerald-50 rounded-xl border border-emerald-100 text-emerald-600">
+                      <Mail className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-slate-900 text-sm">
+                        {t('email_report.settings_section_title')}
+                      </h3>
+                      <p className="text-slate-500 text-xs mt-0.5">{t('email_report.settings_section_desc')}</p>
+                    </div>
+                  </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl">
-                  <div>
-                    <label className="font-semibold text-slate-700 mb-1 block">{t('email_report.smtp_host')}</label>
-                    <input type="text" value={form.smtp_host || ''} onChange={(e) => handleChange('smtp_host', e.target.value)}
-                      className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
-                      placeholder="smtp.gmail.com" />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="font-semibold text-slate-700 mb-1.5 block">{t('email_report.smtp_host')}</label>
+                      <input type="text" value={form.smtp_host || ''} onChange={(e) => handleChange('smtp_host', e.target.value)}
+                        className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 bg-slate-50/50 hover:bg-white focus:bg-white transition"
+                        placeholder="smtp.gmail.com" />
+                    </div>
+                    <div>
+                      <label className="font-semibold text-slate-700 mb-1.5 block">{t('email_report.smtp_port')}</label>
+                      <input type="text" value={form.smtp_port || ''} onChange={(e) => handleChange('smtp_port', e.target.value)}
+                        className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 bg-slate-50/50 hover:bg-white focus:bg-white transition"
+                        placeholder="587" />
+                    </div>
+                    <div>
+                      <label className="font-semibold text-slate-700 mb-1.5 block">{t('email_report.smtp_user')}</label>
+                      <input type="email" value={form.smtp_user || ''} onChange={(e) => handleChange('smtp_user', e.target.value)}
+                        className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 bg-slate-50/50 hover:bg-white focus:bg-white transition"
+                        placeholder="your-email@gmail.com" />
+                    </div>
+                    <div>
+                      <label className="font-semibold text-slate-700 mb-1.5 block">{t('email_report.smtp_password')}</label>
+                      <input type="password" value={form.smtp_password || ''} onChange={(e) => handleChange('smtp_password', e.target.value)}
+                        className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 bg-slate-50/50 hover:bg-white focus:bg-white transition"
+                        placeholder="xxxx xxxx xxxx xxxx" />
+                      <p className="text-slate-400 text-[11px] mt-1">{t('email_report.smtp_password_hint')}</p>
+                    </div>
+                    <div>
+                      <label className="font-semibold text-slate-700 mb-1.5 block">{t('email_report.smtp_from_email')}</label>
+                      <input type="email" value={form.smtp_from_email || ''} onChange={(e) => handleChange('smtp_from_email', e.target.value)}
+                        className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 bg-slate-50/50 hover:bg-white focus:bg-white transition"
+                        placeholder="rabbitpos@yourdomain.com" />
+                    </div>
+                    <div>
+                      <label className="font-semibold text-slate-700 mb-1.5 block">{t('email_report.smtp_from_name')}</label>
+                      <input type="text" value={form.smtp_from_name || ''} onChange={(e) => handleChange('smtp_from_name', e.target.value)}
+                        className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 bg-slate-50/50 hover:bg-white focus:bg-white transition"
+                        placeholder="RabbitPOS" />
+                    </div>
                   </div>
-                  <div>
-                    <label className="font-semibold text-slate-700 mb-1 block">{t('email_report.smtp_port')}</label>
-                    <input type="text" value={form.smtp_port || ''} onChange={(e) => handleChange('smtp_port', e.target.value)}
-                      className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
-                      placeholder="587" />
-                  </div>
-                  <div>
-                    <label className="font-semibold text-slate-700 mb-1 block">{t('email_report.smtp_user')}</label>
-                    <input type="email" value={form.smtp_user || ''} onChange={(e) => handleChange('smtp_user', e.target.value)}
-                      className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
-                      placeholder="your-email@gmail.com" />
-                  </div>
-                  <div>
-                    <label className="font-semibold text-slate-700 mb-1 block">{t('email_report.smtp_password')}</label>
-                    <input type="password" value={form.smtp_password || ''} onChange={(e) => handleChange('smtp_password', e.target.value)}
-                      className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
-                      placeholder="xxxx xxxx xxxx xxxx" />
-                    <p className="text-slate-400 text-xs mt-1">{t('email_report.smtp_password_hint')}</p>
-                  </div>
-                  <div>
-                    <label className="font-semibold text-slate-700 mb-1 block">{t('email_report.smtp_from_email')}</label>
-                    <input type="email" value={form.smtp_from_email || ''} onChange={(e) => handleChange('smtp_from_email', e.target.value)}
-                      className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
-                      placeholder="rabbitpos@yourdomain.com" />
-                  </div>
-                  <div>
-                    <label className="font-semibold text-slate-700 mb-1 block">{t('email_report.smtp_from_name')}</label>
-                    <input type="text" value={form.smtp_from_name || ''} onChange={(e) => handleChange('smtp_from_name', e.target.value)}
-                      className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
-                      placeholder="RabbitPOS" />
-                  </div>
-                </div>
 
-                <div className="max-w-2xl">
-                  <label className="font-semibold text-slate-700 mb-1 block">{t('email_report.recipients')}</label>
-                  <input type="text" value={form.report_recipient_emails || ''} onChange={(e) => handleChange('report_recipient_emails', e.target.value)}
-                    className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
-                    placeholder="admin1@email.com,admin2@email.com" />
-                </div>
-
-                <div className="flex flex-col sm:flex-row gap-4 max-w-2xl">
-                  <label className="flex items-center gap-2.5 cursor-pointer bg-emerald-50 border border-emerald-200 rounded-xl p-3 flex-1">
-                    <input type="checkbox" checked={form.enable_daily_email_report === 'true'}
-                      onChange={(e) => handleChange('enable_daily_email_report', e.target.checked ? 'true' : 'false')}
-                      className="w-4 h-4 accent-emerald-600 rounded" />
-                    <Mail className="w-4 h-4 text-emerald-600" />
-                    <span className="text-xs font-semibold text-emerald-800">{t('email_report.enable_auto_report')}</span>
-                  </label>
-
-                  <div className="flex-1">
-                    <label className="font-semibold text-slate-700 mb-1 block">{t('email_report.report_time')}</label>
-                    <input type="time" value={form.daily_report_time || '22:30'} onChange={(e) => handleChange('daily_report_time', e.target.value)}
-                      className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white" />
-                  </div>
-                </div>
-
-                  {/* Test SMTP button (separate from main save) */}
-                  <div className="pt-2 border-t border-slate-100">
+                  {/* Test SMTP button */}
+                  <div className="pt-2 flex justify-end">
                     <button type="button" onClick={handleTestSMTP} disabled={testingSmtp}
-                      className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white font-bold text-xs py-2.5 px-5 rounded-xl transition flex items-center gap-2">
-                      {testingSmtp ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                      {testingSmtp ? t('email_report.sending') : t('email_report.test_smtp_button')}
+                      className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white font-bold text-xs py-2.5 px-4 rounded-xl transition flex items-center gap-2 shadow-xs">
+                      {testingSmtp ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                      <span>{testingSmtp ? t('email_report.sending') : t('email_report.test_smtp_button')}</span>
                     </button>
                   </div>
                 </div>
-              )}
 
-              {/* TAB 5: Backup & Restore */}
-              {activeTab === 'backup' && (
-                <div className="space-y-6 text-xs animate-in fade-in duration-150">
-                  {/* 1. Export Backup Card */}
-                  <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-                    <div className="pb-3 border-b border-slate-100">
-                      <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
-                        <Download className="w-4 h-4 text-violet-600" />
-                        {t('settings.backup_section_title')}
-                      </h3>
-                      <p className="text-slate-500 text-xs mt-0.5">
-                        {t('settings.backup_section_desc')}
-                      </p>
+                {/* 2. Automated Daily Report Configuration */}
+                <div className="bg-white p-5 sm:p-7 rounded-2xl border border-slate-200/80 shadow-xs space-y-5">
+                  <div className="pb-4 border-b border-slate-100 flex items-center gap-3">
+                    <div className="p-2.5 bg-emerald-50 rounded-xl border border-emerald-100 text-emerald-600">
+                      <Clock className="w-5 h-5" />
                     </div>
-
-                    <div className="bg-violet-50/60 border border-violet-100 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                      <div className="space-y-1">
-                        <span className="font-bold text-slate-800 flex items-center gap-1.5">
-                          <Database className="w-4 h-4 text-violet-600" />
-                          Toàn bộ cơ sở dữ liệu hệ thống (Định dạng JSON chuẩn)
-                        </span>
-                        <p className="text-slate-500 text-[11px]">
-                          Bao gồm: Thực đơn, Danh mục, Biến thể, Topping, Quỹ tiền, Giao dịch thu chi, Lịch sử đơn hàng, Khuyến mãi và Cài đặt cửa hàng.
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={handleExportBackup}
-                        disabled={exportingBackup}
-                        className="bg-violet-600 hover:bg-violet-700 disabled:bg-slate-300 text-white font-bold text-xs py-3 px-5 rounded-xl shadow-md transition flex items-center gap-2 shrink-0"
-                      >
-                        {exportingBackup ? (
-                          <RefreshCw className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <Download className="w-4 h-4" />
-                        )}
-                        <span>{exportingBackup ? t('settings.export_backup_loading') : t('settings.export_backup_btn')}</span>
-                      </button>
+                    <div>
+                      <h3 className="font-bold text-slate-900 text-sm">
+                        Báo Cáo Tài Chính Tự Động Hàng Ngày
+                      </h3>
+                      <p className="text-slate-500 text-xs mt-0.5">Tự động tổng hợp và gửi báo cáo kết ca / chốt ngày qua email cho ban quản lý.</p>
                     </div>
                   </div>
 
-                  {/* 2. Restore Backup Card */}
-                  <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-                    <div className="pb-3 border-b border-slate-100">
-                      <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
-                        <UploadCloud className="w-4 h-4 text-amber-600" />
-                        {t('settings.restore_section_title')}
-                      </h3>
-                      <p className="text-slate-500 text-xs mt-0.5">
-                        {t('settings.restore_section_desc')}
-                      </p>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="font-semibold text-slate-700 mb-1.5 block">{t('email_report.recipients')}</label>
+                      <input type="text" value={form.report_recipient_emails || ''} onChange={(e) => handleChange('report_recipient_emails', e.target.value)}
+                        className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 bg-slate-50/50 hover:bg-white focus:bg-white transition"
+                        placeholder="admin1@email.com,admin2@email.com" />
+                      <p className="text-[11px] text-slate-400 mt-1">Nhiều email cách nhau bằng dấu phẩy (,)</p>
                     </div>
 
-                    {/* Warning banner */}
-                    <div className="bg-amber-50 border border-amber-200 text-amber-900 p-3.5 rounded-xl flex items-start gap-2.5">
-                      <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                      <div className="text-xs space-y-0.5">
-                        <span className="font-bold">Lưu ý quan trọng:</span>
-                        <p className="text-amber-800">{t('settings.restore_warning')}</p>
-                      </div>
-                    </div>
-
-                    {/* File Upload Drop Area */}
-                    <div
-                      onClick={() => backupInputRef.current?.click()}
-                      className="border-2 border-dashed border-slate-200 hover:border-violet-400 rounded-2xl p-6 text-center cursor-pointer transition bg-slate-50/50 hover:bg-violet-50/20 space-y-2"
-                    >
-                      <input
-                        ref={backupInputRef}
-                        type="file"
-                        accept=".json,application/json"
-                        onChange={handleBackupFileSelect}
-                        className="hidden"
-                      />
-                      <div className="w-12 h-12 rounded-2xl bg-white border border-slate-200 text-violet-600 flex items-center justify-center mx-auto shadow-sm">
-                        <FileJson className="w-6 h-6" />
-                      </div>
-                      <div>
-                        <span className="font-bold text-slate-700 block text-xs">
-                          {backupFile ? backupFile.name : t('settings.restore_select_file')}
-                        </span>
-                        <span className="text-slate-400 text-[11px]">
-                          {backupFile
-                            ? `${(backupFile.size / 1024).toFixed(1)} KB · Bấm để đổi file khác`
-                            : t('settings.restore_drag_hint')}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* If file is selected and parsed, show action button */}
-                    {backupFile && backupPreview && (
-                      <div className="pt-2 flex justify-end">
-                        <button
-                          type="button"
-                          onClick={() => setShowRestoreModal(true)}
-                          disabled={restoringBackup}
-                          className="bg-amber-600 hover:bg-amber-700 disabled:bg-slate-300 text-white font-bold text-xs py-3 px-6 rounded-xl shadow-md transition flex items-center gap-2"
-                        >
-                          {restoringBackup ? (
-                            <RefreshCw className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <UploadCloud className="w-4 h-4" />
-                          )}
-                          <span>{restoringBackup ? t('settings.restore_loading') : t('settings.restore_btn')}</span>
-                        </button>
-                      </div>
-                    )}
-
-                    {/* Restore Result Summary */}
-                    {restoreResult && (
-                      <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 space-y-2 animate-in fade-in">
-                        <div className="flex items-center gap-2 text-emerald-800 font-bold text-xs">
-                          <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                          {t('settings.restore_success')}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <label className="flex items-center gap-3 cursor-pointer bg-emerald-50/70 border border-emerald-200/80 rounded-2xl p-4 transition hover:bg-emerald-50">
+                        <input type="checkbox" checked={form.enable_daily_email_report === 'true'}
+                          onChange={(e) => handleChange('enable_daily_email_report', e.target.checked ? 'true' : 'false')}
+                          className="w-4 h-4 accent-emerald-600 rounded" />
+                        <div>
+                          <span className="text-xs font-bold text-emerald-900 block">{t('email_report.enable_auto_report')}</span>
+                          <span className="text-[11px] text-emerald-700">Tự động gửi báo cáo mỗi ngày</span>
                         </div>
-                        {restoreResult.restored_stats && (
-                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] text-slate-600 pt-1">
-                            <div className="bg-white/80 p-2 rounded-lg border border-emerald-100">
-                              <span className="font-semibold text-slate-800">{restoreResult.restored_stats.categories}</span> Danh mục
-                            </div>
-                            <div className="bg-white/80 p-2 rounded-lg border border-emerald-100">
-                              <span className="font-semibold text-slate-800">{restoreResult.restored_stats.products}</span> Sản phẩm
-                            </div>
-                            <div className="bg-white/80 p-2 rounded-lg border border-emerald-100">
-                              <span className="font-semibold text-slate-800">{restoreResult.restored_stats.toppings}</span> Topping
-                            </div>
-                            <div className="bg-white/80 p-2 rounded-lg border border-emerald-100">
-                              <span className="font-semibold text-slate-800">{restoreResult.restored_stats.orders}</span> Đơn hàng
-                            </div>
-                            <div className="bg-white/80 p-2 rounded-lg border border-emerald-100">
-                              <span className="font-semibold text-slate-800">{restoreResult.restored_stats.transactions}</span> Giao dịch
-                            </div>
-                            <div className="bg-white/80 p-2 rounded-lg border border-emerald-100">
-                              <span className="font-semibold text-slate-800">{restoreResult.restored_stats.funds}</span> Quỹ tiền
-                            </div>
-                            <div className="bg-white/80 p-2 rounded-lg border border-emerald-100">
-                              <span className="font-semibold text-slate-800">{restoreResult.restored_stats.promotions}</span> Khuyến mãi
-                            </div>
-                            <div className="bg-white/80 p-2 rounded-lg border border-emerald-100">
-                              <span className="font-semibold text-slate-800">{restoreResult.restored_stats.settings}</span> Cài đặt
-                            </div>
-                          </div>
-                        )}
+                      </label>
+
+                      <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/70 space-y-1.5">
+                        <label className="font-semibold text-slate-700 block">{t('email_report.report_time')}</label>
+                        <input type="time" value={form.daily_report_time || '22:30'} onChange={(e) => handleChange('daily_report_time', e.target.value)}
+                          className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 bg-white" />
                       </div>
-                    )}
+                    </div>
                   </div>
                 </div>
-              )}
+              </div>
+            )}
 
-              {/* TAB 6: Automated Data Import Engine */}
-              {activeTab === 'import' && (
-                <div className="space-y-6 text-xs animate-in fade-in duration-150">
-                  {/* 1. Download Template Card */}
-                  <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-                    <div className="pb-3 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                      <div>
-                        <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
-                          <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
-                          {t('settings.import_section_title')}
-                        </h3>
-                        <p className="text-slate-500 text-xs mt-0.5">
-                          {t('settings.import_section_desc')}
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={handleDownloadTemplate}
-                        disabled={downloadingTemplate}
-                        className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white font-bold text-xs py-2.5 px-4 rounded-xl shadow-sm transition flex items-center gap-2 shrink-0 self-start sm:self-auto"
-                      >
-                        {downloadingTemplate ? (
-                          <RefreshCw className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <Download className="w-4 h-4" />
-                        )}
-                        <span>{t('settings.download_template_btn')}</span>
-                      </button>
-                    </div>
-
-                    {/* Supported Sheets Overview Pills */}
-                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 pt-1">
-                      <div className="bg-indigo-50/70 border border-indigo-100 rounded-xl p-3 space-y-1">
-                        <span className="font-bold text-indigo-900 block text-xs">📁 Danh Mục</span>
-                        <p className="text-slate-500 text-[11px]">Tên danh mục, thứ tự, trạng thái</p>
-                      </div>
-                      <div className="bg-violet-50/70 border border-violet-100 rounded-xl p-3 space-y-1">
-                        <span className="font-bold text-violet-900 block text-xs">🧋 Topping</span>
-                        <p className="text-slate-500 text-[11px]">Giá bán, giá vốn COGS, phân loại</p>
-                      </div>
-                      <div className="bg-emerald-50/70 border border-emerald-100 rounded-xl p-3 space-y-1">
-                        <span className="font-bold text-emerald-900 block text-xs">🍹 Sản Phẩm & Size</span>
-                        <p className="text-slate-500 text-[11px]">Món ăn, Size M/L, giá vốn, giá bán</p>
-                      </div>
-                      <div className="bg-amber-50/70 border border-amber-100 rounded-xl p-3 space-y-1">
-                        <span className="font-bold text-amber-900 block text-xs">💸 Sổ Thu Chi</span>
-                        <p className="text-slate-500 text-[11px]">Khoản thu, khoản chi, quỹ tiền</p>
-                      </div>
-                      <div className="bg-rose-50/70 border border-rose-100 rounded-xl p-3 space-y-1">
-                        <span className="font-bold text-rose-900 block text-xs">🧾 Lịch Sử Đơn Hàng</span>
-                        <p className="text-slate-500 text-[11px]">Đơn hàng, chi tiết món & topping</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* 2. File Upload & Ingestion Settings Card */}
-                  <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-5">
-                    <div className="pb-3 border-b border-slate-100">
-                      <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
-                        <UploadCloud className="w-4 h-4 text-emerald-600" />
-                        {t('settings.upload_import_title')}
-                      </h3>
-                      <p className="text-slate-500 text-xs mt-0.5">
-                        Chọn file mẫu Excel (.xlsx) hoặc file (.csv) đã điền dữ liệu để tiến hành nhập.
-                      </p>
-                    </div>
-
-                    {/* File Dropzone */}
-                    <div
-                      onClick={() => importInputRef.current?.click()}
-                      className="border-2 border-dashed border-slate-200 hover:border-emerald-400 rounded-2xl p-6 text-center cursor-pointer transition bg-slate-50/50 hover:bg-emerald-50/20 space-y-2"
-                    >
-                      <input
-                        ref={importInputRef}
-                        type="file"
-                        accept=".xlsx,.xls,.csv"
-                        onChange={handleImportFileSelect}
-                        className="hidden"
-                      />
-                      <div className="w-12 h-12 rounded-2xl bg-white border border-slate-200 text-emerald-600 flex items-center justify-center mx-auto shadow-sm">
-                        <FileSpreadsheet className="w-6 h-6" />
-                      </div>
-                      <div>
-                        <span className="font-bold text-slate-700 block text-xs">
-                          {importFile ? importFile.name : t('settings.upload_import_title')}
-                        </span>
-                        <span className="text-slate-400 text-[11px]">
-                          {importFile
-                            ? `${(importFile.size / 1024).toFixed(1)} KB · Bấm để đổi file khác`
-                            : t('settings.upload_import_drag_hint')}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Configuration Options */}
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2 border-t border-slate-100">
-                      <div>
-                        <label className="font-semibold text-slate-700 mb-1.5 block">
-                          {t('settings.import_target_label')}
-                        </label>
-                        <ModernSelect
-                          size="sm"
-                          value={importTarget}
-                          onChange={(val) => setImportTarget(String(val))}
-                          options={[
-                            { value: 'all', label: t('settings.target_all') },
-                            { value: 'categories', label: t('settings.target_categories') },
-                            { value: 'toppings', label: t('settings.target_toppings') },
-                            { value: 'products', label: t('settings.target_products') },
-                            { value: 'transactions', label: t('settings.target_transactions') },
-                            { value: 'orders', label: t('settings.target_orders') },
-                          ]}
-                        />
-                      </div>
-
-                      <div className="sm:col-span-2 flex flex-col justify-end space-y-2.5">
-                        <label className="flex items-center gap-2 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={upsertProducts}
-                            onChange={(e) => setUpsertProducts(e.target.checked)}
-                            className="w-4 h-4 accent-emerald-600 rounded"
-                          />
-                          <span className="text-slate-700 font-medium">
-                            {t('settings.opt_upsert_products')}
-                          </span>
-                        </label>
-
-                        <label className="flex items-center gap-2 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={updateFunds}
-                            onChange={(e) => setUpdateFunds(e.target.checked)}
-                            className="w-4 h-4 accent-emerald-600 rounded"
-                          />
-                          <span className="text-slate-700 font-medium">
-                            {t('settings.opt_update_funds')}
-                          </span>
-                        </label>
-                      </div>
-                    </div>
-
-                    {/* Action Button */}
-                    <div className="pt-3 border-t border-slate-100 flex justify-end">
-                      <button
-                        type="button"
-                        onClick={handleExecuteImport}
-                        disabled={!importFile || importingData}
-                        className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white font-bold text-xs py-3 px-6 rounded-xl shadow-md transition flex items-center gap-2"
-                      >
-                        {importingData ? (
-                          <RefreshCw className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <UploadCloud className="w-4 h-4" />
-                        )}
-                        <span>{importingData ? t('settings.importing_loading') : t('settings.start_import_btn')}</span>
-                      </button>
-                    </div>
-
-                    {/* Import Result Breakdown */}
-                    {importResult && (
-                      <div className="space-y-4 pt-2 animate-in fade-in">
-                        <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 space-y-3">
-                          <div className="flex items-center justify-between">
-                            <span className="flex items-center gap-2 text-emerald-800 font-bold text-xs">
-                              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                              {importResult.message || t('settings.import_success_title')}
-                            </span>
-                          </div>
-
-                          {importResult.stats && (
-                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-[11px] text-slate-600">
-                              <div className="bg-white/80 p-2.5 rounded-xl border border-emerald-100">
-                                <span className="font-bold text-slate-900 text-sm block">{importResult.stats.categories_count}</span>
-                                Danh mục món
-                              </div>
-                              <div className="bg-white/80 p-2.5 rounded-xl border border-emerald-100">
-                                <span className="font-bold text-slate-900 text-sm block">{importResult.stats.toppings_count}</span>
-                                Topping
-                              </div>
-                              <div className="bg-white/80 p-2.5 rounded-xl border border-emerald-100">
-                                <span className="font-bold text-slate-900 text-sm block">{importResult.stats.products_count}</span>
-                                Món ăn ({importResult.stats.variants_count} size)
-                              </div>
-                              <div className="bg-white/80 p-2.5 rounded-xl border border-emerald-100">
-                                <span className="font-bold text-slate-900 text-sm block">{importResult.stats.transactions_count}</span>
-                                Giao dịch thu chi
-                              </div>
-                              <div className="bg-white/80 p-2.5 rounded-xl border border-emerald-100">
-                                <span className="font-bold text-slate-900 text-sm block">{importResult.stats.orders_count}</span>
-                                Đơn hàng ({importResult.stats.order_items_count} chi tiết món)
-                              </div>
-                              <div className="bg-white/80 p-2.5 rounded-xl border border-emerald-100">
-                                <span className="font-bold text-slate-900 text-sm block">{importResult.stats.total_errors}</span>
-                                Cảnh báo / Lỗi
-                              </div>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Error Log Table */}
-                        {importResult.errors && importResult.errors.length > 0 && (
-                          <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4 space-y-2">
-                            <h4 className="font-bold text-rose-800 text-xs flex items-center gap-1.5">
-                              <AlertTriangle className="w-4 h-4 text-rose-600" />
-                              {t('settings.import_errors_title')} ({importResult.errors.length})
-                            </h4>
-                            <div className="max-h-48 overflow-y-auto divide-y divide-rose-100 border border-rose-100 rounded-xl bg-white text-[11px]">
-                              {importResult.errors.map((err: any, idx: number) => (
-                                <div key={idx} className="p-2.5 flex items-start gap-2">
-                                  <span className="font-mono font-bold text-rose-600 shrink-0">#{idx + 1}</span>
-                                  <div className="space-y-0.5 flex-1">
-                                    <div className="flex items-center gap-2">
-                                      <span className="font-semibold text-slate-800">{err.sheet}</span>
-                                      <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded text-[10px]">Dòng {err.row}</span>
-                                      {err.field && <span className="text-slate-400">({err.field})</span>}
-                                    </div>
-                                    <p className="text-rose-700">{err.message}</p>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Save Button (hidden on backup and import tabs) */}
-              {activeTab !== 'backup' && activeTab !== 'import' && (
-                <div className="flex justify-end pt-2">
+            {/* TAB 5: Backup & Data Management (with Sub-tab Switcher) */}
+            {activeTab === 'backup' && (
+              <div className="space-y-6 text-xs animate-in fade-in duration-150">
+                {/* Sub-Tab Switcher inside Backup Tab */}
+                <div className="flex bg-slate-100 p-1 rounded-2xl border border-slate-200/80 w-full sm:w-fit gap-1">
                   <button
-                    type="submit"
-                    disabled={saving}
-                    className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 text-white font-bold text-xs py-3 px-6 rounded-xl shadow-md transition flex items-center space-x-2"
+                    type="button"
+                    onClick={() => setBackupSubTab('json_backup')}
+                    className={`flex-1 sm:flex-none py-2 px-4 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 ${
+                      backupSubTab === 'json_backup'
+                        ? 'bg-white text-violet-700 shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
                   >
-                    {saving ? (
-                      <>
-                        <RefreshCw className="w-4 h-4 animate-spin" />
-                        <span>{t('pos.processing')}</span>
-                      </>
-                    ) : (
-                      <>
-                        <Save className="w-4 h-4" />
-                        <span>{t('common.save')}</span>
-                      </>
-                    )}
+                    <Database className="w-3.5 h-3.5" />
+                    <span>Sao Lưu & Phục Hồi (.json)</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setBackupSubTab('excel_import')}
+                    className={`flex-1 sm:flex-none py-2 px-4 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 ${
+                      backupSubTab === 'excel_import'
+                        ? 'bg-white text-emerald-700 shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    <FileSpreadsheet className="w-3.5 h-3.5" />
+                    <span>Nhập Dữ Liệu Excel / CSV</span>
                   </button>
                 </div>
-              )}
-            </form>
-          )}
 
-          {/* Restore Confirmation Modal */}
-          {showRestoreModal && backupPreview && (
-            <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-              <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl space-y-5 animate-in zoom-in-95">
-                <div className="flex items-center gap-3 text-amber-600">
-                  <div className="p-3 bg-amber-50 rounded-2xl border border-amber-200">
-                    <AlertTriangle className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-slate-900 text-base">{t('settings.restore_confirm_title')}</h3>
-                    <p className="text-slate-500 text-xs">File: {backupFile?.name}</p>
-                  </div>
-                </div>
+                {/* Sub-tab 1: JSON Backup & Restore */}
+                {backupSubTab === 'json_backup' && (
+                  <div className="space-y-6 animate-in fade-in">
+                    {/* 1. Export Backup Card */}
+                    <div className="bg-white p-5 sm:p-7 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
+                      <div className="pb-4 border-b border-slate-100 flex items-center gap-3">
+                        <div className="p-2.5 bg-violet-50 rounded-xl border border-violet-100 text-violet-600">
+                          <Download className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-slate-900 text-sm">
+                            {t('settings.backup_section_title')}
+                          </h3>
+                          <p className="text-slate-500 text-xs mt-0.5">
+                            {t('settings.backup_section_desc')}
+                          </p>
+                        </div>
+                      </div>
 
-                <p className="text-xs text-slate-600 leading-relaxed">
-                  {t('settings.restore_confirm_desc')}
-                </p>
+                      <div className="bg-violet-50/60 border border-violet-100 rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                        <div className="space-y-1">
+                          <span className="font-bold text-slate-800 flex items-center gap-1.5">
+                            <Database className="w-4 h-4 text-violet-600" />
+                            Toàn bộ cơ sở dữ liệu hệ thống (Định dạng JSON chuẩn)
+                          </span>
+                          <p className="text-slate-500 text-[11px] leading-relaxed">
+                            Bao gồm: Thực đơn, Danh mục, Biến thể, Topping, Quỹ tiền, Sổ thu chi, Đơn hàng, Khuyến mãi và Cài đặt cửa hàng.
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleExportBackup}
+                          disabled={exportingBackup}
+                          className="bg-violet-600 hover:bg-violet-700 disabled:bg-slate-300 text-white font-bold text-xs py-3 px-5 rounded-xl shadow-xs transition flex items-center gap-2 shrink-0 self-start sm:self-auto"
+                        >
+                          {exportingBackup ? (
+                            <RefreshCw className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Download className="w-4 h-4" />
+                          )}
+                          <span>{exportingBackup ? t('settings.export_backup_loading') : t('settings.export_backup_btn')}</span>
+                        </button>
+                      </div>
+                    </div>
 
-                {backupPreview.stats && (
-                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs space-y-1 text-slate-600">
-                    <span className="font-bold text-slate-800 block text-[11px] uppercase tracking-wide">
-                      Thống kê dữ liệu trong file:
-                    </span>
-                    <div className="grid grid-cols-2 gap-1 text-[11px]">
-                      <div>• Danh mục: <b>{backupPreview.stats.categories || 0}</b></div>
-                      <div>• Sản phẩm: <b>{backupPreview.stats.products || 0}</b></div>
-                      <div>• Topping: <b>{backupPreview.stats.toppings || 0}</b></div>
-                      <div>• Đơn hàng: <b>{backupPreview.stats.orders || 0}</b></div>
-                      <div>• Giao dịch: <b>{backupPreview.stats.transactions || 0}</b></div>
-                      <div>• Quỹ tiền: <b>{backupPreview.stats.funds || 0}</b></div>
+                    {/* 2. Restore Backup Card */}
+                    <div className="bg-white p-5 sm:p-7 rounded-2xl border border-slate-200/80 shadow-xs space-y-5">
+                      <div className="pb-4 border-b border-slate-100 flex items-center gap-3">
+                        <div className="p-2.5 bg-amber-50 rounded-xl border border-amber-100 text-amber-600">
+                          <UploadCloud className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-slate-900 text-sm">
+                            {t('settings.restore_section_title')}
+                          </h3>
+                          <p className="text-slate-500 text-xs mt-0.5">
+                            {t('settings.restore_section_desc')}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Warning banner */}
+                      <div className="bg-amber-50 border border-amber-200 text-amber-900 p-4 rounded-2xl flex items-start gap-3">
+                        <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                        <div className="text-xs space-y-0.5">
+                          <span className="font-bold">Lưu ý quan trọng:</span>
+                          <p className="text-amber-800 leading-relaxed">{t('settings.restore_warning')}</p>
+                        </div>
+                      </div>
+
+                      {/* File Upload Drop Area */}
+                      <div
+                        onClick={() => backupInputRef.current?.click()}
+                        className="border-2 border-dashed border-slate-200 hover:border-violet-400 rounded-2xl p-7 text-center cursor-pointer transition bg-slate-50/50 hover:bg-violet-50/20 space-y-2"
+                      >
+                        <input
+                          ref={backupInputRef}
+                          type="file"
+                          accept=".json,application/json"
+                          onChange={handleBackupFileSelect}
+                          className="hidden"
+                        />
+                        <div className="w-12 h-12 rounded-2xl bg-white border border-slate-200 text-violet-600 flex items-center justify-center mx-auto shadow-2xs">
+                          <FileJson className="w-6 h-6" />
+                        </div>
+                        <div>
+                          <span className="font-bold text-slate-700 block text-xs">
+                            {backupFile ? backupFile.name : t('settings.restore_select_file')}
+                          </span>
+                          <span className="text-slate-400 text-[11px]">
+                            {backupFile
+                              ? `${(backupFile.size / 1024).toFixed(1)} KB · Bấm để chọn file khác`
+                              : t('settings.restore_drag_hint')}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* If file is selected and parsed, show action button */}
+                      {backupFile && backupPreview && (
+                        <div className="pt-2 flex justify-end">
+                          <button
+                            type="button"
+                            onClick={() => setShowRestoreModal(true)}
+                            disabled={restoringBackup}
+                            className="bg-amber-600 hover:bg-amber-700 disabled:bg-slate-300 text-white font-bold text-xs py-3 px-6 rounded-xl shadow-xs transition flex items-center gap-2"
+                          >
+                            {restoringBackup ? (
+                              <RefreshCw className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <UploadCloud className="w-4 h-4" />
+                            )}
+                            <span>{restoringBackup ? t('settings.restore_loading') : t('settings.restore_btn')}</span>
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Restore Result Summary */}
+                      {restoreResult && (
+                        <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 space-y-2 animate-in fade-in">
+                          <div className="flex items-center gap-2 text-emerald-800 font-bold text-xs">
+                            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                            {t('settings.restore_success')}
+                          </div>
+                          {restoreResult.restored_stats && (
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] text-slate-600 pt-1">
+                              <div className="bg-white/80 p-2 rounded-lg border border-emerald-100">
+                                <span className="font-semibold text-slate-800">{restoreResult.restored_stats.categories}</span> Danh mục
+                              </div>
+                              <div className="bg-white/80 p-2 rounded-lg border border-emerald-100">
+                                <span className="font-semibold text-slate-800">{restoreResult.restored_stats.products}</span> Sản phẩm
+                              </div>
+                              <div className="bg-white/80 p-2 rounded-lg border border-emerald-100">
+                                <span className="font-semibold text-slate-800">{restoreResult.restored_stats.toppings}</span> Topping
+                              </div>
+                              <div className="bg-white/80 p-2 rounded-lg border border-emerald-100">
+                                <span className="font-semibold text-slate-800">{restoreResult.restored_stats.orders}</span> Đơn hàng
+                              </div>
+                              <div className="bg-white/80 p-2 rounded-lg border border-emerald-100">
+                                <span className="font-semibold text-slate-800">{restoreResult.restored_stats.transactions}</span> Giao dịch
+                              </div>
+                              <div className="bg-white/80 p-2 rounded-lg border border-emerald-100">
+                                <span className="font-semibold text-slate-800">{restoreResult.restored_stats.funds}</span> Quỹ tiền
+                              </div>
+                              <div className="bg-white/80 p-2 rounded-lg border border-emerald-100">
+                                <span className="font-semibold text-slate-800">{restoreResult.restored_stats.promotions}</span> Khuyến mãi
+                              </div>
+                              <div className="bg-white/80 p-2 rounded-lg border border-emerald-100">
+                                <span className="font-semibold text-slate-800">{restoreResult.restored_stats.settings}</span> Cài đặt
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
 
-                <div className="flex items-center gap-3 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowRestoreModal(false)}
-                    className="flex-1 py-2.5 px-4 rounded-xl border border-slate-200 text-slate-700 font-semibold text-xs hover:bg-slate-50 transition"
-                  >
-                    {t('common.cancel')}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleExecuteRestore}
-                    disabled={restoringBackup}
-                    className="flex-1 py-2.5 px-4 rounded-xl bg-amber-600 hover:bg-amber-700 disabled:bg-slate-300 text-white font-bold text-xs shadow-md transition flex items-center justify-center gap-1.5"
-                  >
-                    {restoringBackup ? <RefreshCw className="w-4 h-4 animate-spin" /> : <UploadCloud className="w-4 h-4" />}
-                    <span>{t('settings.restore_btn')}</span>
-                  </button>
+                {/* Sub-tab 2: Excel & CSV Data Import */}
+                {backupSubTab === 'excel_import' && (
+                  <div className="space-y-6 animate-in fade-in">
+                    {/* 1. Download Template Card */}
+                    <div className="bg-white p-5 sm:p-7 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
+                      <div className="pb-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2.5 bg-emerald-50 rounded-xl border border-emerald-100 text-emerald-600">
+                            <FileSpreadsheet className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <h3 className="font-bold text-slate-900 text-sm">
+                              {t('settings.import_section_title')}
+                            </h3>
+                            <p className="text-slate-500 text-xs mt-0.5">
+                              {t('settings.import_section_desc')}
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleDownloadTemplate}
+                          disabled={downloadingTemplate}
+                          className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white font-bold text-xs py-2.5 px-4 rounded-xl shadow-xs transition flex items-center gap-2 shrink-0 self-start sm:self-auto"
+                        >
+                          {downloadingTemplate ? (
+                            <RefreshCw className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Download className="w-4 h-4" />
+                          )}
+                          <span>{t('settings.download_template_btn')}</span>
+                        </button>
+                      </div>
+
+                      {/* Supported Sheets Overview Pills */}
+                      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 pt-1">
+                        <div className="bg-indigo-50/70 border border-indigo-100 rounded-xl p-3 space-y-1">
+                          <span className="font-bold text-indigo-900 block text-xs">📁 Danh Mục</span>
+                          <p className="text-slate-500 text-[11px]">Tên danh mục, thứ tự, trạng thái</p>
+                        </div>
+                        <div className="bg-violet-50/70 border border-violet-100 rounded-xl p-3 space-y-1">
+                          <span className="font-bold text-violet-900 block text-xs">🧋 Topping</span>
+                          <p className="text-slate-500 text-[11px]">Giá bán, giá vốn COGS, phân loại</p>
+                        </div>
+                        <div className="bg-emerald-50/70 border border-emerald-100 rounded-xl p-3 space-y-1">
+                          <span className="font-bold text-emerald-900 block text-xs">🍹 Sản Phẩm & Size</span>
+                          <p className="text-slate-500 text-[11px]">Món ăn, Size M/L, giá vốn, giá bán</p>
+                        </div>
+                        <div className="bg-amber-50/70 border border-amber-100 rounded-xl p-3 space-y-1">
+                          <span className="font-bold text-amber-900 block text-xs">💸 Sổ Thu Chi</span>
+                          <p className="text-slate-500 text-[11px]">Khoản thu, khoản chi, quỹ tiền</p>
+                        </div>
+                        <div className="bg-rose-50/70 border border-rose-100 rounded-xl p-3 space-y-1">
+                          <span className="font-bold text-rose-900 block text-xs">🧾 Lịch Sử Đơn Hàng</span>
+                          <p className="text-slate-500 text-[11px]">Đơn hàng, chi tiết món & topping</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 2. File Upload & Ingestion Settings Card */}
+                    <div className="bg-white p-5 sm:p-7 rounded-2xl border border-slate-200/80 shadow-xs space-y-5">
+                      <div className="pb-4 border-b border-slate-100 flex items-center gap-3">
+                        <div className="p-2.5 bg-emerald-50 rounded-xl border border-emerald-100 text-emerald-600">
+                          <UploadCloud className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-slate-900 text-sm">
+                            {t('settings.upload_import_title')}
+                          </h3>
+                          <p className="text-slate-500 text-xs mt-0.5">
+                            Chọn file Excel (.xlsx) hoặc file (.csv) chuẩn để tiến hành nạp dữ liệu.
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* File Dropzone */}
+                      <div
+                        onClick={() => importInputRef.current?.click()}
+                        className="border-2 border-dashed border-slate-200 hover:border-emerald-400 rounded-2xl p-7 text-center cursor-pointer transition bg-slate-50/50 hover:bg-emerald-50/20 space-y-2"
+                      >
+                        <input
+                          ref={importInputRef}
+                          type="file"
+                          accept=".xlsx,.xls,.csv"
+                          onChange={handleImportFileSelect}
+                          className="hidden"
+                        />
+                        <div className="w-12 h-12 rounded-2xl bg-white border border-slate-200 text-emerald-600 flex items-center justify-center mx-auto shadow-2xs">
+                          <FileSpreadsheet className="w-6 h-6" />
+                        </div>
+                        <div>
+                          <span className="font-bold text-slate-700 block text-xs">
+                            {importFile ? importFile.name : t('settings.upload_import_title')}
+                          </span>
+                          <span className="text-slate-400 text-[11px]">
+                            {importFile
+                              ? `${(importFile.size / 1024).toFixed(1)} KB · Bấm để chọn file khác`
+                              : t('settings.upload_import_drag_hint')}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Configuration Options */}
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-3 border-t border-slate-100">
+                        <div>
+                          <label className="font-semibold text-slate-700 mb-1.5 block">
+                            {t('settings.import_target_label')}
+                          </label>
+                          <ModernSelect
+                            size="sm"
+                            value={importTarget}
+                            onChange={(val) => setImportTarget(String(val))}
+                            options={[
+                              { value: 'all', label: t('settings.target_all') },
+                              { value: 'categories', label: t('settings.target_categories') },
+                              { value: 'toppings', label: t('settings.target_toppings') },
+                              { value: 'products', label: t('settings.target_products') },
+                              { value: 'transactions', label: t('settings.target_transactions') },
+                              { value: 'orders', label: t('settings.target_orders') },
+                            ]}
+                          />
+                        </div>
+
+                        <div className="sm:col-span-2 flex flex-col justify-end space-y-2.5">
+                          <label className="flex items-center gap-2.5 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={upsertProducts}
+                              onChange={(e) => setUpsertProducts(e.target.checked)}
+                              className="w-4 h-4 accent-emerald-600 rounded"
+                            />
+                            <span className="text-slate-700 font-medium">
+                              {t('settings.opt_upsert_products')}
+                            </span>
+                          </label>
+
+                          <label className="flex items-center gap-2.5 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={updateFunds}
+                              onChange={(e) => setUpdateFunds(e.target.checked)}
+                              className="w-4 h-4 accent-emerald-600 rounded"
+                            />
+                            <span className="text-slate-700 font-medium">
+                              {t('settings.opt_update_funds')}
+                            </span>
+                          </label>
+                        </div>
+                      </div>
+
+                      {/* Action Button */}
+                      <div className="pt-3 border-t border-slate-100 flex justify-end">
+                        <button
+                          type="button"
+                          onClick={handleExecuteImport}
+                          disabled={!importFile || importingData}
+                          className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white font-bold text-xs py-3 px-6 rounded-xl shadow-xs transition flex items-center gap-2"
+                        >
+                          {importingData ? (
+                            <RefreshCw className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <UploadCloud className="w-4 h-4" />
+                          )}
+                          <span>{importingData ? t('settings.importing_loading') : t('settings.start_import_btn')}</span>
+                        </button>
+                      </div>
+
+                      {/* Import Result Breakdown */}
+                      {importResult && (
+                        <div className="space-y-4 pt-2 animate-in fade-in">
+                          <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 space-y-3">
+                            <div className="flex items-center justify-between">
+                              <span className="flex items-center gap-2 text-emerald-800 font-bold text-xs">
+                                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                                {importResult.message || t('settings.import_success_title')}
+                              </span>
+                            </div>
+
+                            {importResult.stats && (
+                              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-[11px] text-slate-600">
+                                <div className="bg-white/80 p-2.5 rounded-xl border border-emerald-100">
+                                  <span className="font-bold text-slate-900 text-sm block">{importResult.stats.categories_count}</span>
+                                  Danh mục món
+                                </div>
+                                <div className="bg-white/80 p-2.5 rounded-xl border border-emerald-100">
+                                  <span className="font-bold text-slate-900 text-sm block">{importResult.stats.toppings_count}</span>
+                                  Topping
+                                </div>
+                                <div className="bg-white/80 p-2.5 rounded-xl border border-emerald-100">
+                                  <span className="font-bold text-slate-900 text-sm block">{importResult.stats.products_count}</span>
+                                  Món ăn ({importResult.stats.variants_count} size)
+                                </div>
+                                <div className="bg-white/80 p-2.5 rounded-xl border border-emerald-100">
+                                  <span className="font-bold text-slate-900 text-sm block">{importResult.stats.transactions_count}</span>
+                                  Giao dịch thu chi
+                                </div>
+                                <div className="bg-white/80 p-2.5 rounded-xl border border-emerald-100">
+                                  <span className="font-bold text-slate-900 text-sm block">{importResult.stats.orders_count}</span>
+                                  Đơn hàng ({importResult.stats.order_items_count} chi tiết món)
+                                </div>
+                                <div className="bg-white/80 p-2.5 rounded-xl border border-emerald-100">
+                                  <span className="font-bold text-slate-900 text-sm block">{importResult.stats.total_errors}</span>
+                                  Cảnh báo / Lỗi
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Error Log Table */}
+                          {importResult.errors && importResult.errors.length > 0 && (
+                            <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4 space-y-2">
+                              <h4 className="font-bold text-rose-800 text-xs flex items-center gap-1.5">
+                                <AlertTriangle className="w-4 h-4 text-rose-600" />
+                                {t('settings.import_errors_title')} ({importResult.errors.length})
+                              </h4>
+                              <div className="max-h-48 overflow-y-auto divide-y divide-rose-100 border border-rose-100 rounded-xl bg-white text-[11px]">
+                                {importResult.errors.map((err: any, idx: number) => (
+                                  <div key={idx} className="p-2.5 flex items-start gap-2">
+                                    <span className="font-mono font-bold text-rose-600 shrink-0">#{idx + 1}</span>
+                                    <div className="space-y-0.5 flex-1">
+                                      <div className="flex items-center gap-2">
+                                        <span className="font-semibold text-slate-800">{err.sheet}</span>
+                                        <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded text-[10px]">Dòng {err.row}</span>
+                                        {err.field && <span className="text-slate-400">({err.field})</span>}
+                                      </div>
+                                      <p className="text-rose-700">{err.message}</p>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Save Button (displayed for form-based tabs: store, currency, vietqr, email) */}
+            {activeTab !== 'backup' && (
+              <div className="flex justify-end pt-2">
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 text-white font-bold text-xs py-3 px-6 rounded-xl shadow-xs transition flex items-center space-x-2"
+                >
+                  {saving ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      <span>{t('pos.processing')}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4" />
+                      <span>{t('common.save')}</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
+          </form>
+        )}
+
+        {/* Restore Confirmation Modal */}
+        {showRestoreModal && backupPreview && (
+          <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+            <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl space-y-5 animate-in zoom-in-95">
+              <div className="flex items-center gap-3 text-amber-600">
+                <div className="p-3 bg-amber-50 rounded-2xl border border-amber-200">
+                  <AlertTriangle className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 text-base">{t('settings.restore_confirm_title')}</h3>
+                  <p className="text-slate-500 text-xs">File: {backupFile?.name}</p>
                 </div>
               </div>
-            </div>
-          )}
 
-          {/* SMTP Test Result toast */}
-          {smtpTestResult && (
-            <div className={`fixed top-4 right-4 z-[60] px-4 py-3 rounded-2xl shadow-2xl text-sm font-semibold ${
-              smtpTestResult.type === 'success' ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'
-            }`}>
-              {smtpTestResult.message}
+              <p className="text-xs text-slate-600 leading-relaxed">
+                {t('settings.restore_confirm_desc')}
+              </p>
+
+              {backupPreview.stats && (
+                <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 text-xs space-y-1.5 text-slate-600">
+                  <span className="font-bold text-slate-800 block text-[11px] uppercase tracking-wide">
+                    Thống kê dữ liệu trong file:
+                  </span>
+                  <div className="grid grid-cols-2 gap-1.5 text-[11px]">
+                    <div>• Danh mục: <b>{backupPreview.stats.categories || 0}</b></div>
+                    <div>• Sản phẩm: <b>{backupPreview.stats.products || 0}</b></div>
+                    <div>• Topping: <b>{backupPreview.stats.toppings || 0}</b></div>
+                    <div>• Đơn hàng: <b>{backupPreview.stats.orders || 0}</b></div>
+                    <div>• Giao dịch: <b>{backupPreview.stats.transactions || 0}</b></div>
+                    <div>• Quỹ tiền: <b>{backupPreview.stats.funds || 0}</b></div>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex items-center gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowRestoreModal(false)}
+                  className="flex-1 py-2.5 px-4 rounded-xl border border-slate-200 text-slate-700 font-semibold text-xs hover:bg-slate-50 transition"
+                >
+                  {t('common.cancel')}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleExecuteRestore}
+                  disabled={restoringBackup}
+                  className="flex-1 py-2.5 px-4 rounded-xl bg-amber-600 hover:bg-amber-700 disabled:bg-slate-300 text-white font-bold text-xs shadow-xs transition flex items-center justify-center gap-1.5"
+                >
+                  {restoringBackup ? <RefreshCw className="w-4 h-4 animate-spin" /> : <UploadCloud className="w-4 h-4" />}
+                  <span>{t('settings.restore_btn')}</span>
+                </button>
+              </div>
             </div>
-          )}
+          </div>
+        )}
+
+        {/* SMTP Test Result toast */}
+        {smtpTestResult && (
+          <div className={`fixed top-4 right-4 z-[60] px-4 py-3 rounded-2xl shadow-2xl text-sm font-semibold animate-in fade-in slide-in-from-top-2 ${
+            smtpTestResult.type === 'success' ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'
+          }`}>
+            {smtpTestResult.message}
+          </div>
+        )}
       </div>
     </AppShell>
   );
