@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { ShoppingBag, Coffee, RefreshCw, CheckCircle2, AlertCircle, Plus, Search, Check, Tag } from 'lucide-react';
 import AppShell from '@/components/AppShell';
 import VariantSelectorModal, { CartItem, Product } from '@/components/pos/VariantSelectorModal';
@@ -20,6 +20,119 @@ interface Category {
   display_order: number;
 }
 
+// ── MEMOIZED CATEGORY TABS ───────────────────────────────────────────────────
+interface CategoryTabsProps {
+  categories: Category[];
+  activeCategoryId: number | null;
+  totalProductsCount: number;
+  onSelectCategory: (id: number | null) => void;
+  allLabel: string;
+}
+
+const CategoryTabs = React.memo(function CategoryTabs({
+  categories,
+  activeCategoryId,
+  totalProductsCount,
+  onSelectCategory,
+  allLabel,
+}: CategoryTabsProps) {
+  return (
+    <div className="flex overflow-x-auto space-x-2 pb-1 w-full sm:w-auto scrollbar-none">
+      <button
+        onClick={() => onSelectCategory(null)}
+        className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap shadow-sm transition ${
+          activeCategoryId === null
+            ? 'bg-indigo-600 text-white'
+            : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+        }`}
+      >
+        {allLabel} ({totalProductsCount})
+      </button>
+      {categories.map((cat) => (
+        <button
+          key={cat.id}
+          onClick={() => onSelectCategory(cat.id)}
+          className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap shadow-sm transition ${
+            activeCategoryId === cat.id
+              ? 'bg-indigo-600 text-white'
+              : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+          }`}
+        >
+          {cat.name}
+        </button>
+      ))}
+    </div>
+  );
+});
+
+// ── MEMOIZED PRODUCT CARD ────────────────────────────────────────────────────
+interface ProductCardProps {
+  product: Product;
+  settings: SettingsMap | null;
+  onSelect: (product: Product) => void;
+  orderBtnLabel: string;
+  bestSellerLabel: string;
+  newLabel: string;
+}
+
+const ProductCard = React.memo(function ProductCard({
+  product,
+  settings,
+  onSelect,
+  orderBtnLabel,
+  bestSellerLabel,
+  newLabel,
+}: ProductCardProps) {
+  const startingPrice = useMemo(() => {
+    return Array.isArray(product.variants) && product.variants.length > 0
+      ? Math.min(...product.variants.map((v) => v.retail_price))
+      : 0;
+  }, [product.variants]);
+
+  const imageUrl = useMemo(() => getImageUrl(product.image_url), [product.image_url]);
+
+  return (
+    <div
+      onClick={() => onSelect(product)}
+      className="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md hover:border-indigo-200 transition flex flex-col justify-between cursor-pointer group"
+    >
+      <div>
+        <div className="w-full h-28 bg-slate-100 rounded-xl mb-2 flex items-center justify-center text-slate-400 overflow-hidden relative">
+          {imageUrl ? (
+            <img
+              src={imageUrl}
+              alt={product.name}
+              loading="lazy"
+              decoding="async"
+              className="w-full h-full object-cover group-hover:scale-105 transition duration-200"
+            />
+          ) : (
+            <Coffee className="w-8 h-8 opacity-40 text-slate-400" />
+          )}
+        </div>
+        {product.tag && product.tag !== 'none' && (
+          <span className="text-[9px] uppercase font-extrabold px-1.5 py-0.5 bg-indigo-50 text-indigo-600 rounded">
+            {product.tag === 'best_seller'
+              ? bestSellerLabel
+              : product.tag === 'new'
+              ? newLabel
+              : product.tag.replace('_', ' ')}
+          </span>
+        )}
+        <h3 className="font-semibold text-slate-900 text-xs mt-1 leading-tight group-hover:text-indigo-600 transition">
+          {product.name}
+        </h3>
+      </div>
+      <div className="mt-3 flex items-center justify-between">
+        <span className="font-bold text-indigo-600 text-xs">{formatCurrency(startingPrice, settings)}</span>
+        <span className="bg-indigo-50 group-hover:bg-indigo-600 group-hover:text-white text-indigo-600 text-xs font-bold px-2 py-1 rounded-lg transition flex items-center gap-0.5">
+          <Plus className="w-3.5 h-3.5" /> {orderBtnLabel}
+        </span>
+      </div>
+    </div>
+  );
+});
+
 export default function PosPage() {
   const { t } = useTranslation();
   const [categories, setCategories] = useState<Category[]>([]);
@@ -27,6 +140,7 @@ export default function PosPage() {
   const [activeCategoryId, setActiveCategoryId] = useState<number | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [debouncedSearch, setDebouncedSearch] = useState<string>('');
   const [settings, setSettings] = useState<SettingsMap | null>(null);
 
   // Cart State
@@ -51,9 +165,24 @@ export default function PosPage() {
   const [completedOrder, setCompletedOrder] = useState<CompletedOrderData | null>(null);
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState<boolean>(false);
 
-  const loadData = async () => {
+  // 250ms Debounced search
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 250);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
+
+  // Parallelized initial data loading with in-memory caching
+  const loadData = useCallback(async () => {
     setLoading(true);
-    const settingsRes = await fetchApi<any>('/settings');
+
+    const [settingsRes, catRes, prodRes] = await Promise.all([
+      fetchApi<any>('/settings'),
+      fetchApi<Category[]>('/categories'),
+      fetchApi<Product[]>('/products'),
+    ]);
+
     if (settingsRes.status === 'success' && settingsRes.data) {
       if (Array.isArray(settingsRes.data)) {
         const map: SettingsMap = {};
@@ -66,7 +195,6 @@ export default function PosPage() {
       }
     }
 
-    const catRes = await fetchApi<Category[]>('/categories');
     if (catRes.status === 'success') {
       const catList = Array.isArray(catRes.data)
         ? catRes.data
@@ -76,7 +204,6 @@ export default function PosPage() {
       setCategories(catList);
     }
 
-    const prodRes = await fetchApi<Product[]>('/products');
     if (prodRes.status === 'success') {
       const prodList = Array.isArray(prodRes.data)
         ? prodRes.data
@@ -86,12 +213,12 @@ export default function PosPage() {
       setProducts(prodList);
     }
     setLoading(false);
-  };
+  }, []);
 
   useEffect(() => {
     loadData();
 
-    // 1. Restore Cart & Adjustments from LocalStorage (Offline Resiliency & Re-order support)
+    // 1. Restore Cart & Adjustments from LocalStorage
     try {
       const savedCart = localStorage.getItem('rabbitpos_active_cart');
       if (savedCart) {
@@ -121,7 +248,7 @@ export default function PosPage() {
     } catch (e) {
       console.error('Failed to restore active cart', e);
     }
-  }, []);
+  }, [loadData]);
 
   // 2. Persist Active Cart to LocalStorage
   useEffect(() => {
@@ -182,16 +309,16 @@ export default function PosPage() {
     }
   }, [selectedPromotion, cartItems]);
 
-  // Cart Handlers
-  const handleAddToCart = (newItem: CartItem) => {
+  // Memoized Cart Handlers
+  const handleAddToCart = useCallback((newItem: CartItem) => {
     setCartItems((prev) => [...prev, newItem]);
     setOrderSuccessMessage(
       t('pos.added_to_cart', { name: `${newItem.product.name} (${newItem.selectedVariant.variant_name})` })
     );
     setTimeout(() => setOrderSuccessMessage(null), 3000);
-  };
+  }, [t]);
 
-  const handleUpdateQty = (id: string, delta: number) => {
+  const handleUpdateQty = useCallback((id: string, delta: number) => {
     setCartItems((prev) =>
       prev
         .map((item) => {
@@ -208,9 +335,9 @@ export default function PosPage() {
         })
         .filter(Boolean) as CartItem[]
     );
-  };
+  }, []);
 
-  const handleUpdateUnitPrice = (id: string, newUnitPrice: number) => {
+  const handleUpdateUnitPrice = useCallback((id: string, newUnitPrice: number) => {
     setCartItems((prev) =>
       prev.map((item) => {
         if (item.id === id) {
@@ -223,11 +350,19 @@ export default function PosPage() {
         return item;
       })
     );
-  };
+  }, []);
 
-  const handleRemoveItem = (id: string) => {
+  const handleRemoveItem = useCallback((id: string) => {
     setCartItems((prev) => prev.filter((i) => i.id !== id));
-  };
+  }, []);
+
+  const handleSelectProductForVariant = useCallback((product: Product) => {
+    setSelectedProductForVariant(product);
+  }, []);
+
+  const handleSelectCategory = useCallback((id: number | null) => {
+    setActiveCategoryId(id);
+  }, []);
 
   // Order Submission Logic
   const submitOrder = async (targetFundId: number) => {
@@ -248,104 +383,94 @@ export default function PosPage() {
 
     const payload = {
       fund_id: fundIdNum,
-      discount_amount: Number(discountAmount) || 0,
+      subtotal: currentSubtotal,
+      discount_amount: discountAmount,
       promotion_id: selectedPromotion ? selectedPromotion.id : null,
-      promotion_discount: Number(promotionDiscount) || 0,
-      shipping_fee: Number(shippingFee) || 0,
-      platform_fee_discount: Number(platformFeeDiscount) || 0,
-      surcharge: Number(surcharge) || 0,
-      note: orderNote || '',
-      created_by: 'Cashier Staff',
-      items: cartItems.map((ci) => ({
-        product_variant_id: Number(ci.selectedVariant.id),
-        quantity: Number(ci.quantity),
-        unit_price: Number(ci.unitPrice),
-        selected_toppings: ci.selectedToppings || [],
-        toppings_price: Number(ci.toppingsPrice) || 0,
-        notes: ci.notes || '',
+      promotion_discount: promotionDiscount,
+      shipping_fee: shippingFee,
+      platform_fee_discount: platformFeeDiscount,
+      surcharge: surcharge,
+      total_amount: currentTotal,
+      note: orderNote,
+      items: cartItems.map((item) => ({
+        product_variant_id: item.selectedVariant.id,
+        quantity: item.quantity,
+        unit_price: item.unitPrice,
+        line_total: item.lineTotal,
+        selected_toppings: JSON.stringify(item.selectedToppings || []),
+        toppings_price: item.toppingsPrice || 0,
+        notes: item.notes || '',
       })),
     };
 
-    try {
-      const res = await fetchApi<any>('/orders', {
-        method: 'POST',
-        body: JSON.stringify(payload),
-      });
+    const res = await fetchApi<any>('/orders', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
 
-      if (res.status === 'success' && res.data) {
-        const createdOrder = res.data;
+    if (res.status === 'success' && res.data) {
+      setCartItems([]);
+      setOrderNote('');
+      setDiscountAmount(0);
+      setSelectedPromotion(null);
+      setPromotionDiscount(0);
+      setShippingFee(0);
+      setPlatformFeeDiscount(0);
+      setSurcharge(0);
+      setIsCheckoutModalOpen(false);
+      setIsVietQRModalOpen(false);
+      setIsCartDrawerOpen(false);
 
-        // Full State Reset: Purge persisted cart, items, notes, discounts, fees
-        localStorage.removeItem('rabbitpos_active_cart');
-        setCartItems([]);
-        setOrderNote('');
-        setDiscountAmount(0);
-        setSelectedPromotion(null);
-        setPromotionDiscount(0);
-        setShippingFee(0);
-        setPlatformFeeDiscount(0);
-        setSurcharge(0);
+      const orderData: CompletedOrderData = {
+        orderId: res.data.id,
+        orderCode: res.data.order_code,
+        createdAt: res.data.created_at || new Date().toISOString(),
+        items: orderCartSnapshot,
+        subtotal: currentSubtotal,
+        discountAmount: discountAmount + promotionDiscount + platformFeeDiscount,
+        shippingFee: shippingFee,
+        surcharge: surcharge,
+        totalAmount: currentTotal,
+        fundName: res.data.fund?.name || (fundIdNum === 1 ? 'Tiền mặt' : 'Chuyển khoản'),
+        cashierName: res.data.cashier_name || 'Thu ngân',
+        note: orderNote,
+      };
 
-        setIsCheckoutModalOpen(false);
-        setIsVietQRModalOpen(false);
-        setIsCartDrawerOpen(false);
-
-        // Open Receipt Thermal Printing Modal
-        setCompletedOrder({
-          order_code: createdOrder.order_code,
-          created_at: createdOrder.created_at,
-          created_by: createdOrder.created_by || 'Cashier Staff',
-          payment_method: fundIdNum === 2 ? 'VietQR Transfer' : 'Cash',
-          items: orderCartSnapshot,
-          subtotal: currentSubtotal,
-          discount: discountAmount,
-          promotion_discount: promotionDiscount,
-          shipping_fee: shippingFee,
-          platform_fee_discount: platformFeeDiscount,
-          surcharge: surcharge,
-          total: currentTotal,
-          note: orderNote,
-        });
-        setIsReceiptModalOpen(true);
-        setOrderSuccessMessage(t('pos.order_completed'));
-        setTimeout(() => setOrderSuccessMessage(null), 4000);
-      } else {
-        alert(t('pos.order_failed', { message: res.message || 'Server error' }));
-      }
-    } catch (err: any) {
-      alert(t('pos.order_failed', { message: err?.message || 'Network connection failed' }));
+      setCompletedOrder(orderData);
+      setIsReceiptModalOpen(true);
+      setOrderSuccessMessage(t('pos.order_success', { code: res.data.order_code }));
+      setTimeout(() => setOrderSuccessMessage(null), 5000);
+    } else {
+      alert(t('pos.order_failed', { message: res.message }));
     }
   };
 
-  const handleConfirmCashPayment = async (fundId: number) => {
+  const handleInitiatePayment = (fundId: number) => {
     setSelectedFundId(fundId);
-    await submitOrder(fundId);
-  };
-
-  const handleSelectBankTransfer = (fundId: number) => {
-    setSelectedFundId(fundId);
-    setIsCheckoutModalOpen(false);
-    setIsVietQRModalOpen(true);
-  };
-
-  const handleConfirmVietQRPayment = async () => {
-    if (selectedFundId) {
-      await submitOrder(selectedFundId);
+    if (fundId === 2) {
+      setIsCheckoutModalOpen(false);
+      setIsVietQRModalOpen(true);
+    } else {
+      submitOrder(fundId);
     }
   };
 
-  const safeProducts = useMemo(() => (Array.isArray(products) ? products : []), [products]);
+  // Safe Fallback for Arrays
   const safeCategories = useMemo(() => (Array.isArray(categories) ? categories : []), [categories]);
+  const safeProducts = useMemo(() => (Array.isArray(products) ? products : []), [products]);
   const safeCartItems = useMemo(() => (Array.isArray(cartItems) ? cartItems : []), [cartItems]);
 
+  // Memoized Filtered Products
   const filteredProducts = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
     return safeProducts.filter((p) => {
-      const matchesCat = activeCategoryId ? p.category_id === activeCategoryId : true;
-      const matchesSearch = !q || (p.name || '').toLowerCase().includes(q);
-      return matchesCat && matchesSearch;
+      const matchesCategory = activeCategoryId === null || p.category_id === activeCategoryId;
+      const matchesSearch =
+        debouncedSearch.trim() === '' ||
+        p.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+        (p.description && p.description.toLowerCase().includes(debouncedSearch.toLowerCase()));
+      return matchesCategory && matchesSearch;
     });
-  }, [safeProducts, activeCategoryId, searchQuery]);
+  }, [safeProducts, activeCategoryId, debouncedSearch]);
 
   const cartSubtotal = useMemo(
     () => safeCartItems.reduce((acc, item) => acc + item.lineTotal, 0),
@@ -379,31 +504,13 @@ export default function PosPage() {
 
         {/* Category Tabs & Search Bar */}
         <div className="flex flex-col sm:flex-row gap-3 items-center justify-between">
-          <div className="flex overflow-x-auto space-x-2 pb-1 w-full sm:w-auto scrollbar-none">
-            <button
-              onClick={() => setActiveCategoryId(null)}
-              className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap shadow-sm transition ${
-                activeCategoryId === null
-                  ? 'bg-indigo-600 text-white'
-                  : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
-              }`}
-            >
-              {t('pos.all_items')} ({safeProducts.length})
-            </button>
-            {safeCategories.map((cat) => (
-              <button
-                key={cat.id}
-                onClick={() => setActiveCategoryId(cat.id)}
-                className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap shadow-sm transition ${
-                  activeCategoryId === cat.id
-                    ? 'bg-indigo-600 text-white'
-                    : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
-                }`}
-              >
-                {cat.name}
-              </button>
-            ))}
-          </div>
+          <CategoryTabs
+            categories={safeCategories}
+            activeCategoryId={activeCategoryId}
+            totalProductsCount={safeProducts.length}
+            onSelectCategory={handleSelectCategory}
+            allLabel={t('pos.all_items')}
+          />
 
           <div className="relative w-full sm:w-64">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
@@ -419,8 +526,14 @@ export default function PosPage() {
 
         {/* Product Card Grid */}
         {loading ? (
-          <div className="flex justify-center py-16">
-            <RefreshCw className="w-8 h-8 text-indigo-600 animate-spin" />
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+            {[...Array(10)].map((_, i) => (
+              <div key={i} className="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm animate-pulse space-y-2">
+                <div className="w-full h-28 bg-slate-200 rounded-xl" />
+                <div className="h-3 bg-slate-200 rounded w-3/4" />
+                <div className="h-3 bg-slate-200 rounded w-1/2" />
+              </div>
+            ))}
           </div>
         ) : filteredProducts.length === 0 ? (
           <div className="bg-white p-8 rounded-2xl border border-slate-200 text-center text-slate-500 text-xs">
@@ -428,53 +541,17 @@ export default function PosPage() {
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-            {filteredProducts.map((product) => {
-              const startingPrice =
-                Array.isArray(product.variants) && product.variants.length > 0
-                  ? Math.min(...product.variants.map((v) => v.retail_price))
-                  : 0;
-
-              return (
-                <div
-                  key={product.id}
-                  onClick={() => setSelectedProductForVariant(product)}
-                  className="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md hover:border-indigo-200 transition flex flex-col justify-between cursor-pointer group"
-                >
-                  <div>
-                    <div className="w-full h-28 bg-slate-100 rounded-xl mb-2 flex items-center justify-center text-slate-400 overflow-hidden relative">
-                      {getImageUrl(product.image_url) ? (
-                        <img
-                          src={getImageUrl(product.image_url)!}
-                          alt={product.name}
-                          loading="lazy"
-                          className="w-full h-full object-cover group-hover:scale-105 transition duration-200"
-                        />
-                      ) : (
-                        <Coffee className="w-8 h-8 opacity-40 text-slate-400" />
-                      )}
-                    </div>
-                    {product.tag && product.tag !== 'none' && (
-                      <span className="text-[9px] uppercase font-extrabold px-1.5 py-0.5 bg-indigo-50 text-indigo-600 rounded">
-                        {product.tag === 'best_seller'
-                          ? t('products.best_seller')
-                          : product.tag === 'new'
-                          ? t('products.new')
-                          : product.tag.replace('_', ' ')}
-                      </span>
-                    )}
-                    <h3 className="font-semibold text-slate-900 text-xs mt-1 leading-tight group-hover:text-indigo-600 transition">
-                      {product.name}
-                    </h3>
-                  </div>
-                  <div className="mt-3 flex items-center justify-between">
-                    <span className="font-bold text-indigo-600 text-xs">{formatCurrency(startingPrice, settings)}</span>
-                    <span className="bg-indigo-50 group-hover:bg-indigo-600 group-hover:text-white text-indigo-600 text-xs font-bold px-2 py-1 rounded-lg transition flex items-center gap-0.5">
-                      <Plus className="w-3.5 h-3.5" /> {t('pos.order_button')}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
+            {filteredProducts.map((product) => (
+              <ProductCard
+                key={product.id}
+                product={product}
+                settings={settings}
+                onSelect={handleSelectProductForVariant}
+                orderBtnLabel={t('pos.order_button')}
+                bestSellerLabel={t('products.best_seller')}
+                newLabel={t('products.new')}
+              />
+            ))}
           </div>
         )}
 
@@ -498,9 +575,9 @@ export default function PosPage() {
               </p>
               <div className="flex items-center gap-2">
                 <p className="text-base font-bold text-white">{formatCurrency(cartTotal, settings)}</p>
-                {selectedPromotion && (
-                  <span className="text-[10px] bg-indigo-500/30 text-indigo-200 border border-indigo-400/40 px-1.5 py-0.5 rounded">
-                    {selectedPromotion.name}
+                {discountAmount + promotionDiscount + platformFeeDiscount > 0 && (
+                  <span className="text-[10px] bg-emerald-500/20 text-emerald-300 font-bold px-1.5 py-0.5 rounded">
+                    -{formatCurrency(discountAmount + promotionDiscount + platformFeeDiscount, settings)}
                   </span>
                 )}
               </div>
@@ -510,83 +587,87 @@ export default function PosPage() {
           <div className="flex items-center space-x-2">
             <button
               onClick={() => setIsCartDrawerOpen(true)}
-              className="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold px-3 py-2.5 rounded-xl transition"
+              disabled={cartItems.length === 0}
+              className="bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-white text-xs font-bold px-3.5 py-2.5 rounded-xl border border-slate-700 transition"
             >
               {t('pos.view_cart')}
             </button>
             <button
-              disabled={cartItems.length === 0}
               onClick={() => setIsCheckoutModalOpen(true)}
-              className="bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-700 text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow-sm transition disabled:cursor-not-allowed"
+              disabled={cartItems.length === 0}
+              className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-800 disabled:text-slate-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-lg transition"
             >
-              {t('pos.checkout')}
+              {t('pos.checkout_now')}
             </button>
           </div>
         </div>
-      </div>
 
-      {/* Modals */}
-      {selectedProductForVariant && (
+        {/* Modal Components */}
         <VariantSelectorModal
           product={selectedProductForVariant}
+          isOpen={!!selectedProductForVariant}
           onClose={() => setSelectedProductForVariant(null)}
           onAddToCart={handleAddToCart}
           settings={settings}
         />
-      )}
 
-      <CartDrawer
-        isOpen={isCartDrawerOpen}
-        onClose={() => setIsCartDrawerOpen(false)}
-        cartItems={cartItems}
-        onUpdateQty={handleUpdateQty}
-        onUpdateUnitPrice={handleUpdateUnitPrice}
-        onRemoveItem={handleRemoveItem}
-        discountAmount={discountAmount}
-        onDiscountChange={setDiscountAmount}
-        selectedPromotion={selectedPromotion}
-        onSelectPromotion={setSelectedPromotion}
-        promotionDiscount={promotionDiscount}
-        shippingFee={shippingFee}
-        onShippingFeeChange={setShippingFee}
-        platformFeeDiscount={platformFeeDiscount}
-        onPlatformFeeDiscountChange={setPlatformFeeDiscount}
-        surcharge={surcharge}
-        onSurchargeChange={setSurcharge}
-        orderNote={orderNote}
-        onOrderNoteChange={setOrderNote}
-        onProceedCheckout={() => {
-          setIsCartDrawerOpen(false);
-          setIsCheckoutModalOpen(true);
-        }}
-        settings={settings}
-      />
+        <CartDrawer
+          isOpen={isCartDrawerOpen}
+          onClose={() => setIsCartDrawerOpen(false)}
+          cartItems={safeCartItems}
+          onUpdateQty={handleUpdateQty}
+          onUpdateUnitPrice={handleUpdateUnitPrice}
+          onRemoveItem={handleRemoveItem}
+          orderNote={orderNote}
+          onChangeOrderNote={setOrderNote}
+          discountAmount={discountAmount}
+          onChangeDiscountAmount={setDiscountAmount}
+          selectedPromotion={selectedPromotion}
+          onSelectPromotion={setSelectedPromotion}
+          promotionDiscount={promotionDiscount}
+          shippingFee={shippingFee}
+          onChangeShippingFee={setShippingFee}
+          platformFeeDiscount={platformFeeDiscount}
+          onChangePlatformFeeDiscount={setPlatformFeeDiscount}
+          surcharge={surcharge}
+          onChangeSurcharge={setSurcharge}
+          subtotal={cartSubtotal}
+          total={cartTotal}
+          onOpenCheckout={() => {
+            setIsCartDrawerOpen(false);
+            setIsCheckoutModalOpen(true);
+          }}
+          settings={settings}
+        />
 
-      {isCheckoutModalOpen && (
         <CheckoutModal
-          totalAmount={cartTotal}
+          isOpen={isCheckoutModalOpen}
           onClose={() => setIsCheckoutModalOpen(false)}
-          onConfirmCashPayment={handleConfirmCashPayment}
-          onSelectBankTransfer={handleSelectBankTransfer}
-          settings={settings}
-        />
-      )}
-
-      {isVietQRModalOpen && (
-        <VietQRModal
           totalAmount={cartTotal}
-          onClose={() => setIsVietQRModalOpen(false)}
-          onConfirmOrder={handleConfirmVietQRPayment}
+          itemCount={totalItemCount}
+          onSelectFund={handleInitiatePayment}
           settings={settings}
         />
-      )}
 
-      <ReceiptModal
-        isOpen={isReceiptModalOpen}
-        onClose={() => setIsReceiptModalOpen(false)}
-        order={completedOrder}
-        settings={settings}
-      />
+        <VietQRModal
+          isOpen={isVietQRModalOpen}
+          onClose={() => setIsVietQRModalOpen(false)}
+          amount={cartTotal}
+          orderInfo={`ThoJuice ${cartItems.length} mon`}
+          onConfirmPayment={() => submitOrder(2)}
+          settings={settings}
+        />
+
+        <ReceiptModal
+          isOpen={isReceiptModalOpen}
+          onClose={() => {
+            setIsReceiptModalOpen(false);
+            setCompletedOrder(null);
+          }}
+          orderData={completedOrder}
+          settings={settings}
+        />
+      </div>
     </AppShell>
   );
 }

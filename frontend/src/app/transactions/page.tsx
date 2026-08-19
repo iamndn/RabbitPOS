@@ -22,6 +22,8 @@ import {
   CheckCircle2,
   ChevronDown,
   ChevronUp,
+  ChevronLeft,
+  ChevronRight,
   Eye,
   Tag,
   Pencil,
@@ -126,7 +128,22 @@ export default function TransactionsPage() {
 
   // Filters for Orders
   const [orderSearchQuery, setOrderSearchQuery] = useState<string>('');
+  const [debouncedOrderSearch, setDebouncedOrderSearch] = useState<string>('');
   const [orderStatusFilter, setOrderStatusFilter] = useState<string>('all');
+
+  // Pagination States (25 items/page)
+  const PAGE_SIZE = 25;
+  const [txPage, setTxPage] = useState<number>(1);
+  const [orderPage, setOrderPage] = useState<number>(1);
+
+  // Debounce order search
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedOrderSearch(orderSearchQuery);
+      setOrderPage(1);
+    }, 250);
+    return () => clearTimeout(handler);
+  }, [orderSearchQuery]);
 
   // Modal State: Manual Expense / Inflow / Edit
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState<boolean>(false);
@@ -455,15 +472,22 @@ export default function TransactionsPage() {
     return matchesFund && matchesType && matchesCat && matchesDate;
   });
 
+  const totalTxPages = Math.max(1, Math.ceil(filteredTransactions.length / PAGE_SIZE));
+  const paginatedTransactions = filteredTransactions.slice((txPage - 1) * PAGE_SIZE, txPage * PAGE_SIZE);
+
   const filteredOrders = safeOrders.filter((order) => {
     const matchesSearch =
-      order.order_code.toLowerCase().includes(orderSearchQuery.toLowerCase()) ||
-      (order.cashier_name || '').toLowerCase().includes(orderSearchQuery.toLowerCase());
+      debouncedOrderSearch.trim() === '' ||
+      order.order_code.toLowerCase().includes(debouncedOrderSearch.toLowerCase()) ||
+      (order.cashier_name || '').toLowerCase().includes(debouncedOrderSearch.toLowerCase());
     const matchesStatus = orderStatusFilter === 'all' ? true : order.status === orderStatusFilter;
     const orderDate = order.created_at ? order.created_at.slice(0, 10) : '';
     const matchesDate = (!customFrom || orderDate >= customFrom) && (!customTo || orderDate <= customTo);
     return matchesSearch && matchesStatus && matchesDate;
   });
+
+  const totalOrderPages = Math.max(1, Math.ceil(filteredOrders.length / PAGE_SIZE));
+  const paginatedOrders = filteredOrders.slice((orderPage - 1) * PAGE_SIZE, orderPage * PAGE_SIZE);
 
   const totalInflow = filteredTransactions
     .filter((tx) => tx.transaction_type === 'inflow')
@@ -752,7 +776,7 @@ export default function TransactionsPage() {
                         </td>
                       </tr>
                     ) : (
-                      filteredTransactions.map((tx) => {
+                      paginatedTransactions.map((tx) => {
                         const isInflow = tx.transaction_type === 'inflow';
                         const dateStr = new Date(tx.created_at).toLocaleString();
                         const isManual = !tx.reference_order_id && tx.category !== 'reconciliation_variance';
@@ -822,6 +846,32 @@ export default function TransactionsPage() {
                   </tbody>
                 </table>
               </div>
+
+              {/* Transactions Pagination Controls */}
+              {totalTxPages > 1 && (
+                <div className="flex items-center justify-between p-3 border-t border-slate-100 bg-slate-50 text-xs">
+                  <span className="text-slate-500">
+                    Trang {txPage} / {totalTxPages} ({filteredTransactions.length} giao dịch)
+                  </span>
+                  <div className="flex items-center space-x-1.5">
+                    <button
+                      onClick={() => setTxPage((p) => Math.max(1, p - 1))}
+                      disabled={txPage === 1}
+                      className="p-1.5 rounded-lg border border-slate-200 bg-white disabled:opacity-40 hover:bg-slate-100 transition"
+                    >
+                      <ChevronLeft className="w-4 h-4 text-slate-600" />
+                    </button>
+                    <span className="font-bold text-slate-700 px-2">{txPage}</span>
+                    <button
+                      onClick={() => setTxPage((p) => Math.min(totalTxPages, p + 1))}
+                      disabled={txPage === totalTxPages}
+                      className="p-1.5 rounded-lg border border-slate-200 bg-white disabled:opacity-40 hover:bg-slate-100 transition"
+                    >
+                      <ChevronRight className="w-4 h-4 text-slate-600" />
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -1004,6 +1054,32 @@ export default function TransactionsPage() {
                   </tbody>
                 </table>
               </div>
+
+              {/* Orders Pagination Controls */}
+              {totalOrderPages > 1 && (
+                <div className="flex items-center justify-between p-3 border-t border-slate-100 bg-slate-50 text-xs">
+                  <span className="text-slate-500">
+                    Trang {orderPage} / {totalOrderPages} ({filteredOrders.length} đơn hàng)
+                  </span>
+                  <div className="flex items-center space-x-1.5">
+                    <button
+                      onClick={() => setOrderPage((p) => Math.max(1, p - 1))}
+                      disabled={orderPage === 1}
+                      className="p-1.5 rounded-lg border border-slate-200 bg-white disabled:opacity-40 hover:bg-slate-100 transition"
+                    >
+                      <ChevronLeft className="w-4 h-4 text-slate-600" />
+                    </button>
+                    <span className="font-bold text-slate-700 px-2">{orderPage}</span>
+                    <button
+                      onClick={() => setOrderPage((p) => Math.min(totalOrderPages, p + 1))}
+                      disabled={orderPage === totalOrderPages}
+                      className="p-1.5 rounded-lg border border-slate-200 bg-white disabled:opacity-40 hover:bg-slate-100 transition"
+                    >
+                      <ChevronRight className="w-4 h-4 text-slate-600" />
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}

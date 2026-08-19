@@ -343,8 +343,30 @@ export default function DashboardPage() {
           </button>
         </div>
 
+        {/* Loading Skeletons */}
+        {loading && !revenueData && (
+          <div className="space-y-6 animate-pulse">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+                  <div className="flex justify-between items-center">
+                    <div className="h-3 bg-slate-200 rounded w-24" />
+                    <div className="w-10 h-10 bg-slate-100 rounded-xl" />
+                  </div>
+                  <div className="h-7 bg-slate-200 rounded w-36" />
+                  <div className="h-2 bg-slate-100 rounded w-full" />
+                </div>
+              ))}
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm h-72" />
+              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm h-72" />
+            </div>
+          </div>
+        )}
+
         {/* ── TAB 1: REVENUE ANALYTICS ─────────────────────────────────── */}
-        {activeTab === 'revenue' && (
+        {activeTab === 'revenue' && !loading && (
           <div className="space-y-6">
             {/* Primary KPI Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

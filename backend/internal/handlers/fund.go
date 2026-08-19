@@ -284,50 +284,53 @@ func (h *FundHandler) GetPeriodSummary(c *gin.Context) {
 		return
 	}
 
-	fundItems := make([]models.FundPeriodItem, 0)
+	// Native SQL aggregation push-down: compute all funds' periodic metrics in a single query
+	type fundAggregation struct {
+		FundID                uint    `gorm:"column:fund_id"`
+		CurrInflow            float64 `gorm:"column:curr_inflow"`
+		CurrOutflow           float64 `gorm:"column:curr_outflow"`
+		InflowAfterCurrStart  float64 `gorm:"column:inflow_after_curr_start"`
+		OutflowAfterCurrStart float64 `gorm:"column:outflow_after_curr_start"`
+		PrevInflow            float64 `gorm:"column:prev_inflow"`
+		PrevOutflow           float64 `gorm:"column:prev_outflow"`
+	}
+
+	var aggResults []fundAggregation
+	h.db.Model(&models.Transaction{}).
+		Select(`
+			fund_id,
+			COALESCE(SUM(CASE WHEN transaction_type = 'inflow' AND created_at BETWEEN ? AND ? THEN amount ELSE 0 END), 0) AS curr_inflow,
+			COALESCE(SUM(CASE WHEN transaction_type = 'outflow' AND created_at BETWEEN ? AND ? THEN amount ELSE 0 END), 0) AS curr_outflow,
+			COALESCE(SUM(CASE WHEN transaction_type = 'inflow' AND created_at >= ? THEN amount ELSE 0 END), 0) AS inflow_after_curr_start,
+			COALESCE(SUM(CASE WHEN transaction_type = 'outflow' AND created_at >= ? THEN amount ELSE 0 END), 0) AS outflow_after_curr_start,
+			COALESCE(SUM(CASE WHEN transaction_type = 'inflow' AND created_at BETWEEN ? AND ? THEN amount ELSE 0 END), 0) AS prev_inflow,
+			COALESCE(SUM(CASE WHEN transaction_type = 'outflow' AND created_at BETWEEN ? AND ? THEN amount ELSE 0 END), 0) AS prev_outflow
+		`, startOfCurrMonth, endOfCurrMonth, startOfCurrMonth, endOfCurrMonth, startOfCurrMonth, startOfCurrMonth, startOfPrevMonth, endOfPrevMonth, startOfPrevMonth, endOfPrevMonth).
+		Group("fund_id").
+		Scan(&aggResults)
+
+	aggMap := make(map[uint]fundAggregation, len(aggResults))
+	for _, agg := range aggResults {
+		aggMap[agg.FundID] = agg
+	}
+
+	fundItems := make([]models.FundPeriodItem, 0, len(funds))
 	var totCurrOpening, totCurrInflow, totCurrOutflow, totCurrClosing float64
 	var totPrevOpening, totPrevInflow, totPrevOutflow, totPrevClosing float64
 
 	for _, f := range funds {
-		// 1. Current Month Inflow & Outflow
-		var currInflow, currOutflow float64
-		h.db.Model(&models.Transaction{}).
-			Where("fund_id = ? AND transaction_type = ? AND created_at BETWEEN ? AND ?",
-				f.ID, models.TransactionTypeInflow, startOfCurrMonth, endOfCurrMonth).
-			Select("COALESCE(SUM(amount), 0)").Scan(&currInflow)
-
-		h.db.Model(&models.Transaction{}).
-			Where("fund_id = ? AND transaction_type = ? AND created_at BETWEEN ? AND ?",
-				f.ID, models.TransactionTypeOutflow, startOfCurrMonth, endOfCurrMonth).
-			Select("COALESCE(SUM(amount), 0)").Scan(&currOutflow)
-
-		// Inflows & Outflows strictly after start of current month (to derive exact opening balance)
-		var inflowAfterCurrStart, outflowAfterCurrStart float64
-		h.db.Model(&models.Transaction{}).
-			Where("fund_id = ? AND transaction_type = ? AND created_at >= ?",
-				f.ID, models.TransactionTypeInflow, startOfCurrMonth).
-			Select("COALESCE(SUM(amount), 0)").Scan(&inflowAfterCurrStart)
-
-		h.db.Model(&models.Transaction{}).
-			Where("fund_id = ? AND transaction_type = ? AND created_at >= ?",
-				f.ID, models.TransactionTypeOutflow, startOfCurrMonth).
-			Select("COALESCE(SUM(amount), 0)").Scan(&outflowAfterCurrStart)
+		agg := aggMap[f.ID]
+		currInflow := agg.CurrInflow
+		currOutflow := agg.CurrOutflow
+		inflowAfterCurrStart := agg.InflowAfterCurrStart
+		outflowAfterCurrStart := agg.OutflowAfterCurrStart
 
 		currOpening := f.CurrentBalance - (inflowAfterCurrStart - outflowAfterCurrStart)
 		currClosing := currOpening + currInflow - currOutflow
 		currNet := currInflow - currOutflow
 
-		// 2. Previous Month Inflow & Outflow
-		var prevInflow, prevOutflow float64
-		h.db.Model(&models.Transaction{}).
-			Where("fund_id = ? AND transaction_type = ? AND created_at BETWEEN ? AND ?",
-				f.ID, models.TransactionTypeInflow, startOfPrevMonth, endOfPrevMonth).
-			Select("COALESCE(SUM(amount), 0)").Scan(&prevInflow)
-
-		h.db.Model(&models.Transaction{}).
-			Where("fund_id = ? AND transaction_type = ? AND created_at BETWEEN ? AND ?",
-				f.ID, models.TransactionTypeOutflow, startOfPrevMonth, endOfPrevMonth).
-			Select("COALESCE(SUM(amount), 0)").Scan(&prevOutflow)
+		prevInflow := agg.PrevInflow
+		prevOutflow := agg.PrevOutflow
 
 		prevOpening := currOpening - (prevInflow - prevOutflow)
 		prevClosing := prevOpening + prevInflow - prevOutflow

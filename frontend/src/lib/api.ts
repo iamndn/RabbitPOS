@@ -1,4 +1,5 @@
 import { logout } from './auth';
+import { clientCache, getDefaultTtlForEndpoint } from './cache';
 
 export interface ApiResponse<T> {
   status: 'success' | 'error';
@@ -52,10 +53,28 @@ export function getApiBaseUrl(): string {
   return 'https://rabbitpos-api.ndnworks.com/api/v1';
 }
 
+export interface FetchApiOptions extends RequestInit {
+  cacheTtl?: number | null; // Set specific TTL, or false/null to bypass cache
+  skipCache?: boolean;
+}
+
 export async function fetchApi<T>(
   endpoint: string,
-  options: RequestInit = {}
+  options: FetchApiOptions = {}
 ): Promise<ApiResponse<T>> {
+  const method = (options.method || 'GET').toUpperCase();
+
+  // 1. Check in-memory cache for GET requests
+  if (method === 'GET' && !options.skipCache) {
+    const ttl = options.cacheTtl !== undefined ? options.cacheTtl : getDefaultTtlForEndpoint(endpoint);
+    if (ttl && ttl > 0) {
+      const cached = clientCache.get<ApiResponse<T>>(endpoint);
+      if (cached) {
+        return cached;
+      }
+    }
+  }
+
   const baseUrl = getApiBaseUrl();
   const token = typeof window !== 'undefined' ? localStorage.getItem('rabbitpos_jwt_token') : null;
 
@@ -83,6 +102,26 @@ export async function fetchApi<T>(
     }
 
     const data: ApiResponse<T> = await res.json();
+
+    // 2. Populate cache on successful GET
+    if (method === 'GET' && data.status === 'success' && !options.skipCache) {
+      const ttl = options.cacheTtl !== undefined ? options.cacheTtl : getDefaultTtlForEndpoint(endpoint);
+      if (ttl && ttl > 0) {
+        clientCache.set(endpoint, data, ttl);
+      }
+    }
+
+    // 3. Invalidate relevant caches on mutation methods (POST, PUT, DELETE)
+    if (method !== 'GET' && data.status === 'success') {
+      if (endpoint.includes('/categories')) clientCache.invalidate('categories');
+      if (endpoint.includes('/toppings')) clientCache.invalidate('toppings');
+      if (endpoint.includes('/settings')) clientCache.invalidate('settings');
+      if (endpoint.includes('/funds') || endpoint.includes('/orders') || endpoint.includes('/transactions')) {
+        clientCache.invalidate('funds');
+      }
+      if (endpoint.includes('/promotions')) clientCache.invalidate('promotions');
+    }
+
     return data;
   } catch (error: any) {
     return {

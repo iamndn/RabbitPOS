@@ -46,10 +46,10 @@ func InitDB(cfg *config.Config) (*gorm.DB, error) {
 		log.Printf("Failed to get generic database object from GORM: %v", err)
 		return nil, err
 	}
-	sqlDB.SetMaxOpenConns(25)
-	sqlDB.SetMaxIdleConns(10)
-	sqlDB.SetConnMaxLifetime(5 * time.Minute)
-	sqlDB.SetConnMaxIdleTime(2 * time.Minute)
+	sqlDB.SetMaxOpenConns(30)
+	sqlDB.SetMaxIdleConns(15)
+	sqlDB.SetConnMaxLifetime(10 * time.Minute)
+	sqlDB.SetConnMaxIdleTime(3 * time.Minute)
 
 	// Auto-migrate domain models to ensure schema is always up-to-date
 	err = db.AutoMigrate(

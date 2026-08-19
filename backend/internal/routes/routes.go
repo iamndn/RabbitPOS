@@ -47,6 +47,7 @@ func SetupRouter(cfg *config.Config, db *gorm.DB, emailSvc *services.EmailServic
 
 	// API v1 Group
 	v1 := router.Group("/api/v1")
+	v1.Use(middleware.GzipMiddleware())
 	{
 		// Public Endpoints
 		v1.GET("/health", healthHandler.CheckHealth)
