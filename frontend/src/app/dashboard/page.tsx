@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   LayoutDashboard,
   TrendingUp,
@@ -25,6 +25,9 @@ import {
   Sparkles,
   HelpCircle,
   Package,
+  Mail,
+  X,
+  Send,
 } from 'lucide-react';
 import AppShell from '@/components/AppShell';
 import AllProductsRankingModal from '@/components/dashboard/AllProductsRankingModal';
@@ -60,6 +63,39 @@ export default function DashboardPage() {
   // All Products Modal
   const [isRankingModalOpen, setIsRankingModalOpen] = useState<boolean>(false);
   const [rankingSortBy, setRankingSortBy] = useState<'revenue' | 'profit' | 'quantity' | 'margin'>('revenue');
+
+  // Email Report Modal state
+  const [showEmailModal, setShowEmailModal] = useState<boolean>(false);
+  const [emailDate, setEmailDate] = useState<string>(new Date().toISOString().slice(0, 10));
+  const [emailSending, setEmailSending] = useState<boolean>(false);
+  const [emailToast, setEmailToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  const EMAIL_RECIPIENTS = [
+    'nhanhdn.jfw@gmail.com',
+    'candynhung754@gmail.com',
+    '150498tranquangdat@gmail.com',
+  ];
+
+  const handleSendEmailReport = async () => {
+    setEmailSending(true);
+    try {
+      const res = await fetchApi<any>('/analytics/send-daily-report-email', {
+        method: 'POST',
+        body: JSON.stringify({ date: emailDate }),
+      });
+      if (res.status === 'success') {
+        setEmailToast({ type: 'success', message: t('email_report.success') });
+        setShowEmailModal(false);
+      } else {
+        setEmailToast({ type: 'error', message: res.message || t('email_report.error') });
+      }
+    } catch {
+      setEmailToast({ type: 'error', message: t('email_report.error') });
+    } finally {
+      setEmailSending(false);
+      setTimeout(() => setEmailToast(null), 5000);
+    }
+  };
 
   // Hover Tooltip States for SVG Charts
   const [hoveredRevenueIndex, setHoveredRevenueIndex] = useState<number | null>(null);
@@ -139,8 +175,8 @@ export default function DashboardPage() {
     setIsRankingModalOpen(true);
   };
 
-  const revSummary = revenueData?.summary;
-  const pSummary = profitData?.summary;
+  const revSummary = useMemo(() => revenueData?.summary, [revenueData]);
+  const pSummary = useMemo(() => profitData?.summary, [profitData]);
 
   return (
     <AppShell>
@@ -156,6 +192,15 @@ export default function DashboardPage() {
           </div>
 
           <div className="flex items-center space-x-2">
+            {/* Email Report Button */}
+            <button
+              onClick={() => { setEmailDate(new Date().toISOString().slice(0, 10)); setShowEmailModal(true); }}
+              className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold px-3.5 py-2.5 rounded-xl border border-emerald-200 flex items-center gap-1.5 transition"
+              title={t('email_report.send_button')}
+            >
+              <Mail className="w-4 h-4" />
+              <span className="hidden sm:inline">{t('email_report.send_button')}</span>
+            </button>
             <button
               onClick={() => handleOpenRanking('revenue')}
               className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold px-3.5 py-2.5 rounded-xl border border-indigo-200 flex items-center gap-1.5 transition"
@@ -171,6 +216,83 @@ export default function DashboardPage() {
             </button>
           </div>
         </div>
+
+        {/* Email Report Confirmation Modal */}
+        {showEmailModal && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+              {/* Modal Header */}
+              <div className="flex items-center justify-between p-5 border-b border-slate-100">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center">
+                    <Mail className="w-5 h-5 text-emerald-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-slate-900 text-sm">{t('email_report.modal_title')}</h3>
+                    <p className="text-xs text-slate-500 mt-0.5">{t('email_report.modal_subtitle')}</p>
+                  </div>
+                </div>
+                <button onClick={() => setShowEmailModal(false)} className="text-slate-400 hover:text-slate-600 transition">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              {/* Modal Body */}
+              <div className="p-5 space-y-4">
+                {/* Date Picker */}
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">{t('email_report.date_label')}</label>
+                  <input
+                    type="date"
+                    value={emailDate}
+                    onChange={(e) => setEmailDate(e.target.value)}
+                    className="w-full text-sm border border-slate-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                  />
+                </div>
+                {/* Recipients */}
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-2">{t('email_report.recipients_label')}</label>
+                  <div className="flex flex-wrap gap-2">
+                    {EMAIL_RECIPIENTS.map((email) => (
+                      <span key={email} className="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full px-3 py-1 font-medium">
+                        {email}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              {/* Modal Footer */}
+              <div className="flex gap-3 p-5 pt-0">
+                <button
+                  onClick={() => setShowEmailModal(false)}
+                  className="flex-1 text-sm font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 py-2.5 rounded-xl transition"
+                  disabled={emailSending}
+                >
+                  {t('email_report.cancel')}
+                </button>
+                <button
+                  onClick={handleSendEmailReport}
+                  disabled={emailSending}
+                  className="flex-1 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 py-2.5 rounded-xl transition flex items-center justify-center gap-2 disabled:opacity-60"
+                >
+                  {emailSending ? (
+                    <><RefreshCw className="w-4 h-4 animate-spin" />{t('email_report.sending')}</>
+                  ) : (
+                    <><Send className="w-4 h-4" />{t('email_report.confirm')}</>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Toast Notification */}
+        {emailToast && (
+          <div className={`fixed top-4 right-4 z-[60] flex items-center gap-3 px-4 py-3 rounded-2xl shadow-2xl text-sm font-semibold transition-all ${
+            emailToast.type === 'success' ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'
+          }`}>
+            {emailToast.message}
+          </div>
+        )}
 
         {/* Timeframe Selector Bar */}
         <div className="flex flex-col sm:flex-row gap-3 items-center justify-between bg-white p-3.5 rounded-2xl border border-slate-200 shadow-sm">

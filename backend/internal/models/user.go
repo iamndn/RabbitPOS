@@ -13,14 +13,15 @@ const (
 
 // User represents a system operator or cashier in RabbitPOS
 type User struct {
-	ID                  uint      `gorm:"primaryKey" json:"id"`
-	Username            string    `gorm:"type:varchar(50);uniqueIndex;not null" json:"username"`
-	PasswordHash        string    `gorm:"type:varchar(255);not null" json:"-"`
-	Role                UserRole  `gorm:"type:varchar(20);not null;default:'staff'" json:"role"`
-	IsActive            bool      `gorm:"default:true;not null" json:"is_active"`
-	NeedsPasswordSetup  bool      `gorm:"default:true;not null" json:"needs_password_setup"`
-	CreatedAt           time.Time `json:"created_at"`
-	UpdatedAt           time.Time `json:"updated_at"`
+	ID                 uint      `gorm:"primaryKey" json:"id"`
+	Username           string    `gorm:"type:varchar(50);uniqueIndex;not null" json:"username"`
+	PasswordHash       string    `gorm:"type:varchar(255);not null" json:"-"`
+	Email              string    `gorm:"type:varchar(150);not null;default:''" json:"email"`
+	Role               UserRole  `gorm:"type:varchar(20);not null;default:'staff'" json:"role"`
+	IsActive           bool      `gorm:"default:true;not null" json:"is_active"`
+	NeedsPasswordSetup bool      `gorm:"default:true;not null" json:"needs_password_setup"`
+	CreatedAt          time.Time `json:"created_at"`
+	UpdatedAt          time.Time `json:"updated_at"`
 }
 
 // Request & Response DTOs
@@ -40,6 +41,7 @@ type SetupPasswordRequest struct {
 type UserResponse struct {
 	ID                 uint     `json:"id"`
 	Username           string   `json:"username"`
+	Email              string   `json:"email"`
 	Role               UserRole `json:"role"`
 	IsActive           bool     `json:"is_active"`
 	NeedsPasswordSetup bool     `json:"needs_password_setup"`

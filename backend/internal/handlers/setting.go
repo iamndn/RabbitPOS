@@ -5,17 +5,19 @@ import (
 	"time"
 
 	"github.com/RabbitPOS/backend/internal/models"
+	"github.com/RabbitPOS/backend/internal/services"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
 
 type SettingHandler struct {
-	db *gorm.DB
+	db       *gorm.DB
+	emailSvc *services.EmailService
 }
 
-func NewSettingHandler(db *gorm.DB) *SettingHandler {
-	return &SettingHandler{db: db}
+func NewSettingHandler(db *gorm.DB, emailSvc *services.EmailService) *SettingHandler {
+	return &SettingHandler{db: db, emailSvc: emailSvc}
 }
 
 // GetSettings retrieves all system settings as a JSON key-value object map
@@ -83,4 +85,33 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 	}
 
 	models.SendSuccess(c, http.StatusOK, settingsMap, "Settings updated successfully")
+}
+
+// TestSMTP sends a test email to verify SMTP credentials configured in system settings
+// POST /api/v1/settings/test-smtp
+// Body (optional): { "to": "email@example.com" }
+func (h *SettingHandler) TestSMTP(c *gin.Context) {
+	var req struct {
+		To string `json:"to"`
+	}
+	_ = c.ShouldBindJSON(&req)
+
+	// If no target specified, use the first configured recipient email
+	if req.To == "" {
+		recipients := h.emailSvc.GetDefaultRecipients()
+		if len(recipients) > 0 {
+			req.To = recipients[0]
+		}
+	}
+	if req.To == "" {
+		models.SendError(c, http.StatusBadRequest, "No recipient email specified and no configured recipients found")
+		return
+	}
+
+	if err := h.emailSvc.SendTestEmail(req.To); err != nil {
+		models.SendError(c, http.StatusInternalServerError, "SMTP test failed: "+err.Error())
+		return
+	}
+
+	models.SendSuccess(c, http.StatusOK, gin.H{"to": req.To}, "Test email sent successfully to "+req.To)
 }

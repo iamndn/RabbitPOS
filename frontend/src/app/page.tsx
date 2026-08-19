@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { ShoppingBag, Coffee, RefreshCw, CheckCircle2, AlertCircle, Plus, Search, Check, Tag } from 'lucide-react';
 import AppShell from '@/components/AppShell';
 import VariantSelectorModal, { CartItem, Product } from '@/components/pos/VariantSelectorModal';
@@ -334,22 +334,35 @@ export default function PosPage() {
     }
   };
 
-  const safeProducts = Array.isArray(products) ? products : [];
-  const safeCategories = Array.isArray(categories) ? categories : [];
-  const safeCartItems = Array.isArray(cartItems) ? cartItems : [];
+  const safeProducts = useMemo(() => (Array.isArray(products) ? products : []), [products]);
+  const safeCategories = useMemo(() => (Array.isArray(categories) ? categories : []), [categories]);
+  const safeCartItems = useMemo(() => (Array.isArray(cartItems) ? cartItems : []), [cartItems]);
 
-  const filteredProducts = safeProducts.filter((p) => {
-    const matchesCat = activeCategoryId ? p.category_id === activeCategoryId : true;
-    const matchesSearch = (p.name || '').toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCat && matchesSearch;
-  });
+  const filteredProducts = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    return safeProducts.filter((p) => {
+      const matchesCat = activeCategoryId ? p.category_id === activeCategoryId : true;
+      const matchesSearch = !q || (p.name || '').toLowerCase().includes(q);
+      return matchesCat && matchesSearch;
+    });
+  }, [safeProducts, activeCategoryId, searchQuery]);
 
-  const cartSubtotal = safeCartItems.reduce((acc, item) => acc + item.lineTotal, 0);
-  const cartTotal = Math.max(
-    0,
-    cartSubtotal - discountAmount - promotionDiscount - platformFeeDiscount + shippingFee + surcharge
+  const cartSubtotal = useMemo(
+    () => safeCartItems.reduce((acc, item) => acc + item.lineTotal, 0),
+    [safeCartItems]
   );
-  const totalItemCount = safeCartItems.reduce((acc, item) => acc + item.quantity, 0);
+  const cartTotal = useMemo(
+    () =>
+      Math.max(
+        0,
+        cartSubtotal - discountAmount - promotionDiscount - platformFeeDiscount + shippingFee + surcharge
+      ),
+    [cartSubtotal, discountAmount, promotionDiscount, platformFeeDiscount, shippingFee, surcharge]
+  );
+  const totalItemCount = useMemo(
+    () => safeCartItems.reduce((acc, item) => acc + item.quantity, 0),
+    [safeCartItems]
+  );
 
   return (
     <AppShell>
@@ -433,6 +446,7 @@ export default function PosPage() {
                         <img
                           src={getImageUrl(product.image_url)!}
                           alt={product.name}
+                          loading="lazy"
                           className="w-full h-full object-cover group-hover:scale-105 transition duration-200"
                         />
                       ) : (

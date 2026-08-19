@@ -43,6 +43,15 @@ services:
       # Initial staff credentials (seeded only when ENABLE_SEEDING=true)
       INITIAL_STAFF_USERNAME: ${INITIAL_STAFF_USERNAME:-staff}
       INITIAL_STAFF_PASSWORD: ${INITIAL_STAFF_PASSWORD:-staff123}
+      SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL:-rabbitpos@ndnworks.com}
+      SMTP_FROM_NAME: ${SMTP_FROM_NAME:-Thỏ Juice & Coffee - RabbitPOS}
+      REPORT_RECIPIENT_EMAILS: ${REPORT_RECIPIENT_EMAILS:-nhanhdn.jfw@gmail.com,candynhung754@gmail.com,150498tranquangdat@gmail.com}
+      ENABLE_DAILY_EMAIL_REPORT: ${ENABLE_DAILY_EMAIL_REPORT:-true}
+      DAILY_REPORT_TIME: ${DAILY_REPORT_TIME:-22:30}
     ports:
       - "${BACKEND_PORT:-8080}:8080"
     depends_on:

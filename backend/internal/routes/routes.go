@@ -7,12 +7,13 @@ import (
 	"github.com/RabbitPOS/backend/internal/handlers"
 	"github.com/RabbitPOS/backend/internal/middleware"
 	"github.com/RabbitPOS/backend/internal/models"
+	"github.com/RabbitPOS/backend/internal/services"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
 
 // SetupRouter initializes Gin engine with middlewares, auth protection, and API endpoints
-func SetupRouter(cfg *config.Config, db *gorm.DB) *gin.Engine {
+func SetupRouter(cfg *config.Config, db *gorm.DB, emailSvc *services.EmailService) *gin.Engine {
 	if cfg.AppEnv == "production" {
 		gin.SetMode(gin.ReleaseMode)
 	}
@@ -38,8 +39,8 @@ func SetupRouter(cfg *config.Config, db *gorm.DB) *gin.Engine {
 	fundHandler := handlers.NewFundHandler(db)
 	orderHandler := handlers.NewOrderHandler(db)
 	txHandler := handlers.NewTransactionHandler(db)
-	analyticsHandler := handlers.NewAnalyticsHandler(db)
-	settingHandler := handlers.NewSettingHandler(db)
+	analyticsHandler := handlers.NewAnalyticsHandler(db, emailSvc)
+	settingHandler := handlers.NewSettingHandler(db, emailSvc)
 	toppingHandler := handlers.NewToppingHandler(db)
 	promotionHandler := handlers.NewPromotionHandler(db)
 	txCategoryHandler := handlers.NewTransactionCategoryHandler(db)
@@ -136,9 +137,13 @@ func SetupRouter(cfg *config.Config, db *gorm.DB) *gin.Engine {
 				adminOnly.GET("/analytics/dashboard", analyticsHandler.GetDashboardMetrics)
 				adminOnly.GET("/analytics/top-products", analyticsHandler.GetTopProducts)
 				adminOnly.GET("/analytics/cash-flow", analyticsHandler.GetCashFlowSummary)
+				// On-demand financial email report dispatcher
+				adminOnly.POST("/analytics/send-daily-report-email", analyticsHandler.SendDailyReportEmail)
 
 				// Settings Management
 				adminOnly.PUT("/settings", settingHandler.UpdateSettings)
+				// SMTP connectivity test
+				adminOnly.POST("/settings/test-smtp", settingHandler.TestSMTP)
 			}
 		}
 	}

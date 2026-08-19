@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   Package,
   Plus,
@@ -424,17 +424,21 @@ export default function ProductsPage() {
   };
 
   // ── Filtering ──────────────────────────────────────────────────────────────
-  const safeProducts = Array.isArray(products) ? products : [];
-  const safeCategories = Array.isArray(categories) ? categories : [];
-  const safeToppings = Array.isArray(toppings) ? toppings : [];
+  const safeProducts = useMemo(() => (Array.isArray(products) ? products : []), [products]);
+  const safeCategories = useMemo(() => (Array.isArray(categories) ? categories : []), [categories]);
+  const safeToppings = useMemo(() => (Array.isArray(toppings) ? toppings : []), [toppings]);
 
-  const filteredProducts = safeProducts.filter((p) => {
-    const matchesSearch =
-      (p.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (Array.isArray(p.variants) && p.variants.some((v) => (v.sku || '').toLowerCase().includes(searchQuery.toLowerCase())));
-    const matchesCat = selectedCategory ? p.category_id === selectedCategory : true;
-    return matchesSearch && matchesCat;
-  });
+  const filteredProducts = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    return safeProducts.filter((p) => {
+      const matchesSearch =
+        !q ||
+        (p.name || '').toLowerCase().includes(q) ||
+        (Array.isArray(p.variants) && p.variants.some((v) => (v.sku || '').toLowerCase().includes(q)));
+      const matchesCat = selectedCategory ? p.category_id === selectedCategory : true;
+      return matchesSearch && matchesCat;
+    });
+  }, [safeProducts, searchQuery, selectedCategory]);
 
   return (
     <AppShell>

@@ -474,5 +474,33 @@
     "store_phone_placeholder": "e.g. 0901234567",
     "vietqr_account_no_placeholder": "e.g. 123456789",
     "vietqr_account_name_placeholder": "e.g. THO JUICE AND COFFEE"
+  },
+  "email_report": {
+    "send_button": "Send Email Report",
+    "modal_title": "Send Daily Financial Report via Email",
+    "modal_subtitle": "A comprehensive revenue, profit, and top product summary will be emailed to all admin recipients.",
+    "recipients_label": "Recipients",
+    "date_label": "Report Date",
+    "confirm": "Send Email",
+    "cancel": "Cancel",
+    "sending": "Sending...",
+    "success": "✅ Report sent successfully!",
+    "error": "❌ Failed to send report. Please check SMTP configuration.",
+    "settings_section_title": "Email & Automated Report Configuration",
+    "settings_section_desc": "Configure SMTP credentials to enable automatic daily financial report delivery.",
+    "smtp_host": "SMTP Host",
+    "smtp_port": "SMTP Port",
+    "smtp_user": "SMTP Login Email",
+    "smtp_password": "App Password",
+    "smtp_from_email": "From Email Address",
+    "smtp_from_name": "Sender Display Name",
+    "recipients": "Recipient Emails (comma-separated)",
+    "enable_auto_report": "Enable automated daily report",
+    "report_time": "Scheduled send time",
+    "test_smtp_button": "Send Test Email",
+    "test_smtp_success": "✅ Test email sent successfully!",
+    "test_smtp_error": "❌ SMTP test failed. Please verify your credentials.",
+    "smtp_password_hint": "Use a 16-character Google App Password (not your regular Gmail password)",
+    "funds_prompt_label": "Send end-of-shift report to admin emails"
   }
 }

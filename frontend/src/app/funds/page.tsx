@@ -18,6 +18,7 @@ import {
   Coins,
   ChevronDown,
   ChevronUp,
+  Mail,
 } from 'lucide-react';
 import AppShell from '@/components/AppShell';
 import ModernDateRangePicker, { DatePeriod, computeDateRange } from '@/components/common/ModernDateRangePicker';
@@ -50,6 +51,14 @@ export default function FundsPage() {
   const [actualBalanceInput, setActualBalanceInput] = useState<number>(0);
   const [reconcileNotes, setReconcileNotes] = useState<string>('');
   const [reconciling, setReconciling] = useState<boolean>(false);
+  // Email prompt after successful reconciliation
+  const [sendEmailAfterReconcile, setSendEmailAfterReconcile] = useState<boolean>(false);
+  const [reconcileToast, setReconcileToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  const showToast = (type: 'success' | 'error', message: string) => {
+    setReconcileToast({ type, message });
+    setTimeout(() => setReconcileToast(null), 5000);
+  };
 
   const loadFunds = async () => {
     setLoading(true);
@@ -110,6 +119,7 @@ export default function FundsPage() {
     if (!selectedFundForReconcile) return;
 
     setReconciling(true);
+    const fundName = selectedFundForReconcile.name;
     const res = await fetchApi<any>(`/funds/${selectedFundForReconcile.id}/reconcile`, {
       method: 'POST',
       body: JSON.stringify({
@@ -123,9 +133,23 @@ export default function FundsPage() {
       setSelectedFundForReconcile(null);
       await loadFunds();
       await loadPeriodSummary();
-      alert(t('funds.reconcile_success', { name: selectedFundForReconcile.name }));
+      showToast('success', t('funds.reconcile_success', { name: fundName }));
+
+      // Optionally dispatch an end-of-shift email report
+      if (sendEmailAfterReconcile) {
+        const today = new Date().toISOString().slice(0, 10);
+        fetchApi<any>('/analytics/send-daily-report-email', {
+          method: 'POST',
+          body: JSON.stringify({ date: today }),
+        }).then((emailRes) => {
+          if (emailRes.status !== 'success') {
+            console.warn('[FundsPage] Email report dispatch failed after reconciliation:', emailRes.message);
+          }
+        }).catch(console.warn);
+      }
+      setSendEmailAfterReconcile(false);
     } else {
-      alert(t('funds.reconcile_failed', { error: res.message }));
+      showToast('error', t('funds.reconcile_failed', { error: res.message }));
     }
     setReconciling(false);
   };
@@ -432,6 +456,18 @@ export default function FundsPage() {
                 />
               </div>
 
+              {/* Email report option after reconciliation */}
+              <label className="flex items-center gap-2.5 cursor-pointer bg-emerald-50 border border-emerald-200 rounded-xl p-3">
+                <input
+                  type="checkbox"
+                  checked={sendEmailAfterReconcile}
+                  onChange={(e) => setSendEmailAfterReconcile(e.target.checked)}
+                  className="w-4 h-4 accent-emerald-600 rounded"
+                />
+                <Mail className="w-4 h-4 text-emerald-600" />
+                <span className="text-xs font-semibold text-emerald-800">{t('email_report.funds_prompt_label')}</span>
+              </label>
+
               <div className="flex justify-end space-x-2 pt-2 border-t border-slate-100">
                 <button
                   type="button"
@@ -451,6 +487,15 @@ export default function FundsPage() {
               </div>
             </form>
           </div>
+        </div>
+      )}
+
+      {/* Reconciliation Toast Notification */}
+      {reconcileToast && (
+        <div className={`fixed top-4 right-4 z-[60] px-4 py-3 rounded-2xl shadow-2xl text-sm font-semibold ${
+          reconcileToast.type === 'success' ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'
+        }`}>
+          {reconcileToast.message}
         </div>
       )}
     </AppShell>

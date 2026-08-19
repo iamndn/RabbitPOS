@@ -474,5 +474,33 @@
     "store_phone_placeholder": "VD: 0901234567",
     "vietqr_account_no_placeholder": "VD: 123456789",
     "vietqr_account_name_placeholder": "VD: THO JUICE AND COFFEE"
+  },
+  "email_report": {
+    "send_button": "Gửi Báo Cáo Email",
+    "modal_title": "Gửi Báo Cáo Tài Chính Qua Email",
+    "modal_subtitle": "Báo cáo tổng hợp doanh thu, lợi nhuận và sản phẩm bán chạy sẽ được gửi đến ban quản trị.",
+    "recipients_label": "Người nhận",
+    "date_label": "Ngày báo cáo",
+    "confirm": "Gửi Email",
+    "cancel": "Hủy",
+    "sending": "Đang gửi...",
+    "success": "✅ Báo cáo đã được gửi thành công!",
+    "error": "❌ Gửi báo cáo thất bại. Vui lòng kiểm tra cấu hình SMTP.",
+    "settings_section_title": "Cấu Hình Email & Báo Cáo Tự Động",
+    "settings_section_desc": "Thiết lập thông tin SMTP để hệ thống tự động gửi báo cáo tài chính hàng ngày.",
+    "smtp_host": "SMTP Host",
+    "smtp_port": "SMTP Port",
+    "smtp_user": "Email đăng nhập SMTP",
+    "smtp_password": "Mật khẩu ứng dụng (App Password)",
+    "smtp_from_email": "Email gửi (From Email)",
+    "smtp_from_name": "Tên hiển thị người gửi",
+    "recipients": "Email người nhận (phân cách bằng dấu phẩy)",
+    "enable_auto_report": "Bật gửi báo cáo tự động hàng ngày",
+    "report_time": "Giờ gửi tự động",
+    "test_smtp_button": "Gửi Email Kiểm Tra",
+    "test_smtp_success": "✅ Email kiểm tra đã được gửi thành công!",
+    "test_smtp_error": "❌ Kiểm tra SMTP thất bại. Vui lòng kiểm tra thông tin đăng nhập.",
+    "smtp_password_hint": "Dùng App Password 16 ký tự từ Google Account (không phải mật khẩu Gmail thông thường)",
+    "funds_prompt_label": "Gửi báo cáo kết ca qua Email ban quản trị"
   }
 }

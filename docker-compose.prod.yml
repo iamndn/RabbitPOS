@@ -49,13 +49,22 @@ services:
       DB_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD_is_required}
       DB_NAME: ${POSTGRES_DB:-rabbitpos}
       APP_ENV: production
-      CORS_ORIGIN: ${CORS_ORIGIN:-https://rabbitpos.ndnworks.com,http://localhost:3000,http://10.0.0.10:3000}
-      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-https://rabbitpos.ndnworks.com,http://localhost:3000,http://10.0.0.10:3000}
+      CORS_ORIGIN: ${CORS_ORIGIN:-https://rabbitpos.ndnworks.com,https://rabbitpos-api.ndnworks.com,http://localhost:3000,http://10.0.0.10:3000}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-https://rabbitpos.ndnworks.com,https://rabbitpos-api.ndnworks.com,http://localhost:3000,http://10.0.0.10:3000}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET_is_required}
       JWT_EXPIRY_HOURS: ${JWT_EXPIRY_HOURS:-24}
       ENABLE_SEEDING: "false"
       INITIAL_ADMIN_USERNAME: ${INITIAL_ADMIN_USERNAME:?INITIAL_ADMIN_USERNAME_is_required}
       INITIAL_ADMIN_PASSWORD: ${INITIAL_ADMIN_PASSWORD:?INITIAL_ADMIN_PASSWORD_is_required}
+      SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL:-rabbitpos@ndnworks.com}
+      SMTP_FROM_NAME: ${SMTP_FROM_NAME:-Thỏ Juice & Coffee - RabbitPOS}
+      REPORT_RECIPIENT_EMAILS: ${REPORT_RECIPIENT_EMAILS:-nhanhdn.jfw@gmail.com,candynhung754@gmail.com,150498tranquangdat@gmail.com}
+      ENABLE_DAILY_EMAIL_REPORT: ${ENABLE_DAILY_EMAIL_REPORT:-true}
+      DAILY_REPORT_TIME: ${DAILY_REPORT_TIME:-22:30}
     ports:
       - "${BACKEND_PORT:-8080}:8080"
     volumes:

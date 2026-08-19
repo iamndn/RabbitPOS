@@ -9,16 +9,80 @@ import (
 	"time"
 
 	"github.com/RabbitPOS/backend/internal/models"
+	"github.com/RabbitPOS/backend/internal/services"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
 
 type AnalyticsHandler struct {
-	db *gorm.DB
+	db       *gorm.DB
+	emailSvc *services.EmailService
 }
 
-func NewAnalyticsHandler(db *gorm.DB) *AnalyticsHandler {
-	return &AnalyticsHandler{db: db}
+func NewAnalyticsHandler(db *gorm.DB, emailSvc *services.EmailService) *AnalyticsHandler {
+	return &AnalyticsHandler{db: db, emailSvc: emailSvc}
+}
+
+// SendDailyReportEmail is an admin-only endpoint to trigger an on-demand financial email report
+// POST /api/v1/analytics/send-daily-report-email
+// Body (all optional): { "date": "YYYY-MM-DD", "recipients": ["email@example.com"] }
+func (h *AnalyticsHandler) SendDailyReportEmail(c *gin.Context) {
+	// Extract requesting admin username for attribution in the email
+	triggeredBy := ""
+	if user, exists := c.Get("user"); exists {
+		if u, ok := user.(*models.User); ok {
+			triggeredBy = u.Username
+		}
+	}
+
+	// Parse optional request body
+	var req struct {
+		Date       string   `json:"date"`
+		Recipients []string `json:"recipients"`
+	}
+	// ShouldBindJSON is lenient — OK if body is empty
+	_ = c.ShouldBindJSON(&req)
+
+	// Determine target date (default: today in server timezone)
+	var targetDate time.Time
+	if req.Date != "" {
+		parsed, err := time.ParseInLocation("2006-01-02", req.Date, time.Now().Location())
+		if err != nil {
+			models.SendError(c, http.StatusBadRequest, fmt.Sprintf("Invalid date format '%s': use YYYY-MM-DD", req.Date))
+			return
+		}
+		targetDate = parsed
+	} else {
+		targetDate = time.Now()
+	}
+
+	// Fire email in a goroutine so the API returns immediately
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- h.emailSvc.SendDailyFinancialReport(targetDate, triggeredBy, req.Recipients)
+	}()
+
+	// Wait up to 30 seconds for send (reasonable for SMTP; avoids HTTP timeout)
+	select {
+	case err := <-errCh:
+		if err != nil {
+			models.SendError(c, http.StatusInternalServerError, "Failed to send email report: "+err.Error())
+			return
+		}
+	case <-time.After(30 * time.Second):
+		models.SendError(c, http.StatusGatewayTimeout, "Email dispatch timed out — check SMTP settings")
+		return
+	}
+
+	recipients := h.emailSvc.GetDefaultRecipients()
+	if len(req.Recipients) > 0 {
+		recipients = req.Recipients
+	}
+	models.SendSuccess(c, http.StatusOK, gin.H{
+		"date":             targetDate.Format("2006-01-02"),
+		"recipients_count": len(recipients),
+		"recipients":       recipients,
+	}, fmt.Sprintf("Email report sent successfully to %d recipient(s)", len(recipients)))
 }
 
 // parseAnalyticsPeriod parses period, from, to query parameters and returns current and previous time windows

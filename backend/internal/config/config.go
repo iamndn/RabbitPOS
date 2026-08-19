@@ -33,6 +33,19 @@ type Config struct {
 	// Initial staff account credentials (optional, only seeded in development)
 	InitialStaffUsername string
 	InitialStaffPassword string
+
+	// SMTP Email configuration (used as fallback defaults; runtime values are read from settings table)
+	SMTPHost             string
+	SMTPPort             string
+	SMTPUser             string
+	SMTPPassword         string
+	SMTPFromEmail        string
+	SMTPFromName         string
+
+	// Email report configuration defaults
+	ReportRecipientEmails  string
+	EnableDailyEmailReport bool
+	DailyReportTime        string
 }
 
 // IsProduction returns true when running in production mode
@@ -84,6 +97,17 @@ func LoadConfig() (*Config, error) {
 	initialStaffUsername := getEnv("INITIAL_STAFF_USERNAME", "staff")
 	initialStaffPassword := getEnv("INITIAL_STAFF_PASSWORD", "")
 
+	// SMTP email configuration (ENV overrides; runtime values are re-read from settings table each send)
+	smtpHost := getEnv("SMTP_HOST", "smtp.gmail.com")
+	smtpPort := getEnv("SMTP_PORT", "587")
+	smtpUser := getEnv("SMTP_USER", "")
+	smtpPassword := getEnv("SMTP_PASSWORD", "")
+	smtpFromEmail := getEnv("SMTP_FROM_EMAIL", "")
+	smtpFromName := getEnv("SMTP_FROM_NAME", "Thỏ Juice & Coffee - RabbitPOS")
+	reportRecipients := getEnv("REPORT_RECIPIENT_EMAILS", "nhanhdn.jfw@gmail.com,candynhung754@gmail.com,150498tranquangdat@gmail.com")
+	enableDailyReport, _ := strconv.ParseBool(getEnv("ENABLE_DAILY_EMAIL_REPORT", "true"))
+	dailyReportTime := getEnv("DAILY_REPORT_TIME", "22:30")
+
 	jwtExpiryHours, err := strconv.Atoi(jwtExpiryStr)
 	if err != nil || jwtExpiryHours <= 0 {
 		jwtExpiryHours = 24
@@ -100,21 +124,30 @@ func LoadConfig() (*Config, error) {
 	}
 
 	cfg := &Config{
-		Port:                 port,
-		DBHost:               dbHost,
-		DBPort:               dbPort,
-		DBUser:               dbUser,
-		DBPassword:           dbPassword,
-		DBName:               dbName,
-		AppEnv:               appEnv,
-		JWTSecret:            jwtSecret,
-		JWTExpiryHours:       jwtExpiryHours,
-		CORSAllowedOrigins:   origins,
-		EnableSeeding:        enableSeeding,
-		InitialAdminUsername: initialAdminUsername,
-		InitialAdminPassword: initialAdminPassword,
-		InitialStaffUsername: initialStaffUsername,
-		InitialStaffPassword: initialStaffPassword,
+		Port:                   port,
+		DBHost:                 dbHost,
+		DBPort:                 dbPort,
+		DBUser:                 dbUser,
+		DBPassword:             dbPassword,
+		DBName:                 dbName,
+		AppEnv:                 appEnv,
+		JWTSecret:              jwtSecret,
+		JWTExpiryHours:         jwtExpiryHours,
+		CORSAllowedOrigins:     origins,
+		EnableSeeding:          enableSeeding,
+		InitialAdminUsername:   initialAdminUsername,
+		InitialAdminPassword:   initialAdminPassword,
+		InitialStaffUsername:   initialStaffUsername,
+		InitialStaffPassword:   initialStaffPassword,
+		SMTPHost:               smtpHost,
+		SMTPPort:               smtpPort,
+		SMTPUser:               smtpUser,
+		SMTPPassword:           smtpPassword,
+		SMTPFromEmail:          smtpFromEmail,
+		SMTPFromName:           smtpFromName,
+		ReportRecipientEmails:  reportRecipients,
+		EnableDailyEmailReport: enableDailyReport,
+		DailyReportTime:        dailyReportTime,
 	}
 
 	// Enforce secure JWT secret in production — fail fast rather than run insecurely

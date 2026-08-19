@@ -12,6 +12,8 @@ import {
   RefreshCw,
   ImageIcon,
   Upload,
+  Mail,
+  Send,
 } from 'lucide-react';
 import AppShell from '@/components/AppShell';
 import { fetchApi, uploadImage, getImageUrl } from '@/lib/api';
@@ -20,7 +22,7 @@ import { useTranslation } from '@/lib/i18n/LanguageContext';
 
 export default function SettingsPage() {
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState<'store' | 'currency' | 'vietqr'>('store');
+  const [activeTab, setActiveTab] = useState<'store' | 'currency' | 'vietqr' | 'email'>('store');
   const [loading, setLoading] = useState<boolean>(true);
   const [saving, setSaving] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -40,7 +42,40 @@ export default function SettingsPage() {
     vietqr_bank_id: 'MB',
     vietqr_account_no: '123456789',
     vietqr_account_name: 'THO JUICE AND COFFEE',
+    smtp_host: 'smtp.gmail.com',
+    smtp_port: '587',
+    smtp_user: '',
+    smtp_password: '',
+    smtp_from_email: '',
+    smtp_from_name: 'Thỏ Juice & Coffee - RabbitPOS',
+    report_recipient_emails: 'nhanhdn.jfw@gmail.com,candynhung754@gmail.com,150498tranquangdat@gmail.com',
+    enable_daily_email_report: 'true',
+    daily_report_time: '22:30',
   });
+
+  const [testingSmtp, setTestingSmtp] = useState<boolean>(false);
+  const [smtpTestResult, setSmtpTestResult] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  const handleTestSMTP = async () => {
+    setTestingSmtp(true);
+    setSmtpTestResult(null);
+    try {
+      const res = await fetchApi<any>('/settings/test-smtp', {
+        method: 'POST',
+        body: JSON.stringify({}),
+      });
+      if (res.status === 'success') {
+        setSmtpTestResult({ type: 'success', message: t('email_report.test_smtp_success') });
+      } else {
+        setSmtpTestResult({ type: 'error', message: res.message || t('email_report.test_smtp_error') });
+      }
+    } catch {
+      setSmtpTestResult({ type: 'error', message: t('email_report.test_smtp_error') });
+    } finally {
+      setTestingSmtp(false);
+      setTimeout(() => setSmtpTestResult(null), 6000);
+    }
+  };
 
   const loadSettings = async () => {
     setLoading(true);
@@ -173,6 +208,19 @@ export default function SettingsPage() {
               >
                 <QrCode className="w-4 h-4" />
                 <span>{t('settings.tab_vietqr')}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('email')}
+                className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 ${
+                  activeTab === 'email'
+                    ? 'bg-emerald-600 text-white shadow-sm'
+                    : 'text-slate-600 hover:bg-slate-50'
+                }`}
+              >
+                <Mail className="w-4 h-4" />
+                <span>{t('email_report.settings_section_title').split(' ')[0]}</span>
               </button>
             </div>
 
@@ -417,6 +465,91 @@ export default function SettingsPage() {
               </div>
             )}
 
+            {/* TAB 4: Email & Automated Reports */}
+            {activeTab === 'email' && (
+              <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-5 text-xs animate-in fade-in duration-150">
+                <div>
+                  <h3 className="font-bold text-slate-900 text-sm pb-2 border-b border-slate-100 flex items-center gap-2">
+                    <Mail className="w-4 h-4 text-emerald-600" />
+                    {t('email_report.settings_section_title')}
+                  </h3>
+                  <p className="text-slate-500 text-xs mt-2">{t('email_report.settings_section_desc')}</p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl">
+                  <div>
+                    <label className="font-semibold text-slate-700 mb-1 block">{t('email_report.smtp_host')}</label>
+                    <input type="text" value={form.smtp_host || ''} onChange={(e) => handleChange('smtp_host', e.target.value)}
+                      className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+                      placeholder="smtp.gmail.com" />
+                  </div>
+                  <div>
+                    <label className="font-semibold text-slate-700 mb-1 block">{t('email_report.smtp_port')}</label>
+                    <input type="text" value={form.smtp_port || ''} onChange={(e) => handleChange('smtp_port', e.target.value)}
+                      className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+                      placeholder="587" />
+                  </div>
+                  <div>
+                    <label className="font-semibold text-slate-700 mb-1 block">{t('email_report.smtp_user')}</label>
+                    <input type="email" value={form.smtp_user || ''} onChange={(e) => handleChange('smtp_user', e.target.value)}
+                      className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+                      placeholder="your-email@gmail.com" />
+                  </div>
+                  <div>
+                    <label className="font-semibold text-slate-700 mb-1 block">{t('email_report.smtp_password')}</label>
+                    <input type="password" value={form.smtp_password || ''} onChange={(e) => handleChange('smtp_password', e.target.value)}
+                      className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+                      placeholder="xxxx xxxx xxxx xxxx" />
+                    <p className="text-slate-400 text-xs mt-1">{t('email_report.smtp_password_hint')}</p>
+                  </div>
+                  <div>
+                    <label className="font-semibold text-slate-700 mb-1 block">{t('email_report.smtp_from_email')}</label>
+                    <input type="email" value={form.smtp_from_email || ''} onChange={(e) => handleChange('smtp_from_email', e.target.value)}
+                      className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+                      placeholder="rabbitpos@yourdomain.com" />
+                  </div>
+                  <div>
+                    <label className="font-semibold text-slate-700 mb-1 block">{t('email_report.smtp_from_name')}</label>
+                    <input type="text" value={form.smtp_from_name || ''} onChange={(e) => handleChange('smtp_from_name', e.target.value)}
+                      className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+                      placeholder="RabbitPOS" />
+                  </div>
+                </div>
+
+                <div className="max-w-2xl">
+                  <label className="font-semibold text-slate-700 mb-1 block">{t('email_report.recipients')}</label>
+                  <input type="text" value={form.report_recipient_emails || ''} onChange={(e) => handleChange('report_recipient_emails', e.target.value)}
+                    className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+                    placeholder="admin1@email.com,admin2@email.com" />
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-4 max-w-2xl">
+                  <label className="flex items-center gap-2.5 cursor-pointer bg-emerald-50 border border-emerald-200 rounded-xl p-3 flex-1">
+                    <input type="checkbox" checked={form.enable_daily_email_report === 'true'}
+                      onChange={(e) => handleChange('enable_daily_email_report', e.target.checked ? 'true' : 'false')}
+                      className="w-4 h-4 accent-emerald-600 rounded" />
+                    <Mail className="w-4 h-4 text-emerald-600" />
+                    <span className="text-xs font-semibold text-emerald-800">{t('email_report.enable_auto_report')}</span>
+                  </label>
+
+                  <div className="flex-1">
+                    <label className="font-semibold text-slate-700 mb-1 block">{t('email_report.report_time')}</label>
+                    <input type="time" value={form.daily_report_time || '22:30'} onChange={(e) => handleChange('daily_report_time', e.target.value)}
+                      className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white" />
+                  </div>
+                </div>
+
+                {/* Test SMTP button (separate from main save) */}
+                <div className="pt-2 border-t border-slate-100">
+                  <button type="button" onClick={handleTestSMTP} disabled={testingSmtp}
+                    className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white font-bold text-xs py-2.5 px-5 rounded-xl transition flex items-center gap-2">
+                    {testingSmtp ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                    {testingSmtp ? t('email_report.sending') : t('email_report.test_smtp_button')}
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Save Button */}
             <div className="flex justify-end pt-2">
               <button
@@ -438,6 +571,15 @@ export default function SettingsPage() {
               </button>
             </div>
           </form>
+        )}
+
+        {/* SMTP Test Result toast */}
+        {smtpTestResult && (
+          <div className={`fixed top-4 right-4 z-[60] px-4 py-3 rounded-2xl shadow-2xl text-sm font-semibold ${
+            smtpTestResult.type === 'success' ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'
+          }`}>
+            {smtpTestResult.message}
+          </div>
         )}
       </div>
     </AppShell>
