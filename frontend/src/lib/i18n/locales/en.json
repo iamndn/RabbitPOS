@@ -503,5 +503,31 @@
     "test_smtp_error": "❌ SMTP test failed. Please verify your credentials.",
     "smtp_password_hint": "Use a 16-character Google App Password (not your regular Gmail password)",
     "funds_prompt_label": "Send end-of-shift report to admin emails"
+  },
+  "product_perf": {
+    "section_title": "Product Sales & Profit Performance",
+    "section_subtitle": "Analyze revenue, COGS, and gross profit per product for the selected time window.",
+    "export_csv": "Export CSV",
+    "search_placeholder": "Search products...",
+    "all_categories": "All categories",
+    "kpi_units_sold": "Total Units Sold",
+    "unit_label": "units",
+    "kpi_revenue": "Product Revenue",
+    "kpi_profit": "Gross Profit",
+    "avg_margin_label": "Avg Margin: {margin}%",
+    "kpi_top_profit": "Top Profit Product",
+    "top_revenue_label": "Top revenue",
+    "col_product": "Product / Item",
+    "col_category": "Category",
+    "col_qty": "Units Sold",
+    "col_revenue": "Revenue",
+    "col_rev_share": "Revenue Share",
+    "col_cogs": "COGS",
+    "col_profit": "Gross Profit",
+    "col_margin": "Margin %",
+    "empty_state": "No sales data recorded for this period.",
+    "empty_state_hint": "Try selecting a different time range or clearing the category filter.",
+    "row_count": "{count} products",
+    "period_label": "Period"
   }
 }

@@ -896,3 +896,183 @@ func parseDateRange(c *gin.Context) (time.Time, time.Time, string, string) {
 
 	return startDate, endDate, startDateStr, endDateStr
 }
+
+// GetProductsSalesPerformance returns product-level sales, COGS, profit and margin analytics.
+// GET /api/v1/analytics/products-sales-performance
+// Query params:
+//   - period (today|yesterday|week|month|year|custom), from, to — time window
+//   - category_id — filter by category (optional)
+//   - search — search by product name (optional)
+//   - sort_by (quantity|revenue|profit|margin) — default: revenue
+//   - sort_order (asc|desc) — default: desc
+func (h *AnalyticsHandler) GetProductsSalesPerformance(c *gin.Context) {
+	startTime, endTime, _, _, period, fromStr, toStr := parseAnalyticsPeriod(c)
+
+	sortBy := strings.ToLower(c.DefaultQuery("sort_by", "revenue"))
+	sortOrder := strings.ToLower(c.DefaultQuery("sort_order", "desc"))
+	search := strings.TrimSpace(c.Query("search"))
+	categoryIDStr := c.Query("category_id")
+
+	// Validate sort direction to prevent SQL injection
+	if sortOrder != "asc" && sortOrder != "desc" {
+		sortOrder = "desc"
+	}
+
+	// --- Determine ORDER BY expression ---
+	var orderExpr string
+	switch sortBy {
+	case "quantity":
+		orderExpr = "quantity_sold " + strings.ToUpper(sortOrder)
+	case "profit":
+		orderExpr = "total_profit " + strings.ToUpper(sortOrder)
+	case "margin":
+		orderExpr = "margin_percentage " + strings.ToUpper(sortOrder)
+	default:
+		sortBy = "revenue"
+		orderExpr = "total_revenue " + strings.ToUpper(sortOrder)
+	}
+
+	// --- Build base query grouped by product (all variants aggregated) ---
+	type RawProductRow struct {
+		ProductID    uint
+		ProductName  string
+		CategoryName string
+		ImageURL     string
+		QuantitySold int64
+		TotalRevenue float64
+		TotalCOGS    float64
+		TotalProfit  float64
+		// MarginPercentage computed in Go to avoid PostgreSQL CASE precision issues
+	}
+
+	baseQuery := h.db.Table("order_items").
+		Select(`
+			products.id                                                        as product_id,
+			products.name                                                      as product_name,
+			COALESCE(categories.name, 'Chưa phân loại')                       as category_name,
+			COALESCE(products.image_url, '')                                   as image_url,
+			SUM(order_items.quantity)                                          as quantity_sold,
+			SUM(order_items.line_total)                                        as total_revenue,
+			SUM(product_variants.cogs_price * order_items.quantity)            as total_cogs,
+			SUM(order_items.line_total) - SUM(product_variants.cogs_price * order_items.quantity) as total_profit
+		`).
+		Joins("JOIN orders ON orders.id = order_items.order_id").
+		Joins("JOIN product_variants ON product_variants.id = order_items.product_variant_id").
+		Joins("JOIN products ON products.id = product_variants.product_id").
+		Joins("LEFT JOIN categories ON categories.id = products.category_id").
+		Where("orders.status = ? AND orders.created_at BETWEEN ? AND ?", models.OrderStatusCompleted, startTime, endTime).
+		Group("products.id, products.name, categories.name, products.image_url")
+
+	// Optional search filter
+	if search != "" {
+		lowerSearch := "%" + strings.ToLower(search) + "%"
+		baseQuery = baseQuery.Where("LOWER(products.name) LIKE ? OR LOWER(categories.name) LIKE ?", lowerSearch, lowerSearch)
+	}
+
+	// Optional category filter
+	if categoryIDStr != "" {
+		if catID, err := strconv.ParseUint(categoryIDStr, 10, 32); err == nil && catID > 0 {
+			baseQuery = baseQuery.Where("products.category_id = ?", catID)
+		}
+	}
+
+	// Fetch raw rows ordered by chosen column
+	var rawRows []RawProductRow
+	if err := baseQuery.Order(orderExpr).Scan(&rawRows).Error; err != nil {
+		models.SendInternalError(c, "Failed to query product sales performance: "+err.Error())
+		return
+	}
+
+	// --- Compute total revenue across ALL returned rows for revenue-share calculation ---
+	var grandTotalRevenue float64
+	for _, r := range rawRows {
+		grandTotalRevenue += r.TotalRevenue
+	}
+
+	// --- Build response items and running summary ---
+	items := make([]models.ProductSalesPerformanceItem, 0, len(rawRows))
+
+	var (
+		totalUnits  int64
+		totalRev    float64
+		totalProfit float64
+
+		topSoldName    string
+		topSoldQty     int64
+		topRevName     string
+		topRevAmount   float64
+		topProfitName  string
+		topProfitAmt   float64
+	)
+
+	for _, r := range rawRows {
+		var marginPct float64
+		if r.TotalRevenue > 0 {
+			marginPct = math.Round((r.TotalProfit/r.TotalRevenue)*10000) / 100 // 2 decimal places
+		}
+
+		var revShare float64
+		if grandTotalRevenue > 0 {
+			revShare = math.Round((r.TotalRevenue/grandTotalRevenue)*10000) / 100
+		}
+
+		item := models.ProductSalesPerformanceItem{
+			ProductID:              r.ProductID,
+			ProductName:            r.ProductName,
+			CategoryName:           r.CategoryName,
+			ImageURL:               r.ImageURL,
+			QuantitySold:           r.QuantitySold,
+			TotalRevenue:           r.TotalRevenue,
+			TotalCOGS:              r.TotalCOGS,
+			TotalProfit:            r.TotalProfit,
+			MarginPercentage:       marginPct,
+			RevenueSharePercentage: revShare,
+		}
+		items = append(items, item)
+
+		// Accumulate totals
+		totalUnits += r.QuantitySold
+		totalRev += r.TotalRevenue
+		totalProfit += r.TotalProfit
+
+		// Track leaders (always scanning full slice regardless of sort order)
+		if r.QuantitySold > topSoldQty {
+			topSoldQty = r.QuantitySold
+			topSoldName = r.ProductName
+		}
+		if r.TotalRevenue > topRevAmount {
+			topRevAmount = r.TotalRevenue
+			topRevName = r.ProductName
+		}
+		if r.TotalProfit > topProfitAmt {
+			topProfitAmt = r.TotalProfit
+			topProfitName = r.ProductName
+		}
+	}
+
+	// Average margin: weighted by revenue share
+	var avgMargin float64
+	if totalRev > 0 {
+		avgMargin = math.Round((totalProfit/totalRev)*10000) / 100
+	}
+
+	summary := models.ProductSalesPerformanceSummary{
+		TotalUnitsSold:          totalUnits,
+		TotalProductsRevenue:    totalRev,
+		TotalProductsProfit:     totalProfit,
+		AverageMarginPercentage: avgMargin,
+		TopSoldProduct:          topSoldName,
+		TopRevenueProduct:       topRevName,
+		TopProfitProduct:        topProfitName,
+	}
+
+	resp := models.ProductSalesPerformanceResponse{
+		Summary: summary,
+		Items:   items,
+		Period:  period,
+		From:    fromStr,
+		To:      toStr,
+	}
+
+	models.SendSuccess(c, http.StatusOK, resp, "Product sales performance retrieved successfully")
+}

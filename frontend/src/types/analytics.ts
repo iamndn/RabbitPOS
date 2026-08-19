@@ -154,3 +154,36 @@ export interface CategoryBreakdownResponse {
   to: string;
   categories: CategoryBreakdownItem[];
 }
+
+// --- Product Sales Performance ---
+
+export interface ProductSalesPerformanceItem {
+  product_id: number;
+  product_name: string;
+  category_name: string;
+  image_url: string;
+  quantity_sold: number;
+  total_revenue: number;
+  total_cogs: number;
+  total_profit: number;
+  margin_percentage: number;
+  revenue_share_percentage: number;
+}
+
+export interface ProductSalesPerformanceSummary {
+  total_units_sold: number;
+  total_products_revenue: number;
+  total_products_profit: number;
+  average_margin_percentage: number;
+  top_sold_product: string;
+  top_revenue_product: string;
+  top_profit_product: string;
+}
+
+export interface ProductSalesPerformanceResponse {
+  summary: ProductSalesPerformanceSummary;
+  items: ProductSalesPerformanceItem[];
+  period: string;
+  from: string;
+  to: string;
+}

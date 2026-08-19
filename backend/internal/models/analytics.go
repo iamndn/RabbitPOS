@@ -217,3 +217,40 @@ type CashFlowSummaryItem struct {
 	Outflow float64 `json:"outflow"`
 	Net     float64 `json:"net"`
 }
+
+// --- Product Sales Performance Models ---
+
+// ProductSalesPerformanceItem holds aggregated sales metrics for a single product
+// across all its variants combined within a given time window.
+type ProductSalesPerformanceItem struct {
+	ProductID              uint    `json:"product_id"`
+	ProductName            string  `json:"product_name"`
+	CategoryName           string  `json:"category_name"`
+	ImageURL               string  `json:"image_url"`
+	QuantitySold           int64   `json:"quantity_sold"`
+	TotalRevenue           float64 `json:"total_revenue"`
+	TotalCOGS              float64 `json:"total_cogs"`
+	TotalProfit            float64 `json:"total_profit"`
+	MarginPercentage       float64 `json:"margin_percentage"`
+	RevenueSharePercentage float64 `json:"revenue_share_percentage"`
+}
+
+// ProductSalesPerformanceSummary is the aggregate KPI banner for the entire product list.
+type ProductSalesPerformanceSummary struct {
+	TotalUnitsSold          int64   `json:"total_units_sold"`
+	TotalProductsRevenue    float64 `json:"total_products_revenue"`
+	TotalProductsProfit     float64 `json:"total_products_profit"`
+	AverageMarginPercentage float64 `json:"average_margin_percentage"`
+	TopSoldProduct          string  `json:"top_sold_product"`
+	TopRevenueProduct       string  `json:"top_revenue_product"`
+	TopProfitProduct        string  `json:"top_profit_product"`
+}
+
+// ProductSalesPerformanceResponse is the full API response envelope for the endpoint.
+type ProductSalesPerformanceResponse struct {
+	Summary ProductSalesPerformanceSummary `json:"summary"`
+	Items   []ProductSalesPerformanceItem  `json:"items"`
+	Period  string                         `json:"period"`
+	From    string                         `json:"from"`
+	To      string                         `json:"to"`
+}

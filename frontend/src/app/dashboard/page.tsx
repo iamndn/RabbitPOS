@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import AppShell from '@/components/AppShell';
 import AllProductsRankingModal from '@/components/dashboard/AllProductsRankingModal';
+import ProductSalesPerformanceSection from '@/components/dashboard/ProductSalesPerformanceSection';
 import ModernDateRangePicker, { DatePeriod } from '@/components/common/ModernDateRangePicker';
 import { fetchApi } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
@@ -1063,6 +1064,14 @@ export default function DashboardPage() {
             </div>
           </div>
         )}
+
+        {/* Product Sales & Profit Performance Section — always visible across both tabs */}
+        <ProductSalesPerformanceSection
+          initialPeriod={period}
+          initialFrom={period === 'custom' ? customFrom : undefined}
+          initialTo={period === 'custom' ? customTo : undefined}
+          settings={settings}
+        />
 
         {/* All Products Performance Ranking Modal */}
         <AllProductsRankingModal

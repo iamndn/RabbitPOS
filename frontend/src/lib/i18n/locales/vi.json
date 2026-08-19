@@ -503,5 +503,31 @@
     "test_smtp_error": "❌ Kiểm tra SMTP thất bại. Vui lòng kiểm tra thông tin đăng nhập.",
     "smtp_password_hint": "Dùng App Password 16 ký tự từ Google Account (không phải mật khẩu Gmail thông thường)",
     "funds_prompt_label": "Gửi báo cáo kết ca qua Email ban quản trị"
+  },
+  "product_perf": {
+    "section_title": "Hiệu Quả Bán Hàng & Lợi Nhuận Theo Sản Phẩm",
+    "section_subtitle": "Phân tích doanh thu, giá vốn và lợi nhuận gộp của từng sản phẩm trong kỳ đã chọn.",
+    "export_csv": "Xuất CSV",
+    "search_placeholder": "Tìm kiếm sản phẩm...",
+    "all_categories": "Tất cả danh mục",
+    "kpi_units_sold": "Tổng Số Ly Bán Ra",
+    "unit_label": "ly",
+    "kpi_revenue": "Doanh Thu Sản Phẩm",
+    "kpi_profit": "Lợi Nhuận Gộp Món",
+    "avg_margin_label": "Biên LN TB: {margin}%",
+    "kpi_top_profit": "Món Lợi Nhuận Cao Nhất",
+    "top_revenue_label": "Doanh thu cao nhất",
+    "col_product": "Sản phẩm / Món",
+    "col_category": "Danh mục",
+    "col_qty": "Số lượng bán",
+    "col_revenue": "Doanh thu",
+    "col_rev_share": "Tỷ trọng DT",
+    "col_cogs": "Giá vốn (COGS)",
+    "col_profit": "Lợi nhuận gộp",
+    "col_margin": "Biên LN %",
+    "empty_state": "Chưa có dữ liệu bán hàng trong kỳ này.",
+    "empty_state_hint": "Thử chọn khoảng thời gian khác hoặc bỏ bộ lọc danh mục.",
+    "row_count": "{count} sản phẩm",
+    "period_label": "Kỳ"
   }
 }
