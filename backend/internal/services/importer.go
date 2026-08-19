@@ -583,8 +583,14 @@ func (s *ImporterService) importProducts(tx *gorm.DB, sheet string, rows [][]str
 			tStr := strings.ToLower(strings.TrimSpace(row[3]))
 			if tStr == "best_seller" || tStr == "bestseller" || tStr == "bán chạy" {
 				tag = models.TagBestSeller
-			} else if tStr == "new" || tStr == "mới" {
+			} else if tStr == "new" || tStr == "mới" || tStr == "món mới" {
 				tag = models.TagNew
+			} else if tStr == "featured" || tStr == "nổi bật" || tStr == "hot" {
+				tag = models.TagFeatured
+			} else if tStr == "suspended" || tStr == "tạm ngưng" || tStr == "ngưng bán" {
+				tag = models.TagSuspended
+			} else if tStr == "coming_soon" || tStr == "comingsoon" || tStr == "sắp ra mắt" {
+				tag = models.TagComingSoon
 			}
 		}
 

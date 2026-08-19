@@ -10,6 +10,9 @@ type ProductTag string
 const (
 	TagBestSeller ProductTag = "best_seller"
 	TagNew        ProductTag = "new"
+	TagFeatured   ProductTag = "featured"
+	TagSuspended  ProductTag = "suspended"
+	TagComingSoon ProductTag = "coming_soon"
 	TagNone       ProductTag = "none"
 )
 
@@ -61,6 +64,7 @@ type CreateProductRequest struct {
 	Description string                 `json:"description"`
 	ImageURL    string                 `json:"image_url"`
 	Tag         ProductTag             `json:"tag"`
+	IsActive    *bool                  `json:"is_active"`
 	Variants    []CreateVariantRequest `json:"variants"`
 }
 

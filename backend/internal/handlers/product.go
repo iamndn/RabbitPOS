@@ -100,13 +100,18 @@ func (h *ProductHandler) CreateProduct(c *gin.Context) {
 		tag = models.TagNone
 	}
 
+	isActive := true
+	if req.IsActive != nil {
+		isActive = *req.IsActive
+	}
+
 	product := models.Product{
 		CategoryID:  req.CategoryID,
 		Name:        req.Name,
 		Description: req.Description,
 		ImageURL:    req.ImageURL,
 		Tag:         tag,
-		IsActive:    true,
+		IsActive:    isActive,
 	}
 
 	// Transaction to create Product and associated Variants

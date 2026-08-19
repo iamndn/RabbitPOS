@@ -22,6 +22,7 @@ export interface Product {
   description: string;
   image_url: string;
   tag: string;
+  is_active?: boolean;
   variants: ProductVariant[];
 }
 

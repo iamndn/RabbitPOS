@@ -51,6 +51,7 @@ interface Product {
   description: string;
   image_url: string;
   tag: string;
+  is_active?: boolean;
   variants: ProductVariant[];
   created_at?: string;
 }
@@ -71,6 +72,8 @@ export default function ProductsPage() {
   const [loading, setLoading] = useState<boolean>(true);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
+  const [selectedTag, setSelectedTag] = useState<string>('all');
+  const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [settings, setSettings] = useState<SettingsMap | null>(null);
 
   // Category Management Panel
@@ -95,6 +98,7 @@ export default function ProductsPage() {
   const [formDescription, setFormDescription] = useState<string>('');
   const [formImageUrl, setFormImageUrl] = useState<string>('');
   const [formTag, setFormTag] = useState<string>('none');
+  const [formIsActive, setFormIsActive] = useState<boolean>(true);
   const [formVariants, setFormVariants] = useState<ProductVariant[]>([
     { variant_name: 'Size M', cogs_price: 1.0, retail_price: 3.5, sku: '' },
   ]);
@@ -211,6 +215,7 @@ export default function ProductsPage() {
     setFormDescription('');
     setFormImageUrl('');
     setFormTag('none');
+    setFormIsActive(true);
     setFormCategoryId(categories[0]?.id || 0);
     setFormVariants([
       { variant_name: 'Size M', cogs_price: 8000, retail_price: 25000, sku: '' },
@@ -225,12 +230,40 @@ export default function ProductsPage() {
     setFormDescription(product.description || '');
     setFormImageUrl(product.image_url || '');
     setFormTag(product.tag || 'none');
+    setFormIsActive(product.is_active !== false);
     setFormVariants(
       product.variants && product.variants.length > 0
         ? product.variants
         : [{ variant_name: 'Default', cogs_price: 0, retail_price: 0, sku: '' }]
     );
     setIsProductModalOpen(true);
+  };
+
+  const handleToggleProductStatus = async (product: Product) => {
+    const nextStatus = product.is_active === false ? true : false;
+    // Optimistic update
+    setProducts((prev) =>
+      prev.map((p) => (p.id === product.id ? { ...p, is_active: nextStatus } : p))
+    );
+
+    try {
+      const res = await fetchApi<Product>(`/products/${product.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ is_active: nextStatus }),
+      });
+      if (res.status !== 'success') {
+        // Rollback
+        setProducts((prev) =>
+          prev.map((p) => (p.id === product.id ? { ...p, is_active: product.is_active } : p))
+        );
+        alert(t('products.update_failed', { message: res.message }));
+      }
+    } catch (err: any) {
+      setProducts((prev) =>
+        prev.map((p) => (p.id === product.id ? { ...p, is_active: product.is_active } : p))
+      );
+      alert(t('products.update_failed', { message: err?.message }));
+    }
   };
 
   const handleAddVariantRow = () => {
@@ -268,6 +301,7 @@ export default function ProductsPage() {
           description: formDescription,
           image_url: formImageUrl,
           tag: formTag,
+          is_active: formIsActive,
         }),
       });
       if (res.status === 'success') {
@@ -285,6 +319,7 @@ export default function ProductsPage() {
           description: formDescription,
           image_url: formImageUrl,
           tag: formTag,
+          is_active: formIsActive,
           variants: formVariants.map((v) => ({
             variant_name: v.variant_name,
             cogs_price: Number(v.cogs_price),
@@ -449,11 +484,19 @@ export default function ProductsPage() {
       const matchesSearch =
         !q ||
         (p.name || '').toLowerCase().includes(q) ||
+        (p.description || '').toLowerCase().includes(q) ||
         (Array.isArray(p.variants) && p.variants.some((v) => (v.sku || '').toLowerCase().includes(q)));
       const matchesCat = selectedCategory ? p.category_id === selectedCategory : true;
-      return matchesSearch && matchesCat;
+      const matchesTag = selectedTag === 'all' ? true : p.tag === selectedTag;
+      const matchesStatus =
+        selectedStatus === 'all'
+          ? true
+          : selectedStatus === 'active'
+          ? p.is_active !== false
+          : p.is_active === false;
+      return matchesSearch && matchesCat && matchesTag && matchesStatus;
     });
-  }, [safeProducts, searchQuery, selectedCategory]);
+  }, [safeProducts, searchQuery, selectedCategory, selectedTag, selectedStatus]);
 
   return (
     <AppShell>
@@ -655,40 +698,71 @@ export default function ProductsPage() {
         </div>
 
         {/* Filter Controls Bar */}
-        <div className="flex flex-col sm:flex-row gap-3 items-center justify-between">
-          <div className="relative w-full sm:w-80">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-            <input
-              type="text"
-              placeholder={t('products.search_placeholder')}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
-            />
+        <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center justify-between">
+          <div className="flex flex-col sm:flex-row gap-2 flex-1">
+            <div className="relative flex-1 min-w-[200px]">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+              <input
+                type="text"
+                placeholder={t('products.search_placeholder')}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-4 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white shadow-2xs"
+              />
+            </div>
+
+            {/* Tag Filter */}
+            <div className="w-full sm:w-44">
+              <ModernSelect
+                value={selectedTag}
+                onChange={(val) => setSelectedTag(String(val))}
+                options={[
+                  { value: 'all', label: t('products.filter_all_tags') || 'Tất cả nhãn' },
+                  { value: 'featured', label: t('products.badge_featured') || '⭐ Nổi bật', badge: '⭐ Nổi bật', badgeColor: 'amber' },
+                  { value: 'best_seller', label: t('products.badge_bestseller') || '🔥 Bán chạy', badge: '🔥 Bán chạy', badgeColor: 'rose' },
+                  { value: 'new', label: t('products.badge_new') || '✨ Món mới', badge: '✨ Món mới', badgeColor: 'emerald' },
+                  { value: 'coming_soon', label: t('products.badge_comingsoon') || '⏳ Sắp ra mắt', badge: '⏳ Sắp ra mắt', badgeColor: 'indigo' },
+                  { value: 'suspended', label: t('products.badge_suspended') || '⛔ Tạm ngưng', badge: '⛔ Tạm ngưng', badgeColor: 'slate' },
+                ]}
+              />
+            </div>
+
+            {/* Status Filter */}
+            <div className="w-full sm:w-40">
+              <ModernSelect
+                value={selectedStatus}
+                onChange={(val) => setSelectedStatus(String(val))}
+                options={[
+                  { value: 'all', label: t('products.filter_all_status') || 'Tất cả trạng thái' },
+                  { value: 'active', label: t('products.status_selling') || 'Đang bán', badge: 'Bật', badgeColor: 'emerald' },
+                  { value: 'inactive', label: t('products.status_hidden') || 'Tạm ẩn', badge: 'Ẩn', badgeColor: 'slate' },
+                ]}
+              />
+            </div>
           </div>
 
-          <div className="flex overflow-x-auto w-full sm:w-auto space-x-1.5 pb-1">
+          <div className="flex overflow-x-auto space-x-1.5 pb-1">
             <button
               onClick={() => setSelectedCategory(null)}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-lg whitespace-nowrap transition ${
+              className={`px-3 py-1.5 text-xs font-semibold rounded-lg whitespace-nowrap transition cursor-pointer ${
                 selectedCategory === null
-                  ? 'bg-slate-800 text-white shadow-sm'
+                  ? 'bg-slate-800 text-white shadow-xs'
                   : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
               }`}
             >
-              {t('common.all')}
+              {t('common.all')} ({safeProducts.length})
             </button>
             {safeCategories.map((cat) => (
               <button
                 key={cat.id}
                 onClick={() => setSelectedCategory(cat.id)}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-lg whitespace-nowrap transition ${
+                className={`px-3 py-1.5 text-xs font-semibold rounded-lg whitespace-nowrap transition cursor-pointer ${
                   selectedCategory === cat.id
-                    ? 'bg-slate-800 text-white shadow-sm'
+                    ? 'bg-slate-800 text-white shadow-xs'
                     : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
                 }`}
               >
-                {cat.name}
+                {cat.name} ({safeProducts.filter((p) => p.category_id === cat.id).length})
               </button>
             ))}
           </div>
@@ -705,6 +779,7 @@ export default function ProductsPage() {
                   <th className="py-3 px-4">{t('products.variants_pricing')}</th>
                   <th className="py-3 px-4">{t('products.cogs_vs_retail')}</th>
                   <th className="py-3 px-4">{t('products.margin')}</th>
+                  <th className="py-3 px-4 text-center">{t('products.product_status')}</th>
                   <th className="py-3 px-4 text-right">{t('common.actions')}</th>
                 </tr>
               </thead>
@@ -730,7 +805,7 @@ export default function ProductsPage() {
                   ))
                 ) : filteredProducts.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="py-8 text-center text-slate-400">
+                    <td colSpan={7} className="py-8 text-center text-slate-400">
                       {t('products.no_items')}
                     </td>
                   </tr>
@@ -744,7 +819,7 @@ export default function ProductsPage() {
                     const margin = avgRetail > 0 ? ((avgRetail - avgCogs) / avgRetail) * 100 : 0;
 
                     return (
-                      <tr key={product.id} className="hover:bg-slate-50 transition">
+                      <tr key={product.id} className={`hover:bg-slate-50 transition ${product.is_active === false ? 'opacity-60 bg-slate-50/50' : ''}`}>
                         <td className="py-3 px-4">
                           <div className="flex items-center space-x-3">
                             <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center overflow-hidden border border-slate-200 shrink-0">
@@ -756,13 +831,33 @@ export default function ProductsPage() {
                             </div>
                             <div>
                               <div className="font-semibold text-slate-900 text-sm flex items-center gap-1.5">
-                                {product.name}
+                                <span className={product.is_active === false ? 'line-through text-slate-500' : ''}>{product.name}</span>
                                 {product.tag && product.tag !== 'none' && (
-                                  <span className="text-[9px] uppercase font-extrabold px-1.5 py-0.5 bg-indigo-50 text-indigo-600 rounded">
-                                    {product.tag === 'best_seller'
-                                      ? t('products.best_seller')
+                                  <span
+                                    className={`text-[9px] uppercase font-extrabold px-1.5 py-0.5 rounded border ${
+                                      product.tag === 'featured'
+                                        ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                        : product.tag === 'best_seller'
+                                        ? 'bg-rose-50 text-rose-700 border-rose-200'
+                                        : product.tag === 'new'
+                                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                        : product.tag === 'coming_soon'
+                                        ? 'bg-blue-50 text-blue-700 border-blue-200'
+                                        : product.tag === 'suspended'
+                                        ? 'bg-slate-100 text-slate-700 border-slate-300'
+                                        : 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                                    }`}
+                                  >
+                                    {product.tag === 'featured'
+                                      ? '⭐ ' + t('products.featured')
+                                      : product.tag === 'best_seller'
+                                      ? '🔥 ' + t('products.best_seller')
                                       : product.tag === 'new'
-                                      ? t('products.new')
+                                      ? '✨ ' + t('products.new')
+                                      : product.tag === 'coming_soon'
+                                      ? '⏳ ' + t('products.coming_soon')
+                                      : product.tag === 'suspended'
+                                      ? '⛔ ' + t('products.suspended')
                                       : product.tag.replace('_', ' ')}
                                   </span>
                                 )}
@@ -805,6 +900,22 @@ export default function ProductsPage() {
                           >
                             {margin.toFixed(1)}%
                           </span>
+                        </td>
+                        {/* Interactive POS On/Off Quick Toggle Button */}
+                        <td className="py-3 px-4 text-center">
+                          <button
+                            type="button"
+                            onClick={() => handleToggleProductStatus(product)}
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold transition cursor-pointer ${
+                              product.is_active !== false
+                                ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 shadow-2xs'
+                                : 'bg-slate-100 text-slate-500 hover:bg-slate-200 border border-slate-200'
+                            }`}
+                            title={product.is_active !== false ? 'Bấm để tắt hiển thị trên POS' : 'Bấm để bật hiển thị trên POS'}
+                          >
+                            <span className={`w-1.5 h-1.5 rounded-full ${product.is_active !== false ? 'bg-emerald-500' : 'bg-slate-400'}`} />
+                            {product.is_active !== false ? t('products.status_selling') : t('products.status_hidden')}
+                          </button>
                         </td>
                         <td className="py-3 px-4 text-right">
                           <div className="flex items-center justify-end space-x-2">
@@ -930,11 +1041,31 @@ export default function ProductsPage() {
                   value={formTag}
                   onChange={(val) => setFormTag(String(val))}
                   options={[
-                    { value: 'none', label: t('products.none') || 'Không gắn nhãn' },
-                    { value: 'best_seller', label: t('products.best_seller') || 'Best Seller', badge: '🔥 Bán chạy', badgeColor: 'rose' },
-                    { value: 'new', label: t('products.new') || 'Món mới', badge: '✨ New', badgeColor: 'emerald' },
+                    { value: 'none', label: t('products.badge_none') || 'Không gắn nhãn' },
+                    { value: 'featured', label: t('products.badge_featured') || '⭐ Nổi bật', badge: '⭐ Nổi bật', badgeColor: 'amber' },
+                    { value: 'best_seller', label: t('products.badge_bestseller') || '🔥 Bán chạy', badge: '🔥 Bán chạy', badgeColor: 'rose' },
+                    { value: 'new', label: t('products.badge_new') || '✨ Món mới', badge: '✨ Món mới', badgeColor: 'emerald' },
+                    { value: 'coming_soon', label: t('products.badge_comingsoon') || '⏳ Sắp ra mắt', badge: '⏳ Sắp ra mắt', badgeColor: 'indigo' },
+                    { value: 'suspended', label: t('products.badge_suspended') || '⛔ Tạm ngưng', badge: '⛔ Tạm ngưng', badgeColor: 'slate' },
                   ]}
                 />
+              </div>
+
+              {/* Active for POS Toggle Switch */}
+              <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 flex items-center justify-between">
+                <div>
+                  <label className="font-bold text-slate-800 text-xs block">{t('products.active_for_pos')}</label>
+                  <span className="text-[11px] text-slate-500">{t('products.toggle_status_hint')}</span>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formIsActive}
+                    onChange={(e) => setFormIsActive(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                </label>
               </div>
 
               {/* Variants Section (Create only) */}
