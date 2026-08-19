@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { Printer, X, CheckCircle2 } from 'lucide-react';
 import { CartItem } from './VariantSelectorModal';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
-import { fetchApi } from '@/lib/api';
+import { fetchApi, getImageUrl } from '@/lib/api';
 import { formatCurrency, SettingsMap } from '@/lib/utils';
 
 export interface CompletedOrderData {
@@ -21,6 +21,7 @@ export interface CompletedOrderData {
   platform_fee_discount?: number;
   surcharge?: number;
   total: number;
+  note?: string;
 }
 
 interface ReceiptModalProps {
@@ -94,7 +95,7 @@ export default function ReceiptModal({ isOpen, onClose, order, settings: initial
             {settings?.store_logo_url && (
               <div className="flex justify-center mb-2">
                 <img
-                  src={settings.store_logo_url}
+                  src={getImageUrl(settings.store_logo_url) || settings.store_logo_url}
                   alt="Store logo"
                   className="h-12 max-w-[120px] object-contain"
                   onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
@@ -160,6 +161,18 @@ export default function ReceiptModal({ isOpen, onClose, order, settings: initial
               </div>
             ))}
           </div>
+
+          {/* Order Note if present */}
+          {order.note && (
+            <div className="py-2 border-b border-dashed border-slate-300 text-left">
+              <span className="font-bold text-[10px] uppercase text-slate-700 block mb-0.5">
+                {t('common.notes')}:
+              </span>
+              <p className="text-[11px] text-slate-800 italic break-words pl-1 bg-slate-50 p-1.5 rounded border border-slate-200">
+                {order.note}
+              </p>
+            </div>
+          )}
 
           {/* Totals Summary */}
           <div className="py-3 border-b border-dashed border-slate-300 space-y-1 text-right">

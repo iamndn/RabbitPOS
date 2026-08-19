@@ -97,7 +97,9 @@
     "platform_discount": "Chiết khấu sàn đối tác (đ)",
     "shipping_fee": "Phí giao hàng (đ)",
     "surcharge": "Phụ thu lễ / đêm (đ)",
-    "promotion_discount": "Khuyến mãi"
+    "promotion_discount": "Khuyến mãi",
+    "order_note": "Ghi chú đơn hàng",
+    "order_note_placeholder": "Nhập ghi chú cho toàn bộ đơn hàng..."
   },
   "promotions": {
     "title": "Quản lý Khuyến Mãi & Giảm Giá",
@@ -464,6 +466,8 @@
     "vietqr_account_no": "Số tài khoản",
     "vietqr_account_name": "Tên chủ tài khoản",
     "save_success": "Đã lưu cài đặt thành công!",
+    "logo_upload_success": "Tải ảnh logo thành công!",
+    "logo_upload_failed": "Tải ảnh logo thất bại!",
     "preview_label": "Xem trước định dạng hiển thị:",
     "store_name_placeholder": "VD: Thỏ Juice & Coffee",
     "store_address_placeholder": "VD: 123 Võ Văn Kiệt, Q1, TP.HCM",

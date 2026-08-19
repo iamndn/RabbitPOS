@@ -34,6 +34,8 @@ type Order struct {
 	CashierName         string       `gorm:"type:varchar(100);default:''" json:"cashier_name"`
 	CancelReason        string       `gorm:"type:text" json:"cancel_reason,omitempty"`
 	CancelledAt         *time.Time   `json:"cancelled_at,omitempty"`
+	// Note is an optional order-level note from the cashier (e.g. delivery instructions)
+	Note                *string      `gorm:"type:text" json:"note,omitempty"`
 	CreatedAt           time.Time    `json:"created_at"`
 	UpdatedAt           time.Time    `json:"updated_at"`
 }
@@ -76,6 +78,8 @@ type CreateOrderRequest struct {
 	Surcharge           float64                  `json:"surcharge"`
 	Items               []CreateOrderItemRequest `json:"items" binding:"required,min=1,dive"`
 	CreatedBy           string                   `json:"created_by"`
+	// Note is an optional order-level note (e.g. delivery instruction, special request)
+	Note                string                   `json:"note"`
 }
 
 type CancelOrderRequest struct {

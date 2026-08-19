@@ -97,7 +97,9 @@
     "platform_discount": "Platform Discount (Shopee/Grab)",
     "shipping_fee": "Delivery Shipping Fee",
     "surcharge": "Holiday / Night Surcharge",
-    "promotion_discount": "Promotion"
+    "promotion_discount": "Promotion",
+    "order_note": "Order Note",
+    "order_note_placeholder": "Add optional note for the entire order..."
   },
   "promotions": {
     "title": "Promotions & Discounts Management",
@@ -464,6 +466,8 @@
     "vietqr_account_no": "Account Number",
     "vietqr_account_name": "Account Holder Name",
     "save_success": "Settings saved successfully!",
+    "logo_upload_success": "Store logo uploaded successfully!",
+    "logo_upload_failed": "Failed to upload store logo!",
     "preview_label": "Formatted Output Preview:",
     "store_name_placeholder": "e.g. Thỏ Juice & Coffee",
     "store_address_placeholder": "e.g. 123 Vo Van Kiet, D1, HCMC",

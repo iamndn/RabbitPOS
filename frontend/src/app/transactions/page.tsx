@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import AppShell from '@/components/AppShell';
 import TransactionCategoryModal from '@/components/transactions/TransactionCategoryModal';
+import ModernDateRangePicker, { DatePeriod, computeDateRange } from '@/components/common/ModernDateRangePicker';
 import { fetchApi } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
 import { exportToCsv } from '@/lib/exportCsv';
@@ -119,6 +120,9 @@ export default function TransactionsPage() {
   const [selectedFundId, setSelectedFundId] = useState<number | null>(null);
   const [selectedType, setSelectedType] = useState<string>('all');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [period, setPeriod] = useState<DatePeriod>('month');
+  const [customFrom, setCustomFrom] = useState<string>(() => computeDateRange('month').from);
+  const [customTo, setCustomTo] = useState<string>(() => computeDateRange('month').to);
 
   // Filters for Orders
   const [orderSearchQuery, setOrderSearchQuery] = useState<string>('');
@@ -446,7 +450,9 @@ export default function TransactionsPage() {
     const matchesFund = selectedFundId ? tx.fund_id === selectedFundId : true;
     const matchesType = selectedType !== 'all' ? tx.transaction_type === selectedType : true;
     const matchesCat = selectedCategory !== 'all' ? tx.category === selectedCategory : true;
-    return matchesFund && matchesType && matchesCat;
+    const txDate = tx.created_at ? tx.created_at.slice(0, 10) : '';
+    const matchesDate = (!customFrom || txDate >= customFrom) && (!customTo || txDate <= customTo);
+    return matchesFund && matchesType && matchesCat && matchesDate;
   });
 
   const filteredOrders = safeOrders.filter((order) => {
@@ -454,14 +460,16 @@ export default function TransactionsPage() {
       order.order_code.toLowerCase().includes(orderSearchQuery.toLowerCase()) ||
       (order.cashier_name || '').toLowerCase().includes(orderSearchQuery.toLowerCase());
     const matchesStatus = orderStatusFilter === 'all' ? true : order.status === orderStatusFilter;
-    return matchesSearch && matchesStatus;
+    const orderDate = order.created_at ? order.created_at.slice(0, 10) : '';
+    const matchesDate = (!customFrom || orderDate >= customFrom) && (!customTo || orderDate <= customTo);
+    return matchesSearch && matchesStatus && matchesDate;
   });
 
-  const totalInflow = safeTransactions
+  const totalInflow = filteredTransactions
     .filter((tx) => tx.transaction_type === 'inflow')
     .reduce((acc, tx) => acc + (Number(tx.amount) || 0), 0);
 
-  const totalOutflow = safeTransactions
+  const totalOutflow = filteredTransactions
     .filter((tx) => tx.transaction_type === 'outflow')
     .reduce((acc, tx) => acc + (Number(tx.amount) || 0), 0);
 
@@ -479,22 +487,33 @@ export default function TransactionsPage() {
             </h1>
             <p className="text-xs text-slate-500 mt-1">{t('tx.subtitle')}</p>
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <ModernDateRangePicker
+              period={period}
+              customFrom={customFrom}
+              customTo={customTo}
+              onChange={({ period: newP, from, to }) => {
+                setPeriod(newP);
+                setCustomFrom(from);
+                setCustomTo(to);
+              }}
+              align="right"
+            />
             <button
               onClick={() => setIsCategoryModalOpen(true)}
-              className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-3.5 py-2.5 rounded-xl border border-slate-200 flex items-center gap-1.5 transition"
+              className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-3.5 py-2 rounded-xl border border-slate-200 flex items-center gap-1.5 transition"
             >
               <Tag className="w-4 h-4 text-indigo-600" /> {t('tx_cat.btn_manage_categories') || 'Quản lý danh mục'}
             </button>
             <button
               onClick={handleExportCsv}
-              className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-3.5 py-2.5 rounded-xl border border-slate-200 flex items-center gap-1.5 transition"
+              className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-3.5 py-2 rounded-xl border border-slate-200 flex items-center gap-1.5 transition"
             >
               <Download className="w-4 h-4 text-slate-500" /> {t('common.export_csv')}
             </button>
             <button
               onClick={handleOpenCreateModal}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl flex items-center gap-1.5 shadow-sm transition"
+              className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-2 rounded-xl flex items-center gap-1.5 shadow-sm transition"
             >
               <Plus className="w-4 h-4" /> {t('tx.add_expense')}
             </button>

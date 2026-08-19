@@ -18,6 +18,7 @@ import {
   Sparkles,
   AlertCircle,
   Check,
+  FileText,
 } from 'lucide-react';
 import { CartItem } from './VariantSelectorModal';
 import { Promotion } from '@/app/promotions/page';
@@ -43,6 +44,8 @@ interface Props {
   onPlatformFeeDiscountChange: (amount: number) => void;
   surcharge: number;
   onSurchargeChange: (amount: number) => void;
+  orderNote: string;
+  onOrderNoteChange: (note: string) => void;
   onProceedCheckout: () => void;
   settings?: SettingsMap | null;
 }
@@ -65,6 +68,8 @@ export default function CartDrawer({
   onPlatformFeeDiscountChange,
   surcharge,
   onSurchargeChange,
+  orderNote,
+  onOrderNoteChange,
   onProceedCheckout,
   settings,
 }: Props) {
@@ -263,7 +268,33 @@ export default function CartDrawer({
               </select>
             </div>
 
-            {/* 2. Collapsible Dynamic Adjustments (Shipping, Partner Platform, Surcharge, Manual Discount) */}
+            {/* 2. Order Note Field */}
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
+                <span className="flex items-center gap-1">
+                  <FileText className="w-3.5 h-3.5 text-indigo-600" />
+                  {t('pos.order_note')}
+                </span>
+                {orderNote && (
+                  <button
+                    type="button"
+                    onClick={() => onOrderNoteChange('')}
+                    className="text-[10px] text-slate-400 hover:text-rose-500 font-semibold"
+                  >
+                    {t('common.cancel')}
+                  </button>
+                )}
+              </label>
+              <textarea
+                rows={2}
+                value={orderNote}
+                onChange={(e) => onOrderNoteChange(e.target.value)}
+                placeholder={t('pos.order_note_placeholder')}
+                className="w-full p-2 border border-slate-200 rounded-xl text-xs bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none placeholder:text-slate-400"
+              />
+            </div>
+
+            {/* 3. Collapsible Dynamic Adjustments (Shipping, Partner Platform, Surcharge, Manual Discount) */}
             <div className="border border-slate-200 rounded-xl bg-white overflow-hidden shadow-sm">
               <button
                 type="button"

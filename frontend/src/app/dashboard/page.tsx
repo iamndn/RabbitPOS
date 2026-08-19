@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import AppShell from '@/components/AppShell';
 import AllProductsRankingModal from '@/components/dashboard/AllProductsRankingModal';
+import ModernDateRangePicker, { DatePeriod } from '@/components/common/ModernDateRangePicker';
 import { fetchApi } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
 import { exportToCsv } from '@/lib/exportCsv';
@@ -172,42 +173,24 @@ export default function DashboardPage() {
         </div>
 
         {/* Timeframe Selector Bar */}
-        <div className="flex flex-col sm:flex-row gap-3 items-center justify-between bg-white p-3 rounded-2xl border border-slate-200 shadow-sm">
-          <div className="flex flex-wrap items-center gap-1.5 w-full sm:w-auto">
-            {(['today', 'yesterday', 'week', 'month', 'year', 'custom'] as const).map((p) => (
-              <button
-                key={p}
-                type="button"
-                onClick={() => handlePeriodChange(p)}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition ${
-                  period === p
-                    ? 'bg-indigo-600 text-white shadow-sm'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900'
-                }`}
-              >
-                {t(`dashboard.period_${p}`)}
-              </button>
-            ))}
+        <div className="flex flex-col sm:flex-row gap-3 items-center justify-between bg-white p-3.5 rounded-2xl border border-slate-200 shadow-sm">
+          <div className="flex items-center space-x-2 w-full sm:w-auto">
+            <ModernDateRangePicker
+              period={period}
+              customFrom={customFrom}
+              customTo={customTo}
+              onChange={({ period: newP, from, to }) => {
+                setPeriod(newP);
+                setCustomFrom(from);
+                setCustomTo(to);
+              }}
+              align="left"
+            />
           </div>
 
-          {/* Custom Date Range Picker Inputs */}
-          {period === 'custom' && (
-            <div className="flex items-center space-x-2 w-full sm:w-auto animate-in fade-in duration-200">
-              <input
-                type="date"
-                value={customFrom}
-                onChange={(e) => setCustomFrom(e.target.value)}
-                className="p-1.5 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
-              />
-              <span className="text-xs text-slate-400 font-bold">{t('common.to')}</span>
-              <input
-                type="date"
-                value={customTo}
-                onChange={(e) => setCustomTo(e.target.value)}
-                className="p-1.5 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
-              />
-            </div>
-          )}
+          <div className="text-xs text-slate-500 font-medium">
+            {activeTab === 'revenue' ? t('dashboard.tab_revenue') : t('dashboard.tab_profit')}
+          </div>
         </div>
 
         {/* Dual Tab Navigation: Revenue vs Profit & Loss */}

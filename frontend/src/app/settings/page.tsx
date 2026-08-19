@@ -14,7 +14,7 @@ import {
   Upload,
 } from 'lucide-react';
 import AppShell from '@/components/AppShell';
-import { fetchApi } from '@/lib/api';
+import { fetchApi, uploadImage, getImageUrl } from '@/lib/api';
 import { SettingsMap, formatCurrency } from '@/lib/utils';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
 
@@ -260,25 +260,21 @@ export default function SettingsPage() {
                           const file = e.target.files?.[0];
                           if (!file) return;
                           setLogoUploading(true);
-                          const fd = new FormData();
-                          fd.append('image', file);
+                          setErrorMessage(null);
                           try {
-                            const res = await fetch(
-                              `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080'}/api/v1/upload`,
-                              {
-                                method: 'POST',
-                                headers: {
-                                  Authorization: `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('rabbitpos_jwt_token') : ''}`,
-                                },
-                                body: fd,
-                              }
-                            );
-                            const data = await res.json();
-                            if (data.status === 'success' && data.data?.url) {
-                              handleChange('store_logo_url', data.data.url);
+                            const res = await uploadImage(file);
+                            if (res.status === 'success' && res.data?.url) {
+                              handleChange('store_logo_url', res.data.url);
+                              setToastMessage(t('settings.logo_upload_success') || 'Tải ảnh logo thành công');
+                              setTimeout(() => setToastMessage(null), 3000);
+                            } else {
+                              setErrorMessage(res.message || 'Failed to upload logo image');
+                              setTimeout(() => setErrorMessage(null), 5000);
                             }
-                          } catch (err) {
+                          } catch (err: any) {
                             console.error('Logo upload failed:', err);
+                            setErrorMessage(err?.message || 'Failed to upload logo image');
+                            setTimeout(() => setErrorMessage(null), 5000);
                           }
                           setLogoUploading(false);
                           if (logoInputRef.current) logoInputRef.current.value = '';
@@ -291,7 +287,7 @@ export default function SettingsPage() {
                         <ImageIcon className="w-4 h-4 text-slate-400 flex-shrink-0" />
                         <span className="text-xs text-slate-500 flex-shrink-0">{t('settings.logo_preview')}:</span>
                         <img
-                          src={form.store_logo_url}
+                          src={getImageUrl(form.store_logo_url) || form.store_logo_url}
                           alt="Store logo preview"
                           className="h-10 max-w-[120px] object-contain rounded-lg"
                           onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}

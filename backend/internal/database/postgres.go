@@ -40,6 +40,17 @@ func InitDB(cfg *config.Config) (*gorm.DB, error) {
 
 	log.Println("Successfully connected to PostgreSQL database")
 
+	// Configure PostgreSQL connection pool for production performance
+	sqlDB, err := db.DB()
+	if err != nil {
+		log.Printf("Failed to get generic database object from GORM: %v", err)
+		return nil, err
+	}
+	sqlDB.SetMaxOpenConns(25)
+	sqlDB.SetMaxIdleConns(10)
+	sqlDB.SetConnMaxLifetime(5 * time.Minute)
+	sqlDB.SetConnMaxIdleTime(2 * time.Minute)
+
 	// Auto-migrate domain models to ensure schema is always up-to-date
 	err = db.AutoMigrate(
 		&models.Category{},
@@ -79,7 +90,15 @@ func InitDB(cfg *config.Config) (*gorm.DB, error) {
 		END $$;
 	`)
 
-	log.Println("Database auto-migration completed successfully")
+	// Phase 6: High Performance Composite Indexes for POS, Analytics & Financial Ledger
+	db.Exec(`
+		CREATE INDEX IF NOT EXISTS idx_orders_created_status ON orders (created_at DESC, status);
+		CREATE INDEX IF NOT EXISTS idx_transactions_created_type ON transactions (created_at DESC, transaction_type);
+		CREATE INDEX IF NOT EXISTS idx_transactions_fund_created ON transactions (fund_id, created_at DESC);
+		CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON order_items (order_id);
+	`)
+
+	log.Println("Database auto-migration and performance indexing completed successfully")
 
 	// ── Essential Core Seeds (always run, all environments) ─────────────────
 	// These are required for the application to function at all.

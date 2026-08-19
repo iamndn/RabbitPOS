@@ -58,6 +58,8 @@ services:
       INITIAL_ADMIN_PASSWORD: ${INITIAL_ADMIN_PASSWORD:?INITIAL_ADMIN_PASSWORD_is_required}
     ports:
       - "${BACKEND_PORT:-8080}:8080"
+    volumes:
+      - backend_uploads:/app/uploads
     depends_on:
       postgres:
         condition: service_healthy
@@ -93,11 +95,10 @@ services:
       - backend
       - frontend
 
-
-
 networks:
   rabbitpos-network:
     driver: bridge
 
 volumes:
   postgres_data:
+  backend_uploads:

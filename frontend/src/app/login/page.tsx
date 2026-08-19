@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Coffee,
@@ -9,12 +9,10 @@ import {
   LogIn,
   AlertCircle,
   RefreshCw,
-  Shield,
-  UserCheck,
   KeyRound,
   CheckCircle2,
 } from 'lucide-react';
-import { fetchApi } from '@/lib/api';
+import { fetchApi, getImageUrl } from '@/lib/api';
 import { setAuth, UserInfo } from '@/lib/auth';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
 import LanguageToggle from '@/components/LanguageToggle';
@@ -33,6 +31,10 @@ export default function LoginPage() {
   const router = useRouter();
   const { t } = useTranslation();
 
+  // Store metadata
+  const [storeLogo, setStoreLogo] = useState<string | null>(null);
+  const [storeName, setStoreName] = useState<string>('Thỏ Juice & Coffee');
+
   // Login form state
   const [username, setUsername] = useState<string>('');
   const [password, setPassword] = useState<string>('');
@@ -47,6 +49,22 @@ export default function LoginPage() {
   const [setupLoading, setSetupLoading] = useState<boolean>(false);
   const [setupError, setSetupError] = useState<string | null>(null);
   const [setupSuccess, setSetupSuccess] = useState<boolean>(false);
+
+  useEffect(() => {
+    const loadStoreInfo = async () => {
+      try {
+        const res = await fetchApi<Record<string, string>>('/settings');
+        if (res.status === 'success' && res.data) {
+          const data = res.data as Record<string, string>;
+          if (data.store_logo_url) setStoreLogo(data.store_logo_url);
+          if (data.store_name) setStoreName(data.store_name);
+        }
+      } catch (e) {
+        // Fallback gracefully if not reachable
+      }
+    };
+    loadStoreInfo();
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -113,11 +131,6 @@ export default function LoginPage() {
     setSetupLoading(false);
   };
 
-  const setDemoCredentials = (u: string, p: string) => {
-    setUsername(u);
-    setPassword(p);
-  };
-
   return (
     <div className="min-h-screen bg-slate-900 flex flex-col justify-center items-center p-4 relative">
       <div className="absolute top-4 right-4">
@@ -128,10 +141,21 @@ export default function LoginPage() {
       <div className="w-full max-w-md bg-white rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 animate-in zoom-in-95 duration-200">
         {/* Brand Header */}
         <div className="text-center space-y-2">
-          <div className="inline-flex p-3 bg-indigo-50 text-indigo-600 rounded-2xl border border-indigo-100 shadow-sm">
-            <Coffee className="w-8 h-8" />
+          <div className="inline-flex p-3 bg-indigo-50 text-indigo-600 rounded-2xl border border-indigo-100 shadow-sm items-center justify-center">
+            {storeLogo ? (
+              <img
+                src={getImageUrl(storeLogo) || storeLogo}
+                alt="Store Logo"
+                className="h-10 max-w-[140px] object-contain"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = 'none';
+                }}
+              />
+            ) : (
+              <Coffee className="w-8 h-8" />
+            )}
           </div>
-          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">{t('login.title')}</h1>
+          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">{storeName || t('login.title')}</h1>
           <p className="text-xs text-slate-500 font-medium">{t('login.subtitle')}</p>
         </div>
 
@@ -184,67 +208,6 @@ export default function LoginPage() {
             <span>{t('login.sign_in')}</span>
           </button>
         </form>
-
-        {/* Demo Quick Login Pills */}
-        <div className="pt-2 border-t border-slate-100 space-y-2">
-          <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block text-center">
-            {t('login.quick_demo_accounts')}
-          </span>
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={() => setDemoCredentials('admin', 'admin123')}
-              className="p-2.5 rounded-xl border border-indigo-200 bg-indigo-50/60 hover:bg-indigo-100 text-left transition flex items-center space-x-2"
-            >
-              <Shield className="w-4 h-4 text-indigo-600 flex-shrink-0" />
-              <div>
-                <span className="block font-bold text-xs text-indigo-900">{t('common.role_admin')}</span>
-                <span className="text-[10px] text-slate-500">admin / admin123</span>
-              </div>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setDemoCredentials('staff', 'staff123')}
-              className="p-2.5 rounded-xl border border-blue-200 bg-blue-50/60 hover:bg-blue-100 text-left transition flex items-center space-x-2"
-            >
-              <UserCheck className="w-4 h-4 text-blue-600 flex-shrink-0" />
-              <div>
-                <span className="block font-bold text-xs text-blue-900">{t('common.role_staff')}</span>
-                <span className="text-[10px] text-slate-500">staff / staff123</span>
-              </div>
-            </button>
-          </div>
-
-          <div className="grid grid-cols-3 gap-1.5 pt-1">
-            <button
-              type="button"
-              onClick={() => setDemoCredentials('NDN', 'ndn')}
-              className="p-2 rounded-xl border border-amber-200 bg-amber-50/60 hover:bg-amber-100 text-left transition"
-            >
-              <span className="block font-bold text-[11px] text-amber-900">NDN (Admin)</span>
-              <span className="text-[9px] text-amber-700 block">Pass: ndn</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setDemoCredentials('NHUNG', 'nhung')}
-              className="p-2 rounded-xl border border-amber-200 bg-amber-50/60 hover:bg-amber-100 text-left transition"
-            >
-              <span className="block font-bold text-[11px] text-amber-900">NHUNG (Admin)</span>
-              <span className="text-[9px] text-amber-700 block">Pass: nhung</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setDemoCredentials('DAT', 'dat')}
-              className="p-2 rounded-xl border border-amber-200 bg-amber-50/60 hover:bg-amber-100 text-left transition"
-            >
-              <span className="block font-bold text-[11px] text-amber-900">DAT (Admin)</span>
-              <span className="text-[9px] text-amber-700 block">Pass: dat</span>
-            </button>
-          </div>
-        </div>
       </div>
 
       {/* ── Password Setup Modal ─────────────────────────────────────── */}

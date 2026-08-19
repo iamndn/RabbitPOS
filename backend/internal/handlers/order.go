@@ -146,6 +146,12 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 		totalAmount = 0
 	}
 
+	// Set order note only if non-empty (stored as nullable pointer)
+	var orderNote *string
+	if req.Note != "" {
+		orderNote = &req.Note
+	}
+
 	order := models.Order{
 		OrderCode:           orderCode,
 		Status:              models.OrderStatusCompleted,
@@ -161,6 +167,7 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 		CreatedBy:           createdBy,
 		CashierID:           cashierIDPtr,
 		CashierName:         cashierName,
+		Note:                orderNote,
 	}
 
 	// Database Transaction to save order, insert items, update fund balance, increment promotion usage, AND log inflow transaction

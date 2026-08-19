@@ -31,6 +31,7 @@ export default function PosPage() {
 
   // Cart State
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [orderNote, setOrderNote] = useState<string>('');
   const [discountAmount, setDiscountAmount] = useState<number>(0);
   const [selectedPromotion, setSelectedPromotion] = useState<Promotion | null>(null);
   const [promotionDiscount, setPromotionDiscount] = useState<number>(0);
@@ -98,6 +99,9 @@ export default function PosPage() {
         if (parsed.cartItems && Array.isArray(parsed.cartItems)) {
           setCartItems(parsed.cartItems);
         }
+        if (typeof parsed.orderNote === 'string') {
+          setOrderNote(parsed.orderNote);
+        }
         if (typeof parsed.discountAmount === 'number') {
           setDiscountAmount(parsed.discountAmount);
         }
@@ -124,6 +128,7 @@ export default function PosPage() {
     try {
       if (
         cartItems.length > 0 ||
+        orderNote.trim() !== '' ||
         discountAmount > 0 ||
         selectedPromotion ||
         shippingFee > 0 ||
@@ -134,6 +139,7 @@ export default function PosPage() {
           'rabbitpos_active_cart',
           JSON.stringify({
             cartItems,
+            orderNote,
             discountAmount,
             selectedPromotion,
             shippingFee,
@@ -147,7 +153,7 @@ export default function PosPage() {
     } catch (e) {
       console.error('Failed to save cart to localStorage', e);
     }
-  }, [cartItems, discountAmount, selectedPromotion, shippingFee, platformFeeDiscount, surcharge]);
+  }, [cartItems, orderNote, discountAmount, selectedPromotion, shippingFee, platformFeeDiscount, surcharge]);
 
   // 3. Dynamic Promotion Discount Evaluation
   useEffect(() => {
@@ -248,6 +254,7 @@ export default function PosPage() {
       shipping_fee: Number(shippingFee) || 0,
       platform_fee_discount: Number(platformFeeDiscount) || 0,
       surcharge: Number(surcharge) || 0,
+      note: orderNote || '',
       created_by: 'Cashier Staff',
       items: cartItems.map((ci) => ({
         product_variant_id: Number(ci.selectedVariant.id),
@@ -268,9 +275,10 @@ export default function PosPage() {
       if (res.status === 'success' && res.data) {
         const createdOrder = res.data;
 
-        // Purge persisted cart and adjustments
+        // Full State Reset: Purge persisted cart, items, notes, discounts, fees
         localStorage.removeItem('rabbitpos_active_cart');
         setCartItems([]);
+        setOrderNote('');
         setDiscountAmount(0);
         setSelectedPromotion(null);
         setPromotionDiscount(0);
@@ -296,6 +304,7 @@ export default function PosPage() {
           platform_fee_discount: platformFeeDiscount,
           surcharge: surcharge,
           total: currentTotal,
+          note: orderNote,
         });
         setIsReceiptModalOpen(true);
         setOrderSuccessMessage(t('pos.order_completed'));
@@ -530,6 +539,8 @@ export default function PosPage() {
         onPlatformFeeDiscountChange={setPlatformFeeDiscount}
         surcharge={surcharge}
         onSurchargeChange={setSurcharge}
+        orderNote={orderNote}
+        onOrderNoteChange={setOrderNote}
         onProceedCheckout={() => {
           setIsCartDrawerOpen(false);
           setIsCheckoutModalOpen(true);

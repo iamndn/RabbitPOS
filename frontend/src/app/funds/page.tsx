@@ -20,6 +20,7 @@ import {
   ChevronUp,
 } from 'lucide-react';
 import AppShell from '@/components/AppShell';
+import ModernDateRangePicker, { DatePeriod, computeDateRange } from '@/components/common/ModernDateRangePicker';
 import { fetchApi } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
 import { formatCurrency, SettingsMap } from '@/lib/utils';
@@ -37,6 +38,9 @@ export default function FundsPage() {
   const [funds, setFunds] = useState<Fund[]>([]);
   const [periodSummary, setPeriodSummary] = useState<FundsPeriodSummaryResponse | null>(null);
   const [selectedMonth, setSelectedMonth] = useState<string>(new Date().toISOString().slice(0, 7));
+  const [period, setPeriod] = useState<DatePeriod>('month');
+  const [customFrom, setCustomFrom] = useState<string>(() => computeDateRange('month').from);
+  const [customTo, setCustomTo] = useState<string>(() => computeDateRange('month').to);
   const [loading, setLoading] = useState<boolean>(true);
   const [summaryLoading, setSummaryLoading] = useState<boolean>(false);
   const [settings, setSettings] = useState<SettingsMap | null>(null);
@@ -217,14 +221,20 @@ export default function FundsPage() {
               <p className="text-xs text-slate-500">{t('funds.period_summary_subtitle')}</p>
             </div>
 
-            {/* Month Picker */}
+            {/* Modern Date Range / Month Picker */}
             <div className="flex items-center space-x-2">
               <span className="text-xs font-semibold text-slate-600">{t('funds.select_month')}:</span>
-              <input
-                type="month"
-                value={selectedMonth}
-                onChange={(e) => setSelectedMonth(e.target.value)}
-                className="p-1.5 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white font-bold text-slate-800"
+              <ModernDateRangePicker
+                period={period}
+                customFrom={customFrom}
+                customTo={customTo}
+                onChange={({ period: newP, from, to }) => {
+                  setPeriod(newP);
+                  setCustomFrom(from);
+                  setCustomTo(to);
+                  setSelectedMonth(from.slice(0, 7));
+                }}
+                align="right"
               />
             </div>
           </div>
