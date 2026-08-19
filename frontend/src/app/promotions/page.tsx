@@ -82,7 +82,6 @@ export default function PromotionsPage() {
   // Filters
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
@@ -267,21 +266,7 @@ export default function PromotionsPage() {
   const filteredPromotions = safePromotions.filter((p) => {
     const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesType = typeFilter === 'all' ? true : p.promo_type === typeFilter;
-
-    let matchesStatus = true;
-    const now = new Date();
-    const isExpired = p.end_date ? new Date(p.end_date) < now : false;
-    const isLimitReached = p.usage_limit > 0 && p.usage_count >= p.usage_limit;
-
-    if (statusFilter === 'active') {
-      matchesStatus = p.is_active && !isExpired && !isLimitReached;
-    } else if (statusFilter === 'inactive') {
-      matchesStatus = !p.is_active;
-    } else if (statusFilter === 'expired') {
-      matchesStatus = isExpired || isLimitReached;
-    }
-
-    return matchesSearch && matchesType && matchesStatus;
+    return matchesSearch && matchesType;
   });
 
   const totalActive = safePromotions.filter((p) => p.is_active).length;
@@ -366,34 +351,18 @@ export default function PromotionsPage() {
             />
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-            <div className="flex-1 min-w-[130px] sm:w-44 sm:flex-initial">
-              <ModernSelect
-                size="sm"
-                value={typeFilter}
-                onChange={(val) => setTypeFilter(String(val))}
-                options={[
-                  { value: 'all', label: t('promotions.filter_all_types') || 'Tất cả loại' },
-                  { value: 'discount_amount', label: t('promotions.type_discount_amount') || 'Giảm số tiền', icon: <Coins className="w-3.5 h-3.5 text-indigo-500" /> },
-                  { value: 'discount_percent', label: t('promotions.type_discount_percent') || 'Giảm %', icon: <Percent className="w-3.5 h-3.5 text-emerald-500" /> },
-                  { value: 'gift_item', label: t('promotions.type_gift_item') || 'Tặng món', icon: <Gift className="w-3.5 h-3.5 text-amber-500" /> },
-                ]}
-              />
-            </div>
-
-            <div className="flex-1 min-w-[120px] sm:w-40 sm:flex-initial">
-              <ModernSelect
-                size="sm"
-                value={statusFilter}
-                onChange={(val) => setStatusFilter(String(val))}
-                options={[
-                  { value: 'all', label: t('promotions.filter_all_status') || 'Tất cả trạng thái' },
-                  { value: 'active', label: t('promotions.status_active') || 'Đang chạy', badge: 'Active', badgeColor: 'emerald' },
-                  { value: 'inactive', label: t('promotions.status_inactive') || 'Tạm dừng', badge: 'Paused', badgeColor: 'slate' },
-                  { value: 'expired', label: t('promotions.status_expired') || 'Hết hạn', badge: 'Expired', badgeColor: 'rose' },
-                ]}
-              />
-            </div>
+          <div className="w-full sm:w-48">
+            <ModernSelect
+              size="sm"
+              value={typeFilter}
+              onChange={(val) => setTypeFilter(String(val))}
+              options={[
+                { value: 'all', label: t('promotions.filter_all_types') || 'Tất cả loại' },
+                { value: 'discount_amount', label: t('promotions.type_discount_amount') || 'Giảm số tiền', icon: <Coins className="w-3.5 h-3.5 text-indigo-500" /> },
+                { value: 'discount_percent', label: t('promotions.type_discount_percent') || 'Giảm %', icon: <Percent className="w-3.5 h-3.5 text-emerald-500" /> },
+                { value: 'gift_item', label: t('promotions.type_gift_item') || 'Tặng món', icon: <Gift className="w-3.5 h-3.5 text-amber-500" /> },
+              ]}
+            />
           </div>
         </div>
 

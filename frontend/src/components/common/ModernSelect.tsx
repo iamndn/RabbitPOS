@@ -46,8 +46,28 @@ export default function ModernSelect({
 }: ModernSelectProps) {
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [dropdownPlacement, setDropdownPlacement] = useState<'left' | 'right'>(align);
   const containerRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Auto-detect placement on open to prevent right-edge overflow on mobile
+  useEffect(() => {
+    if (!isOpen) return;
+    const updatePlacement = () => {
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        const viewportWidth = window.innerWidth;
+        if (align === 'right' || rect.left + 210 > viewportWidth - 12) {
+          setDropdownPlacement('right');
+        } else {
+          setDropdownPlacement('left');
+        }
+      }
+    };
+    updatePlacement();
+    window.addEventListener('resize', updatePlacement);
+    return () => window.removeEventListener('resize', updatePlacement);
+  }, [isOpen, align]);
 
   // Close dropdown on click outside
   useEffect(() => {
@@ -190,9 +210,9 @@ export default function ModernSelect({
           />
           <div
             className={`absolute z-50 mt-1.5 bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in-0 zoom-in-95 duration-150 ${
-              align === 'right' ? 'right-0' : 'left-0'
+              dropdownPlacement === 'right' ? 'right-0 left-auto' : 'left-0 right-auto'
             } ${dropdownClassName}`}
-            style={{ minWidth: 'max(100%, 210px)', maxWidth: 'calc(100vw - 1.5rem)' }}
+            style={{ minWidth: 'max(100%, 200px)', maxWidth: 'calc(100vw - 1.5rem)' }}
           >
             {/* Search Box */}
             {searchable && (

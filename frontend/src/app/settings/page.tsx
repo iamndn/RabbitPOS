@@ -14,6 +14,11 @@ import {
   Upload,
   Mail,
   Send,
+  Database,
+  Download,
+  UploadCloud,
+  FileJson,
+  AlertTriangle,
 } from 'lucide-react';
 import AppShell from '@/components/AppShell';
 import { fetchApi, uploadImage, getImageUrl } from '@/lib/api';
@@ -23,7 +28,7 @@ import ModernSelect from '@/components/common/ModernSelect';
 
 export default function SettingsPage() {
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState<'store' | 'currency' | 'vietqr' | 'email'>('store');
+  const [activeTab, setActiveTab] = useState<'store' | 'currency' | 'vietqr' | 'email' | 'backup'>('store');
   const [loading, setLoading] = useState<boolean>(true);
   const [saving, setSaving] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -56,6 +61,87 @@ export default function SettingsPage() {
 
   const [testingSmtp, setTestingSmtp] = useState<boolean>(false);
   const [smtpTestResult, setSmtpTestResult] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  // Backup & Restore State
+  const [exportingBackup, setExportingBackup] = useState<boolean>(false);
+  const [restoringBackup, setRestoringBackup] = useState<boolean>(false);
+  const [backupFile, setBackupFile] = useState<File | null>(null);
+  const [backupPreview, setBackupPreview] = useState<any | null>(null);
+  const [showRestoreModal, setShowRestoreModal] = useState<boolean>(false);
+  const [restoreResult, setRestoreResult] = useState<any | null>(null);
+  const backupInputRef = useRef<HTMLInputElement>(null);
+
+  const handleExportBackup = async () => {
+    setExportingBackup(true);
+    setErrorMessage(null);
+    setToastMessage(null);
+    try {
+      const res = await fetchApi<any>('/backup/export', { skipCache: true });
+      if (res.status === 'success' && res.data) {
+        const jsonStr = JSON.stringify(res.data, null, 2);
+        const blob = new Blob([jsonStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        const timestamp = new Date().toISOString().slice(0, 10);
+        a.href = url;
+        a.download = `rabbitpos_backup_${timestamp}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        setToastMessage(t('settings.export_backup_success'));
+      } else {
+        setErrorMessage(res.message || 'Tải bản sao lưu thất bại');
+      }
+    } catch (e: any) {
+      setErrorMessage(e.message || 'Tải bản sao lưu thất bại');
+    } finally {
+      setExportingBackup(false);
+    }
+  };
+
+  const handleBackupFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setBackupFile(file);
+    setRestoreResult(null);
+    try {
+      const text = await file.text();
+      const json = JSON.parse(text);
+      setBackupPreview(json);
+    } catch {
+      setErrorMessage('File sao lưu không hợp lệ hoặc bị lỗi định dạng JSON.');
+      setBackupFile(null);
+      setBackupPreview(null);
+    }
+  };
+
+  const handleExecuteRestore = async () => {
+    if (!backupPreview) return;
+    setRestoringBackup(true);
+    setErrorMessage(null);
+    setShowRestoreModal(false);
+    try {
+      const res = await fetchApi<any>('/backup/restore', {
+        method: 'POST',
+        body: JSON.stringify(backupPreview),
+        skipCache: true,
+      });
+      if (res.status === 'success' && res.data) {
+        setRestoreResult(res.data);
+        setToastMessage(t('settings.restore_success'));
+        setTimeout(() => {
+          loadSettings();
+        }, 1000);
+      } else {
+        setErrorMessage(res.message || 'Phục hồi dữ liệu thất bại.');
+      }
+    } catch (e: any) {
+      setErrorMessage(e.message || 'Phục hồi dữ liệu thất bại.');
+    } finally {
+      setRestoringBackup(false);
+    }
+  };
 
   const handleTestSMTP = async () => {
     setTestingSmtp(true);
@@ -222,6 +308,19 @@ export default function SettingsPage() {
               >
                 <Mail className="w-4 h-4" />
                 <span>{t('email_report.settings_section_title').split(' ')[0]}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('backup')}
+                className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 ${
+                  activeTab === 'backup'
+                    ? 'bg-violet-600 text-white shadow-sm'
+                    : 'text-slate-600 hover:bg-slate-50'
+                }`}
+              >
+                <Database className="w-4 h-4" />
+                <span>{t('settings.tab_backup')}</span>
               </button>
             </div>
 
@@ -540,48 +639,255 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
-                {/* Test SMTP button (separate from main save) */}
-                <div className="pt-2 border-t border-slate-100">
-                  <button type="button" onClick={handleTestSMTP} disabled={testingSmtp}
-                    className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white font-bold text-xs py-2.5 px-5 rounded-xl transition flex items-center gap-2">
-                    {testingSmtp ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                    {testingSmtp ? t('email_report.sending') : t('email_report.test_smtp_button')}
+                  {/* Test SMTP button (separate from main save) */}
+                  <div className="pt-2 border-t border-slate-100">
+                    <button type="button" onClick={handleTestSMTP} disabled={testingSmtp}
+                      className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white font-bold text-xs py-2.5 px-5 rounded-xl transition flex items-center gap-2">
+                      {testingSmtp ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                      {testingSmtp ? t('email_report.sending') : t('email_report.test_smtp_button')}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 5: Backup & Restore */}
+              {activeTab === 'backup' && (
+                <div className="space-y-6 text-xs animate-in fade-in duration-150">
+                  {/* 1. Export Backup Card */}
+                  <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                    <div className="pb-3 border-b border-slate-100">
+                      <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
+                        <Download className="w-4 h-4 text-violet-600" />
+                        {t('settings.backup_section_title')}
+                      </h3>
+                      <p className="text-slate-500 text-xs mt-0.5">
+                        {t('settings.backup_section_desc')}
+                      </p>
+                    </div>
+
+                    <div className="bg-violet-50/60 border border-violet-100 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                      <div className="space-y-1">
+                        <span className="font-bold text-slate-800 flex items-center gap-1.5">
+                          <Database className="w-4 h-4 text-violet-600" />
+                          Toàn bộ cơ sở dữ liệu hệ thống (Định dạng JSON chuẩn)
+                        </span>
+                        <p className="text-slate-500 text-[11px]">
+                          Bao gồm: Thực đơn, Danh mục, Biến thể, Topping, Quỹ tiền, Giao dịch thu chi, Lịch sử đơn hàng, Khuyến mãi và Cài đặt cửa hàng.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleExportBackup}
+                        disabled={exportingBackup}
+                        className="bg-violet-600 hover:bg-violet-700 disabled:bg-slate-300 text-white font-bold text-xs py-3 px-5 rounded-xl shadow-md transition flex items-center gap-2 shrink-0"
+                      >
+                        {exportingBackup ? (
+                          <RefreshCw className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Download className="w-4 h-4" />
+                        )}
+                        <span>{exportingBackup ? t('settings.export_backup_loading') : t('settings.export_backup_btn')}</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* 2. Restore Backup Card */}
+                  <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                    <div className="pb-3 border-b border-slate-100">
+                      <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
+                        <UploadCloud className="w-4 h-4 text-amber-600" />
+                        {t('settings.restore_section_title')}
+                      </h3>
+                      <p className="text-slate-500 text-xs mt-0.5">
+                        {t('settings.restore_section_desc')}
+                      </p>
+                    </div>
+
+                    {/* Warning banner */}
+                    <div className="bg-amber-50 border border-amber-200 text-amber-900 p-3.5 rounded-xl flex items-start gap-2.5">
+                      <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                      <div className="text-xs space-y-0.5">
+                        <span className="font-bold">Lưu ý quan trọng:</span>
+                        <p className="text-amber-800">{t('settings.restore_warning')}</p>
+                      </div>
+                    </div>
+
+                    {/* File Upload Drop Area */}
+                    <div
+                      onClick={() => backupInputRef.current?.click()}
+                      className="border-2 border-dashed border-slate-200 hover:border-violet-400 rounded-2xl p-6 text-center cursor-pointer transition bg-slate-50/50 hover:bg-violet-50/20 space-y-2"
+                    >
+                      <input
+                        ref={backupInputRef}
+                        type="file"
+                        accept=".json,application/json"
+                        onChange={handleBackupFileSelect}
+                        className="hidden"
+                      />
+                      <div className="w-12 h-12 rounded-2xl bg-white border border-slate-200 text-violet-600 flex items-center justify-center mx-auto shadow-sm">
+                        <FileJson className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <span className="font-bold text-slate-700 block text-xs">
+                          {backupFile ? backupFile.name : t('settings.restore_select_file')}
+                        </span>
+                        <span className="text-slate-400 text-[11px]">
+                          {backupFile
+                            ? `${(backupFile.size / 1024).toFixed(1)} KB · Bấm để đổi file khác`
+                            : t('settings.restore_drag_hint')}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* If file is selected and parsed, show action button */}
+                    {backupFile && backupPreview && (
+                      <div className="pt-2 flex justify-end">
+                        <button
+                          type="button"
+                          onClick={() => setShowRestoreModal(true)}
+                          disabled={restoringBackup}
+                          className="bg-amber-600 hover:bg-amber-700 disabled:bg-slate-300 text-white font-bold text-xs py-3 px-6 rounded-xl shadow-md transition flex items-center gap-2"
+                        >
+                          {restoringBackup ? (
+                            <RefreshCw className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <UploadCloud className="w-4 h-4" />
+                          )}
+                          <span>{restoringBackup ? t('settings.restore_loading') : t('settings.restore_btn')}</span>
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Restore Result Summary */}
+                    {restoreResult && (
+                      <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 space-y-2 animate-in fade-in">
+                        <div className="flex items-center gap-2 text-emerald-800 font-bold text-xs">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                          {t('settings.restore_success')}
+                        </div>
+                        {restoreResult.restored_stats && (
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] text-slate-600 pt-1">
+                            <div className="bg-white/80 p-2 rounded-lg border border-emerald-100">
+                              <span className="font-semibold text-slate-800">{restoreResult.restored_stats.categories}</span> Danh mục
+                            </div>
+                            <div className="bg-white/80 p-2 rounded-lg border border-emerald-100">
+                              <span className="font-semibold text-slate-800">{restoreResult.restored_stats.products}</span> Sản phẩm
+                            </div>
+                            <div className="bg-white/80 p-2 rounded-lg border border-emerald-100">
+                              <span className="font-semibold text-slate-800">{restoreResult.restored_stats.toppings}</span> Topping
+                            </div>
+                            <div className="bg-white/80 p-2 rounded-lg border border-emerald-100">
+                              <span className="font-semibold text-slate-800">{restoreResult.restored_stats.orders}</span> Đơn hàng
+                            </div>
+                            <div className="bg-white/80 p-2 rounded-lg border border-emerald-100">
+                              <span className="font-semibold text-slate-800">{restoreResult.restored_stats.transactions}</span> Giao dịch
+                            </div>
+                            <div className="bg-white/80 p-2 rounded-lg border border-emerald-100">
+                              <span className="font-semibold text-slate-800">{restoreResult.restored_stats.funds}</span> Quỹ tiền
+                            </div>
+                            <div className="bg-white/80 p-2 rounded-lg border border-emerald-100">
+                              <span className="font-semibold text-slate-800">{restoreResult.restored_stats.promotions}</span> Khuyến mãi
+                            </div>
+                            <div className="bg-white/80 p-2 rounded-lg border border-emerald-100">
+                              <span className="font-semibold text-slate-800">{restoreResult.restored_stats.settings}</span> Cài đặt
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Save Button (hidden on backup tab) */}
+              {activeTab !== 'backup' && (
+                <div className="flex justify-end pt-2">
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 text-white font-bold text-xs py-3 px-6 rounded-xl shadow-md transition flex items-center space-x-2"
+                  >
+                    {saving ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        <span>{t('pos.processing')}</span>
+                      </>
+                    ) : (
+                      <>
+                        <Save className="w-4 h-4" />
+                        <span>{t('common.save')}</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
+            </form>
+          )}
+
+          {/* Restore Confirmation Modal */}
+          {showRestoreModal && backupPreview && (
+            <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+              <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl space-y-5 animate-in zoom-in-95">
+                <div className="flex items-center gap-3 text-amber-600">
+                  <div className="p-3 bg-amber-50 rounded-2xl border border-amber-200">
+                    <AlertTriangle className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-slate-900 text-base">{t('settings.restore_confirm_title')}</h3>
+                    <p className="text-slate-500 text-xs">File: {backupFile?.name}</p>
+                  </div>
+                </div>
+
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  {t('settings.restore_confirm_desc')}
+                </p>
+
+                {backupPreview.stats && (
+                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs space-y-1 text-slate-600">
+                    <span className="font-bold text-slate-800 block text-[11px] uppercase tracking-wide">
+                      Thống kê dữ liệu trong file:
+                    </span>
+                    <div className="grid grid-cols-2 gap-1 text-[11px]">
+                      <div>• Danh mục: <b>{backupPreview.stats.categories || 0}</b></div>
+                      <div>• Sản phẩm: <b>{backupPreview.stats.products || 0}</b></div>
+                      <div>• Topping: <b>{backupPreview.stats.toppings || 0}</b></div>
+                      <div>• Đơn hàng: <b>{backupPreview.stats.orders || 0}</b></div>
+                      <div>• Giao dịch: <b>{backupPreview.stats.transactions || 0}</b></div>
+                      <div>• Quỹ tiền: <b>{backupPreview.stats.funds || 0}</b></div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex items-center gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowRestoreModal(false)}
+                    className="flex-1 py-2.5 px-4 rounded-xl border border-slate-200 text-slate-700 font-semibold text-xs hover:bg-slate-50 transition"
+                  >
+                    {t('common.cancel')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleExecuteRestore}
+                    disabled={restoringBackup}
+                    className="flex-1 py-2.5 px-4 rounded-xl bg-amber-600 hover:bg-amber-700 disabled:bg-slate-300 text-white font-bold text-xs shadow-md transition flex items-center justify-center gap-1.5"
+                  >
+                    {restoringBackup ? <RefreshCw className="w-4 h-4 animate-spin" /> : <UploadCloud className="w-4 h-4" />}
+                    <span>{t('settings.restore_btn')}</span>
                   </button>
                 </div>
               </div>
-            )}
-
-            {/* Save Button */}
-            <div className="flex justify-end pt-2">
-              <button
-                type="submit"
-                disabled={saving}
-                className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 text-white font-bold text-xs py-3 px-6 rounded-xl shadow-md transition flex items-center space-x-2"
-              >
-                {saving ? (
-                  <>
-                    <RefreshCw className="w-4 h-4 animate-spin" />
-                    <span>{t('pos.processing')}</span>
-                  </>
-                ) : (
-                  <>
-                    <Save className="w-4 h-4" />
-                    <span>{t('common.save')}</span>
-                  </>
-                )}
-              </button>
             </div>
-          </form>
-        )}
+          )}
 
-        {/* SMTP Test Result toast */}
-        {smtpTestResult && (
-          <div className={`fixed top-4 right-4 z-[60] px-4 py-3 rounded-2xl shadow-2xl text-sm font-semibold ${
-            smtpTestResult.type === 'success' ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'
-          }`}>
-            {smtpTestResult.message}
-          </div>
-        )}
+          {/* SMTP Test Result toast */}
+          {smtpTestResult && (
+            <div className={`fixed top-4 right-4 z-[60] px-4 py-3 rounded-2xl shadow-2xl text-sm font-semibold ${
+              smtpTestResult.type === 'success' ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'
+            }`}>
+              {smtpTestResult.message}
+            </div>
+          )}
       </div>
     </AppShell>
   );

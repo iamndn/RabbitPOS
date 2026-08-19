@@ -469,7 +469,13 @@ export default function ProductsPage() {
               {t('products.subtitle')}
             </p>
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={openCreateToppingModal}
+              className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-3 py-2.5 rounded-xl border border-slate-200 flex items-center gap-1.5 transition"
+            >
+              <Layers className="w-4 h-4 text-violet-500" /> + {t('products.add_topping')}
+            </button>
             <button
               onClick={openCreateCategoryModal}
               className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-3 py-2.5 rounded-xl border border-slate-200 flex items-center gap-1.5 transition"
@@ -581,16 +587,6 @@ export default function ProductsPage() {
 
           {toppingPanelOpen && (
             <div className="border-t border-slate-100">
-              {/* Add Topping Button */}
-              <div className="px-5 py-3 border-b border-slate-100 flex justify-end">
-                <button
-                  onClick={openCreateToppingModal}
-                  className="bg-violet-600 hover:bg-violet-700 text-white text-xs font-bold px-3 py-2 rounded-xl flex items-center gap-1.5 shadow-sm transition"
-                >
-                  <Plus className="w-3.5 h-3.5" /> {t('products.add_topping')}
-                </button>
-              </div>
-
               {/* Topping Table */}
               {safeToppings.length === 0 ? (
                 <p className="text-xs text-slate-400 text-center py-6">{t('products.no_toppings')}</p>

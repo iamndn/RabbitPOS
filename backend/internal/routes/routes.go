@@ -41,6 +41,9 @@ func SetupRouter(cfg *config.Config, db *gorm.DB, emailSvc *services.EmailServic
 	txHandler := handlers.NewTransactionHandler(db)
 	analyticsHandler := handlers.NewAnalyticsHandler(db, emailSvc)
 	settingHandler := handlers.NewSettingHandler(db, emailSvc)
+	backupHandler := handlers.NewBackupHandler(db)
+	importerSvc := services.NewImporterService(db)
+	importerHandler := handlers.NewImporterHandler(importerSvc)
 	toppingHandler := handlers.NewToppingHandler(db)
 	promotionHandler := handlers.NewPromotionHandler(db)
 	txCategoryHandler := handlers.NewTransactionCategoryHandler(db)
@@ -146,6 +149,14 @@ func SetupRouter(cfg *config.Config, db *gorm.DB, emailSvc *services.EmailServic
 				adminOnly.PUT("/settings", settingHandler.UpdateSettings)
 				// SMTP connectivity test
 				adminOnly.POST("/settings/test-smtp", settingHandler.TestSMTP)
+
+				// Database Manual Backup & Restore
+				adminOnly.GET("/backup/export", backupHandler.ExportBackup)
+				adminOnly.POST("/backup/restore", backupHandler.RestoreBackup)
+
+				// Data Import Engine (Excel & CSV)
+				adminOnly.GET("/import/template", importerHandler.DownloadTemplate)
+				adminOnly.POST("/import/excel", importerHandler.ImportData)
 			}
 		}
 	}
