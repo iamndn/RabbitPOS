@@ -367,8 +367,10 @@ export default function PromotionsPage() {
         </div>
 
         {/* Promotions Table */}
+        {/* Promotions Table & Mobile Cards */}
         <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
+          {/* 1. Desktop Table View (md and up) */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase tracking-wider font-semibold">
                 <tr>
@@ -494,7 +496,7 @@ export default function PromotionsPage() {
                           <button
                             type="button"
                             onClick={() => handleToggleActive(p)}
-                            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold transition ${
+                            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold transition cursor-pointer ${
                               p.is_active
                                 ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 shadow-sm'
                                 : 'bg-slate-100 text-slate-500 hover:bg-slate-200 border border-slate-200'
@@ -529,6 +531,141 @@ export default function PromotionsPage() {
                 )}
               </tbody>
             </table>
+          </div>
+
+          {/* 2. Mobile Cards View (< md) */}
+          <div className="md:hidden divide-y divide-slate-100">
+            {filteredPromotions.length === 0 ? (
+              <div className="py-8 text-center text-slate-400 text-xs">
+                {t('promotions.no_promotions')}
+              </div>
+            ) : (
+              filteredPromotions.map((p) => {
+                const isAmount = p.promo_type === 'discount_amount';
+                const isPercent = p.promo_type === 'discount_percent';
+                const isGift = p.promo_type === 'gift_item';
+
+                const now = new Date();
+                const isExpired = p.end_date ? new Date(p.end_date) < now : false;
+
+                return (
+                  <div key={p.id} className="p-4 space-y-3 bg-white">
+                    {/* Header: Icon, Name, Type, Status Toggle */}
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div
+                          className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                            isAmount
+                              ? 'bg-emerald-50 text-emerald-600 border border-emerald-200'
+                              : isPercent
+                              ? 'bg-indigo-50 text-indigo-600 border border-indigo-200'
+                              : 'bg-amber-50 text-amber-600 border border-amber-200'
+                          }`}
+                        >
+                          {isAmount ? (
+                            <Coins className="w-4 h-4" />
+                          ) : isPercent ? (
+                            <Percent className="w-4 h-4" />
+                          ) : (
+                            <Gift className="w-4 h-4" />
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <span className="font-bold text-slate-900 block text-sm">{p.name}</span>
+                          <span className="text-[11px] text-slate-400 font-medium">
+                            {isAmount
+                              ? t('promotions.type_discount_amount')
+                              : isPercent
+                              ? t('promotions.type_discount_percent')
+                              : t('promotions.type_gift_item')}
+                          </span>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handleToggleActive(p)}
+                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold shrink-0 transition cursor-pointer ${
+                          p.is_active
+                            ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 shadow-sm'
+                            : 'bg-slate-100 text-slate-500 hover:bg-slate-200 border border-slate-200'
+                        }`}
+                      >
+                        <span className={`w-1.5 h-1.5 rounded-full ${p.is_active ? 'bg-emerald-500' : 'bg-slate-400'}`} />
+                        {p.is_active ? t('common.active') : t('common.inactive')}
+                      </button>
+                    </div>
+
+                    {/* Discount Value & Scope */}
+                    <div className="flex items-center justify-between bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-xs">
+                      <div>
+                        {isAmount && (
+                          <span className="font-extrabold text-emerald-600 text-base">
+                            -{formatCurrency(p.discount_value, settings)}
+                          </span>
+                        )}
+                        {isPercent && (
+                          <span className="font-extrabold text-indigo-600 text-base">
+                            -{p.discount_value}%
+                          </span>
+                        )}
+                        {isGift && (
+                          <span className="font-bold text-amber-700 text-xs bg-amber-50 px-2 py-0.5 rounded-lg border border-amber-200">
+                            🎁 {p.gift_variant ? `${p.gift_variant.variant_name}` : t('promotions.gift_item_label')}
+                          </span>
+                        )}
+                      </div>
+
+                      <span className="capitalize font-semibold text-slate-700 bg-white px-2 py-0.5 rounded-lg text-[11px] border border-slate-200">
+                        {p.scope === 'all'
+                          ? t('promotions.scope_all')
+                          : p.scope === 'category'
+                          ? t('promotions.scope_category')
+                          : t('promotions.scope_product')}
+                      </span>
+                    </div>
+
+                    {/* Conditions & Usage info */}
+                    <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1">
+                      <div>
+                        {p.min_order_amount > 0 ? (
+                          <span>Đơn từ {formatCurrency(p.min_order_amount, settings)}</span>
+                        ) : p.min_quantity > 0 ? (
+                          <span>Từ {p.min_quantity} món</span>
+                        ) : (
+                          <span className="text-slate-400">Không điều kiện</span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span>Đã dùng: <strong>{p.usage_count}/{p.usage_limit > 0 ? p.usage_limit : '∞'}</strong></span>
+                        {p.end_date && (
+                          <span className={`${isExpired ? 'text-rose-500 font-bold' : 'text-slate-400'}`}>
+                            • HSD: {new Date(p.end_date).toLocaleDateString()}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex items-center justify-end gap-2 pt-1 border-t border-slate-50">
+                      <button
+                        onClick={() => openEditModal(p)}
+                        className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-indigo-50 text-slate-700 hover:text-indigo-600 rounded-xl text-xs font-semibold border border-slate-200 transition cursor-pointer"
+                      >
+                        <Edit2 className="w-3.5 h-3.5" /> {t('common.edit')}
+                      </button>
+                      <button
+                        onClick={() => handleDeletePromotion(p.id)}
+                        className="inline-flex items-center justify-center p-2 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl text-xs font-semibold border border-rose-200 transition cursor-pointer"
+                        title={t('common.delete')}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
 

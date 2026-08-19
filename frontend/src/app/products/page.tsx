@@ -630,68 +630,118 @@ export default function ProductsPage() {
 
           {toppingPanelOpen && (
             <div className="border-t border-slate-100">
-              {/* Topping Table */}
               {safeToppings.length === 0 ? (
                 <p className="text-xs text-slate-400 text-center py-6">{t('products.no_toppings')}</p>
               ) : (
-                <div className="divide-y divide-slate-100">
-                  {/* Table Header */}
-                  <div className="grid grid-cols-6 gap-2 px-5 py-2.5 bg-slate-50 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                    <span className="col-span-2">{t('products.topping_name')}</span>
-                    <span>{t('products.topping_price')}</span>
-                    <span>{t('products.topping_category')}</span>
-                    <span className="text-center">{t('common.status')}</span>
-                    <span className="text-right">{t('common.actions')}</span>
-                  </div>
-                  {safeToppings.map((tp) => (
-                    <div key={tp.id} className="grid grid-cols-6 gap-2 px-5 py-3 items-center hover:bg-slate-50 transition">
-                      <div className="col-span-2 flex items-center gap-2">
-                        <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${tp.is_active ? 'bg-emerald-500 ring-4 ring-emerald-100' : 'bg-slate-300'}`} />
-                        <span className={`text-sm font-semibold ${tp.is_active ? 'text-slate-800' : 'text-slate-400 line-through'}`}>{tp.name}</span>
-                      </div>
-                      <span className="text-sm text-indigo-600 font-bold">{formatCurrency(tp.price, settings)}</span>
-                      <span className="text-xs text-slate-500">
-                        {tp.category_id
-                          ? safeCategories.find((c) => c.id === tp.category_id)?.name || `#${tp.category_id}`
-                          : <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-600">{t('products.global')}</span>
-                        }
-                      </span>
-                      {/* Interactive On/Off Quick Toggle Button */}
-                      <div className="flex justify-center">
-                        <button
-                          type="button"
-                          onClick={() => handleToggleToppingStatus(tp)}
-                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold transition ${
-                            tp.is_active
-                              ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 shadow-sm'
-                              : 'bg-slate-100 text-slate-500 hover:bg-slate-200 border border-slate-200'
-                          }`}
-                          title={tp.is_active ? 'Bấm để Tắt' : 'Bấm để Bật'}
-                        >
-                          <span className={`w-1.5 h-1.5 rounded-full ${tp.is_active ? 'bg-emerald-500' : 'bg-slate-400'}`} />
-                          {tp.is_active ? t('common.active') : t('common.inactive')}
-                        </button>
-                      </div>
-                      {/* Action buttons */}
-                      <div className="flex items-center justify-end gap-1">
-                        <button
-                          onClick={() => openEditToppingModal(tp)}
-                          className="p-1.5 text-slate-400 hover:text-violet-600 hover:bg-violet-50 rounded-lg transition"
-                          title={t('products.edit_topping')}
-                        >
-                          <Edit2 className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteTopping(tp.id)}
-                          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
-                          title={t('products.delete_topping')}
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
+                <>
+                  {/* Desktop Topping Table */}
+                  <div className="hidden md:block divide-y divide-slate-100">
+                    {/* Table Header */}
+                    <div className="grid grid-cols-6 gap-2 px-5 py-2.5 bg-slate-50 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                      <span className="col-span-2">{t('products.topping_name')}</span>
+                      <span>{t('products.topping_price')}</span>
+                      <span>{t('products.topping_category')}</span>
+                      <span className="text-center">{t('common.status')}</span>
+                      <span className="text-right">{t('common.actions')}</span>
                     </div>
-                  ))}
-                </div>
+                    {safeToppings.map((tp) => (
+                      <div key={tp.id} className="grid grid-cols-6 gap-2 px-5 py-3 items-center hover:bg-slate-50 transition">
+                        <div className="col-span-2 flex items-center gap-2">
+                          <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${tp.is_active ? 'bg-emerald-500 ring-4 ring-emerald-100' : 'bg-slate-300'}`} />
+                          <span className={`text-sm font-semibold ${tp.is_active ? 'text-slate-800' : 'text-slate-400 line-through'}`}>{tp.name}</span>
+                        </div>
+                        <span className="text-sm text-indigo-600 font-bold">{formatCurrency(tp.price, settings)}</span>
+                        <span className="text-xs text-slate-500">
+                          {tp.category_id
+                            ? safeCategories.find((c) => c.id === tp.category_id)?.name || `#${tp.category_id}`
+                            : <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-600">{t('products.global')}</span>
+                          }
+                        </span>
+                        {/* Interactive On/Off Quick Toggle Button */}
+                        <div className="flex justify-center">
+                          <button
+                            type="button"
+                            onClick={() => handleToggleToppingStatus(tp)}
+                            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold transition cursor-pointer ${
+                              tp.is_active
+                                ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 shadow-sm'
+                                : 'bg-slate-100 text-slate-500 hover:bg-slate-200 border border-slate-200'
+                            }`}
+                            title={tp.is_active ? 'Bấm để Tắt' : 'Bấm để Bật'}
+                          >
+                            <span className={`w-1.5 h-1.5 rounded-full ${tp.is_active ? 'bg-emerald-500' : 'bg-slate-400'}`} />
+                            {tp.is_active ? t('common.active') : t('common.inactive')}
+                          </button>
+                        </div>
+                        {/* Action buttons */}
+                        <div className="flex items-center justify-end gap-1">
+                          <button
+                            onClick={() => openEditToppingModal(tp)}
+                            className="p-1.5 text-slate-400 hover:text-violet-600 hover:bg-violet-50 rounded-lg transition"
+                            title={t('products.edit_topping')}
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteTopping(tp.id)}
+                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
+                            title={t('products.delete_topping')}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Mobile Topping Cards */}
+                  <div className="md:hidden divide-y divide-slate-100">
+                    {safeToppings.map((tp) => (
+                      <div key={tp.id} className="p-3.5 space-y-2.5 bg-white">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${tp.is_active ? 'bg-emerald-500 ring-4 ring-emerald-100' : 'bg-slate-300'}`} />
+                            <span className={`text-sm font-bold ${tp.is_active ? 'text-slate-900' : 'text-slate-400 line-through'}`}>{tp.name}</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleToggleToppingStatus(tp)}
+                            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold transition cursor-pointer ${
+                              tp.is_active
+                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                : 'bg-slate-100 text-slate-500 border border-slate-200'
+                            }`}
+                          >
+                            <span className={`w-1.5 h-1.5 rounded-full ${tp.is_active ? 'bg-emerald-500' : 'bg-slate-400'}`} />
+                            {tp.is_active ? t('common.active') : t('common.inactive')}
+                          </button>
+                        </div>
+                        <div className="flex items-center justify-between text-xs text-slate-500">
+                          <span>Giá: <strong className="text-indigo-600 font-bold text-sm">{formatCurrency(tp.price, settings)}</strong></span>
+                          <span className="text-[11px] px-2 py-0.5 bg-slate-100 text-slate-600 rounded-lg">
+                            {tp.category_id
+                              ? safeCategories.find((c) => c.id === tp.category_id)?.name || `#${tp.category_id}`
+                              : t('products.global')}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-end gap-2 pt-1 border-t border-slate-50">
+                          <button
+                            onClick={() => openEditToppingModal(tp)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" /> {t('common.edit')}
+                          </button>
+                          <button
+                            onClick={() => handleDeleteTopping(tp.id)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg transition"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" /> {t('common.delete')}
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
               )}
             </div>
           )}
@@ -768,9 +818,10 @@ export default function ProductsPage() {
           </div>
         </div>
 
-        {/* Products Table */}
+        {/* Products Table & Mobile Cards */}
         <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
+          {/* 1. Desktop Table (md and up) */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase tracking-wider font-semibold">
                 <tr>
@@ -800,6 +851,7 @@ export default function ProductsPage() {
                       <td className="py-3 px-4"><div className="h-3 bg-slate-200 rounded w-24" /></td>
                       <td className="py-3 px-4"><div className="h-3 bg-slate-200 rounded w-28" /></td>
                       <td className="py-3 px-4"><div className="h-3 bg-slate-200 rounded w-16" /></td>
+                      <td className="py-3 px-4 text-center"><div className="h-4 bg-slate-200 rounded w-16 mx-auto" /></td>
                       <td className="py-3 px-4 text-right"><div className="h-4 bg-slate-200 rounded w-12 ml-auto" /></td>
                     </tr>
                   ))
@@ -941,6 +993,143 @@ export default function ProductsPage() {
                 )}
               </tbody>
             </table>
+          </div>
+
+          {/* 2. Mobile Cards (< md) */}
+          <div className="md:hidden divide-y divide-slate-100">
+            {loading ? (
+              [...Array(4)].map((_, i) => (
+                <div key={i} className="p-4 space-y-3 animate-pulse">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-slate-200 rounded-xl" />
+                    <div className="flex-1 space-y-2">
+                      <div className="h-4 bg-slate-200 rounded w-1/2" />
+                      <div className="h-3 bg-slate-100 rounded w-1/3" />
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : filteredProducts.length === 0 ? (
+              <div className="p-8 text-center text-slate-400 text-xs">
+                {t('products.no_items')}
+              </div>
+            ) : (
+              filteredProducts.map((product) => {
+                const variants = product.variants || [];
+                const minRetail = variants.length > 0 ? Math.min(...variants.map(v => v.retail_price)) : 0;
+                const maxRetail = variants.length > 0 ? Math.max(...variants.map(v => v.retail_price)) : 0;
+                const avgCogs = variants.length > 0 ? variants.reduce((acc, v) => acc + v.cogs_price, 0) / variants.length : 0;
+                const avgRetail = variants.length > 0 ? variants.reduce((acc, v) => acc + v.retail_price, 0) / variants.length : 0;
+                const margin = avgRetail > 0 ? ((avgRetail - avgCogs) / avgRetail) * 100 : 0;
+
+                return (
+                  <div
+                    key={product.id}
+                    className={`p-4 space-y-3 transition ${product.is_active === false ? 'opacity-65 bg-slate-50/60' : 'bg-white'}`}
+                  >
+                    {/* Top: Image, Name, Badge, Status Toggle */}
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center overflow-hidden border border-slate-200 shrink-0">
+                          {getImageUrl(product.image_url) ? (
+                            <img src={getImageUrl(product.image_url)!} alt={product.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <Coffee className="w-6 h-6 text-slate-400" />
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className={`font-bold text-sm text-slate-900 ${product.is_active === false ? 'line-through text-slate-500' : ''}`}>
+                              {product.name}
+                            </span>
+                            {product.tag && product.tag !== 'none' && (
+                              <span
+                                className={`text-[9px] uppercase font-extrabold px-1.5 py-0.5 rounded border ${
+                                  product.tag === 'featured'
+                                    ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                    : product.tag === 'best_seller'
+                                    ? 'bg-rose-50 text-rose-700 border-rose-200'
+                                    : product.tag === 'new'
+                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                    : product.tag === 'coming_soon'
+                                    ? 'bg-blue-50 text-blue-700 border-blue-200'
+                                    : product.tag === 'suspended'
+                                    ? 'bg-slate-100 text-slate-700 border-slate-300'
+                                    : 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                                }`}
+                              >
+                                {product.tag === 'featured'
+                                  ? '⭐ ' + t('products.featured')
+                                  : product.tag === 'best_seller'
+                                  ? '🔥 ' + t('products.best_seller')
+                                  : product.tag === 'new'
+                                  ? '✨ ' + t('products.new')
+                                  : product.tag === 'coming_soon'
+                                  ? '⏳ ' + t('products.coming_soon')
+                                  : product.tag === 'suspended'
+                                  ? '⛔ ' + t('products.suspended')
+                                  : product.tag.replace('_', ' ')}
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-slate-400 text-xs truncate block mt-0.5">
+                            {product.category?.name || t('products.unassigned')}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Quick status toggle button */}
+                      <button
+                        type="button"
+                        onClick={() => handleToggleProductStatus(product)}
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold shrink-0 transition cursor-pointer ${
+                          product.is_active !== false
+                            ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 shadow-2xs'
+                            : 'bg-slate-100 text-slate-500 hover:bg-slate-200 border border-slate-200'
+                        }`}
+                        title={product.is_active !== false ? 'Bấm để tắt hiển thị trên POS' : 'Bấm để bật hiển thị trên POS'}
+                      >
+                        <span className={`w-1.5 h-1.5 rounded-full ${product.is_active !== false ? 'bg-emerald-500' : 'bg-slate-400'}`} />
+                        {product.is_active !== false ? t('products.status_selling') : t('products.status_hidden')}
+                      </button>
+                    </div>
+
+                    {/* Variants & Pricing Pills */}
+                    <div className="flex flex-wrap items-center justify-between gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-xs">
+                      <div className="flex flex-wrap gap-1.5">
+                        {variants.map((v) => (
+                          <span key={v.id || v.variant_name} className="bg-white text-slate-700 px-2 py-0.5 rounded-lg border border-slate-200 text-[11px]">
+                            {v.variant_name}: <strong className="text-indigo-600 font-bold">{formatCurrency(v.retail_price, settings)}</strong>
+                          </span>
+                        ))}
+                      </div>
+                      {margin > 0 && (
+                        <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-200">
+                          Lợi nhuận ~{margin.toFixed(0)}%
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Mobile Action Buttons */}
+                    <div className="flex items-center justify-end gap-2 pt-1">
+                      <button
+                        onClick={() => openEditModal(product)}
+                        className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-indigo-50 text-slate-700 hover:text-indigo-600 rounded-xl text-xs font-semibold border border-slate-200 transition cursor-pointer"
+                      >
+                        <Edit2 className="w-3.5 h-3.5" /> {t('products.edit_product')}
+                      </button>
+                      <button
+                        onClick={() => handleDeleteProduct(product.id)}
+                        className="inline-flex items-center justify-center p-2 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl text-xs font-semibold border border-rose-200 transition cursor-pointer"
+                        title={t('common.delete')}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
       </div>

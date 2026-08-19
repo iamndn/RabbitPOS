@@ -975,7 +975,8 @@ export default function TransactionsPage() {
 
             {/* Transaction History Table */}
             <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-              <div className="overflow-x-auto">
+              {/* Desktop Table View (md and up) */}
+              <div className="hidden md:block overflow-x-auto">
                 <table className="w-full text-left text-xs">
                   <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase tracking-wider font-semibold">
                     <tr>
@@ -1066,6 +1067,87 @@ export default function TransactionsPage() {
                 </table>
               </div>
 
+              {/* Mobile Cards View (< md) */}
+              <div className="md:hidden divide-y divide-slate-100">
+                {filteredTransactions.length === 0 ? (
+                  <div className="py-8 text-center text-slate-400 text-xs">
+                    {t('tx.no_transactions')}
+                  </div>
+                ) : (
+                  paginatedTransactions.map((tx) => {
+                    const isInflow = tx.transaction_type === 'inflow';
+                    const dateStr = new Date(tx.created_at).toLocaleString();
+                    const isManual = !tx.reference_order_id && tx.category !== 'reconciliation_variance';
+
+                    return (
+                      <div key={tx.id} className="p-4 space-y-2.5 bg-white">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span
+                              className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold flex items-center gap-1 ${
+                                isInflow
+                                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                  : 'bg-rose-50 text-rose-700 border border-rose-200'
+                              }`}
+                            >
+                              {isInflow ? <ArrowDownLeft className="w-3.5 h-3.5" /> : <ArrowUpRight className="w-3.5 h-3.5" />}
+                              {isInflow ? t('tx.type_inflow') : t('tx.type_outflow')}
+                            </span>
+                            <span className="font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded text-xs border border-slate-200">
+                              {getCategoryName(tx.category)}
+                            </span>
+                          </div>
+                          <span className={`font-extrabold text-base ${isInflow ? 'text-emerald-600' : 'text-rose-600'}`}>
+                            {isInflow ? '+' : '-'}{formatCurrency(tx.amount, settings)}
+                          </span>
+                        </div>
+
+                        {tx.description && (
+                          <div className="text-xs text-slate-700">
+                            {tx.description}
+                            {tx.reference_order?.order_code && (
+                              <span className="ml-1.5 font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">
+                                {tx.reference_order.order_code}
+                              </span>
+                            )}
+                          </div>
+                        )}
+
+                        <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1 border-t border-slate-50">
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-slate-800">{tx.fund?.name || t('tx.unknown_fund')}</span>
+                            <span>•</span>
+                            <span className="font-mono text-slate-400">{dateStr}</span>
+                          </div>
+                          {isManual ? (
+                            <div className="flex items-center gap-1">
+                              <button
+                                onClick={() => handleOpenEditModal(tx)}
+                                className="p-1.5 text-slate-500 hover:text-indigo-600 bg-slate-100 hover:bg-indigo-50 rounded-lg transition"
+                                title={t('common.edit')}
+                              >
+                                <Pencil className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => setDeletingTransaction(tx)}
+                                className="p-1.5 text-slate-500 hover:text-rose-600 bg-slate-100 hover:bg-rose-50 rounded-lg transition"
+                                title={t('common.delete')}
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="text-[10px] text-slate-400 font-medium px-2 py-0.5 bg-slate-100 rounded">
+                              {t('tx.system_auto') || 'Tự động'}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
               {/* Transactions Pagination Controls */}
               {totalTxPages > 1 && (
                 <div className="flex items-center justify-between p-3 border-t border-slate-100 bg-slate-50 text-xs">
@@ -1130,7 +1212,8 @@ export default function TransactionsPage() {
 
             {/* Orders Table */}
             <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-              <div className="overflow-x-auto">
+              {/* Desktop Table View (md and up) */}
+              <div className="hidden md:block overflow-x-auto">
                 <table className="w-full text-left text-xs">
                   <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase tracking-wider font-semibold">
                     <tr>
@@ -1180,7 +1263,7 @@ export default function TransactionsPage() {
                                 <button
                                   type="button"
                                   onClick={() => setExpandedOrderId(isExpanded ? null : order.id)}
-                                  className="inline-flex items-center gap-1 text-slate-700 hover:text-indigo-600 font-medium"
+                                  className="inline-flex items-center gap-1 text-slate-700 hover:text-indigo-600 font-medium cursor-pointer"
                                 >
                                   <span>{itemsCount} món</span>
                                   {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
@@ -1220,7 +1303,7 @@ export default function TransactionsPage() {
                                     <button
                                       type="button"
                                       onClick={() => handleOpenCancelModal(order)}
-                                      className="px-2.5 py-1 text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg border border-rose-200 transition flex items-center gap-1"
+                                      className="px-2.5 py-1 text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg border border-rose-200 transition flex items-center gap-1 cursor-pointer"
                                     >
                                       <Ban className="w-3.5 h-3.5" />
                                       {t('tx.cancel_order_btn')}
@@ -1229,7 +1312,7 @@ export default function TransactionsPage() {
                                     <button
                                       type="button"
                                       onClick={() => handleReorder(order)}
-                                      className="px-2.5 py-1 text-xs font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg border border-indigo-200 transition flex items-center gap-1 shadow-sm"
+                                      className="px-2.5 py-1 text-xs font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg border border-indigo-200 transition flex items-center gap-1 shadow-sm cursor-pointer"
                                     >
                                       <RotateCcw className="w-3.5 h-3.5" />
                                       {t('tx.reorder_btn')}
@@ -1278,6 +1361,127 @@ export default function TransactionsPage() {
                     )}
                   </tbody>
                 </table>
+              </div>
+
+              {/* Mobile Orders Cards View (< md) */}
+              <div className="md:hidden divide-y divide-slate-100">
+                {filteredOrders.length === 0 ? (
+                  <div className="py-8 text-center text-slate-400 text-xs">
+                    {t('tx.no_orders_found')}
+                  </div>
+                ) : (
+                  filteredOrders.map((order) => {
+                    const isCancelled = order.status === 'cancelled';
+                    const isExpanded = expandedOrderId === order.id;
+                    const itemsCount = (order.items || []).reduce((acc, it) => acc + it.quantity, 0);
+
+                    return (
+                      <div key={order.id} className="p-4 space-y-3 bg-white">
+                        {/* Header */}
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono font-bold text-indigo-600 text-sm">
+                                {order.order_code}
+                              </span>
+                              {isCancelled ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                                  <Ban className="w-3 h-3" />
+                                  {t('tx.order_status_cancelled')}
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                  <CheckCircle2 className="w-3 h-3" />
+                                  {t('tx.order_status_completed')}
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-[11px] text-slate-400 font-mono mt-0.5">
+                              {new Date(order.created_at).toLocaleString()}
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <span className="font-extrabold text-slate-900 text-base block">
+                              {formatCurrency(order.total_amount, settings)}
+                            </span>
+                            <span className="text-[11px] text-slate-500">
+                              {order.fund?.name || `#${order.fund_id}`}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Meta & Items toggle */}
+                        <div className="flex items-center justify-between text-xs bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                          <span className="text-slate-600">
+                            Thu ngân: <strong>{order.cashier_name || order.created_by}</strong>
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setExpandedOrderId(isExpanded ? null : order.id)}
+                            className="inline-flex items-center gap-1 font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1 rounded-lg border border-indigo-100 transition cursor-pointer"
+                          >
+                            <ShoppingBag className="w-3.5 h-3.5" />
+                            <span>{itemsCount} món</span>
+                            {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                          </button>
+                        </div>
+
+                        {/* Expandable Order Items */}
+                        {isExpanded && (
+                          <div className="bg-slate-50/90 rounded-xl p-3 border border-slate-200 space-y-2 text-xs">
+                            <h4 className="font-bold text-slate-800 flex items-center gap-1.5">
+                              <ShoppingBag className="w-4 h-4 text-indigo-600" />
+                              {t('tx.order_items_detail')} #{order.order_code}
+                            </h4>
+                            <div className="divide-y divide-slate-200/60">
+                              {(order.items || []).map((it) => (
+                                <div key={it.id} className="py-1.5 flex justify-between items-center text-slate-700">
+                                  <div>
+                                    <span className="font-semibold">{it.variant?.product?.name || it.variant?.variant_name || 'Món'}</span>
+                                    <span className="text-slate-400 ml-2">x{it.quantity}</span>
+                                    {it.notes && <span className="text-slate-500 block text-[11px] italic">{it.notes}</span>}
+                                  </div>
+                                  <span className="font-bold text-slate-900">{formatCurrency(it.line_total, settings)}</span>
+                                </div>
+                              ))}
+                            </div>
+                            {/* Breakdown summary */}
+                            <div className="pt-2 border-t border-slate-200 space-y-1 text-right text-[11px] text-slate-600">
+                              {order.discount_amount > 0 && <div>Giảm giá: -{formatCurrency(order.discount_amount, settings)}</div>}
+                              {order.promotion_discount > 0 && <div>Khuyến mãi: -{formatCurrency(order.promotion_discount, settings)}</div>}
+                              {order.platform_fee_discount > 0 && <div>Chiết khấu sàn: -{formatCurrency(order.platform_fee_discount, settings)}</div>}
+                              {order.shipping_fee > 0 && <div>Phí ship: +{formatCurrency(order.shipping_fee, settings)}</div>}
+                              {order.surcharge > 0 && <div>Phụ thu: +{formatCurrency(order.surcharge, settings)}</div>}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Action Buttons */}
+                        <div className="flex items-center justify-end gap-2 pt-1 border-t border-slate-50">
+                          {!isCancelled ? (
+                            <button
+                              type="button"
+                              onClick={() => handleOpenCancelModal(order)}
+                              className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-xl border border-rose-200 transition cursor-pointer"
+                            >
+                              <Ban className="w-3.5 h-3.5" />
+                              {t('tx.cancel_order_btn')}
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => handleReorder(order)}
+                              className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-xl border border-indigo-200 transition shadow-xs cursor-pointer"
+                            >
+                              <RotateCcw className="w-3.5 h-3.5" />
+                              {t('tx.reorder_btn')}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
               </div>
 
               {/* Orders Pagination Controls */}
