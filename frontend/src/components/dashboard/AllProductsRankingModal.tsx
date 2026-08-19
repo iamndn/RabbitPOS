@@ -248,80 +248,161 @@ export default function AllProductsRankingModal({
           </div>
         </div>
 
-        {/* Table Content */}
+        {/* Table & Mobile Cards Content */}
         <div className="flex-1 overflow-y-auto border border-slate-200 rounded-2xl shadow-sm">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase tracking-wider font-semibold sticky top-0 z-10">
-              <tr>
-                <th className="py-3 px-4 w-12 text-center">#</th>
-                <th className="py-3 px-4">{t('dashboard.col_product')}</th>
-                <th className="py-3 px-4">{t('dashboard.col_category')}</th>
-                <th className="py-3 px-4 text-right">{t('dashboard.col_sold_qty')}</th>
-                <th className="py-3 px-4 text-right">{t('dashboard.col_revenue')}</th>
-                <th className="py-3 px-4 text-right">{t('dashboard.col_cogs')}</th>
-                <th className="py-3 px-4 text-right">{t('dashboard.col_profit')}</th>
-                <th className="py-3 px-4 text-right">{t('dashboard.col_margin')}</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {loading ? (
+          {/* 1. Desktop Table View (md and up) */}
+          <div className="hidden md:block overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase tracking-wider font-semibold sticky top-0 z-10">
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-slate-400">
-                    {t('common.loading')}
-                  </td>
+                  <th className="py-3 px-4 w-12 text-center">#</th>
+                  <th className="py-3 px-4">{t('dashboard.col_product')}</th>
+                  <th className="py-3 px-4">{t('dashboard.col_category')}</th>
+                  <th className="py-3 px-4 text-right">{t('dashboard.col_sold_qty')}</th>
+                  <th className="py-3 px-4 text-right">{t('dashboard.col_revenue')}</th>
+                  <th className="py-3 px-4 text-right">{t('dashboard.col_cogs')}</th>
+                  <th className="py-3 px-4 text-right">{t('dashboard.col_profit')}</th>
+                  <th className="py-3 px-4 text-right">{t('dashboard.col_margin')}</th>
                 </tr>
-              ) : items.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="py-12 text-center text-slate-400">
-                    {t('dashboard.no_ranking_data')}
-                  </td>
-                </tr>
-              ) : (
-                items.map((it, idx) => {
-                  const rank = (page - 1) * limit + idx + 1;
-                  return (
-                    <tr key={`${it.product_id}-${it.variant_name}`} className="hover:bg-slate-50 transition">
-                      <td className="py-3 px-4 text-center font-bold text-slate-400">
-                        {rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank}
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className="font-bold text-slate-900 block">{it.product_name}</span>
-                        <span className="text-[11px] text-indigo-600 font-medium">{it.variant_name}</span>
-                      </td>
-                      <td className="py-3 px-4 text-slate-600">
-                        <span className="bg-slate-100 px-2 py-0.5 rounded text-[11px] font-semibold border border-slate-200">
-                          {it.category_name}
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {loading ? (
+                  <tr>
+                    <td colSpan={8} className="py-12 text-center text-slate-400">
+                      {t('common.loading')}
+                    </td>
+                  </tr>
+                ) : items.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="py-12 text-center text-slate-400">
+                      {t('dashboard.no_ranking_data')}
+                    </td>
+                  </tr>
+                ) : (
+                  items.map((it, idx) => {
+                    const rank = (page - 1) * limit + idx + 1;
+                    return (
+                      <tr key={`${it.product_id}-${it.variant_name}`} className="hover:bg-slate-50 transition">
+                        <td className="py-3 px-4 text-center font-bold text-slate-400">
+                          {rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank}
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className="font-bold text-slate-900 block">{it.product_name}</span>
+                          <span className="text-[11px] text-indigo-600 font-medium">{it.variant_name}</span>
+                        </td>
+                        <td className="py-3 px-4 text-slate-600">
+                          <span className="bg-slate-100 px-2 py-0.5 rounded text-[11px] font-semibold border border-slate-200">
+                            {it.category_name}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-right font-bold text-slate-900">{it.quantity_sold} ly</td>
+                        <td className="py-3 px-4 text-right font-extrabold text-slate-900">
+                          {formatCurrency(it.total_revenue, settings)}
+                        </td>
+                        <td className="py-3 px-4 text-right text-slate-500 font-medium">
+                          {formatCurrency(it.total_cogs, settings)}
+                        </td>
+                        <td className="py-3 px-4 text-right font-extrabold text-emerald-600">
+                          +{formatCurrency(it.total_profit, settings)}
+                        </td>
+                        <td className="py-3 px-4 text-right">
+                          <span
+                            className={`inline-block px-2 py-0.5 rounded-full font-bold text-[11px] ${
+                              it.margin_percentage >= 50
+                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                : it.margin_percentage >= 30
+                                ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                                : 'bg-rose-50 text-rose-700 border border-rose-200'
+                            }`}
+                          >
+                            {it.margin_percentage}%
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* 2. Mobile Cards View (< md) */}
+          <div className="md:hidden divide-y divide-slate-100">
+            {loading ? (
+              <div className="py-12 text-center text-slate-400 text-xs">
+                {t('common.loading')}
+              </div>
+            ) : items.length === 0 ? (
+              <div className="py-12 text-center text-slate-400 text-xs">
+                {t('dashboard.no_ranking_data')}
+              </div>
+            ) : (
+              items.map((it, idx) => {
+                const rank = (page - 1) * limit + idx + 1;
+                return (
+                  <div key={`${it.product_id}-${it.variant_name}`} className="p-3.5 space-y-2.5 bg-white">
+                    {/* Header: Rank + Product + Variant + Category + Margin */}
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className={`w-6 h-6 rounded-lg flex items-center justify-center font-extrabold text-[11px] shrink-0 ${
+                          rank === 1 ? 'bg-amber-100 text-amber-800 border border-amber-300' :
+                          rank === 2 ? 'bg-slate-200 text-slate-700 border border-slate-300' :
+                          rank === 3 ? 'bg-orange-100 text-orange-800 border border-orange-300' :
+                          'bg-slate-100 text-slate-500 border border-slate-200'
+                        }`}>
+                          {rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank}
                         </span>
-                      </td>
-                      <td className="py-3 px-4 text-right font-bold text-slate-900">{it.quantity_sold} ly</td>
-                      <td className="py-3 px-4 text-right font-extrabold text-slate-900">
-                        {formatCurrency(it.total_revenue, settings)}
-                      </td>
-                      <td className="py-3 px-4 text-right text-slate-500 font-medium">
-                        {formatCurrency(it.total_cogs, settings)}
-                      </td>
-                      <td className="py-3 px-4 text-right font-extrabold text-emerald-600">
-                        +{formatCurrency(it.total_profit, settings)}
-                      </td>
-                      <td className="py-3 px-4 text-right">
-                        <span
-                          className={`inline-block px-2 py-0.5 rounded-full font-bold text-[11px] ${
-                            it.margin_percentage >= 50
-                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                              : it.margin_percentage >= 30
-                              ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                              : 'bg-rose-50 text-rose-700 border border-rose-200'
-                          }`}
-                        >
-                          {it.margin_percentage}%
+                        <div className="min-w-0">
+                          <span className="font-bold text-slate-900 block truncate text-xs">{it.product_name}</span>
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            <span className="text-[11px] text-indigo-600 font-semibold">{it.variant_name}</span>
+                            <span className="text-[10px] text-slate-400">•</span>
+                            <span className="text-[10px] text-slate-500 bg-slate-100 px-1.5 py-0.2 rounded border border-slate-200">
+                              {it.category_name}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <span
+                        className={`shrink-0 inline-block px-2 py-0.5 rounded-lg font-bold text-[10px] border ${
+                          it.margin_percentage >= 50
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            : it.margin_percentage >= 30
+                            ? 'bg-amber-50 text-amber-700 border-amber-200'
+                            : 'bg-rose-50 text-rose-700 border-rose-200'
+                        }`}
+                      >
+                        {it.margin_percentage}% LN
+                      </span>
+                    </div>
+
+                    {/* Metrics Grid */}
+                    <div className="grid grid-cols-2 gap-2 bg-slate-50 p-2 rounded-xl border border-slate-100 text-xs">
+                      <div>
+                        <span className="text-[10px] text-slate-400 block">Doanh thu & Số lượng</span>
+                        <div className="font-extrabold text-slate-900 text-xs">
+                          {formatCurrency(it.total_revenue, settings)}
+                        </div>
+                        <span className="text-[11px] text-indigo-600 font-medium">
+                          {it.quantity_sold} ly
                         </span>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-[10px] text-slate-400 block">Lợi nhuận gộp</span>
+                        <div className="font-extrabold text-emerald-600 text-xs">
+                          +{formatCurrency(it.total_profit, settings)}
+                        </div>
+                        <span className="text-[11px] text-slate-500">
+                          Vốn: {formatCurrency(it.total_cogs, settings)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
         </div>
 
         {/* Footer & Pagination */}

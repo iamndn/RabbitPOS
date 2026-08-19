@@ -1612,8 +1612,8 @@ export default function TransactionsPage() {
                 </div>
               </div>
 
-              {/* Period Summary Table */}
-              <div className="overflow-x-auto">
+              {/* Period Summary Table & Mobile Cards */}
+              <div className="hidden md:block overflow-x-auto">
                 <table className="w-full text-left text-xs">
                   <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold uppercase">
                     <tr>
@@ -1715,6 +1715,91 @@ export default function TransactionsPage() {
                     )}
                   </tbody>
                 </table>
+              </div>
+
+              {/* Mobile Cards View for Period Summary (< md) */}
+              <div className="md:hidden divide-y divide-slate-100">
+                {summaryLoading ? (
+                  <div className="py-8 text-center text-slate-400 text-xs">
+                    {t('common.loading')}
+                  </div>
+                ) : periodSummary?.funds && periodSummary.funds.length > 0 ? (
+                  <>
+                    {periodSummary.funds.map((f) => (
+                      <div key={f.fund_id} className="p-4 space-y-3 bg-white">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={`w-2.5 h-2.5 rounded-full ${f.fund_type === 'bank' ? 'bg-blue-500' : 'bg-emerald-500'}`}
+                            />
+                            <span className="font-bold text-slate-900 text-sm">{f.fund_name}</span>
+                          </div>
+                          <span
+                            className={`inline-block px-2 py-0.5 rounded-lg font-bold text-[11px] border ${f.growth_pct >= 0
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                              : 'bg-rose-50 text-rose-700 border-rose-200'
+                              }`}
+                          >
+                            {f.growth_pct >= 0 ? '+' : ''}{f.growth_pct.toFixed(1)}%
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-xs">
+                          <div>
+                            <span className="text-[10px] text-slate-400 block">Số dư cuối kỳ</span>
+                            <span className="font-extrabold text-slate-900 text-sm">
+                              {formatCurrency(f.current_month.closing_balance, settings)}
+                            </span>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-[10px] text-slate-400 block">Số dư đầu kỳ</span>
+                            <span className="font-semibold text-slate-600">
+                              {formatCurrency(f.current_month.opening_balance, settings)}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-[10px] text-emerald-600 font-semibold block">Thu trong kỳ</span>
+                            <span className="font-bold text-emerald-600">
+                              +{formatCurrency(f.current_month.total_inflow, settings)}
+                            </span>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-[10px] text-rose-600 font-semibold block">Chi trong kỳ</span>
+                            <span className="font-bold text-rose-600">
+                              -{formatCurrency(f.current_month.total_outflow, settings)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+
+                    {/* Totals Card */}
+                    {periodSummary?.totals && (
+                      <div className="p-4 bg-indigo-50/60 border-t-2 border-indigo-200 space-y-2 text-xs">
+                        <div className="flex items-center justify-between">
+                          <span className="font-extrabold text-indigo-950 uppercase">{t('common.all')} (Tổng cộng)</span>
+                          <span
+                            className={`px-2 py-0.5 rounded-lg font-bold text-xs ${periodSummary.totals.growth_pct >= 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}
+                          >
+                            {periodSummary.totals.growth_pct >= 0 ? '+' : ''}{periodSummary.totals.growth_pct.toFixed(1)}%
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center text-sm font-extrabold text-indigo-900">
+                          <span>Tổng dư cuối kỳ:</span>
+                          <span>{formatCurrency(periodSummary.totals.current_month.closing_balance, settings)}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-xs text-slate-600 pt-1 border-t border-indigo-100">
+                          <span className="text-emerald-700 font-semibold">Tổng thu: +{formatCurrency(periodSummary.totals.current_month.total_inflow, settings)}</span>
+                          <span className="text-rose-700 font-semibold">Tổng chi: -{formatCurrency(periodSummary.totals.current_month.total_outflow, settings)}</span>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="py-8 text-center text-slate-400 text-xs">
+                    {t('funds.no_summary_data')}
+                  </div>
+                )}
               </div>
             </div>
           </div>

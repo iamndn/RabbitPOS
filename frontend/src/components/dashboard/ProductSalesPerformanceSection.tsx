@@ -364,9 +364,10 @@ export default function ProductSalesPerformanceSection({
         </div>
       </div>
 
-      {/* Performance Data Table */}
+      {/* Performance Data Table & Mobile Cards */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
+        {/* 1. Desktop Table View (md and up) */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left text-xs min-w-[820px]">
             <thead className="bg-slate-50 border-b border-slate-200">
               <tr>
@@ -495,6 +496,148 @@ export default function ProductSalesPerformanceSection({
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* 2. Mobile Cards View (< md) */}
+        <div className="md:hidden divide-y divide-slate-100">
+          {/* Quick Sort Bar for Mobile */}
+          <div className="p-3 bg-slate-50 border-b border-slate-100 flex items-center justify-between gap-2 overflow-x-auto text-[11px]">
+            <span className="text-slate-400 font-semibold shrink-0">Sắp xếp theo:</span>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <button
+                type="button"
+                onClick={() => handleSort('total_profit')}
+                className={`px-2.5 py-1 rounded-lg font-bold transition flex items-center gap-1 cursor-pointer ${
+                  sortField === 'total_profit' ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white text-slate-600 border border-slate-200'
+                }`}
+              >
+                Lợi nhuận
+                {sortField === 'total_profit' && (sortDir === 'desc' ? <ChevronDown className="w-3 h-3" /> : <ChevronUp className="w-3 h-3" />)}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSort('total_revenue')}
+                className={`px-2.5 py-1 rounded-lg font-bold transition flex items-center gap-1 cursor-pointer ${
+                  sortField === 'total_revenue' ? 'bg-indigo-600 text-white shadow-xs' : 'bg-white text-slate-600 border border-slate-200'
+                }`}
+              >
+                Doanh thu
+                {sortField === 'total_revenue' && (sortDir === 'desc' ? <ChevronDown className="w-3 h-3" /> : <ChevronUp className="w-3 h-3" />)}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSort('quantity_sold')}
+                className={`px-2.5 py-1 rounded-lg font-bold transition flex items-center gap-1 cursor-pointer ${
+                  sortField === 'quantity_sold' ? 'bg-indigo-600 text-white shadow-xs' : 'bg-white text-slate-600 border border-slate-200'
+                }`}
+              >
+                SL bán
+                {sortField === 'quantity_sold' && (sortDir === 'desc' ? <ChevronDown className="w-3 h-3" /> : <ChevronUp className="w-3 h-3" />)}
+              </button>
+            </div>
+          </div>
+
+          {loading ? (
+            skeletonRows.map((_, i) => (
+              <div key={i} className="p-4 space-y-3 animate-pulse">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-slate-200 rounded-xl shrink-0" />
+                  <div className="flex-1 space-y-1.5">
+                    <div className="h-4 bg-slate-200 rounded w-32" />
+                    <div className="h-3 bg-slate-100 rounded w-20" />
+                  </div>
+                </div>
+                <div className="h-12 bg-slate-50 rounded-xl" />
+              </div>
+            ))
+          ) : sortedItems.length === 0 ? (
+            <div className="py-12 text-center text-slate-400 text-xs">
+              <Package className="w-8 h-8 mx-auto mb-2 opacity-40" />
+              {t('product_perf.empty_state')}
+            </div>
+          ) : (
+            sortedItems.map((item, idx) => (
+              <div key={item.product_id} className="p-4 space-y-3 bg-white">
+                {/* Header: Rank + Image + Name + Category + Margin */}
+                <div className="flex items-start justify-between gap-2.5">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    {/* Rank Badge */}
+                    <span className={`w-6 h-6 rounded-lg flex items-center justify-center font-extrabold text-[11px] shrink-0 ${
+                      idx === 0 ? 'bg-amber-100 text-amber-800 border border-amber-300' :
+                      idx === 1 ? 'bg-slate-200 text-slate-700 border border-slate-300' :
+                      idx === 2 ? 'bg-orange-100 text-orange-800 border border-orange-300' :
+                      'bg-slate-100 text-slate-500 border border-slate-200'
+                    }`}>
+                      {idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : idx + 1}
+                    </span>
+
+                    {/* Product Image */}
+                    <div className="w-9 h-9 rounded-xl bg-slate-100 border border-slate-200 shrink-0 overflow-hidden flex items-center justify-center">
+                      {item.image_url ? (
+                        <img
+                          src={item.image_url}
+                          alt={item.product_name}
+                          className="w-full h-full object-cover"
+                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                        />
+                      ) : (
+                        <Package className="w-4 h-4 text-slate-400" />
+                      )}
+                    </div>
+
+                    <div className="min-w-0">
+                      <p className="font-bold text-slate-900 truncate leading-tight text-xs">{item.product_name}</p>
+                      <span className="text-[10px] font-medium text-indigo-600 bg-indigo-50 border border-indigo-100 px-1.5 py-0.5 rounded-full inline-block mt-0.5">
+                        {item.category_name}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Margin % Badge */}
+                  <span className={`shrink-0 inline-flex items-center text-[11px] font-extrabold px-2 py-0.5 rounded-lg border ${marginBadgeClass(item.margin_percentage)}`}>
+                    {item.margin_percentage.toFixed(1)}% LN
+                  </span>
+                </div>
+
+                {/* Metrics Grid */}
+                <div className="grid grid-cols-2 gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-xs">
+                  <div>
+                    <span className="text-[10px] text-slate-400 block">Doanh thu & SL bán</span>
+                    <div className="font-extrabold text-slate-900 text-sm">
+                      {formatCurrency(item.total_revenue, settings)}
+                    </div>
+                    <span className="text-[11px] text-indigo-600 font-semibold">
+                      Đã bán: {item.quantity_sold.toLocaleString()} ly
+                    </span>
+                  </div>
+
+                  <div className="text-right">
+                    <span className="text-[10px] text-slate-400 block">Lợi nhuận gộp</span>
+                    <div className={`font-extrabold text-sm ${item.total_profit >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                      {item.total_profit >= 0 ? '+' : ''}{formatCurrency(item.total_profit, settings)}
+                    </div>
+                    <span className="text-[11px] text-slate-500">
+                      Vốn: {formatCurrency(item.total_cogs, settings)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Revenue Share Bar */}
+                <div className="space-y-1">
+                  <div className="flex justify-between text-[10px] text-slate-500">
+                    <span>Tỷ trọng doanh thu</span>
+                    <span className="font-bold text-slate-700">{item.revenue_share_percentage.toFixed(1)}%</span>
+                  </div>
+                  <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-indigo-500 rounded-full"
+                      style={{ width: `${Math.min(100, item.revenue_share_percentage)}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
         </div>
 
         {/* Footer */}
