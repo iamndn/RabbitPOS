@@ -10,6 +10,28 @@ export const metadata: Metadata = {
     shortcut: "/favicon.ico",
     apple: "/apple-touch-icon.png",
   },
+  openGraph: {
+    title: "Thỏ Juice & Coffee - RabbitPOS",
+    description: "Phần mềm quản lý bán hàng POS & Sổ thu chi cho Thỏ Juice & Coffee",
+    url: "https://rabbitpos.ndnworks.com",
+    siteName: "Thỏ Juice & Coffee",
+    images: [
+      {
+        url: "/logo.png",
+        width: 256,
+        height: 256,
+        alt: "Thỏ Juice & Coffee Logo",
+      },
+    ],
+    locale: "vi_VN",
+    type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title: "Thỏ Juice & Coffee - RabbitPOS",
+    description: "Phần mềm quản lý bán hàng POS & Sổ thu chi cho Thỏ Juice & Coffee",
+    images: ["/logo.png"],
+  },
 };
 
 export const viewport: Viewport = {
