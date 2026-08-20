@@ -28,6 +28,7 @@ frontend/.env*
 
 # Compiled Binaries & Executables
 *.exe
+.xlsx
 *.exe~
 *.dll
 *.so

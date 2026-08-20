@@ -1,0 +1,42 @@
+{
+  "name": "RabbitPOS - Thỏ Juice & Coffee",
+  "short_name": "ThoPOS",
+  "description": "Hệ thống Bán hàng & Quản trị Doanh thu Quán Thỏ Juice & Coffee",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0F5132",
+  "orientation": "any",
+  "scope": "/",
+  "lang": "vi",
+  "categories": ["business", "productivity"],
+  "icons": [
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "POS Bán hàng",
+      "short_name": "POS",
+      "description": "Mở màn hình bán hàng POS",
+      "url": "/pos",
+      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
+    }
+  ],
+  "screenshots": []
+}

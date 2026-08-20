@@ -1,0 +1,608 @@
+[
+  {
+    "A": "Tên Sản Phẩm (*)",
+    "B": "Danh Mục (*)",
+    "C": "Mô Tả",
+    "D": "Thẻ Tag (none/best_seller/new)",
+    "E": "Tên Thuộc Tính / Size (*)",
+    "F": "Mã SKU",
+    "G": "Giá Vốn (COGS)",
+    "H": "Giá Bán Lẻ (*)",
+    "I": "Trạng Thái (Có/Không)",
+    "J": "Ảnh (URL)"
+  },
+  {
+    "A": "LỰU",
+    "B": "NGUYÊN CHẤT",
+    "E": "Size M",
+    "G": "21000",
+    "H": "30000",
+    "I": "Có",
+    "J": "https://drive.google.com/file/d/1wT0aDBvWHGsAJ1rxlfnJh1gyACWyjOG-/view?usp=drive_link"
+  },
+  {
+    "A": "LỰU",
+    "B": "NGUYÊN CHẤT",
+    "E": "Size L",
+    "G": "24000",
+    "H": "35000",
+    "I": "Có",
+    "J": "https://drive.google.com/file/d/1wT0aDBvWHGsAJ1rxlfnJh1gyACWyjOG-/view?usp=drive_link"
+  },
+  {
+    "A": "CÓC",
+    "B": "NGUYÊN CHẤT",
+    "E": "Size M",
+    "G": "9500",
+    "H": "20000",
+    "I": "Có",
+    "J": "https://drive.google.com/file/d/1M2ZvwSCfrBmgs_EstdfjmkX0zl_3wq_3/view?usp=drive_link"
+  },
+  {
+    "A": "CÓC",
+    "B": "NGUYÊN CHẤT",
+    "E": "Size L",
+    "G": "12500",
+    "H": "25000",
+    "I": "Có",
+    "J": "https://drive.google.com/file/d/1M2ZvwSCfrBmgs_EstdfjmkX0zl_3wq_3/view?usp=drive_link"
+  },
+  {
+    "A": "ỔI",
+    "B": "NGUYÊN CHẤT",
+    "E": "Size M",
+    "G": "10000",
+    "H": "20000",
+    "I": "Có",
+    "J": "https://drive.google.com/file/d/1JAAh68p3PYZ_f0OMnHS54J6aVcYM0JCD/view?usp=drive_link"
+  },
+  {
+    "A": "ỔI",
+    "B": "NGUYÊN CHẤT",
+    "E": "Size L",
+    "G": "13000",
+    "H": "25000",
+    "I": "Có",
+    "J": "https://drive.google.com/file/d/1JAAh68p3PYZ_f0OMnHS54J6aVcYM0JCD/view?usp=drive_link"
+  },
+  {
+    "A": "CÀ RỐT",
+    "B": "NGUYÊN CHẤT",
+    "E": "Size M",
+    "G": "6000",
+    "H": "20000",
+    "I": "Có",
+    "J": "https://drive.google.com/file/d/1AnzpJis_Wt11jwICgD-tnvFCjFB60hc_/view?usp=drive_link"
+  },
+  {
+    "A": "CÀ RỐT",
+    "B": "NGUYÊN CHẤT",
+    "E": "Size L",
+    "G": "9000",
+    "H": "25000",
+    "I": "Có",
+    "J": "https://drive.google.com/file/d/1AnzpJis_Wt11jwICgD-tnvFCjFB60hc_/view?usp=drive_link"
+  },
+  {
+    "A": "DỨA",
+    "B": "NGUYÊN CHẤT",
+    "E": "Size M",
+    "G": "12000",
+    "H": "20000",
+    "I": "Có",
+    "J": "https://drive.google.com/file/d/1bAZrMDjQ4EX14UXroaXzgUo8JrJQkqNY/view?usp=drive_link"
+  },
+  {
+    "A": "DỨA",
+    "B": "NGUYÊN CHẤT",
+    "E": "Size L",
+    "G": "15000",
+    "H": "25000",
+    "I": "Có",
+    "J": "https://drive.google.com/file/d/1bAZrMDjQ4EX14UXroaXzgUo8JrJQkqNY/view?usp=drive_link"
+  },
+  {
+    "A": "TÁO",
+    "B": "NGUYÊN CHẤT",
+    "E": "Size M",
+    "G": "14000",
+    "H": "25000",
+    "I": "Có",
+    "J": "https://drive.google.com/file/d/1PDaFXoB9RgAqxDI1Gp219hoxytVzj7AF/view?usp=drive_link"
+  },
+  {
+    "A": "TÁO",
+    "B": "NGUYÊN CHẤT",
+    "E": "Size L",
+    "G": "17000",
+    "H": "30000",
+    "I": "Có",
+    "J": "https://drive.google.com/file/d/1PDaFXoB9RgAqxDI1Gp219hoxytVzj7AF/view?usp=drive_link"
+  },
+  {
+    "A": "LÊ",
+    "B": "NGUYÊN CHẤT",
+    "E": "Size M",
+    "G": "10000",
+    "H": "25000",
+    "I": "Có",
+    "J": "https://drive.google.com/file/d/1yjt2KP2cVOq2no4IDJsYVBi0lvN7qVKv/view?usp=drive_link"
+  },
+  {
+    "A": "LÊ",
+    "B": "NGUYÊN CHẤT",
+    "E": "Size L",
+    "G": "13000",
+    "H": "30000",
+    "I": "Có",
+    "J": "https://drive.google.com/file/d/1yjt2KP2cVOq2no4IDJsYVBi0lvN7qVKv/view?usp=drive_link"
+  },
+  {
+    "A": "DƯA VÀNG",
+    "B": "NGUYÊN CHẤT",
+    "E": "Size M",
+    "G": "10800",
+    "H": "25000",
+    "I": "Có",
+    "J": "https://drive.google.com/file/d/1NFj28Um68_yYkAqykMzlVrSmMXiI7QGT/view?usp=drive_link"
+  },
+  {
+    "A": "DƯA VÀNG",
+    "B": "NGUYÊN CHẤT",
+    "E": "Size L",
+    "G": "13800",
+    "H": "30000",
+    "I": "Có",
+    "J": "https://drive.google.com/file/d/1NFj28Um68_yYkAqykMzlVrSmMXiI7QGT/view?usp=drive_link"
+  },
+  {
+    "A": "DƯA HẤU",
+    "B": "NGUYÊN CHẤT",
+    "E": "Size M",
+    "G": "10000",
+    "H": "20000",
+    "I": "Có",
+    "J": "https://drive.google.com/file/d/1-4k0whSVqYc9x_jZHnc83W60qEG42KnN/view?usp=drive_link"
+  },
+  {
+    "A": "DƯA HẤU",
+    "B": "NGUYÊN CHẤT",
+    "E": "Size L",
+    "G": "13000",
+    "H": "25000",
+    "I": "Có",
+    "J": "https://drive.google.com/file/d/1-4k0whSVqYc9x_jZHnc83W60qEG42KnN/view?usp=drive_link"
+  },
+  {
+    "A": "CAM",
+    "B": "NGUYÊN CHẤT",
+    "E": "Size M",
+    "G": "10800",
+    "H": "25000",
+    "I": "Có",
+    "J": "https://drive.google.com/file/d/1GtkLuqlN-x4Hi_fX_VCg9-TnMvZnvGQ8/view?usp=drive_link"
+  },
+  {
+    "A": "CAM",
+    "B": "NGUYÊN CHẤT",
+    "E": "Size L",
+    "G": "13800",
+    "H": "30000",
+    "I": "Có",
+    "J": "https://drive.google.com/file/d/1GtkLuqlN-x4Hi_fX_VCg9-TnMvZnvGQ8/view?usp=drive_link"
+  },
+  {
+    "A": "TÁO + CÀ RỐT",
+    "B": "MIX",
+    "E": "Size M",
+    "G": "12000",
+    "H": "25000",
+    "I": "Có",
+    "J": "https://drive.google.com/file/d/1U9E1sxdka-MMKTuQaRyBhdXvRC3EdC19/view?usp=drive_link"
+  },
+  {
+    "A": "TÁO + CÀ RỐT",
+    "B": "MIX",
+    "E": "Size L",
+    "G": "15000",
+    "H": "30000",
+    "I": "Có",
+    "J": "https://drive.google.com/file/d/1U9E1sxdka-MMKTuQaRyBhdXvRC3EdC19/view?usp=drive_link"
+  },
+  {
+    "A": "DƯA HẤU + DỨA",
+    "B": "MIX",
+    "E": "Size M",
+    "G": "18000",
+    "H": "25000",
+    "I": "Có",
+    "J": "https://drive.google.com/file/d/1F2tF-cFt_glqb5lk3Tt9ZU2ODM9t-yYE/view?usp=drive_link"
+  },
+  {
+    "A": "DƯA HẤU + DỨA",
+    "B": "MIX",
+    "E": "Size L",
+    "G": "21000",
+    "H": "30000",
+    "I": "Có",
+    "J": "https://drive.google.com/file/d/1F2tF-cFt_glqb5lk3Tt9ZU2ODM9t-yYE/view?usp=drive_link"
+  },
+  {
+    "A": "ỔI + TÁO",
+    "B": "MIX",
+    "E": "Size M",
+    "G": "12000",
+    "H": "25000",
+    "I": "Có",
+    "J": "https://drive.google.com/file/d/1c6KFmOlmETClhsrfl1wDO7hmchoUarOW/view?usp=drive_link"
+  },
+  {
+    "A": "ỔI + TÁO",
+    "B": "MIX",
+    "E": "Size L",
+    "G": "15000",
+    "H": "30000",
+    "I": "Có",
+    "J": "https://drive.google.com/file/d/1c6KFmOlmETClhsrfl1wDO7hmchoUarOW/view?usp=drive_link"
+  },
+  {
+    "A": "CAM + TÁO",
+    "B": "MIX",
+    "E": "Size M",
+    "G": "9500",
+    "H": "25000",
+    "I": "Có",
+    "J": "https://drive.google.com/file/d/1BMuG3ChJzZiF8Etg31XKbhJqlW-xTnMR/view?usp=drive_link"
+  },
+  {
+    "A": "CAM + TÁO",
+    "B": "MIX",
+    "E": "Size L",
+    "G": "12500",
+    "H": "30000",
+    "I": "Có",
+    "J": "https://drive.google.com/file/d/1BMuG3ChJzZiF8Etg31XKbhJqlW-xTnMR/view?usp=drive_link"
+  },
+  {
+    "A": "CÓC + DỨA",
+    "B": "MIX",
+    "E": "Size M",
+    "G": "10800",
+    "H": "25000",
+    "I": "Có",
+    "J": "https://drive.google.com/file/d/1gfLVH57Zh238dQjlV5NnxWive1bwY4lY/view?usp=drive_link"
+  },
+  {
+    "A": "CÓC + DỨA",
+    "B": "MIX",
+    "E": "Size L",
+    "G": "13800",
+    "H": "30000",
+    "I": "Có",
+    "J": "https://drive.google.com/file/d/1gfLVH57Zh238dQjlV5NnxWive1bwY4lY/view?usp=drive_link"
+  },
+  {
+    "A": "CÓC + TÁO",
+    "B": "MIX",
+    "E": "Size M",
+    "G": "12500",
+    "H": "25000",
+    "I": "Có",
+    "J": "https://drive.google.com/file/d/18ssf7RGsvnW4Ad3GC0PgBn4ok7aMmamb/view?usp=drive_link"
+  },
+  {
+    "A": "CÓC + TÁO",
+    "B": "MIX",
+    "E": "Size L",
+    "G": "15500",
+    "H": "30000",
+    "I": "Có",
+    "J": "https://drive.google.com/file/d/18ssf7RGsvnW4Ad3GC0PgBn4ok7aMmamb/view?usp=drive_link"
+  },
+  {
+    "A": "LỰU + DỨA",
+    "B": "MIX",
+    "E": "Size M",
+    "G": "14000",
+    "H": "30000",
+    "I": "Có",
+    "J": "https://drive.google.com/file/d/1oTAq8bJHlCgvP5rFxC1OJ_c5m3qDAO8u/view?usp=drive_link"
+  },
+  {
+    "A": "LỰU + DỨA",
+    "B": "MIX",
+    "E": "Size L",
+    "G": "17000",
+    "H": "35000",
+    "I": "Có",
+    "J": "https://drive.google.com/file/d/1oTAq8bJHlCgvP5rFxC1OJ_c5m3qDAO8u/view?usp=drive_link"
+  },
+  {
+    "A": "LỰU + TÁO",
+    "B": "MIX",
+    "E": "Size M",
+    "G": "18500",
+    "H": "30000",
+    "I": "Có",
+    "J": "https://drive.google.com/file/d/1K4QPafmtfYzo-OL3dShIqN0vPvBy8N2r/view?usp=drive_link"
+  },
+  {
+    "A": "LỰU + TÁO",
+    "B": "MIX",
+    "E": "Size L",
+    "G": "21500",
+    "H": "35000",
+    "I": "Có",
+    "J": "https://drive.google.com/file/d/1K4QPafmtfYzo-OL3dShIqN0vPvBy8N2r/view?usp=drive_link"
+  },
+  {
+    "A": "LỰU + CAM",
+    "B": "MIX",
+    "E": "Size M",
+    "G": "17000",
+    "H": "30000",
+    "I": "Có",
+    "J": "https://drive.google.com/file/d/1V1D9JBJW24WWRAFQ42M2EaemX54usRCT/view?usp=drive_link"
+  },
+  {
+    "A": "LỰU + CAM",
+    "B": "MIX",
+    "E": "Size L",
+    "G": "20000",
+    "H": "35000",
+    "I": "Có",
+    "J": "https://drive.google.com/file/d/1V1D9JBJW24WWRAFQ42M2EaemX54usRCT/view?usp=drive_link"
+  },
+  {
+    "A": "DỨA + CÀ RỐT",
+    "B": "MIX",
+    "E": "Size M",
+    "G": "8000",
+    "H": "25000",
+    "I": "Có",
+    "J": "https://drive.google.com/file/d/105K7bY53Jdd00KOMmwfDrgCpaCaCbElv/view?usp=drive_link"
+  },
+  {
+    "A": "DỨA + CÀ RỐT",
+    "B": "MIX",
+    "E": "Size L",
+    "G": "11000",
+    "H": "30000",
+    "I": "Có",
+    "J": "https://drive.google.com/file/d/105K7bY53Jdd00KOMmwfDrgCpaCaCbElv/view?usp=drive_link"
+  },
+  {
+    "A": "ỔI + CÓC",
+    "B": "MIX",
+    "E": "Size M",
+    "G": "14000",
+    "H": "25000",
+    "I": "Có",
+    "J": "https://drive.google.com/file/d/1CP1Y4ueXUoOEg-RGX3zJJsky5B4qi1Tz/view?usp=drive_link"
+  },
+  {
+    "A": "ỔI + CÓC",
+    "B": "MIX",
+    "E": "Size L",
+    "G": "17000",
+    "H": "30000",
+    "I": "Có",
+    "J": "https://drive.google.com/file/d/1CP1Y4ueXUoOEg-RGX3zJJsky5B4qi1Tz/view?usp=drive_link"
+  },
+  {
+    "A": "DỨA + TÁO",
+    "B": "MIX",
+    "E": "Size M",
+    "G": "13000",
+    "H": "25000",
+    "I": "Có",
+    "J": "https://drive.google.com/file/d/1Rn5dMkUkzAJERkDqYvjkbNh9iycm0esf/view?usp=drive_link"
+  },
+  {
+    "A": "DỨA + TÁO",
+    "B": "MIX",
+    "E": "Size L",
+    "G": "16000",
+    "H": "30000",
+    "I": "Có",
+    "J": "https://drive.google.com/file/d/1Rn5dMkUkzAJERkDqYvjkbNh9iycm0esf/view?usp=drive_link"
+  },
+  {
+    "A": "DƯA VÀNG + TÁO",
+    "B": "MIX",
+    "E": "Size M",
+    "G": "12400",
+    "H": "25000",
+    "I": "Có",
+    "J": "https://drive.google.com/file/d/1vlVaKEtLLAJ6VbYcvW7N9bRsL4m-Yz2q/view?usp=drive_link"
+  },
+  {
+    "A": "DƯA VÀNG + TÁO",
+    "B": "MIX",
+    "E": "Size L",
+    "G": "15400",
+    "H": "30000",
+    "I": "Có",
+    "J": "https://drive.google.com/file/d/1vlVaKEtLLAJ6VbYcvW7N9bRsL4m-Yz2q/view?usp=drive_link"
+  },
+  {
+    "A": "DƯA HẤU + CAM",
+    "B": "MIX",
+    "E": "Size M",
+    "G": "12600",
+    "H": "25000",
+    "I": "Có",
+    "J": "https://drive.google.com/file/d/1X2zXrWJ9_4nOOUq3iakI0vSRybPTV4ON/view?usp=drive_link"
+  },
+  {
+    "A": "DƯA HẤU + CAM",
+    "B": "MIX",
+    "E": "Size L",
+    "G": "15600",
+    "H": "30000",
+    "I": "Có",
+    "J": "https://drive.google.com/file/d/1X2zXrWJ9_4nOOUq3iakI0vSRybPTV4ON/view?usp=drive_link"
+  },
+  {
+    "A": "DƯA HẤU + TÁO",
+    "B": "MIX",
+    "E": "Size M",
+    "G": "12000",
+    "H": "25000",
+    "I": "Có",
+    "J": "https://drive.google.com/file/d/1bthb6fQcwHM62XWgDCVTY_Xuc8lW3xfV/view?usp=drive_link"
+  },
+  {
+    "A": "DƯA HẤU + TÁO",
+    "B": "MIX",
+    "E": "Size L",
+    "G": "15000",
+    "H": "30000",
+    "I": "Có",
+    "J": "https://drive.google.com/file/d/1bthb6fQcwHM62XWgDCVTY_Xuc8lW3xfV/view?usp=drive_link"
+  },
+  {
+    "A": "TÁO + LÊ",
+    "B": "MIX",
+    "E": "Size M",
+    "G": "12000",
+    "H": "25000",
+    "I": "Có",
+    "J": "https://drive.google.com/file/d/1rCwkpdojpV5QR3cGbOTaSuj02fCeqOip/view?usp=drive_link"
+  },
+  {
+    "A": "TÁO + LÊ",
+    "B": "MIX",
+    "E": "Size L",
+    "G": "15000",
+    "H": "30000",
+    "I": "Có",
+    "J": "https://drive.google.com/file/d/1rCwkpdojpV5QR3cGbOTaSuj02fCeqOip/view?usp=drive_link"
+  },
+  {
+    "A": "ỔI + DỨA",
+    "B": "MIX",
+    "E": "Size M",
+    "G": "12000",
+    "H": "25000",
+    "I": "Có",
+    "J": "https://drive.google.com/file/d/1ZDH2eOMWQG9tRruMGwhkUPWbQz0hLKH2/view?usp=drive_link"
+  },
+  {
+    "A": "ỔI + DỨA",
+    "B": "MIX",
+    "E": "Size L",
+    "G": "15000",
+    "H": "30000",
+    "I": "Có",
+    "J": "https://drive.google.com/file/d/1ZDH2eOMWQG9tRruMGwhkUPWbQz0hLKH2/view?usp=drive_link"
+  },
+  {
+    "A": "DỨA + CAM",
+    "B": "MIX",
+    "E": "Size M",
+    "G": "13000",
+    "H": "25000",
+    "I": "Có",
+    "J": "https://drive.google.com/file/d/10CRvnXk6W4mooG7a_z3R0NvHDiMAw5p3/view?usp=drive_link"
+  },
+  {
+    "A": "DỨA + CAM",
+    "B": "MIX",
+    "E": "Size L",
+    "G": "16000",
+    "H": "30000",
+    "I": "Có",
+    "J": "https://drive.google.com/file/d/10CRvnXk6W4mooG7a_z3R0NvHDiMAw5p3/view?usp=drive_link"
+  },
+  {
+    "A": "CAM + CÀ RỐT",
+    "B": "MIX",
+    "E": "Size M",
+    "G": "9000",
+    "H": "25000",
+    "I": "Có",
+    "J": "https://drive.google.com/file/d/1mRqI_X2X12xDDsUtvCtXLokXGkgOMxdN/view?usp=drive_link"
+  },
+  {
+    "A": "CAM + CÀ RỐT",
+    "B": "MIX",
+    "E": "Size L",
+    "G": "12000",
+    "H": "30000",
+    "I": "Có",
+    "J": "https://drive.google.com/file/d/1mRqI_X2X12xDDsUtvCtXLokXGkgOMxdN/view?usp=drive_link"
+  },
+  {
+    "A": "DƯA VÀNG + LÊ",
+    "B": "MIX",
+    "E": "Size M",
+    "G": "10400",
+    "H": "25000",
+    "I": "Có",
+    "J": "https://drive.google.com/file/d/1uIYsFDGjaaayZBoa9zs9XX7c0OcybO9q/view?usp=drive_link"
+  },
+  {
+    "A": "DƯA VÀNG + LÊ",
+    "B": "MIX",
+    "E": "Size L",
+    "G": "13400",
+    "H": "30000",
+    "I": "Có",
+    "J": "https://drive.google.com/file/d/1uIYsFDGjaaayZBoa9zs9XX7c0OcybO9q/view?usp=drive_link"
+  },
+  {
+    "A": "CÀ PHÊ MUỐI",
+    "B": "CÀ PHÊ",
+    "E": "Size M",
+    "G": "10000",
+    "H": "25000",
+    "I": "Có",
+    "J": "https://drive.google.com/file/d/1Ms48ZRbF8lhFgLUuC44AjOm_V5rI-_Ga/view?usp=drive_link"
+  },
+  {
+    "A": "CÀ PHÊ MUỐI",
+    "B": "CÀ PHÊ",
+    "E": "Size L",
+    "G": "13000",
+    "H": "30000",
+    "I": "Có",
+    "J": "https://drive.google.com/file/d/1Ms48ZRbF8lhFgLUuC44AjOm_V5rI-_Ga/view?usp=drive_link"
+  },
+  {
+    "A": "CÀ PHÊ ĐEN",
+    "B": "CÀ PHÊ",
+    "E": "Size M",
+    "G": "9000",
+    "H": "20000",
+    "I": "Có",
+    "J": "https://drive.google.com/file/d/1lcqMvCpHQIGvgQsobAYXgVfTIrJDvyav/view?usp=drive_link"
+  },
+  {
+    "A": "CÀ PHÊ ĐEN",
+    "B": "CÀ PHÊ",
+    "E": "Size L",
+    "G": "11000",
+    "H": "25000",
+    "I": "Có",
+    "J": "https://drive.google.com/file/d/1lcqMvCpHQIGvgQsobAYXgVfTIrJDvyav/view?usp=drive_link"
+  },
+  {
+    "A": "CÀ PHÊ SỮA",
+    "B": "CÀ PHÊ",
+    "E": "Size M",
+    "G": "11000",
+    "H": "25000",
+    "I": "Có",
+    "J": "https://drive.google.com/file/d/1s6NyVmhLCwDsH7sSwbRqSD6oyt6Zmg9j/view?usp=drive_link"
+  },
+  {
+    "A": "CÀ PHÊ SỮA",
+    "B": "CÀ PHÊ",
+    "E": "Size L",
+    "G": "13000",
+    "H": "30000",
+    "I": "Có",
+    "J": "https://drive.google.com/file/d/1s6NyVmhLCwDsH7sSwbRqSD6oyt6Zmg9j/view?usp=drive_link"
+  }
+]

@@ -1,0 +1,768 @@
+{
+  "categories": {
+    "NGUYÊN CHẤT": 1,
+    "MIX": 2,
+    "CÀ PHÊ": 3
+  },
+  "products": {
+    "LỰU": {
+      "category": "NGUYÊN CHẤT",
+      "description": "",
+      "tag": "none",
+      "image_url": "https://drive.google.com/file/d/1wT0aDBvWHGsAJ1rxlfnJh1gyACWyjOG-/view?usp=drive_link",
+      "is_active": true,
+      "variants": [
+        {
+          "variant_name": "Size M",
+          "sku": "",
+          "cogs_price": 21000.0,
+          "retail_price": 30000.0,
+          "is_active": true
+        },
+        {
+          "variant_name": "Size L",
+          "sku": "",
+          "cogs_price": 24000.0,
+          "retail_price": 35000.0,
+          "is_active": true
+        }
+      ]
+    },
+    "CÓC": {
+      "category": "NGUYÊN CHẤT",
+      "description": "",
+      "tag": "none",
+      "image_url": "https://drive.google.com/file/d/1M2ZvwSCfrBmgs_EstdfjmkX0zl_3wq_3/view?usp=drive_link",
+      "is_active": true,
+      "variants": [
+        {
+          "variant_name": "Size M",
+          "sku": "",
+          "cogs_price": 9500.0,
+          "retail_price": 20000.0,
+          "is_active": true
+        },
+        {
+          "variant_name": "Size L",
+          "sku": "",
+          "cogs_price": 12500.0,
+          "retail_price": 25000.0,
+          "is_active": true
+        }
+      ]
+    },
+    "ỔI": {
+      "category": "NGUYÊN CHẤT",
+      "description": "",
+      "tag": "none",
+      "image_url": "https://drive.google.com/file/d/1JAAh68p3PYZ_f0OMnHS54J6aVcYM0JCD/view?usp=drive_link",
+      "is_active": true,
+      "variants": [
+        {
+          "variant_name": "Size M",
+          "sku": "",
+          "cogs_price": 10000.0,
+          "retail_price": 20000.0,
+          "is_active": true
+        },
+        {
+          "variant_name": "Size L",
+          "sku": "",
+          "cogs_price": 13000.0,
+          "retail_price": 25000.0,
+          "is_active": true
+        }
+      ]
+    },
+    "CÀ RỐT": {
+      "category": "NGUYÊN CHẤT",
+      "description": "",
+      "tag": "none",
+      "image_url": "https://drive.google.com/file/d/1AnzpJis_Wt11jwICgD-tnvFCjFB60hc_/view?usp=drive_link",
+      "is_active": true,
+      "variants": [
+        {
+          "variant_name": "Size M",
+          "sku": "",
+          "cogs_price": 6000.0,
+          "retail_price": 20000.0,
+          "is_active": true
+        },
+        {
+          "variant_name": "Size L",
+          "sku": "",
+          "cogs_price": 9000.0,
+          "retail_price": 25000.0,
+          "is_active": true
+        }
+      ]
+    },
+    "DỨA": {
+      "category": "NGUYÊN CHẤT",
+      "description": "",
+      "tag": "none",
+      "image_url": "https://drive.google.com/file/d/1bAZrMDjQ4EX14UXroaXzgUo8JrJQkqNY/view?usp=drive_link",
+      "is_active": true,
+      "variants": [
+        {
+          "variant_name": "Size M",
+          "sku": "",
+          "cogs_price": 12000.0,
+          "retail_price": 20000.0,
+          "is_active": true
+        },
+        {
+          "variant_name": "Size L",
+          "sku": "",
+          "cogs_price": 15000.0,
+          "retail_price": 25000.0,
+          "is_active": true
+        }
+      ]
+    },
+    "TÁO": {
+      "category": "NGUYÊN CHẤT",
+      "description": "",
+      "tag": "none",
+      "image_url": "https://drive.google.com/file/d/1PDaFXoB9RgAqxDI1Gp219hoxytVzj7AF/view?usp=drive_link",
+      "is_active": true,
+      "variants": [
+        {
+          "variant_name": "Size M",
+          "sku": "",
+          "cogs_price": 14000.0,
+          "retail_price": 25000.0,
+          "is_active": true
+        },
+        {
+          "variant_name": "Size L",
+          "sku": "",
+          "cogs_price": 17000.0,
+          "retail_price": 30000.0,
+          "is_active": true
+        }
+      ]
+    },
+    "LÊ": {
+      "category": "NGUYÊN CHẤT",
+      "description": "",
+      "tag": "none",
+      "image_url": "https://drive.google.com/file/d/1yjt2KP2cVOq2no4IDJsYVBi0lvN7qVKv/view?usp=drive_link",
+      "is_active": true,
+      "variants": [
+        {
+          "variant_name": "Size M",
+          "sku": "",
+          "cogs_price": 10000.0,
+          "retail_price": 25000.0,
+          "is_active": true
+        },
+        {
+          "variant_name": "Size L",
+          "sku": "",
+          "cogs_price": 13000.0,
+          "retail_price": 30000.0,
+          "is_active": true
+        }
+      ]
+    },
+    "DƯA VÀNG": {
+      "category": "NGUYÊN CHẤT",
+      "description": "",
+      "tag": "none",
+      "image_url": "https://drive.google.com/file/d/1NFj28Um68_yYkAqykMzlVrSmMXiI7QGT/view?usp=drive_link",
+      "is_active": true,
+      "variants": [
+        {
+          "variant_name": "Size M",
+          "sku": "",
+          "cogs_price": 10800.0,
+          "retail_price": 25000.0,
+          "is_active": true
+        },
+        {
+          "variant_name": "Size L",
+          "sku": "",
+          "cogs_price": 13800.0,
+          "retail_price": 30000.0,
+          "is_active": true
+        }
+      ]
+    },
+    "DƯA HẤU": {
+      "category": "NGUYÊN CHẤT",
+      "description": "",
+      "tag": "none",
+      "image_url": "https://drive.google.com/file/d/1-4k0whSVqYc9x_jZHnc83W60qEG42KnN/view?usp=drive_link",
+      "is_active": true,
+      "variants": [
+        {
+          "variant_name": "Size M",
+          "sku": "",
+          "cogs_price": 10000.0,
+          "retail_price": 20000.0,
+          "is_active": true
+        },
+        {
+          "variant_name": "Size L",
+          "sku": "",
+          "cogs_price": 13000.0,
+          "retail_price": 25000.0,
+          "is_active": true
+        }
+      ]
+    },
+    "CAM": {
+      "category": "NGUYÊN CHẤT",
+      "description": "",
+      "tag": "none",
+      "image_url": "https://drive.google.com/file/d/1GtkLuqlN-x4Hi_fX_VCg9-TnMvZnvGQ8/view?usp=drive_link",
+      "is_active": true,
+      "variants": [
+        {
+          "variant_name": "Size M",
+          "sku": "",
+          "cogs_price": 10800.0,
+          "retail_price": 25000.0,
+          "is_active": true
+        },
+        {
+          "variant_name": "Size L",
+          "sku": "",
+          "cogs_price": 13800.0,
+          "retail_price": 30000.0,
+          "is_active": true
+        }
+      ]
+    },
+    "TÁO + CÀ RỐT": {
+      "category": "MIX",
+      "description": "",
+      "tag": "none",
+      "image_url": "https://drive.google.com/file/d/1U9E1sxdka-MMKTuQaRyBhdXvRC3EdC19/view?usp=drive_link",
+      "is_active": true,
+      "variants": [
+        {
+          "variant_name": "Size M",
+          "sku": "",
+          "cogs_price": 12000.0,
+          "retail_price": 25000.0,
+          "is_active": true
+        },
+        {
+          "variant_name": "Size L",
+          "sku": "",
+          "cogs_price": 15000.0,
+          "retail_price": 30000.0,
+          "is_active": true
+        }
+      ]
+    },
+    "DƯA HẤU + DỨA": {
+      "category": "MIX",
+      "description": "",
+      "tag": "none",
+      "image_url": "https://drive.google.com/file/d/1F2tF-cFt_glqb5lk3Tt9ZU2ODM9t-yYE/view?usp=drive_link",
+      "is_active": true,
+      "variants": [
+        {
+          "variant_name": "Size M",
+          "sku": "",
+          "cogs_price": 18000.0,
+          "retail_price": 25000.0,
+          "is_active": true
+        },
+        {
+          "variant_name": "Size L",
+          "sku": "",
+          "cogs_price": 21000.0,
+          "retail_price": 30000.0,
+          "is_active": true
+        }
+      ]
+    },
+    "ỔI + TÁO": {
+      "category": "MIX",
+      "description": "",
+      "tag": "none",
+      "image_url": "https://drive.google.com/file/d/1c6KFmOlmETClhsrfl1wDO7hmchoUarOW/view?usp=drive_link",
+      "is_active": true,
+      "variants": [
+        {
+          "variant_name": "Size M",
+          "sku": "",
+          "cogs_price": 12000.0,
+          "retail_price": 25000.0,
+          "is_active": true
+        },
+        {
+          "variant_name": "Size L",
+          "sku": "",
+          "cogs_price": 15000.0,
+          "retail_price": 30000.0,
+          "is_active": true
+        }
+      ]
+    },
+    "CAM + TÁO": {
+      "category": "MIX",
+      "description": "",
+      "tag": "none",
+      "image_url": "https://drive.google.com/file/d/1BMuG3ChJzZiF8Etg31XKbhJqlW-xTnMR/view?usp=drive_link",
+      "is_active": true,
+      "variants": [
+        {
+          "variant_name": "Size M",
+          "sku": "",
+          "cogs_price": 9500.0,
+          "retail_price": 25000.0,
+          "is_active": true
+        },
+        {
+          "variant_name": "Size L",
+          "sku": "",
+          "cogs_price": 12500.0,
+          "retail_price": 30000.0,
+          "is_active": true
+        }
+      ]
+    },
+    "CÓC + DỨA": {
+      "category": "MIX",
+      "description": "",
+      "tag": "none",
+      "image_url": "https://drive.google.com/file/d/1gfLVH57Zh238dQjlV5NnxWive1bwY4lY/view?usp=drive_link",
+      "is_active": true,
+      "variants": [
+        {
+          "variant_name": "Size M",
+          "sku": "",
+          "cogs_price": 10800.0,
+          "retail_price": 25000.0,
+          "is_active": true
+        },
+        {
+          "variant_name": "Size L",
+          "sku": "",
+          "cogs_price": 13800.0,
+          "retail_price": 30000.0,
+          "is_active": true
+        }
+      ]
+    },
+    "CÓC + TÁO": {
+      "category": "MIX",
+      "description": "",
+      "tag": "none",
+      "image_url": "https://drive.google.com/file/d/18ssf7RGsvnW4Ad3GC0PgBn4ok7aMmamb/view?usp=drive_link",
+      "is_active": true,
+      "variants": [
+        {
+          "variant_name": "Size M",
+          "sku": "",
+          "cogs_price": 12500.0,
+          "retail_price": 25000.0,
+          "is_active": true
+        },
+        {
+          "variant_name": "Size L",
+          "sku": "",
+          "cogs_price": 15500.0,
+          "retail_price": 30000.0,
+          "is_active": true
+        }
+      ]
+    },
+    "LỰU + DỨA": {
+      "category": "MIX",
+      "description": "",
+      "tag": "none",
+      "image_url": "https://drive.google.com/file/d/1oTAq8bJHlCgvP5rFxC1OJ_c5m3qDAO8u/view?usp=drive_link",
+      "is_active": true,
+      "variants": [
+        {
+          "variant_name": "Size M",
+          "sku": "",
+          "cogs_price": 14000.0,
+          "retail_price": 30000.0,
+          "is_active": true
+        },
+        {
+          "variant_name": "Size L",
+          "sku": "",
+          "cogs_price": 17000.0,
+          "retail_price": 35000.0,
+          "is_active": true
+        }
+      ]
+    },
+    "LỰU + TÁO": {
+      "category": "MIX",
+      "description": "",
+      "tag": "none",
+      "image_url": "https://drive.google.com/file/d/1K4QPafmtfYzo-OL3dShIqN0vPvBy8N2r/view?usp=drive_link",
+      "is_active": true,
+      "variants": [
+        {
+          "variant_name": "Size M",
+          "sku": "",
+          "cogs_price": 18500.0,
+          "retail_price": 30000.0,
+          "is_active": true
+        },
+        {
+          "variant_name": "Size L",
+          "sku": "",
+          "cogs_price": 21500.0,
+          "retail_price": 35000.0,
+          "is_active": true
+        }
+      ]
+    },
+    "LỰU + CAM": {
+      "category": "MIX",
+      "description": "",
+      "tag": "none",
+      "image_url": "https://drive.google.com/file/d/1V1D9JBJW24WWRAFQ42M2EaemX54usRCT/view?usp=drive_link",
+      "is_active": true,
+      "variants": [
+        {
+          "variant_name": "Size M",
+          "sku": "",
+          "cogs_price": 17000.0,
+          "retail_price": 30000.0,
+          "is_active": true
+        },
+        {
+          "variant_name": "Size L",
+          "sku": "",
+          "cogs_price": 20000.0,
+          "retail_price": 35000.0,
+          "is_active": true
+        }
+      ]
+    },
+    "DỨA + CÀ RỐT": {
+      "category": "MIX",
+      "description": "",
+      "tag": "none",
+      "image_url": "https://drive.google.com/file/d/105K7bY53Jdd00KOMmwfDrgCpaCaCbElv/view?usp=drive_link",
+      "is_active": true,
+      "variants": [
+        {
+          "variant_name": "Size M",
+          "sku": "",
+          "cogs_price": 8000.0,
+          "retail_price": 25000.0,
+          "is_active": true
+        },
+        {
+          "variant_name": "Size L",
+          "sku": "",
+          "cogs_price": 11000.0,
+          "retail_price": 30000.0,
+          "is_active": true
+        }
+      ]
+    },
+    "ỔI + CÓC": {
+      "category": "MIX",
+      "description": "",
+      "tag": "none",
+      "image_url": "https://drive.google.com/file/d/1CP1Y4ueXUoOEg-RGX3zJJsky5B4qi1Tz/view?usp=drive_link",
+      "is_active": true,
+      "variants": [
+        {
+          "variant_name": "Size M",
+          "sku": "",
+          "cogs_price": 14000.0,
+          "retail_price": 25000.0,
+          "is_active": true
+        },
+        {
+          "variant_name": "Size L",
+          "sku": "",
+          "cogs_price": 17000.0,
+          "retail_price": 30000.0,
+          "is_active": true
+        }
+      ]
+    },
+    "DỨA + TÁO": {
+      "category": "MIX",
+      "description": "",
+      "tag": "none",
+      "image_url": "https://drive.google.com/file/d/1Rn5dMkUkzAJERkDqYvjkbNh9iycm0esf/view?usp=drive_link",
+      "is_active": true,
+      "variants": [
+        {
+          "variant_name": "Size M",
+          "sku": "",
+          "cogs_price": 13000.0,
+          "retail_price": 25000.0,
+          "is_active": true
+        },
+        {
+          "variant_name": "Size L",
+          "sku": "",
+          "cogs_price": 16000.0,
+          "retail_price": 30000.0,
+          "is_active": true
+        }
+      ]
+    },
+    "DƯA VÀNG + TÁO": {
+      "category": "MIX",
+      "description": "",
+      "tag": "none",
+      "image_url": "https://drive.google.com/file/d/1vlVaKEtLLAJ6VbYcvW7N9bRsL4m-Yz2q/view?usp=drive_link",
+      "is_active": true,
+      "variants": [
+        {
+          "variant_name": "Size M",
+          "sku": "",
+          "cogs_price": 12400.0,
+          "retail_price": 25000.0,
+          "is_active": true
+        },
+        {
+          "variant_name": "Size L",
+          "sku": "",
+          "cogs_price": 15400.0,
+          "retail_price": 30000.0,
+          "is_active": true
+        }
+      ]
+    },
+    "DƯA HẤU + CAM": {
+      "category": "MIX",
+      "description": "",
+      "tag": "none",
+      "image_url": "https://drive.google.com/file/d/1X2zXrWJ9_4nOOUq3iakI0vSRybPTV4ON/view?usp=drive_link",
+      "is_active": true,
+      "variants": [
+        {
+          "variant_name": "Size M",
+          "sku": "",
+          "cogs_price": 12600.0,
+          "retail_price": 25000.0,
+          "is_active": true
+        },
+        {
+          "variant_name": "Size L",
+          "sku": "",
+          "cogs_price": 15600.0,
+          "retail_price": 30000.0,
+          "is_active": true
+        }
+      ]
+    },
+    "DƯA HẤU + TÁO": {
+      "category": "MIX",
+      "description": "",
+      "tag": "none",
+      "image_url": "https://drive.google.com/file/d/1bthb6fQcwHM62XWgDCVTY_Xuc8lW3xfV/view?usp=drive_link",
+      "is_active": true,
+      "variants": [
+        {
+          "variant_name": "Size M",
+          "sku": "",
+          "cogs_price": 12000.0,
+          "retail_price": 25000.0,
+          "is_active": true
+        },
+        {
+          "variant_name": "Size L",
+          "sku": "",
+          "cogs_price": 15000.0,
+          "retail_price": 30000.0,
+          "is_active": true
+        }
+      ]
+    },
+    "TÁO + LÊ": {
+      "category": "MIX",
+      "description": "",
+      "tag": "none",
+      "image_url": "https://drive.google.com/file/d/1rCwkpdojpV5QR3cGbOTaSuj02fCeqOip/view?usp=drive_link",
+      "is_active": true,
+      "variants": [
+        {
+          "variant_name": "Size M",
+          "sku": "",
+          "cogs_price": 12000.0,
+          "retail_price": 25000.0,
+          "is_active": true
+        },
+        {
+          "variant_name": "Size L",
+          "sku": "",
+          "cogs_price": 15000.0,
+          "retail_price": 30000.0,
+          "is_active": true
+        }
+      ]
+    },
+    "ỔI + DỨA": {
+      "category": "MIX",
+      "description": "",
+      "tag": "none",
+      "image_url": "https://drive.google.com/file/d/1ZDH2eOMWQG9tRruMGwhkUPWbQz0hLKH2/view?usp=drive_link",
+      "is_active": true,
+      "variants": [
+        {
+          "variant_name": "Size M",
+          "sku": "",
+          "cogs_price": 12000.0,
+          "retail_price": 25000.0,
+          "is_active": true
+        },
+        {
+          "variant_name": "Size L",
+          "sku": "",
+          "cogs_price": 15000.0,
+          "retail_price": 30000.0,
+          "is_active": true
+        }
+      ]
+    },
+    "DỨA + CAM": {
+      "category": "MIX",
+      "description": "",
+      "tag": "none",
+      "image_url": "https://drive.google.com/file/d/10CRvnXk6W4mooG7a_z3R0NvHDiMAw5p3/view?usp=drive_link",
+      "is_active": true,
+      "variants": [
+        {
+          "variant_name": "Size M",
+          "sku": "",
+          "cogs_price": 13000.0,
+          "retail_price": 25000.0,
+          "is_active": true
+        },
+        {
+          "variant_name": "Size L",
+          "sku": "",
+          "cogs_price": 16000.0,
+          "retail_price": 30000.0,
+          "is_active": true
+        }
+      ]
+    },
+    "CAM + CÀ RỐT": {
+      "category": "MIX",
+      "description": "",
+      "tag": "none",
+      "image_url": "https://drive.google.com/file/d/1mRqI_X2X12xDDsUtvCtXLokXGkgOMxdN/view?usp=drive_link",
+      "is_active": true,
+      "variants": [
+        {
+          "variant_name": "Size M",
+          "sku": "",
+          "cogs_price": 9000.0,
+          "retail_price": 25000.0,
+          "is_active": true
+        },
+        {
+          "variant_name": "Size L",
+          "sku": "",
+          "cogs_price": 12000.0,
+          "retail_price": 30000.0,
+          "is_active": true
+        }
+      ]
+    },
+    "DƯA VÀNG + LÊ": {
+      "category": "MIX",
+      "description": "",
+      "tag": "none",
+      "image_url": "https://drive.google.com/file/d/1uIYsFDGjaaayZBoa9zs9XX7c0OcybO9q/view?usp=drive_link",
+      "is_active": true,
+      "variants": [
+        {
+          "variant_name": "Size M",
+          "sku": "",
+          "cogs_price": 10400.0,
+          "retail_price": 25000.0,
+          "is_active": true
+        },
+        {
+          "variant_name": "Size L",
+          "sku": "",
+          "cogs_price": 13400.0,
+          "retail_price": 30000.0,
+          "is_active": true
+        }
+      ]
+    },
+    "CÀ PHÊ MUỐI": {
+      "category": "CÀ PHÊ",
+      "description": "",
+      "tag": "none",
+      "image_url": "https://drive.google.com/file/d/1Ms48ZRbF8lhFgLUuC44AjOm_V5rI-_Ga/view?usp=drive_link",
+      "is_active": true,
+      "variants": [
+        {
+          "variant_name": "Size M",
+          "sku": "",
+          "cogs_price": 10000.0,
+          "retail_price": 25000.0,
+          "is_active": true
+        },
+        {
+          "variant_name": "Size L",
+          "sku": "",
+          "cogs_price": 13000.0,
+          "retail_price": 30000.0,
+          "is_active": true
+        }
+      ]
+    },
+    "CÀ PHÊ ĐEN": {
+      "category": "CÀ PHÊ",
+      "description": "",
+      "tag": "none",
+      "image_url": "https://drive.google.com/file/d/1lcqMvCpHQIGvgQsobAYXgVfTIrJDvyav/view?usp=drive_link",
+      "is_active": true,
+      "variants": [
+        {
+          "variant_name": "Size M",
+          "sku": "",
+          "cogs_price": 9000.0,
+          "retail_price": 20000.0,
+          "is_active": true
+        },
+        {
+          "variant_name": "Size L",
+          "sku": "",
+          "cogs_price": 11000.0,
+          "retail_price": 25000.0,
+          "is_active": true
+        }
+      ]
+    },
+    "CÀ PHÊ SỮA": {
+      "category": "CÀ PHÊ",
+      "description": "",
+      "tag": "none",
+      "image_url": "https://drive.google.com/file/d/1s6NyVmhLCwDsH7sSwbRqSD6oyt6Zmg9j/view?usp=drive_link",
+      "is_active": true,
+      "variants": [
+        {
+          "variant_name": "Size M",
+          "sku": "",
+          "cogs_price": 11000.0,
+          "retail_price": 25000.0,
+          "is_active": true
+        },
+        {
+          "variant_name": "Size L",
+          "sku": "",
+          "cogs_price": 13000.0,
+          "retail_price": 30000.0,
+          "is_active": true
+        }
+      ]
+    }
+  }
+}

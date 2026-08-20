@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
+import InstallPWABanner from '@/components/common/InstallPWABanner';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
@@ -129,8 +130,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex flex-col min-h-screen bg-slate-100 text-slate-800">
-      {/* Top Application Header */}
-      <header className="sticky top-0 z-30 flex items-center justify-between px-4 py-2.5 bg-indigo-600 text-white shadow-md">
+      {/* Top Application Header — pt-safe ensures content clears Notch / Dynamic Island in PWA mode */}
+      <header className="sticky top-0 z-30 flex items-center justify-between px-4 py-2.5 bg-indigo-600 text-white shadow-md pt-safe">
         <div className="flex items-center space-x-3">
           <Link href="/" className="flex items-center space-x-2.5 font-bold text-lg tracking-tight group">
             {storeLogo ? (
@@ -292,11 +293,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      {/* Main Page Content */}
+      {/* Main Page Content — pb-16 on mobile leaves room for the fixed bottom nav */}
       <div className="flex-1 pb-16 md:pb-0">{children}</div>
 
-      {/* Mobile Bottom Navigation */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-slate-200 flex justify-around py-2 px-2 shadow-lg">
+      {/* Mobile Bottom Navigation — pb-safe keeps items above Home Indicator on iPhone */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-slate-200 flex justify-around py-2 px-2 pb-safe shadow-lg">
         {visibleNavItems.map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.href;
@@ -313,6 +314,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           );
         })}
       </div>
+
+      {/* iOS PWA Install Prompt — shown only on iOS Safari in browser (not standalone) mode */}
+      <InstallPWABanner />
     </div>
   );
 }

@@ -136,6 +136,12 @@ export function getImageUrl(url?: string | null): string | null {
   if (!url || url.trim() === '') return null;
   let trimmed = url.trim().replace('api.rabbitpos.ndnworks.com', 'rabbitpos-api.ndnworks.com');
 
+  // Convert Google Drive view links to direct image CDN links
+  const gDriveMatch = trimmed.match(/drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?.*id=)([a-zA-Z0-9_-]+)/);
+  if (gDriveMatch && gDriveMatch[1]) {
+    return `https://lh3.googleusercontent.com/d/${gDriveMatch[1]}`;
+  }
+
   if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
     return trimmed;
   }
