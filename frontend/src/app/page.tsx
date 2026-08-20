@@ -37,7 +37,7 @@ const CategoryTabs = React.memo(function CategoryTabs({
   allLabel,
 }: CategoryTabsProps) {
   return (
-    <div className="flex overflow-x-auto space-x-2 pb-1 w-full sm:w-auto scrollbar-none">
+    <div className="flex overflow-x-auto space-x-2 pb-1 w-full sm:w-auto scrollbar-none no-scrollbar">
       <button
         onClick={() => onSelectCategory(null)}
         className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap shadow-sm transition ${
@@ -595,7 +595,7 @@ export default function PosPage() {
         </div>
 
         {/* Quick Tag Highlights Filter */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none text-xs">
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none no-scrollbar text-xs">
           <button
             onClick={() => setActiveTag(null)}
             className={`px-3 py-1 rounded-lg font-medium whitespace-nowrap transition cursor-pointer ${

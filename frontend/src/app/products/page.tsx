@@ -791,7 +791,7 @@ export default function ProductsPage() {
             </div>
           </div>
 
-          <div className="flex overflow-x-auto space-x-1.5 pb-1">
+          <div className="flex overflow-x-auto space-x-1.5 pb-1 scrollbar-none no-scrollbar">
             <button
               onClick={() => setSelectedCategory(null)}
               className={`px-3 py-1.5 text-xs font-semibold rounded-lg whitespace-nowrap transition cursor-pointer ${
