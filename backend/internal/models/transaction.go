@@ -49,6 +49,8 @@ type CreateTransactionRequest struct {
 	Description     string              `json:"description"`
 	// CreatedBy is optional; will be overridden by JWT context if available
 	CreatedBy string `json:"created_by"`
+	// CreatedAt is an optional custom transaction timestamp (e.g. for backfilling past transactions)
+	CreatedAt *time.Time `json:"created_at"`
 }
 
 type UpdateTransactionRequest struct {
@@ -57,6 +59,8 @@ type UpdateTransactionRequest struct {
 	Category        TransactionCategory `json:"category" binding:"required"`
 	Amount          float64             `json:"amount" binding:"required,gt=0"`
 	Description     string              `json:"description"`
+	// CreatedAt is an optional custom transaction timestamp
+	CreatedAt *time.Time `json:"created_at"`
 }
 
 type ReconcileFundRequest struct {

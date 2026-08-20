@@ -10,7 +10,7 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: "cover",
-  themeColor: "#0F5132",
+  themeColor: "#064e3b",
 };
 
 // --- PWA Metadata: Apple Web App capabilities, manifest, Open Graph ---
@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
-    statusBarStyle: "black-translucent",
+    statusBarStyle: "default",
     title: "ThoPOS",
   },
   formatDetection: {
@@ -66,12 +66,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="vi" className="h-full">
-      <body className="h-full bg-slate-50 text-slate-900 antialiased selection:bg-emerald-600 selection:text-white pwa-body overflow-hidden">
+    <html lang="vi">
+      <body className="min-h-screen bg-slate-50 text-slate-900 antialiased selection:bg-emerald-600 selection:text-white flex flex-col">
         {/* Register service worker for offline shell caching */}
         <PWARegister />
         <LanguageProvider>
-          <main className="h-full flex flex-col max-w-md md:max-w-4xl lg:max-w-7xl mx-auto shadow-sm bg-white overflow-hidden">
+          <main className="flex-1 flex flex-col w-full max-w-full md:max-w-7xl mx-auto shadow-sm bg-white min-h-0 overflow-x-hidden">
             {children}
           </main>
         </LanguageProvider>
@@ -79,4 +79,3 @@ export default function RootLayout({
     </html>
   );
 }
-

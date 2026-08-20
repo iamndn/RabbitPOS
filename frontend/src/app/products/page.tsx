@@ -524,7 +524,7 @@ export default function ProductsPage() {
 
   return (
     <AppShell>
-      <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-6">
+      <div className="space-y-4 sm:space-y-6 max-w-7xl mx-auto w-full max-w-full overflow-x-hidden">
         {/* Page Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-sm">
           <div>
@@ -773,8 +773,8 @@ export default function ProductsPage() {
 
         {/* Filter Controls Bar */}
         <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center justify-between">
-          <div className="flex flex-col sm:flex-row gap-2 flex-1">
-            <div className="relative flex-1 min-w-[200px]">
+          <div className="flex flex-col sm:flex-row gap-2 flex-1 min-w-0">
+            <div className="relative flex-1 min-w-0 w-full">
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
               <input
                 type="text"

@@ -66,20 +66,20 @@ interface Props {
 
 // Standardized sugar level presets (100-70-50-30-0%)
 const SUGAR_LEVELS = [
-  { value: '100', label: '100% Đường' },
-  { value: '70',  label: '70% Đường' },
-  { value: '50',  label: '50% Đường' },
-  { value: '30',  label: '30% Đường' },
-  { value: '0',   label: 'Không Đường' },
+  { value: '100', label: '100%', sub: 'Đường' },
+  { value: '70',  label: '70%',  sub: 'Đường' },
+  { value: '50',  label: '50%',  sub: 'Đường' },
+  { value: '30',  label: '30%',  sub: 'Đường' },
+  { value: '0',   label: '0%',   sub: 'Không' },
 ];
 
 // Standardized ice level presets (100-70-50-30-0%)
 const ICE_LEVELS = [
-  { value: '100', label: '100% Đá' },
-  { value: '70',  label: '70% Đá' },
-  { value: '50',  label: '50% Đá' },
-  { value: '30',  label: '30% Đá' },
-  { value: '0',   label: 'Không Đá / Đá Riêng' },
+  { value: '100', label: '100%', sub: 'Đá' },
+  { value: '70',  label: '70%',  sub: 'Đá' },
+  { value: '50',  label: '50%',  sub: 'Đá' },
+  { value: '30',  label: '30%',  sub: 'Đá' },
+  { value: '0',   label: '0%',   sub: 'Ko đá' },
 ];
 
 export default function VariantSelectorModal({ product, onClose, onAddToCart, settings }: Props) {
@@ -163,7 +163,7 @@ export default function VariantSelectorModal({ product, onClose, onAddToCart, se
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-4 animate-in fade-in duration-200">
-      <div className="bg-white rounded-t-3xl md:rounded-3xl max-w-lg w-full p-4 sm:p-5 shadow-2xl space-y-4 max-h-[92dvh] md:max-h-[85vh] overflow-y-auto animate-in slide-in-from-bottom duration-300 hardware-accelerated pb-safe">
+      <div className="bg-white rounded-t-3xl md:rounded-3xl max-w-lg w-full p-4 sm:p-5 shadow-2xl space-y-4 max-h-[92dvh] md:max-h-[85vh] overflow-y-auto overflow-x-hidden animate-in slide-in-from-bottom duration-300 hardware-accelerated pb-safe">
         {/* Mobile Drag Indicator */}
         <div className="flex justify-center md:hidden pt-0.5 pb-1">
           <div className="w-12 h-1.5 bg-slate-300 rounded-full" />
@@ -219,19 +219,22 @@ export default function VariantSelectorModal({ product, onClose, onAddToCart, se
         {/* 2. Sugar Level — 5 standardized presets */}
         <div className="space-y-1.5">
           <label className="text-xs font-bold text-slate-800 uppercase tracking-wider block">{t('pos.sugar_level')}</label>
-          <div className="grid grid-cols-5 gap-1.5">
+          <div className="grid grid-cols-5 gap-1 sm:gap-1.5">
             {SUGAR_LEVELS.map((lvl) => (
               <button
                 key={lvl.value}
                 type="button"
                 onClick={() => setSugarLevel(lvl.value)}
-                className={`py-2 px-1 rounded-xl text-[11px] font-semibold border transition text-center leading-tight active:scale-95 ${
+                className={`py-1.5 sm:py-2 px-0.5 sm:px-1 rounded-xl text-center transition active:scale-95 flex flex-col items-center justify-center ${
                   sugarLevel === lvl.value
                     ? 'border-emerald-700 bg-emerald-700 text-white shadow-xs font-bold'
-                    : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                    : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
                 }`}
               >
-                {lvl.label}
+                <span className="text-xs font-bold leading-tight">{lvl.label}</span>
+                <span className={`text-[9px] leading-tight ${sugarLevel === lvl.value ? 'text-emerald-100' : 'text-slate-400'}`}>
+                  {lvl.sub}
+                </span>
               </button>
             ))}
           </div>
@@ -240,19 +243,22 @@ export default function VariantSelectorModal({ product, onClose, onAddToCart, se
         {/* 3. Ice Level — 5 standardized presets */}
         <div className="space-y-1.5">
           <label className="text-xs font-bold text-slate-800 uppercase tracking-wider block">{t('pos.ice_level')}</label>
-          <div className="grid grid-cols-5 gap-1.5">
+          <div className="grid grid-cols-5 gap-1 sm:gap-1.5">
             {ICE_LEVELS.map((lvl) => (
               <button
                 key={lvl.value}
                 type="button"
                 onClick={() => setIceLevel(lvl.value)}
-                className={`py-2 px-1 rounded-xl text-[11px] font-semibold border transition text-center leading-tight active:scale-95 ${
+                className={`py-1.5 sm:py-2 px-0.5 sm:px-1 rounded-xl text-center transition active:scale-95 flex flex-col items-center justify-center ${
                   iceLevel === lvl.value
                     ? 'border-cyan-700 bg-cyan-700 text-white shadow-xs font-bold'
-                    : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                    : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
                 }`}
               >
-                {lvl.label}
+                <span className="text-xs font-bold leading-tight">{lvl.label}</span>
+                <span className={`text-[9px] leading-tight ${iceLevel === lvl.value ? 'text-cyan-100' : 'text-slate-400'}`}>
+                  {lvl.sub}
+                </span>
               </button>
             ))}
           </div>

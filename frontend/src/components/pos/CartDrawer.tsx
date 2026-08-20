@@ -19,6 +19,9 @@ import {
   AlertCircle,
   Check,
   FileText,
+  Clock,
+  RotateCcw,
+  Calendar,
 } from 'lucide-react';
 import { CartItem } from './VariantSelectorModal';
 import { Promotion } from '@/app/promotions/page';
@@ -47,6 +50,8 @@ interface Props {
   onSurchargeChange: (amount: number) => void;
   orderNote: string;
   onOrderNoteChange: (note: string) => void;
+  orderCreatedAt?: string | null;
+  onOrderCreatedAtChange?: (dateStr: string | null) => void;
   onProceedCheckout: () => void;
   settings?: SettingsMap | null;
 }
@@ -71,6 +76,8 @@ export default function CartDrawer({
   onSurchargeChange,
   orderNote,
   onOrderNoteChange,
+  orderCreatedAt,
+  onOrderCreatedAtChange,
   onProceedCheckout,
   settings,
 }: Props) {
@@ -287,6 +294,103 @@ export default function CartDrawer({
                 onChange={(e) => onOrderNoteChange(e.target.value)}
                 className="w-full p-2 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-600 bg-white"
               />
+            </div>
+
+            {/* 3. Order Creation Time (Customizable) */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-slate-700 flex items-center gap-1">
+                  <Clock className="w-3.5 h-3.5 text-emerald-700" />
+                  {t('pos.order_time')}
+                </label>
+                {orderCreatedAt ? (
+                  <button
+                    type="button"
+                    onClick={() => onOrderCreatedAtChange?.(null)}
+                    className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-2 py-0.5 rounded-md transition active:scale-95 border border-emerald-200"
+                  >
+                    <RotateCcw className="w-3 h-3" />
+                    <span>{t('pos.order_time_reset')}</span>
+                  </button>
+                ) : (
+                  <span className="text-[10px] font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">
+                    {t('pos.order_time_auto')}
+                  </span>
+                )}
+              </div>
+
+              <div className="space-y-1.5">
+                <input
+                  type="datetime-local"
+                  value={
+                    orderCreatedAt
+                      ? (() => {
+                          try {
+                            const d = new Date(orderCreatedAt);
+                            if (isNaN(d.getTime())) return '';
+                            const pad = (n: number) => n.toString().padStart(2, '0');
+                            return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+                          } catch {
+                            return '';
+                          }
+                        })()
+                      : ''
+                  }
+                  onChange={(e) => {
+                    if (!e.target.value) {
+                      onOrderCreatedAtChange?.(null);
+                    } else {
+                      onOrderCreatedAtChange?.(new Date(e.target.value).toISOString());
+                    }
+                  }}
+                  className="w-full p-2 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-600 bg-white"
+                />
+
+                {/* Quick Presets */}
+                <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5">
+                  <button
+                    type="button"
+                    onClick={() => onOrderCreatedAtChange?.(null)}
+                    className={`px-2 py-1 rounded-lg text-[10px] font-semibold transition active:scale-95 whitespace-nowrap ${
+                      !orderCreatedAt
+                        ? 'bg-emerald-700 text-white shadow-xs'
+                        : 'bg-slate-200/70 text-slate-700 hover:bg-slate-200'
+                    }`}
+                  >
+                    {t('pos.order_time_now')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const d = new Date(Date.now() - 15 * 60 * 1000);
+                      onOrderCreatedAtChange?.(d.toISOString());
+                    }}
+                    className="px-2 py-1 rounded-lg text-[10px] font-semibold bg-slate-200/70 text-slate-700 hover:bg-slate-200 transition active:scale-95 whitespace-nowrap"
+                  >
+                    {t('pos.order_time_minus_15m')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const d = new Date(Date.now() - 60 * 60 * 1000);
+                      onOrderCreatedAtChange?.(d.toISOString());
+                    }}
+                    className="px-2 py-1 rounded-lg text-[10px] font-semibold bg-slate-200/70 text-slate-700 hover:bg-slate-200 transition active:scale-95 whitespace-nowrap"
+                  >
+                    {t('pos.order_time_minus_1h')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const d = new Date(Date.now() - 24 * 60 * 60 * 1000);
+                      onOrderCreatedAtChange?.(d.toISOString());
+                    }}
+                    className="px-2 py-1 rounded-lg text-[10px] font-semibold bg-slate-200/70 text-slate-700 hover:bg-slate-200 transition active:scale-95 whitespace-nowrap"
+                  >
+                    {t('pos.order_time_yesterday')}
+                  </button>
+                </div>
+              </div>
             </div>
 
             {/* Adjustments Collapsible Accordion (Discount, Fees, Surcharges) */}

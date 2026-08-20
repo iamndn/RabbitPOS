@@ -80,6 +80,8 @@ type CreateOrderRequest struct {
 	CreatedBy           string                   `json:"created_by"`
 	// Note is an optional order-level note (e.g. delivery instruction, special request)
 	Note                string                   `json:"note"`
+	// CreatedAt is an optional custom order timestamp (e.g. for backfilling past orders)
+	CreatedAt           *time.Time               `json:"created_at"`
 }
 
 type CancelOrderRequest struct {

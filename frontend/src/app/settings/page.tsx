@@ -327,7 +327,7 @@ export default function SettingsPage() {
 
   return (
     <AppShell>
-      <div className="p-4 sm:p-6 max-w-5xl mx-auto space-y-6">
+      <div className="space-y-4 sm:space-y-6 max-w-5xl mx-auto w-full max-w-full overflow-x-hidden">
         {/* Page Header */}
         <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3.5">

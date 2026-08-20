@@ -90,9 +90,14 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 		return
 	}
 
+	// Determine Order Creation Timestamp (Default: time.Now(), or custom backfilled timestamp)
+	orderTime := time.Now()
+	if req.CreatedAt != nil && !req.CreatedAt.IsZero() {
+		orderTime = *req.CreatedAt
+	}
+
 	// Generate Human-Readable Order Code e.g. ORD-20260811-153045
-	now := time.Now()
-	orderCode := fmt.Sprintf("ORD-%s-%04d", now.Format("20060102-150405"), now.Nanosecond()/100000)
+	orderCode := fmt.Sprintf("ORD-%s-%04d", orderTime.Format("20060102-150405"), orderTime.Nanosecond()/100000)
 
 	// Extract cashier identity from JWT context for attribution
 	cashierName := ""
@@ -137,6 +142,7 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 			SelectedToppings: toppingsJSON,
 			ToppingsPrice:    itemReq.ToppingsPrice,
 			Notes:            itemReq.Notes,
+			CreatedAt:        orderTime,
 		})
 	}
 
@@ -168,6 +174,7 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 		CashierID:           cashierIDPtr,
 		CashierName:         cashierName,
 		Note:                orderNote,
+		CreatedAt:           orderTime,
 	}
 
 	// Database Transaction to save order, insert items, update fund balance, increment promotion usage, AND log inflow transaction
@@ -204,6 +211,7 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 			CreatedBy:        createdBy,
 			CashierID:        cashierIDPtr,
 			CashierName:      cashierName,
+			CreatedAt:        orderTime,
 		}
 		if err := tx.Create(&transaction).Error; err != nil {
 			return err

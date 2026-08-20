@@ -181,7 +181,7 @@ export default function DashboardPage() {
 
   return (
     <AppShell>
-      <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-6">
+      <div className="space-y-4 sm:space-y-6 max-w-7xl mx-auto w-full max-w-full overflow-x-hidden">
         {/* Page Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-sm">
           <div>
@@ -1065,13 +1065,15 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Product Sales & Profit Performance Section — always visible across both tabs */}
-        <ProductSalesPerformanceSection
-          initialPeriod={period}
-          initialFrom={period === 'custom' ? customFrom : undefined}
-          initialTo={period === 'custom' ? customTo : undefined}
-          settings={settings}
-        />
+        {/* Product Sales & Profit Performance Section — visible only in Profit & Loss (P&L) tab */}
+        {activeTab === 'profit' && (
+          <ProductSalesPerformanceSection
+            initialPeriod={period}
+            initialFrom={period === 'custom' ? customFrom : undefined}
+            initialTo={period === 'custom' ? customTo : undefined}
+            settings={settings}
+          />
+        )}
 
         {/* All Products Performance Ranking Modal */}
         <AllProductsRankingModal

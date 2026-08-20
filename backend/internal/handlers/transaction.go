@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/RabbitPOS/backend/internal/models"
 	"github.com/gin-gonic/gin"
@@ -87,6 +88,11 @@ func (h *TransactionHandler) CreateTransaction(c *gin.Context) {
 		createdBy = "manager"
 	}
 
+	txTime := time.Now()
+	if req.CreatedAt != nil && !req.CreatedAt.IsZero() {
+		txTime = *req.CreatedAt
+	}
+
 	transaction := models.Transaction{
 		FundID:          req.FundID,
 		TransactionType: req.TransactionType,
@@ -96,6 +102,7 @@ func (h *TransactionHandler) CreateTransaction(c *gin.Context) {
 		CreatedBy:       createdBy,
 		CashierID:       cashierIDPtr,
 		CashierName:     cashierName,
+		CreatedAt:       txTime,
 	}
 
 	err := h.db.Transaction(func(tx *gorm.DB) error {
@@ -206,6 +213,9 @@ func (h *TransactionHandler) UpdateTransaction(c *gin.Context) {
 		existingTx.Category = req.Category
 		existingTx.Amount = req.Amount
 		existingTx.Description = req.Description
+		if req.CreatedAt != nil && !req.CreatedAt.IsZero() {
+			existingTx.CreatedAt = *req.CreatedAt
+		}
 
 		if err := tx.Save(&existingTx).Error; err != nil {
 			return err

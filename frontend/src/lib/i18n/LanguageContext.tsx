@@ -66,9 +66,15 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       val = typeof fallbackVal === 'string' ? fallbackVal : key;
     }
 
-    if (params) {
+    if (params && typeof val === 'string') {
       Object.entries(params).forEach(([pKey, pVal]) => {
-        val = val.replace(new RegExp(`{${pKey}}`, 'g'), String(pVal));
+        const replacement = pVal !== undefined && pVal !== null ? String(pVal) : '';
+        val = val.replace(new RegExp(`{${pKey}}`, 'g'), replacement);
+        if (pKey === 'error') {
+          val = val.replace(new RegExp(`{message}`, 'g'), replacement);
+        } else if (pKey === 'message') {
+          val = val.replace(new RegExp(`{error}`, 'g'), replacement);
+        }
       });
     }
 
