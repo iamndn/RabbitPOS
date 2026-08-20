@@ -37,12 +37,12 @@ const CategoryTabs = React.memo(function CategoryTabs({
   allLabel,
 }: CategoryTabsProps) {
   return (
-    <div className="flex overflow-x-auto space-x-2 pb-1 w-full sm:w-auto scrollbar-none no-scrollbar">
+    <div className="flex overflow-x-auto space-x-2 pb-1 w-full sm:w-auto scrollbar-none no-scrollbar py-1">
       <button
         onClick={() => onSelectCategory(null)}
-        className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap shadow-sm transition ${
+        className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap shadow-xs transition active:scale-95 hardware-accelerated ${
           activeCategoryId === null
-            ? 'bg-indigo-600 text-white'
+            ? 'bg-emerald-800 text-white shadow-sm font-bold'
             : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
         }`}
       >
@@ -52,9 +52,9 @@ const CategoryTabs = React.memo(function CategoryTabs({
         <button
           key={cat.id}
           onClick={() => onSelectCategory(cat.id)}
-          className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap shadow-sm transition ${
+          className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap shadow-xs transition active:scale-95 hardware-accelerated ${
             activeCategoryId === cat.id
-              ? 'bg-indigo-600 text-white'
+              ? 'bg-emerald-800 text-white shadow-sm font-bold'
               : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
           }`}
         >
@@ -107,12 +107,12 @@ const ProductCard = React.memo(function ProductCard({
   return (
     <div
       onClick={handleClick}
-      className={`bg-white p-3 rounded-2xl border border-slate-200 shadow-xs hover:shadow-md hover:border-indigo-200 transition flex flex-col justify-between cursor-pointer group ${
+      className={`bg-white p-2.5 sm:p-3 rounded-2xl border border-slate-200 shadow-xs hover:shadow-md hover:border-emerald-300 transition-all active:scale-95 flex flex-col justify-between cursor-pointer group hardware-accelerated ${
         isSuspended ? 'opacity-70' : ''
       }`}
     >
       <div>
-        <div className="w-full h-28 bg-slate-100 rounded-xl mb-2 flex items-center justify-center text-slate-400 overflow-hidden relative">
+        <div className="w-full h-24 sm:h-28 bg-slate-100 rounded-xl mb-2 flex items-center justify-center text-slate-400 overflow-hidden relative">
           {imageUrl ? (
             <img
               src={imageUrl}
@@ -122,7 +122,7 @@ const ProductCard = React.memo(function ProductCard({
               className="w-full h-full object-cover group-hover:scale-105 transition duration-200"
             />
           ) : (
-            <Coffee className="w-8 h-8 opacity-40 text-slate-400" />
+            <Coffee className="w-7 h-7 sm:w-8 sm:h-8 opacity-40 text-slate-400" />
           )}
         </div>
         {product.tag && product.tag !== 'none' && (
@@ -138,7 +138,7 @@ const ProductCard = React.memo(function ProductCard({
                 ? 'bg-blue-50 text-blue-700 border-blue-200'
                 : product.tag === 'suspended'
                 ? 'bg-slate-100 text-slate-700 border-slate-300'
-                : 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                : 'bg-emerald-50 text-emerald-700 border-emerald-200'
             }`}
           >
             {product.tag === 'featured'
@@ -154,22 +154,22 @@ const ProductCard = React.memo(function ProductCard({
               : product.tag.replace('_', ' ')}
           </span>
         )}
-        <h3 className="font-semibold text-slate-900 text-xs leading-tight group-hover:text-indigo-600 transition">
+        <h3 className="font-semibold text-slate-900 text-xs leading-snug group-hover:text-emerald-700 transition line-clamp-2">
           {product.name}
         </h3>
       </div>
-      <div className="mt-3 flex items-center justify-between">
-        <span className="font-bold text-indigo-600 text-xs">{formatCurrency(startingPrice, settings)}</span>
+      <div className="mt-2.5 flex items-center justify-between pt-1 border-t border-slate-50">
+        <span className="font-bold text-emerald-800 text-xs">{formatCurrency(startingPrice, settings)}</span>
         {isSuspended ? (
-          <span className="bg-slate-100 text-slate-500 text-[11px] font-bold px-2 py-1 rounded-lg border border-slate-200">
+          <span className="bg-slate-100 text-slate-500 text-[10px] font-bold px-1.5 py-0.5 rounded-lg border border-slate-200">
             ⛔ {t('products.suspended') || 'Tạm ngưng'}
           </span>
         ) : isComingSoon ? (
-          <span className="bg-blue-50 text-blue-600 text-[11px] font-bold px-2 py-1 rounded-lg border border-blue-200">
+          <span className="bg-blue-50 text-blue-600 text-[10px] font-bold px-1.5 py-0.5 rounded-lg border border-blue-200">
             ⏳ {t('products.coming_soon') || 'Sắp có'}
           </span>
         ) : (
-          <span className="bg-indigo-50 group-hover:bg-indigo-600 group-hover:text-white text-indigo-600 text-xs font-bold px-2 py-1 rounded-lg transition flex items-center gap-0.5">
+          <span className="bg-emerald-50 group-hover:bg-emerald-700 group-hover:text-white text-emerald-700 text-[11px] font-bold px-2 py-1 rounded-lg transition flex items-center gap-0.5">
             <Plus className="w-3.5 h-3.5" /> {orderBtnLabel}
           </span>
         )}
@@ -660,10 +660,10 @@ export default function PosPage() {
 
         {/* Product Card Grid */}
         {loading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2.5 sm:gap-3.5">
             {[...Array(10)].map((_, i) => (
               <div key={i} className="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm animate-pulse space-y-2">
-                <div className="w-full h-28 bg-slate-200 rounded-xl" />
+                <div className="w-full h-24 sm:h-28 bg-slate-200 rounded-xl" />
                 <div className="h-3 bg-slate-200 rounded w-3/4" />
                 <div className="h-3 bg-slate-200 rounded w-1/2" />
               </div>
@@ -674,7 +674,7 @@ export default function PosPage() {
             {t('pos.no_drinks')}
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2.5 sm:gap-3.5 pb-24 md:pb-20">
             {filteredProducts.map((product) => (
               <ProductCard
                 key={product.id}
@@ -688,16 +688,16 @@ export default function PosPage() {
           </div>
         )}
 
-        {/* Mobile & Bottom Sticky Cart Bar */}
-        <div className="fixed bottom-14 md:bottom-4 left-4 right-4 max-w-7xl mx-auto z-20 bg-slate-900 text-white p-3 rounded-2xl shadow-xl flex items-center justify-between">
+        {/* Mobile & Bottom Sticky Quick Cart Bar */}
+        <div className="fixed bottom-[68px] md:bottom-4 left-3 right-3 sm:left-4 sm:right-4 max-w-7xl mx-auto z-30 bg-slate-900/95 backdrop-blur-md text-white p-3 rounded-2xl shadow-2xl border border-slate-800 flex items-center justify-between hardware-accelerated">
           <div
             onClick={() => setIsCartDrawerOpen(true)}
-            className="flex items-center space-x-3 cursor-pointer"
+            className="flex items-center space-x-3 cursor-pointer group active:scale-95 transition-transform"
           >
-            <div className="relative bg-indigo-600 p-2.5 rounded-xl text-white">
+            <div className="relative bg-emerald-700 p-2.5 rounded-xl text-white shadow-sm">
               <ShoppingBag className="w-5 h-5" />
               {totalItemCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[10px] font-extrabold w-4 h-4 rounded-full flex items-center justify-center">
+                <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[10px] font-extrabold w-4 h-4 rounded-full flex items-center justify-center animate-pulse">
                   {totalItemCount}
                 </span>
               )}
@@ -721,14 +721,14 @@ export default function PosPage() {
             <button
               onClick={() => setIsCartDrawerOpen(true)}
               disabled={cartItems.length === 0}
-              className="bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-white text-xs font-bold px-3.5 py-2.5 rounded-xl border border-slate-700 transition"
+              className="bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-white text-xs font-bold px-3.5 py-2.5 rounded-xl border border-slate-700 transition active:scale-95"
             >
               {t('pos.view_cart')}
             </button>
             <button
               onClick={() => setIsCheckoutModalOpen(true)}
               disabled={cartItems.length === 0}
-              className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-800 disabled:text-slate-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-lg transition"
+              className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-800 disabled:text-slate-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-lg transition active:scale-95"
             >
               {t('pos.checkout_now')}
             </button>

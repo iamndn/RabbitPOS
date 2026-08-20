@@ -116,20 +116,25 @@ export default function CartDrawer({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex justify-end animate-in fade-in duration-200">
-      <div className="bg-white w-full max-w-md h-full flex flex-col justify-between shadow-2xl animate-in slide-in-from-right duration-300">
+    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-end md:items-stretch md:justify-end animate-in fade-in duration-200">
+      <div className="bg-white w-full md:max-w-md h-[92dvh] md:h-full flex flex-col justify-between shadow-2xl rounded-t-3xl md:rounded-none animate-in slide-in-from-bottom md:slide-in-from-right duration-300 hardware-accelerated overflow-hidden">
+        {/* Mobile Drag Indicator */}
+        <div className="pt-2 pb-1 flex justify-center md:hidden bg-slate-50">
+          <div className="w-12 h-1.5 bg-slate-300 rounded-full" />
+        </div>
+
         {/* Drawer Header */}
-        <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+        <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-between bg-slate-50">
           <div className="flex items-center space-x-2">
-            <ShoppingBag className="w-5 h-5 text-indigo-600" />
+            <ShoppingBag className="w-5 h-5 text-emerald-800" />
             <h2 className="font-bold text-slate-900 text-base">{t('pos.view_cart')}</h2>
-            <span className="bg-indigo-100 text-indigo-700 text-xs font-bold px-2 py-0.5 rounded-full">
+            <span className="bg-emerald-100 text-emerald-800 text-xs font-bold px-2 py-0.5 rounded-full">
               {t('pos.items_count', { count: totalItemCount })}
             </span>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-200 transition"
+            className="p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-200 transition active:scale-95"
           >
             <X className="w-5 h-5" />
           </button>
@@ -159,7 +164,7 @@ export default function CartDrawer({
                           type="number"
                           min="0"
                           step="1000"
-                          value={tempUnitPrice === 0 ? '' : tempUnitPrice}
+                          value={tempUnitPrice}
                           onChange={(e) => {
                             const raw = e.target.value.replace(/\D/g, '');
                             setTempUnitPrice(raw === '' ? 0 : parseInt(raw, 10));
@@ -168,20 +173,20 @@ export default function CartDrawer({
                             if (e.key === 'Enter') handleSaveUnitPrice(item.id);
                           }}
                           autoFocus
-                          className="w-24 p-1 text-xs font-bold border border-indigo-500 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white"
+                          className="w-24 p-1 text-xs font-bold border border-emerald-600 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-600 bg-white"
                         />
                         <button
                           type="button"
                           onClick={() => handleSaveUnitPrice(item.id)}
-                          className="p-1 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+                          className="p-1.5 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 active:scale-95"
                         >
-                          <Check className="w-3 h-3" />
+                          <Check className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     ) : (
                       <div
                         onClick={() => handleStartEditPrice(item)}
-                        className="group cursor-pointer inline-flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-800 bg-indigo-50/60 hover:bg-indigo-100/80 px-1.5 py-0.5 rounded transition"
+                        className="group cursor-pointer inline-flex items-center gap-1 text-xs font-medium text-emerald-800 hover:text-emerald-900 bg-emerald-50 hover:bg-emerald-100 px-1.5 py-0.5 rounded transition active:scale-95"
                         title="Bấm để sửa đơn giá thủ công"
                       >
                         <span>{item.selectedVariant.variant_name}</span>
@@ -200,25 +205,25 @@ export default function CartDrawer({
 
                   {/* Quantity Stepper & Remove */}
                   <div className="mt-2 flex items-center justify-between">
-                    <div className="flex items-center space-x-2 border border-slate-200 rounded-lg p-0.5 bg-slate-50">
+                    <div className="flex items-center space-x-2 border border-slate-200 rounded-xl p-1 bg-slate-50">
                       <button
                         onClick={() => onUpdateQty(item.id, -1)}
-                        className="w-6 h-6 rounded bg-white shadow-sm flex items-center justify-center text-slate-700 hover:bg-slate-100"
+                        className="w-8 h-8 rounded-lg bg-white shadow-xs flex items-center justify-center text-slate-700 hover:bg-slate-100 active:scale-90 transition-transform font-bold"
                       >
-                        <Minus className="w-3.5 h-3.5" />
+                        <Minus className="w-4 h-4" />
                       </button>
-                      <span className="font-bold text-xs text-slate-900 px-1">{item.quantity}</span>
+                      <span className="font-bold text-xs text-slate-900 px-2 min-w-[20px] text-center">{item.quantity}</span>
                       <button
                         onClick={() => onUpdateQty(item.id, 1)}
-                        className="w-6 h-6 rounded bg-white shadow-sm flex items-center justify-center text-slate-700 hover:bg-slate-100"
+                        className="w-8 h-8 rounded-lg bg-white shadow-xs flex items-center justify-center text-slate-700 hover:bg-slate-100 active:scale-90 transition-transform font-bold"
                       >
-                        <Plus className="w-3.5 h-3.5" />
+                        <Plus className="w-4 h-4" />
                       </button>
                     </div>
 
                     <button
                       onClick={() => onRemoveItem(item.id)}
-                      className="text-slate-400 hover:text-rose-500 p-1 transition"
+                      className="text-slate-400 hover:text-rose-500 p-2 transition active:scale-90"
                       title={t('pos.remove_item')}
                     >
                       <Trash2 className="w-4 h-4" />
@@ -232,11 +237,11 @@ export default function CartDrawer({
 
         {/* Footer Summary, Promotions, Adjustments & Checkout */}
         {cartItems.length > 0 && (
-          <div className="p-4 border-t border-slate-200 bg-slate-50 space-y-3">
+          <div className="p-4 border-t border-slate-200 bg-slate-50 space-y-3 pb-safe">
             {/* 1. Active Promotions Selector Dropdown */}
             <div className="space-y-1">
               <label className="text-xs font-bold text-slate-700 flex items-center gap-1">
-                <Tag className="w-3.5 h-3.5 text-indigo-600" />
+                <Tag className="w-3.5 h-3.5 text-emerald-700" />
                 {t('pos.apply_promotion')}
               </label>
               <ModernSelect
@@ -248,82 +253,65 @@ export default function CartDrawer({
                 onChange={(val) => {
                   if (!val) {
                     onSelectPromotion(null);
-                  } else {
-                    const promo = activePromotions.find((p) => p.id === Number(val));
-                    onSelectPromotion(promo || null);
+                    return;
                   }
+                  const promo = activePromotions.find((p) => p.id === Number(val));
+                  if (promo) onSelectPromotion(promo);
                 }}
                 options={[
-                  ...activePromotions.map((p) => {
-                    const discountLabel =
-                      p.promo_type === 'discount_amount'
-                        ? `-${formatCurrency(p.discount_value, settings)}`
-                        : p.promo_type === 'discount_percent'
+                  { value: '', label: `-- ${t('pos.no_promotion')} --` },
+                  ...activePromotions.map((p) => ({
+                    value: p.id,
+                    label: `${p.name} (${
+                      p.promo_type === 'discount_percent'
                         ? `-${p.discount_value}%`
-                        : `🎁 Tặng kèm`;
-
-                    return {
-                      value: p.id,
-                      label: p.name,
-                      badge: discountLabel,
-                      badgeColor: (p.promo_type === 'discount_percent' ? 'emerald' : 'indigo') as any,
-                      subLabel: p.min_order_amount > 0 ? `Đơn tối thiểu ${formatCurrency(p.min_order_amount, settings)}` : undefined,
-                      icon: <Sparkles className="w-3.5 h-3.5 text-amber-500" />,
-                    };
-                  }),
+                        : p.promo_type === 'discount_amount'
+                        ? `-${formatCurrency(p.discount_value, settings)}`
+                        : 'Quà tặng'
+                    })`,
+                  })),
                 ]}
               />
             </div>
 
-            {/* 2. Order Note Field */}
+            {/* 2. Order Notes (Text area) */}
             <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
-                <span className="flex items-center gap-1">
-                  <FileText className="w-3.5 h-3.5 text-indigo-600" />
-                  {t('pos.order_note')}
-                </span>
-                {orderNote && (
-                  <button
-                    type="button"
-                    onClick={() => onOrderNoteChange('')}
-                    className="text-[10px] text-slate-400 hover:text-rose-500 font-semibold"
-                  >
-                    {t('common.cancel')}
-                  </button>
-                )}
+              <label className="text-xs font-bold text-slate-700 flex items-center gap-1">
+                <FileText className="w-3.5 h-3.5 text-slate-500" />
+                {t('pos.order_note')}
               </label>
-              <textarea
-                rows={2}
+              <input
+                type="text"
+                placeholder={t('pos.order_note_placeholder')}
                 value={orderNote}
                 onChange={(e) => onOrderNoteChange(e.target.value)}
-                placeholder={t('pos.order_note_placeholder')}
-                className="w-full p-2 border border-slate-200 rounded-xl text-xs bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none placeholder:text-slate-400"
+                className="w-full p-2 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-600 bg-white"
               />
             </div>
 
-            {/* 3. Collapsible Dynamic Adjustments (Shipping, Partner Platform, Surcharge, Manual Discount) */}
-            <div className="border border-slate-200 rounded-xl bg-white overflow-hidden shadow-sm">
+            {/* Adjustments Collapsible Accordion (Discount, Fees, Surcharges) */}
+            <div className="border border-slate-200/80 rounded-xl bg-white overflow-hidden shadow-xs">
               <button
                 type="button"
                 onClick={() => setIsAdjustmentsOpen(!isAdjustmentsOpen)}
-                className="w-full px-3 py-2 text-xs font-bold text-slate-700 flex items-center justify-between hover:bg-slate-50 transition"
+                className="w-full p-2.5 flex items-center justify-between text-xs font-bold text-slate-700 hover:bg-slate-50 transition active:scale-98"
               >
-                <span className="flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-violet-600" />
-                  {t('pos.extra_adjustments')}
-                  {(shippingFee > 0 || platformFeeDiscount > 0 || surcharge > 0 || discountAmount > 0) && (
-                    <span className="w-2 h-2 rounded-full bg-violet-600" />
+                <div className="flex items-center gap-1.5">
+                  <Percent className="w-3.5 h-3.5 text-emerald-700" />
+                  <span>{t('pos.order_adjustments')}</span>
+                  {(discountAmount > 0 || shippingFee > 0 || surcharge > 0 || platformFeeDiscount > 0) && (
+                    <span className="w-2 h-2 rounded-full bg-emerald-600 inline-block animate-pulse" />
                   )}
-                </span>
+                </div>
                 {isAdjustmentsOpen ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
               </button>
 
               {isAdjustmentsOpen && (
-                <div className="p-3 border-t border-slate-100 space-y-2.5 text-xs bg-slate-50/50">
-                  {/* Manual Direct Discount */}
+                <div className="p-3 border-t border-slate-100 space-y-2.5 bg-slate-50/50 text-xs">
+                  {/* Manual Discount Amount */}
                   <div className="flex items-center justify-between">
                     <span className="text-slate-600 font-medium flex items-center gap-1">
-                      <Percent className="w-3.5 h-3.5 text-rose-500" /> {t('pos.direct_discount')}
+                      <Tag className="w-3.5 h-3.5 text-rose-500" /> {t('pos.manual_discount')}
                     </span>
                     <input
                       type="number"
@@ -335,11 +323,11 @@ export default function CartDrawer({
                         const raw = e.target.value.replace(/\D/g, '');
                         onDiscountChange(raw === '' ? 0 : parseInt(raw, 10));
                       }}
-                      className="w-28 p-1.5 text-right font-bold text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                      className="w-28 p-1.5 text-right font-bold text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-600 bg-white"
                     />
                   </div>
 
-                  {/* Partner Platform Discount (ShopeeFood/GrabFood commission/discount) */}
+                  {/* Platform Fee Discount (Grab/Shopee/Be discount) */}
                   <div className="flex items-center justify-between">
                     <span className="text-slate-600 font-medium flex items-center gap-1">
                       <Building className="w-3.5 h-3.5 text-amber-500" /> {t('pos.platform_discount')}
@@ -354,7 +342,7 @@ export default function CartDrawer({
                         const raw = e.target.value.replace(/\D/g, '');
                         onPlatformFeeDiscountChange(raw === '' ? 0 : parseInt(raw, 10));
                       }}
-                      className="w-28 p-1.5 text-right font-bold text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                      className="w-28 p-1.5 text-right font-bold text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-600 bg-white"
                     />
                   </div>
 
@@ -373,14 +361,14 @@ export default function CartDrawer({
                         const raw = e.target.value.replace(/\D/g, '');
                         onShippingFeeChange(raw === '' ? 0 : parseInt(raw, 10));
                       }}
-                      className="w-28 p-1.5 text-right font-bold text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                      className="w-28 p-1.5 text-right font-bold text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-600 bg-white"
                     />
                   </div>
 
                   {/* Surcharge (Holiday/Late Night) */}
                   <div className="flex items-center justify-between">
                     <span className="text-slate-600 font-medium flex items-center gap-1">
-                      <Plus className="w-3.5 h-3.5 text-indigo-500" /> {t('pos.surcharge')}
+                      <Plus className="w-3.5 h-3.5 text-emerald-700" /> {t('pos.surcharge')}
                     </span>
                     <input
                       type="number"
@@ -392,7 +380,7 @@ export default function CartDrawer({
                         const raw = e.target.value.replace(/\D/g, '');
                         onSurchargeChange(raw === '' ? 0 : parseInt(raw, 10));
                       }}
-                      className="w-28 p-1.5 text-right font-bold text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                      className="w-28 p-1.5 text-right font-bold text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-600 bg-white"
                     />
                   </div>
                 </div>
@@ -437,7 +425,7 @@ export default function CartDrawer({
               )}
 
               {surcharge > 0 && (
-                <div className="flex justify-between text-indigo-600 font-medium">
+                <div className="flex justify-between text-emerald-700 font-medium">
                   <span>{t('pos.surcharge')}</span>
                   <span>+{formatCurrency(surcharge, settings)}</span>
                 </div>
@@ -445,14 +433,14 @@ export default function CartDrawer({
 
               <div className="flex justify-between text-slate-900 font-bold text-base pt-1 border-t border-slate-200">
                 <span>{t('common.total_amount')}</span>
-                <span className="text-indigo-600">{formatCurrency(finalTotal, settings)}</span>
+                <span className="text-emerald-800">{formatCurrency(finalTotal, settings)}</span>
               </div>
             </div>
 
             {/* 4. Checkout Button */}
             <button
               onClick={onProceedCheckout}
-              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 px-4 rounded-xl shadow-lg transition flex items-center justify-center space-x-2 text-sm"
+              className="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-3.5 px-4 rounded-2xl shadow-lg transition flex items-center justify-center space-x-2 text-sm active:scale-95"
             >
               <span>{t('pos.checkout')}</span>
               <ArrowRight className="w-4 h-4" />

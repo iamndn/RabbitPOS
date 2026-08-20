@@ -305,6 +305,30 @@ export default function ProductsPage() {
         }),
       });
       if (res.status === 'success') {
+        // Also update/create variants
+        for (const v of formVariants) {
+          if (v.id) {
+            await fetchApi(`/variants/${v.id}`, {
+              method: 'PUT',
+              body: JSON.stringify({
+                variant_name: v.variant_name,
+                cogs_price: Number(v.cogs_price || 0),
+                retail_price: Number(v.retail_price || 0),
+                sku: v.sku,
+              }),
+            });
+          } else {
+            await fetchApi(`/products/${editingProduct.id}/variants`, {
+              method: 'POST',
+              body: JSON.stringify({
+                variant_name: v.variant_name,
+                cogs_price: Number(v.cogs_price || 0),
+                retail_price: Number(v.retail_price || 0),
+                sku: v.sku,
+              }),
+            });
+          }
+        }
         loadCatalog();
         setIsProductModalOpen(false);
       } else {
@@ -1257,81 +1281,77 @@ export default function ProductsPage() {
                 </label>
               </div>
 
-              {/* Variants Section (Create only) */}
-              {!editingProduct && (
-                <div className="space-y-2 border-t border-slate-100 pt-3">
-                  <div className="flex items-center justify-between">
-                    <label className="font-bold text-slate-800">{t('products.variants_pricing_label')}</label>
-                    <button
-                      type="button"
-                      onClick={handleAddVariantRow}
-                      className="text-indigo-600 font-semibold text-xs hover:underline flex items-center gap-1"
-                    >
-                      <Plus className="w-3.5 h-3.5" /> {t('products.add_variant')}
-                    </button>
-                  </div>
-
-                  <div className="space-y-2">
-                    {formVariants.map((v, idx) => {
-                      const vMargin =
-                        v.retail_price > 0
-                          ? ((v.retail_price - v.cogs_price) / v.retail_price) * 100
-                          : 0;
-
-                      return (
-                        <div key={idx} className="flex flex-col sm:flex-row items-center gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
-                          <input
-                            type="text"
-                            placeholder={t('products.variant_name_label')}
-                            value={v.variant_name}
-                            onChange={(e) => handleVariantChange(idx, 'variant_name', e.target.value)}
-                            className="flex-1 p-2 border border-slate-200 rounded-lg text-xs"
-                            required
-                          />
-                          <div className="flex items-center gap-2 w-full sm:w-auto">
-                            <input
-                              type="number"
-                              step="1000"
-                              min="0"
-                              placeholder={t('products.retail_price_label')}
-                              value={v.retail_price === 0 ? '' : v.retail_price}
-                              onChange={(e) => {
-                                const raw = e.target.value.replace(/\D/g, '');
-                                handleVariantChange(idx, 'retail_price', raw === '' ? 0 : parseInt(raw, 10));
-                              }}
-                              className="w-28 p-2 border border-slate-200 rounded-lg text-xs font-semibold"
-                              required
-                            />
-                            <input
-                              type="number"
-                              step="1000"
-                              min="0"
-                              placeholder={t('products.cogs_price_label')}
-                              value={v.cogs_price === 0 ? '' : v.cogs_price}
-                              onChange={(e) => {
-                                const raw = e.target.value.replace(/\D/g, '');
-                                handleVariantChange(idx, 'cogs_price', raw === '' ? 0 : parseInt(raw, 10));
-                              }}
-                              className="w-28 p-2 border border-slate-200 rounded-lg text-xs font-semibold"
-                              required
-                            />
-                            <span className="text-[10px] font-bold text-emerald-600 w-12 text-right">
-                              {vMargin.toFixed(0)}%
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveVariantRow(idx)}
-                              className="p-1 text-slate-400 hover:text-rose-500"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+              {/* Variants Section */}
+              <div className="space-y-2 border-t border-slate-100 pt-3">
+                <div className="flex items-center justify-between">
+                  <label className="font-bold text-slate-800">{t('products.variants_pricing_label')}</label>
+                  <button
+                    type="button"
+                    onClick={handleAddVariantRow}
+                    className="text-indigo-600 font-semibold text-xs hover:underline flex items-center gap-1"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> {t('products.add_variant')}
+                  </button>
                 </div>
-              )}
+
+                <div className="space-y-2">
+                  {formVariants.map((v, idx) => {
+                    const vMargin =
+                      v.retail_price > 0
+                        ? ((v.retail_price - v.cogs_price) / v.retail_price) * 100
+                        : 0;
+
+                    return (
+                      <div key={idx} className="flex flex-col sm:flex-row items-center gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                        <input
+                          type="text"
+                          placeholder={t('products.variant_name_label')}
+                          value={v.variant_name}
+                          onChange={(e) => handleVariantChange(idx, 'variant_name', e.target.value)}
+                          className="flex-1 p-2 border border-slate-200 rounded-lg text-xs"
+                          required
+                        />
+                        <div className="flex items-center gap-2 w-full sm:w-auto">
+                          <input
+                            type="number"
+                            step="1000"
+                            min="0"
+                            placeholder={t('products.retail_price_label')}
+                            value={v.retail_price}
+                            onChange={(e) => {
+                              const raw = e.target.value.replace(/\D/g, '');
+                              handleVariantChange(idx, 'retail_price', raw === '' ? 0 : parseInt(raw, 10));
+                            }}
+                            className="w-28 p-2 border border-slate-200 rounded-lg text-xs font-semibold"
+                          />
+                          <input
+                            type="number"
+                            step="1000"
+                            min="0"
+                            placeholder={t('products.cogs_price_label')}
+                            value={v.cogs_price}
+                            onChange={(e) => {
+                              const raw = e.target.value.replace(/\D/g, '');
+                              handleVariantChange(idx, 'cogs_price', raw === '' ? 0 : parseInt(raw, 10));
+                            }}
+                            className="w-28 p-2 border border-slate-200 rounded-lg text-xs font-semibold"
+                          />
+                          <span className="text-[10px] font-bold text-emerald-600 w-12 text-right">
+                            {vMargin.toFixed(0)}%
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveVariantRow(idx)}
+                            className="p-1 text-slate-400 hover:text-rose-500"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
 
               <div className="flex justify-end space-x-2 pt-4 border-t border-slate-100">
                 <button
@@ -1477,13 +1497,12 @@ export default function ProductsPage() {
               <div className="grid grid-cols-2 gap-3">
                 {/* Retail Price */}
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">{t('products.topping_price')} *</label>
+                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">{t('products.topping_price')}</label>
                   <input
                     type="number"
-                    required
                     min="0"
                     step="500"
-                    value={toppingForm.price === 0 ? '' : toppingForm.price}
+                    value={toppingForm.price}
                     onChange={(e) => setToppingForm({ ...toppingForm, price: e.target.value === '' ? 0 : Number(e.target.value) })}
                     className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500 text-sm"
                   />
@@ -1495,7 +1514,7 @@ export default function ProductsPage() {
                     type="number"
                     min="0"
                     step="500"
-                    value={toppingForm.cogs === 0 ? '' : toppingForm.cogs}
+                    value={toppingForm.cogs}
                     onChange={(e) => setToppingForm({ ...toppingForm, cogs: e.target.value === '' ? 0 : Number(e.target.value) })}
                     className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500 text-sm"
                   />

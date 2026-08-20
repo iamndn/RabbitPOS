@@ -70,23 +70,28 @@ export default function CheckoutModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-5 animate-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
+      <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl space-y-4 max-h-[92dvh] sm:max-h-none overflow-y-auto pb-safe animate-in slide-in-from-bottom sm:zoom-in-95 duration-200 hardware-accelerated">
+        {/* Mobile Drag Indicator */}
+        <div className="flex justify-center sm:hidden pt-0.5 pb-1">
+          <div className="w-12 h-1.5 bg-slate-300 rounded-full" />
+        </div>
+
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
           <div>
             <h2 className="font-bold text-lg text-slate-900">{t('pos.select_payment_method')}</h2>
             <p className="text-xs text-slate-500">{t('pos.choose_target_fund')}</p>
           </div>
-          <button onClick={onClose} disabled={isSubmitting} className="p-1.5 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 disabled:opacity-50">
+          <button onClick={onClose} disabled={isSubmitting} className="p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 disabled:opacity-50 active:scale-95 transition-transform">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Total Amount Display */}
-        <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-4 text-center">
-          <span className="text-xs font-semibold uppercase text-indigo-600 tracking-wider">{t('pos.total_payable')}</span>
-          <div className="text-3xl font-extrabold text-indigo-900 mt-1">{formatCurrency(totalAmount, settings)}</div>
+        <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-4 text-center">
+          <span className="text-xs font-bold uppercase text-emerald-800 tracking-wider">{t('pos.total_payable')}</span>
+          <div className="text-3xl font-black text-emerald-950 mt-1">{formatCurrency(totalAmount, settings)}</div>
         </div>
 
         {/* Fund Selection */}
@@ -94,7 +99,7 @@ export default function CheckoutModal({
           <label className="text-xs font-bold text-slate-800 uppercase tracking-wider block">{t('pos.target_fund_method')}</label>
           {loading ? (
             <div className="flex justify-center py-6">
-              <RefreshCw className="w-6 h-6 text-indigo-600 animate-spin" />
+              <RefreshCw className="w-6 h-6 text-emerald-700 animate-spin" />
             </div>
           ) : (
             <div className="space-y-2">
@@ -108,14 +113,14 @@ export default function CheckoutModal({
                     type="button"
                     disabled={isSubmitting}
                     onClick={() => setSelectedFundId(fund.id)}
-                    className={`w-full p-3.5 rounded-2xl border text-left flex items-center justify-between transition ${
+                    className={`w-full p-3.5 rounded-2xl border text-left flex items-center justify-between transition active:scale-98 ${
                       isSelected
-                        ? 'border-indigo-600 bg-indigo-50/50 ring-2 ring-indigo-500/20'
+                        ? 'border-emerald-700 bg-emerald-50/70 ring-2 ring-emerald-600/30'
                         : 'border-slate-200 hover:bg-slate-50'
                     }`}
                   >
                     <div className="flex items-center space-x-3">
-                      <div className={`p-2.5 rounded-xl ${isBank ? 'bg-blue-100 text-blue-600' : 'bg-emerald-100 text-emerald-600'}`}>
+                      <div className={`p-2.5 rounded-xl ${isBank ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700'}`}>
                         {isBank ? <Building2 className="w-5 h-5" /> : <Wallet className="w-5 h-5" />}
                       </div>
                       <div>
@@ -125,7 +130,7 @@ export default function CheckoutModal({
                         <span className="text-xs text-slate-500 capitalize">{fund.fund_type}</span>
                       </div>
                     </div>
-                    {isSelected && <Check className="w-5 h-5 text-indigo-600" />}
+                    {isSelected && <Check className="w-5 h-5 text-emerald-700" />}
                   </button>
                 );
               })}
@@ -138,7 +143,7 @@ export default function CheckoutModal({
           <button
             onClick={handleProceed}
             disabled={!selectedFundId || isSubmitting}
-            className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 text-white font-bold py-3.5 px-4 rounded-xl shadow-lg transition flex items-center justify-center space-x-2 text-sm"
+            className="w-full bg-emerald-700 hover:bg-emerald-800 disabled:bg-slate-300 text-white font-bold py-3.5 px-4 rounded-2xl shadow-lg transition flex items-center justify-center space-x-2 text-sm active:scale-95"
           >
             {isSubmitting ? (
               <>

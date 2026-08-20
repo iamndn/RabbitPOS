@@ -8,7 +8,7 @@
     --foreground: 224 71.4% 4.1%;
     --card: 0 0% 100%;
     --card-foreground: 224 71.4% 4.1%;
-    --primary: 221.2 83.2% 53.3%;
+    --primary: 158 64% 20%;
     --primary-foreground: 210 40% 98%;
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 222.2 47.4% 11.2%;
@@ -20,6 +20,12 @@
     --destructive-foreground: 210 40% 98%;
     --border: 214.3 31.8% 91.4%;
     --radius: 0.75rem;
+
+    /* iOS Safe Area insets */
+    --sat: env(safe-area-inset-top, 0px);
+    --sab: env(safe-area-inset-bottom, 0px);
+    --sal: env(safe-area-inset-left, 0px);
+    --sar: env(safe-area-inset-right, 0px);
   }
 
   .dark {
@@ -27,7 +33,7 @@
     --foreground: 210 40% 98%;
     --card: 224 71.4% 4.1%;
     --card-foreground: 210 40% 98%;
-    --primary: 217.2 91.2% 59.8%;
+    --primary: 158 64% 35%;
     --primary-foreground: 222.2 47.4% 11.2%;
     --secondary: 217.2 32.6% 17.5%;
     --secondary-foreground: 210 40% 98%;
@@ -39,6 +45,17 @@
     --destructive-foreground: 210 40% 98%;
     --border: 217.2 32.6% 17.5%;
   }
+
+  /* Lock full-screen height and kill elastic rubber-band scroll on main container */
+  html, body {
+    height: 100%;
+    height: 100dvh;
+    overflow: hidden;
+    overscroll-behavior: none;
+    -webkit-font-smoothing: antialiased;
+    -webkit-touch-callout: none;
+    user-select: none;
+  }
 }
 
 /* ─── iOS PWA Safe Area & Touch Optimization ─── */
@@ -46,37 +63,48 @@ body {
   background-color: hsl(var(--background));
   color: hsl(var(--foreground));
   font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-  min-height: 100vh;
-  /* Use dvh (dynamic viewport height) to account for iOS Safari URL bar */
-  min-height: 100dvh;
   margin: 0;
   padding: 0;
-  /* Remove tap highlight on all iOS touch events */
   -webkit-tap-highlight-color: transparent;
-  /* Prevent iOS rubber-band overscroll on body */
-  overscroll-behavior: none;
-  /* Enable momentum scrolling for scrollable children */
   -webkit-overflow-scrolling: touch;
 }
 
-/* PWA body: applies when running as installed standalone app on iOS */
-.pwa-body {
-  /* Pad content away from Notch / Dynamic Island (top) and Home Indicator (bottom) */
-  padding-top: env(safe-area-inset-top, 0px);
-  padding-bottom: env(safe-area-inset-bottom, 0px);
-  padding-left: env(safe-area-inset-left, 0px);
-  padding-right: env(safe-area-inset-right, 0px);
+/* Safe Area Utility Classes */
+.pt-safe { padding-top: var(--sat); }
+.pb-safe { padding-bottom: var(--sab); }
+.pl-safe { padding-left: var(--sal); }
+.pr-safe { padding-right: var(--sar); }
+.h-dvh-safe { height: calc(100dvh - var(--sat) - var(--sab)); }
+.min-h-safe { min-height: calc(100dvh - var(--sat) - var(--sab)); }
+
+/* Full-bleed element that respects safe area insets */
+.safe-top    { padding-top:    var(--sat); }
+.safe-bottom { padding-bottom: var(--sab); }
+.safe-left   { padding-left:   var(--sal); }
+.safe-right  { padding-right:  var(--sar); }
+.margin-safe-top    { margin-top:    var(--sat); }
+.margin-safe-bottom { margin-bottom: var(--sab); }
+
+/* GPU Hardware Acceleration for Smooth 60fps Animations */
+.hardware-accelerated {
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+  will-change: transform, opacity;
 }
 
-/* Utility: Full-bleed element that respects safe area insets */
-.safe-top    { padding-top:    env(safe-area-inset-top,    0px); }
-.safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
-.safe-left   { padding-left:   env(safe-area-inset-left,   0px); }
-.safe-right  { padding-right:  env(safe-area-inset-right,  0px); }
+/* Zero Touch Latency on Interactive Elements */
+button, a, input, select, textarea, label, [role="button"] {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
 
-/* Utility: Margin-based safe area variants (for fixed/sticky elements) */
-.margin-safe-top    { margin-top:    env(safe-area-inset-top,    0px); }
-.margin-safe-bottom { margin-bottom: env(safe-area-inset-bottom, 0px); }
+/* Enforce min 16px font size on inputs to completely prevent iOS Safari auto-zooming */
+@media screen and (max-width: 768px) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+}
 
 /* Prevent text size adjustment on orientation change (iOS Safari quirk) */
 html {
@@ -116,43 +144,5 @@ html {
   }
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: #94a3b8;
-  }
-}
-
-/* ─── iOS Safe Area Inset Utilities (@supports guard) ─── */
-/* Used by AppShell header (pt-safe) and bottom nav (pb-safe) */
-@supports (padding: env(safe-area-inset-top)) {
-  .pt-safe {
-    padding-top: env(safe-area-inset-top);
-  }
-  .pb-safe {
-    padding-bottom: env(safe-area-inset-bottom);
-  }
-  .pl-safe {
-    padding-left: env(safe-area-inset-left);
-  }
-  .pr-safe {
-    padding-right: env(safe-area-inset-right);
-  }
-  /* Useful for full-height containers that must avoid both cutouts */
-  .min-h-safe {
-    min-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
-  }
-}
-
-/* ─── Touch Optimization ─── */
-/* Eliminate 300ms tap delay on interactive elements (iOS legacy behaviour) */
-button, a, input, select, textarea, label, [role="button"] {
-  touch-action: manipulation;
-}
-
-/* ─── Anti-Zoom Guard (iOS Safari) ─── */
-/* iOS Safari auto-zooms into any input with font-size < 16px.
-   Force minimum 16px on all form controls on narrow screens. */
-@media screen and (max-width: 768px) {
-  input,
-  select,
-  textarea {
-    font-size: 16px !important;
   }
 }

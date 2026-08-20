@@ -60,15 +60,20 @@ export default function VietQRModal({ totalAmount, onClose, onConfirmOrder, sett
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl space-y-4 text-center animate-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
+      <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-sm w-full p-5 sm:p-6 shadow-2xl space-y-4 text-center animate-in slide-in-from-bottom sm:zoom-in-95 duration-200 hardware-accelerated pb-safe max-h-[92dvh] overflow-y-auto">
+        {/* Mobile Drag Indicator */}
+        <div className="flex justify-center sm:hidden pt-0.5 pb-1">
+          <div className="w-12 h-1.5 bg-slate-300 rounded-full" />
+        </div>
+
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-          <div className="flex items-center space-x-1.5 text-indigo-600 font-bold text-sm">
+          <div className="flex items-center space-x-1.5 text-emerald-800 font-bold text-sm">
             <QrCode className="w-5 h-5" />
             <span>{t('pos.scan_vietqr_to_pay')}</span>
           </div>
-          <button onClick={onClose} disabled={isSubmitting} className="p-1 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 disabled:opacity-50">
+          <button onClick={onClose} disabled={isSubmitting} className="p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 disabled:opacity-50 active:scale-95 transition-transform">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -77,7 +82,7 @@ export default function VietQRModal({ totalAmount, onClose, onConfirmOrder, sett
         <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 flex flex-col items-center justify-center min-h-[240px]">
           {loading ? (
             <div className="flex flex-col items-center space-y-2 text-slate-400 text-xs">
-              <RefreshCw className="w-8 h-8 animate-spin text-indigo-600" />
+              <RefreshCw className="w-8 h-8 animate-spin text-emerald-700" />
               <span>{t('pos.generating_qr')}</span>
             </div>
           ) : qrData?.qr_url ? (
@@ -98,18 +103,18 @@ export default function VietQRModal({ totalAmount, onClose, onConfirmOrder, sett
 
         {/* Account Details Card */}
         {qrData && (
-          <div className="bg-indigo-50/70 border border-indigo-100 rounded-2xl p-3 text-left text-xs space-y-1.5">
+          <div className="bg-emerald-50/70 border border-emerald-100 rounded-2xl p-3 text-left text-xs space-y-1.5">
             <div className="flex items-center justify-between">
               <span className="text-slate-500 font-medium">{t('pos.bank_name')}:</span>
-              <span className="font-bold text-indigo-900 flex items-center gap-1">
-                <Building2 className="w-3.5 h-3.5 text-indigo-600" /> MBBank (Napas 247)
+              <span className="font-bold text-emerald-950 flex items-center gap-1">
+                <Building2 className="w-3.5 h-3.5 text-emerald-700" /> MBBank (Napas 247)
               </span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-slate-500 font-medium">{t('pos.account_no')}:</span>
               <button
                 onClick={copyAccount}
-                className="font-mono font-bold text-indigo-600 flex items-center gap-1 hover:underline"
+                className="font-mono font-bold text-emerald-700 flex items-center gap-1 hover:underline active:scale-95 transition-transform"
               >
                 {qrData.account_no} {copied ? <span className="text-[10px] text-emerald-600 font-bold">{t('pos.copied')}</span> : <Copy className="w-3 h-3" />}
               </button>
@@ -118,9 +123,9 @@ export default function VietQRModal({ totalAmount, onClose, onConfirmOrder, sett
               <span className="text-slate-500 font-medium">{t('pos.account_name')}:</span>
               <span className="font-semibold text-slate-900 uppercase">{qrData.account_name}</span>
             </div>
-            <div className="flex items-center justify-between border-t border-indigo-100 pt-1.5 font-bold">
+            <div className="flex items-center justify-between border-t border-emerald-100 pt-1.5 font-bold">
               <span className="text-slate-700">{t('pos.amount')}:</span>
-              <span className="text-indigo-600 text-sm">{formatCurrency(qrData.amount, settings)}</span>
+              <span className="text-emerald-800 text-sm">{formatCurrency(qrData.amount, settings)}</span>
             </div>
           </div>
         )}
@@ -129,7 +134,7 @@ export default function VietQRModal({ totalAmount, onClose, onConfirmOrder, sett
         <button
           onClick={handleConfirm}
           disabled={isSubmitting}
-          className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition flex items-center justify-center space-x-2 text-sm"
+          className="w-full bg-emerald-700 hover:bg-emerald-800 disabled:bg-slate-300 text-white font-bold py-3.5 px-4 rounded-2xl shadow-lg transition flex items-center justify-center space-x-2 text-sm active:scale-95"
         >
           {isSubmitting ? (
             <>

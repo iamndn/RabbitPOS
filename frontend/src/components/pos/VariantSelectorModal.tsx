@@ -162,8 +162,13 @@ export default function VariantSelectorModal({ product, onClose, onAddToCart, se
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
-      <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-lg w-full p-5 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto animate-in slide-in-from-bottom duration-200">
+    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-4 animate-in fade-in duration-200">
+      <div className="bg-white rounded-t-3xl md:rounded-3xl max-w-lg w-full p-4 sm:p-5 shadow-2xl space-y-4 max-h-[92dvh] md:max-h-[85vh] overflow-y-auto animate-in slide-in-from-bottom duration-300 hardware-accelerated pb-safe">
+        {/* Mobile Drag Indicator */}
+        <div className="flex justify-center md:hidden pt-0.5 pb-1">
+          <div className="w-12 h-1.5 bg-slate-300 rounded-full" />
+        </div>
+
         {/* Modal Header */}
         <div className="flex items-start justify-between border-b border-slate-100 pb-3">
           <div className="flex items-center space-x-3">
@@ -181,7 +186,7 @@ export default function VariantSelectorModal({ product, onClose, onAddToCart, se
               <p className="text-xs text-slate-500 line-clamp-1">{product.description || t('pos.select_variant')}</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-1.5 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100">
+          <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 active:scale-95 transition-transform">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -195,17 +200,17 @@ export default function VariantSelectorModal({ product, onClose, onAddToCart, se
                 key={v.id}
                 type="button"
                 onClick={() => setSelectedVariant(v)}
-                className={`p-3 rounded-xl border text-left transition flex items-center justify-between ${
+                className={`p-3 rounded-xl border text-left transition flex items-center justify-between active:scale-95 ${
                   selectedVariant.id === v.id
-                    ? 'border-indigo-600 bg-indigo-50/60 ring-2 ring-indigo-500/20'
+                    ? 'border-emerald-700 bg-emerald-50/70 ring-2 ring-emerald-600/30'
                     : 'border-slate-200 hover:bg-slate-50'
                 }`}
               >
                 <div>
                   <span className="block text-xs font-bold text-slate-900">{v.variant_name}</span>
-                  <span className="text-xs text-indigo-600 font-semibold">{formatCurrency(v.retail_price, settings)}</span>
+                  <span className="text-xs text-emerald-700 font-semibold">{formatCurrency(v.retail_price, settings)}</span>
                 </div>
-                {selectedVariant.id === v.id && <Check className="w-4 h-4 text-indigo-600" />}
+                {selectedVariant.id === v.id && <Check className="w-4 h-4 text-emerald-700" />}
               </button>
             ))}
           </div>
@@ -214,15 +219,15 @@ export default function VariantSelectorModal({ product, onClose, onAddToCart, se
         {/* 2. Sugar Level — 5 standardized presets */}
         <div className="space-y-1.5">
           <label className="text-xs font-bold text-slate-800 uppercase tracking-wider block">{t('pos.sugar_level')}</label>
-          <div className="grid grid-cols-5 gap-1">
+          <div className="grid grid-cols-5 gap-1.5">
             {SUGAR_LEVELS.map((lvl) => (
               <button
                 key={lvl.value}
                 type="button"
                 onClick={() => setSugarLevel(lvl.value)}
-                className={`py-2 px-1 rounded-xl text-[10px] font-semibold border transition text-center leading-tight ${
+                className={`py-2 px-1 rounded-xl text-[11px] font-semibold border transition text-center leading-tight active:scale-95 ${
                   sugarLevel === lvl.value
-                    ? 'border-indigo-600 bg-indigo-600 text-white shadow-sm'
+                    ? 'border-emerald-700 bg-emerald-700 text-white shadow-xs font-bold'
                     : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
                 }`}
               >
@@ -235,15 +240,15 @@ export default function VariantSelectorModal({ product, onClose, onAddToCart, se
         {/* 3. Ice Level — 5 standardized presets */}
         <div className="space-y-1.5">
           <label className="text-xs font-bold text-slate-800 uppercase tracking-wider block">{t('pos.ice_level')}</label>
-          <div className="grid grid-cols-5 gap-1">
+          <div className="grid grid-cols-5 gap-1.5">
             {ICE_LEVELS.map((lvl) => (
               <button
                 key={lvl.value}
                 type="button"
                 onClick={() => setIceLevel(lvl.value)}
-                className={`py-2 px-1 rounded-xl text-[10px] font-semibold border transition text-center leading-tight ${
+                className={`py-2 px-1 rounded-xl text-[11px] font-semibold border transition text-center leading-tight active:scale-95 ${
                   iceLevel === lvl.value
-                    ? 'border-cyan-600 bg-cyan-600 text-white shadow-sm'
+                    ? 'border-cyan-700 bg-cyan-700 text-white shadow-xs font-bold'
                     : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
                 }`}
               >
@@ -269,15 +274,15 @@ export default function VariantSelectorModal({ product, onClose, onAddToCart, se
                     key={topping.id}
                     type="button"
                     onClick={() => toggleTopping(topping)}
-                    className={`w-full p-2.5 rounded-xl border flex items-center justify-between transition text-xs ${
+                    className={`w-full p-2.5 rounded-xl border flex items-center justify-between transition text-xs active:scale-98 ${
                       isSelected
-                        ? 'border-indigo-600 bg-indigo-50/50 text-indigo-950 font-semibold'
+                        ? 'border-emerald-700 bg-emerald-50/70 text-emerald-950 font-semibold'
                         : 'border-slate-200 text-slate-700 hover:bg-slate-50'
                     }`}
                   >
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center space-x-2.5">
                       <div className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${
-                        isSelected ? 'bg-indigo-600 border-indigo-600' : 'border-slate-300'
+                        isSelected ? 'bg-emerald-700 border-emerald-700' : 'border-slate-300 bg-white'
                       }`}>
                         {isSelected && <Check className="w-2.5 h-2.5 text-white" />}
                       </div>
@@ -286,7 +291,7 @@ export default function VariantSelectorModal({ product, onClose, onAddToCart, se
                         <span className="text-[9px] bg-slate-100 text-slate-500 px-1 rounded">toàn cầu</span>
                       )}
                     </div>
-                    <span className="text-indigo-600 font-bold">+{formatCurrency(topping.price, settings)}</span>
+                    <span className="text-emerald-700 font-bold">+{formatCurrency(topping.price, settings)}</span>
                   </button>
                 );
               })}
@@ -296,17 +301,17 @@ export default function VariantSelectorModal({ product, onClose, onAddToCart, se
 
         {/* Quantity Stepper & Submit Button */}
         <div className="pt-3 border-t border-slate-100 flex items-center space-x-3">
-          <div className="flex items-center space-x-3 border border-slate-200 rounded-xl p-1 bg-slate-50">
+          <div className="flex items-center space-x-2 border border-slate-200 rounded-xl p-1 bg-slate-50">
             <button
               onClick={() => setQuantity(Math.max(1, quantity - 1))}
-              className="w-8 h-8 rounded-lg bg-white shadow-sm flex items-center justify-center text-slate-700 hover:bg-slate-100 font-bold"
+              className="w-9 h-9 rounded-lg bg-white shadow-xs flex items-center justify-center text-slate-700 hover:bg-slate-100 font-bold active:scale-90 transition-transform"
             >
               <Minus className="w-4 h-4" />
             </button>
-            <span className="font-bold text-slate-900 text-sm px-1">{quantity}</span>
+            <span className="font-bold text-slate-900 text-sm px-2 min-w-[20px] text-center">{quantity}</span>
             <button
               onClick={() => setQuantity(quantity + 1)}
-              className="w-8 h-8 rounded-lg bg-white shadow-sm flex items-center justify-center text-slate-700 hover:bg-slate-100 font-bold"
+              className="w-9 h-9 rounded-lg bg-white shadow-xs flex items-center justify-center text-slate-700 hover:bg-slate-100 font-bold active:scale-90 transition-transform"
             >
               <Plus className="w-4 h-4" />
             </button>
@@ -314,7 +319,7 @@ export default function VariantSelectorModal({ product, onClose, onAddToCart, se
 
           <button
             onClick={handleAdd}
-            className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-xl shadow-md transition flex items-center justify-between text-sm"
+            className="flex-1 bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-3.5 px-4 rounded-xl shadow-md transition flex items-center justify-between text-sm active:scale-95"
           >
             <span>{t('pos.add_to_order')}</span>
             <span>{formatCurrency(lineTotal, settings)}</span>

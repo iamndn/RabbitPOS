@@ -13,14 +13,18 @@ export interface CompletedOrderData {
   created_by?: string;
   cashier_name?: string;
   payment_method?: string;
+  fund_name?: string;
   items: CartItem[];
   subtotal: number;
   discount: number;
+  discount_amount?: number;
   promotion_discount?: number;
+  promotion_name?: string;
   shipping_fee?: number;
   platform_fee_discount?: number;
   surcharge?: number;
   total: number;
+  final_total?: number;
   note?: string;
 }
 
@@ -70,18 +74,23 @@ export default function ReceiptModal({ isOpen, onClose, order, settings: initial
   const storePhone = settings?.store_phone || '0901234567';
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
       {/* Container */}
-      <div className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl space-y-4 animate-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-sm w-full p-4 sm:p-6 shadow-2xl space-y-4 animate-in slide-in-from-bottom sm:zoom-in-95 duration-150 max-h-[92dvh] sm:max-h-[90vh] overflow-y-auto pb-safe hardware-accelerated">
+        {/* Mobile Drag Indicator */}
+        <div className="flex justify-center sm:hidden pt-0.5 pb-1 print:hidden">
+          <div className="w-12 h-1.5 bg-slate-300 rounded-full" />
+        </div>
+
         {/* Top Actions (Hidden during print) */}
         <div className="flex items-center justify-between border-b border-slate-100 pb-3 print:hidden">
-          <div className="flex items-center space-x-2 text-emerald-600 font-bold text-sm">
+          <div className="flex items-center space-x-2 text-emerald-700 font-bold text-sm">
             <CheckCircle2 className="w-5 h-5" />
             <span>{t('pos.order_completed')}</span>
           </div>
           <button
             onClick={onClose}
-            className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition"
+            className="p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition active:scale-95"
           >
             <X className="w-5 h-5" />
           </button>
@@ -174,59 +183,59 @@ export default function ReceiptModal({ isOpen, onClose, order, settings: initial
             </div>
           )}
 
-          {/* Totals Summary */}
-          <div className="py-3 border-b border-dashed border-slate-300 space-y-1 text-right">
+          {/* Totals & Discounts Breakdown */}
+          <div className="py-2 border-b border-dashed border-slate-300 space-y-1 text-right">
             <div className="flex justify-between">
-              <span>{t('pos.subtotal')}:</span>
+              <span className="text-slate-600">{t('pos.cart_total')}:</span>
               <span>{formatCurrency(order.subtotal, settings)}</span>
             </div>
 
-            {order.discount > 0 && (
-              <div className="flex justify-between text-rose-600">
+            {order.discount_amount && order.discount_amount > 0 && (
+              <div className="flex justify-between text-slate-600">
                 <span>{t('common.discount')}:</span>
-                <span>-{formatCurrency(order.discount, settings)}</span>
+                <span>-{formatCurrency(order.discount_amount, settings)}</span>
               </div>
             )}
 
-            {order.promotion_discount && order.promotion_discount > 0 ? (
-              <div className="flex justify-between text-emerald-600">
-                <span>{t('pos.promotion_discount')}:</span>
+            {order.promotion_discount && order.promotion_discount > 0 && (
+              <div className="flex justify-between text-slate-600">
+                <span>{order.promotion_name || t('pos.promotion_discount')}:</span>
                 <span>-{formatCurrency(order.promotion_discount, settings)}</span>
               </div>
-            ) : null}
+            )}
 
-            {order.platform_fee_discount && order.platform_fee_discount > 0 ? (
-              <div className="flex justify-between text-amber-600">
+            {order.platform_fee_discount && order.platform_fee_discount > 0 && (
+              <div className="flex justify-between text-slate-600">
                 <span>{t('pos.platform_discount')}:</span>
                 <span>-{formatCurrency(order.platform_fee_discount, settings)}</span>
               </div>
-            ) : null}
+            )}
 
-            {order.shipping_fee && order.shipping_fee > 0 ? (
-              <div className="flex justify-between text-cyan-600">
+            {order.shipping_fee && order.shipping_fee > 0 && (
+              <div className="flex justify-between text-slate-600">
                 <span>{t('pos.shipping_fee')}:</span>
                 <span>+{formatCurrency(order.shipping_fee, settings)}</span>
               </div>
-            ) : null}
+            )}
 
-            {order.surcharge && order.surcharge > 0 ? (
-              <div className="flex justify-between text-indigo-600">
+            {order.surcharge && order.surcharge > 0 && (
+              <div className="flex justify-between text-slate-600">
                 <span>{t('pos.surcharge')}:</span>
                 <span>+{formatCurrency(order.surcharge, settings)}</span>
               </div>
-            ) : null}
+            )}
 
-            <div className="flex justify-between font-black text-sm pt-1 border-t border-slate-300 text-slate-900">
-              <span className="uppercase">Tổng cộng:</span>
-              <span className="text-base font-extrabold">{formatCurrency(order.total, settings)}</span>
+            <div className="flex justify-between font-black text-sm pt-1 border-t border-slate-800 text-slate-900">
+              <span className="uppercase">{t('common.total_amount')}:</span>
+              <span>{formatCurrency(order.final_total || order.total, settings)}</span>
             </div>
 
-            <div className="flex justify-between text-[10px] text-slate-600 pt-1">
-              <span>{t('pos.payment')}:</span>
-              <span className="font-bold">
-                {order.payment_method === 'bank' || order.payment_method === 'vietqr'
-                  ? 'Chuyển khoản VietQR'
-                  : 'Tiền mặt tại quầy'}
+            {/* Payment Method Badge */}
+            <div className="flex justify-between text-[10px] text-slate-500 pt-1">
+              <span>{t('pos.payment_method_label')}:</span>
+              <span className="font-semibold uppercase">
+                {order.payment_method === 'bank' ? t('pos.bank_transfer') : t('pos.cash_drawer')}
+                {order.fund_name ? ` (${order.fund_name})` : ''}
               </span>
             </div>
           </div>
@@ -242,14 +251,14 @@ export default function ReceiptModal({ isOpen, onClose, order, settings: initial
         <div className="flex space-x-2 pt-2 print:hidden">
           <button
             onClick={handlePrint}
-            className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-xl shadow-md transition flex items-center justify-center space-x-2 text-xs"
+            className="flex-1 bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-3 px-4 rounded-xl shadow-md transition flex items-center justify-center space-x-2 text-xs active:scale-95"
           >
             <Printer className="w-4 h-4" />
             <span>{t('pos.print_receipt')}</span>
           </button>
           <button
             onClick={onClose}
-            className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-3 px-4 rounded-xl text-xs transition"
+            className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-3 px-4 rounded-xl text-xs transition active:scale-95"
           >
             {t('common.close')}
           </button>
