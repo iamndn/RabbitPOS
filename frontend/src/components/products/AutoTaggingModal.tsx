@@ -19,6 +19,7 @@ import {
   Check,
   ChevronDown,
   ChevronUp,
+  Search,
 } from 'lucide-react';
 import { fetchApi } from '@/lib/api';
 import { useConfirm } from '@/context/ConfirmContext';
@@ -102,8 +103,28 @@ export default function AutoTaggingModal({
     prioritize_best_seller_over_new: true,
   });
 
+  // String buffers for inputs to allow smooth editing and typing without jumping
+  const [inputBuffers, setInputBuffers] = useState({
+    best_seller_top_n: '5',
+    best_seller_min_qty: '10',
+    new_product_days: '14',
+    high_profit_margin_min: '60',
+    high_profit_min_qty: '5',
+  });
+
   // Preview Result
   const [previewResult, setPreviewResult] = useState<AutoTaggingResult | null>(null);
+
+  // Sync buffers whenever config loads
+  const syncBuffersFromConfig = (cfg: AutoTaggingConfig) => {
+    setInputBuffers({
+      best_seller_top_n: String(cfg.best_seller_top_n ?? 5),
+      best_seller_min_qty: String(cfg.best_seller_min_qty ?? 10),
+      new_product_days: String(cfg.new_product_days ?? 14),
+      high_profit_margin_min: String(cfg.high_profit_margin_min ?? 60),
+      high_profit_min_qty: String(cfg.high_profit_min_qty ?? 5),
+    });
+  };
 
   // Load config and initial preview on open
   useEffect(() => {
@@ -119,6 +140,7 @@ export default function AutoTaggingModal({
       const configRes = await fetchApi<AutoTaggingConfig>('/products/auto-tag/config');
       if (configRes.status === 'success' && configRes.data) {
         setConfig(configRes.data);
+        syncBuffersFromConfig(configRes.data);
       }
 
       // 2. Fetch Preview
@@ -134,6 +156,14 @@ export default function AutoTaggingModal({
       showAlert('Lỗi', 'Không thể tải cấu hình tự động gán nhãn', 'danger');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleBufferChange = (field: keyof typeof inputBuffers, rawVal: string) => {
+    setInputBuffers((prev) => ({ ...prev, [field]: rawVal }));
+    const num = Number(rawVal);
+    if (!isNaN(num) && rawVal.trim() !== '') {
+      setConfig((prev) => ({ ...prev, [field]: num }));
     }
   };
 
@@ -278,44 +308,46 @@ export default function AutoTaggingModal({
   });
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm animate-fade-in overflow-y-auto">
-      <div className="bg-white dark:bg-slate-900 w-full max-w-5xl rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col max-h-[92vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs animate-fade-in overflow-y-auto">
+      <div className="bg-white w-full max-w-5xl rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92vh]">
         {/* Header */}
-        <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-gradient-to-r from-amber-500/10 via-indigo-500/10 to-transparent">
+        <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between bg-gradient-to-r from-amber-500/10 via-indigo-500/10 to-transparent shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-amber-500/20">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-amber-500/20 shrink-0">
               <Sparkles className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
                 Tự Động Gán Nhãn Sản Phẩm
-                <span className="text-xs px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 font-semibold border border-indigo-200 dark:border-indigo-800">
+                <span className="text-xs px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 font-bold border border-indigo-200">
                   Auto-Tagging Engine
                 </span>
               </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
+              <p className="text-xs text-slate-500 mt-0.5">
                 Tự động phân hạng &amp; gắn nhãn Best Seller, Món mới, Lợi nhuận cao dựa trên dữ liệu kinh doanh thực tế
               </p>
             </div>
           </div>
           <button
+            type="button"
             onClick={onClose}
-            className="p-2 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+            className="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Scrollable Content Body */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5">
           {/* Config Panel Accordion */}
-          <div className="bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700/80 p-4 transition-all">
-            <div className="flex items-center justify-between mb-2">
+          <div className="bg-slate-50 rounded-2xl border border-slate-200 p-4 transition-all">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-2">
               <button
+                type="button"
                 onClick={() => setShowConfigPanel(!showConfigPanel)}
-                className="flex items-center gap-2 text-sm font-bold text-slate-800 dark:text-slate-200 hover:text-indigo-600 transition"
+                className="flex items-center gap-2 text-sm font-bold text-slate-800 hover:text-indigo-600 transition cursor-pointer"
               >
-                <Sliders className="w-4 h-4 text-indigo-500" />
+                <Sliders className="w-4 h-4 text-indigo-600" />
                 <span>Quy Tắc &amp; Ngưỡng Đánh Giá Tự Động</span>
                 {showConfigPanel ? (
                   <ChevronUp className="w-4 h-4 text-slate-400" />
@@ -324,41 +356,49 @@ export default function AutoTaggingModal({
                 )}
               </button>
 
-              <div className="flex items-center gap-2">
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={config.enabled}
-                    onChange={(e) => setConfig({ ...config, enabled: e.target.checked })}
-                    className="sr-only peer"
+              {/* Perfectly Aligned Modern Toggle Switch */}
+              <div className="flex items-center gap-2.5 bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-2xs self-start sm:self-auto">
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={config.enabled}
+                  onClick={() => setConfig({ ...config, enabled: !config.enabled })}
+                  className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                    config.enabled ? 'bg-emerald-500' : 'bg-slate-300'
+                  }`}
+                >
+                  <span
+                    aria-hidden="true"
+                    className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                      config.enabled ? 'translate-x-4' : 'translate-x-0'
+                    }`}
                   />
-                  <div className="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
-                  <span className="ml-2 text-xs font-semibold text-slate-700 dark:text-slate-300">
-                    {config.enabled ? '🟢 Tự động chạy 22:30' : '⚪ Tắt chạy tự động'}
-                  </span>
-                </label>
+                </button>
+                <span className="text-xs font-bold text-slate-700 select-none">
+                  {config.enabled ? '🟢 Tự động chạy 22:30' : '⚪ Tắt chạy tự động'}
+                </span>
               </div>
             </div>
 
             {showConfigPanel && (
-              <div className="pt-4 border-t border-slate-200 dark:border-slate-700/60 space-y-4 animate-fade-in">
+              <div className="pt-4 border-t border-slate-200 space-y-4 animate-fade-in">
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3.5">
                   {/* Time Window */}
-                  <div className="space-y-1.5 bg-white dark:bg-slate-900 p-3 rounded-lg border border-slate-200 dark:border-slate-700">
-                    <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                  <div className="space-y-1.5 bg-white p-3 rounded-xl border border-slate-200 shadow-2xs">
+                    <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
                       <Clock className="w-3.5 h-3.5 text-indigo-500" />
                       Cửa sổ phân tích
                     </label>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1 pt-1">
                       {[7, 14, 30].map((days) => (
                         <button
                           key={days}
                           type="button"
                           onClick={() => setConfig({ ...config, time_window_days: days })}
-                          className={`flex-1 py-1 text-xs font-bold rounded ${
+                          className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition cursor-pointer ${
                             config.time_window_days === days
-                              ? 'bg-indigo-600 text-white shadow-sm'
-                              : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
+                              ? 'bg-indigo-600 text-white shadow-xs'
+                              : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200'
                           }`}
                         >
                           {days} ngày
@@ -368,105 +408,89 @@ export default function AutoTaggingModal({
                   </div>
 
                   {/* Best Seller Rule */}
-                  <div className="space-y-1.5 bg-white dark:bg-slate-900 p-3 rounded-lg border border-slate-200 dark:border-slate-700">
-                    <label className="text-xs font-semibold text-rose-600 dark:text-rose-400 flex items-center gap-1.5">
+                  <div className="space-y-1.5 bg-white p-3 rounded-xl border border-slate-200 shadow-2xs">
+                    <label className="text-xs font-bold text-rose-600 flex items-center gap-1.5">
                       <Flame className="w-3.5 h-3.5" />
                       Top Bán Chạy (Best Seller)
                     </label>
-                    <div className="grid grid-cols-2 gap-1.5">
+                    <div className="grid grid-cols-2 gap-2 pt-0.5">
                       <div>
-                        <span className="text-[10px] text-slate-400">Top số lượng:</span>
+                        <span className="text-[11px] font-medium text-slate-500 block mb-1">Top số lượng:</span>
                         <input
                           type="number"
                           min="1"
-                          max="20"
-                          value={config.best_seller_top_n}
-                          onChange={(e) =>
-                            setConfig({ ...config, best_seller_top_n: Number(e.target.value) || 5 })
-                          }
-                          className="w-full text-xs font-bold px-2 py-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded"
+                          max="50"
+                          value={inputBuffers.best_seller_top_n}
+                          onChange={(e) => handleBufferChange('best_seller_top_n', e.target.value)}
+                          className="w-full text-xs font-bold px-2.5 py-1.5 bg-white text-slate-900 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-2xs"
                         />
                       </div>
                       <div>
-                        <span className="text-[10px] text-slate-400">Tối thiểu (ly):</span>
+                        <span className="text-[11px] font-medium text-slate-500 block mb-1">Tối thiểu (ly):</span>
                         <input
                           type="number"
                           min="1"
-                          max="200"
-                          value={config.best_seller_min_qty}
-                          onChange={(e) =>
-                            setConfig({ ...config, best_seller_min_qty: Number(e.target.value) || 10 })
-                          }
-                          className="w-full text-xs font-bold px-2 py-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded"
+                          max="500"
+                          value={inputBuffers.best_seller_min_qty}
+                          onChange={(e) => handleBufferChange('best_seller_min_qty', e.target.value)}
+                          className="w-full text-xs font-bold px-2.5 py-1.5 bg-white text-slate-900 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-2xs"
                         />
                       </div>
                     </div>
                   </div>
 
                   {/* New Product Rule */}
-                  <div className="space-y-1.5 bg-white dark:bg-slate-900 p-3 rounded-lg border border-slate-200 dark:border-slate-700">
-                    <label className="text-xs font-semibold text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                  <div className="space-y-1.5 bg-white p-3 rounded-xl border border-slate-200 shadow-2xs">
+                    <label className="text-xs font-bold text-amber-600 flex items-center gap-1.5">
                       <Sparkles className="w-3.5 h-3.5" />
                       Món Mới Ra Mắt (New)
                     </label>
-                    <div>
-                      <span className="text-[10px] text-slate-400">Tạo trong vòng:</span>
+                    <div className="pt-0.5">
+                      <span className="text-[11px] font-medium text-slate-500 block mb-1">Tạo trong vòng:</span>
                       <div className="flex items-center gap-1.5">
                         <input
                           type="number"
                           min="1"
-                          max="60"
-                          value={config.new_product_days}
-                          onChange={(e) =>
-                            setConfig({ ...config, new_product_days: Number(e.target.value) || 14 })
-                          }
-                          className="w-full text-xs font-bold px-2 py-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded"
+                          max="90"
+                          value={inputBuffers.new_product_days}
+                          onChange={(e) => handleBufferChange('new_product_days', e.target.value)}
+                          className="w-full text-xs font-bold px-2.5 py-1.5 bg-white text-slate-900 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-2xs"
                         />
-                        <span className="text-xs text-slate-500">ngày</span>
+                        <span className="text-xs font-semibold text-slate-600 shrink-0">ngày</span>
                       </div>
                     </div>
                   </div>
 
                   {/* High Profit Rule */}
-                  <div className="space-y-1.5 bg-white dark:bg-slate-900 p-3 rounded-lg border border-slate-200 dark:border-slate-700">
-                    <label className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                  <div className="space-y-1.5 bg-white p-3 rounded-xl border border-slate-200 shadow-2xs">
+                    <label className="text-xs font-bold text-emerald-600 flex items-center gap-1.5">
                       <Star className="w-3.5 h-3.5" />
                       Lợi Nhuận Cao (Featured)
                     </label>
-                    <div className="grid grid-cols-2 gap-1.5">
+                    <div className="grid grid-cols-2 gap-2 pt-0.5">
                       <div>
-                        <span className="text-[10px] text-slate-400">Biên LN tối thiểu:</span>
+                        <span className="text-[11px] font-medium text-slate-500 block mb-1">Biên LN tối thiểu:</span>
                         <div className="flex items-center gap-1">
                           <input
                             type="number"
                             min="10"
-                            max="90"
-                            value={config.high_profit_margin_min}
-                            onChange={(e) =>
-                              setConfig({
-                                ...config,
-                                high_profit_margin_min: Number(e.target.value) || 60,
-                              })
-                            }
-                            className="w-full text-xs font-bold px-2 py-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded"
+                            max="95"
+                            value={inputBuffers.high_profit_margin_min}
+                            onChange={(e) => handleBufferChange('high_profit_margin_min', e.target.value)}
+                            className="w-full text-xs font-bold px-2.5 py-1.5 bg-white text-slate-900 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-2xs"
                           />
-                          <span className="text-xs text-slate-400">%</span>
+                          <span className="text-xs font-bold text-slate-500">%</span>
                         </div>
                       </div>
                       <div>
-                        <span className="text-[10px] text-slate-400">Tối thiểu (ly):</span>
+                        <span className="text-[11px] font-medium text-slate-500 block mb-1">Tối thiểu (ly):</span>
                         <input
                           type="number"
                           min="1"
-                          max="50"
-                          value={config.high_profit_min_qty}
-                          onChange={(e) =>
-                            setConfig({
-                              ...config,
-                              high_profit_min_qty: Number(e.target.value) || 5,
-                            })
-                          }
-                          className="w-full text-xs font-bold px-2 py-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded"
+                          max="100"
+                          value={inputBuffers.high_profit_min_qty}
+                          onChange={(e) => handleBufferChange('high_profit_min_qty', e.target.value)}
+                          className="w-full text-xs font-bold px-2.5 py-1.5 bg-white text-slate-900 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-2xs"
                         />
                       </div>
                     </div>
@@ -475,7 +499,7 @@ export default function AutoTaggingModal({
 
                 {/* Priority & Action Row */}
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
-                  <label className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300 cursor-pointer">
+                  <label className="flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer select-none">
                     <input
                       type="checkbox"
                       checked={config.prioritize_best_seller_over_new}
@@ -485,7 +509,7 @@ export default function AutoTaggingModal({
                           prioritize_best_seller_over_new: e.target.checked,
                         })
                       }
-                      className="rounded text-indigo-600 focus:ring-indigo-500"
+                      className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
                     />
                     <span>
                       Ưu tiên nhãn <strong>🔥 Bán chạy</strong> hơn <strong>✨ Món mới</strong> khi thỏa mãn cả 2 tiêu chí
@@ -497,9 +521,9 @@ export default function AutoTaggingModal({
                       type="button"
                       onClick={handleRunEvaluation}
                       disabled={evaluating}
-                      className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-100 transition shadow-sm"
+                      className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 transition shadow-2xs cursor-pointer"
                     >
-                      <RefreshCw className={`w-3.5 h-3.5 ${evaluating ? 'animate-spin' : ''}`} />
+                      <RefreshCw className={`w-3.5 h-3.5 text-indigo-600 ${evaluating ? 'animate-spin' : ''}`} />
                       <span>{evaluating ? 'Đang tính...' : 'Tính thử lại'}</span>
                     </button>
 
@@ -507,7 +531,7 @@ export default function AutoTaggingModal({
                       type="button"
                       onClick={handleSaveConfig}
                       disabled={savingConfig}
-                      className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold bg-indigo-600 text-white hover:bg-indigo-700 transition shadow-sm"
+                      className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 text-white hover:bg-indigo-700 transition shadow-sm cursor-pointer"
                     >
                       <Save className="w-3.5 h-3.5" />
                       <span>{savingConfig ? 'Đang lưu...' : 'Lưu quy tắc'}</span>
@@ -520,27 +544,27 @@ export default function AutoTaggingModal({
 
           {/* Quick Metrics Bar */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="bg-slate-50 dark:bg-slate-800/40 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
-              <span className="text-[11px] text-slate-500 font-medium">Tổng số món</span>
-              <p className="text-xl font-black text-slate-900 dark:text-white mt-0.5">
+            <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 shadow-2xs">
+              <span className="text-[11px] text-slate-500 font-semibold block">Tổng số món</span>
+              <p className="text-xl font-black text-slate-900 mt-0.5">
                 {previewResult?.total_products || 0} món
               </p>
             </div>
-            <div className="bg-amber-500/10 p-3 rounded-xl border border-amber-500/20">
-              <span className="text-[11px] text-amber-700 dark:text-amber-300 font-medium">Sẽ đổi nhãn</span>
-              <p className="text-xl font-black text-amber-600 dark:text-amber-400 mt-0.5">
+            <div className="bg-amber-50 p-3.5 rounded-2xl border border-amber-200/80 shadow-2xs">
+              <span className="text-[11px] text-amber-800 font-semibold block">Sẽ đổi nhãn</span>
+              <p className="text-xl font-black text-amber-600 mt-0.5">
                 {previewResult?.changed_products_count || 0} món
               </p>
             </div>
-            <div className="bg-indigo-500/10 p-3 rounded-xl border border-indigo-500/20">
-              <span className="text-[11px] text-indigo-700 dark:text-indigo-300 font-medium">Đã khóa thủ công</span>
-              <p className="text-xl font-black text-indigo-600 dark:text-indigo-400 mt-0.5">
+            <div className="bg-indigo-50 p-3.5 rounded-2xl border border-indigo-200/80 shadow-2xs">
+              <span className="text-[11px] text-indigo-800 font-semibold block">Đã khóa thủ công</span>
+              <p className="text-xl font-black text-indigo-600 mt-0.5">
                 {evaluations.filter((e) => e.tag_locked).length} món
               </p>
             </div>
-            <div className="bg-emerald-500/10 p-3 rounded-xl border border-emerald-500/20">
-              <span className="text-[11px] text-emerald-700 dark:text-emerald-300 font-medium">Khung thời gian</span>
-              <p className="text-base font-bold text-emerald-600 dark:text-emerald-400 mt-1 truncate">
+            <div className="bg-emerald-50 p-3.5 rounded-2xl border border-emerald-200/80 shadow-2xs">
+              <span className="text-[11px] text-emerald-800 font-semibold block">Khung thời gian</span>
+              <p className="text-base font-black text-emerald-700 mt-1 truncate">
                 {config.time_window_days} ngày qua
               </p>
             </div>
@@ -548,18 +572,20 @@ export default function AutoTaggingModal({
 
           {/* Search & Filter Toolbar */}
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-            <div className="relative w-full sm:w-72">
+            <div className="relative w-full sm:w-80">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
               <input
                 type="text"
-                placeholder="Tìm món, danh mục, lý do..."
+                placeholder="Tìm tên món, danh mục, lý do..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white"
+                className="w-full pl-9 pr-8 py-2 text-xs bg-white text-slate-900 placeholder:text-slate-400 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-2xs"
               />
               {searchQuery && (
                 <button
+                  type="button"
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -570,36 +596,36 @@ export default function AutoTaggingModal({
               <button
                 type="button"
                 onClick={() => setFilterChangedOnly(!filterChangedOnly)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition border ${
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition border cursor-pointer ${
                   filterChangedOnly
-                    ? 'bg-amber-500 text-white border-amber-600 shadow-sm'
-                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700'
+                    ? 'bg-amber-500 text-white border-amber-600 shadow-xs'
+                    : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200'
                 }`}
               >
                 {filterChangedOnly ? '⚡ Chỉ hiện món sẽ đổi nhãn' : 'Tất cả món'}
               </button>
-              <span className="text-xs text-slate-400 font-medium">
+              <span className="text-xs text-slate-500 font-bold">
                 {filteredEvaluations.length} kết quả
               </span>
             </div>
           </div>
 
           {/* Preview Table */}
-          <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm">
+          <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-sm bg-white">
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs text-slate-600 dark:text-slate-300">
-                <thead className="bg-slate-100/80 dark:bg-slate-800/80 text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider border-b border-slate-200 dark:border-slate-700">
+              <table className="w-full text-left text-xs text-slate-700">
+                <thead className="bg-slate-100 text-[11px] font-black text-slate-700 uppercase tracking-wider border-b border-slate-200">
                   <tr>
-                    <th className="px-3.5 py-2.5">Sản Phẩm</th>
-                    <th className="px-3 py-2.5 text-center">Doanh Số ({config.time_window_days}N)</th>
-                    <th className="px-3 py-2.5 text-right">Lợi Nhuận &amp; % Biên</th>
-                    <th className="px-3 py-2.5 text-center">Nhãn Hiện Tại</th>
-                    <th className="px-3 py-2.5 text-center">Nhãn Đề Xuất</th>
-                    <th className="px-3.5 py-2.5">Lý Do Đánh Giá</th>
-                    <th className="px-3 py-2.5 text-center">Khóa Nhãn</th>
+                    <th className="px-3.5 py-3">Sản Phẩm</th>
+                    <th className="px-3 py-3 text-center">Doanh Số ({config.time_window_days}N)</th>
+                    <th className="px-3 py-3 text-right">Lợi Nhuận &amp; % Biên</th>
+                    <th className="px-3 py-3 text-center">Nhãn Hiện Tại</th>
+                    <th className="px-3 py-3 text-center">Nhãn Đề Xuất</th>
+                    <th className="px-3.5 py-3">Lý Do Đánh Giá</th>
+                    <th className="px-3 py-3 text-center">Khóa Nhãn</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800 bg-white dark:bg-slate-900">
+                <tbody className="divide-y divide-slate-100 bg-white">
                   {loading ? (
                     <tr>
                       <td colSpan={7} className="text-center py-10 text-slate-400">
@@ -621,61 +647,64 @@ export default function AutoTaggingModal({
                       return (
                         <tr
                           key={ev.product_id}
-                          className={`hover:bg-slate-50 dark:hover:bg-slate-800/50 transition ${
-                            ev.will_change
-                              ? 'bg-amber-500/5 dark:bg-amber-500/10'
-                              : ''
+                          className={`hover:bg-slate-50 transition ${
+                            ev.will_change ? 'bg-amber-50/60' : ''
                           }`}
                         >
                           {/* Product Info */}
-                          <td className="px-3.5 py-2.5">
+                          <td className="px-3.5 py-3">
                             <div className="flex items-center gap-2.5">
                               {ev.image_url ? (
                                 <img
                                   src={ev.image_url}
                                   alt={ev.product_name}
-                                  className="w-8 h-8 rounded-lg object-cover border border-slate-200 dark:border-slate-700 shrink-0"
+                                  className="w-9 h-9 rounded-xl object-cover border border-slate-200 shrink-0"
                                 />
                               ) : (
-                                <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 text-xs font-bold shrink-0">
+                                <div className="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 text-xs font-black shrink-0 border border-slate-200">
                                   {ev.product_name.charAt(0)}
                                 </div>
                               )}
                               <div className="min-w-0">
-                                <div className="font-bold text-slate-900 dark:text-white truncate">
+                                <div className="font-bold text-slate-900 truncate">
                                   {ev.product_name}
                                 </div>
-                                <div className="text-[10px] text-slate-400 truncate">
+                                <div className="text-[11px] text-slate-500 truncate">
                                   {ev.category_name} • Mới {ev.days_since_created} ngày
                                 </div>
                               </div>
                             </div>
                           </td>
 
-                          {/* Sales Volume */}
-                          <td className="px-3 py-2.5 text-center font-bold">
-                            <div className="text-slate-900 dark:text-white">
+                          {/* Sales Volume & Rank */}
+                          <td className="px-3 py-3 text-center">
+                            <div className="font-black text-slate-900 text-xs">
                               {ev.total_qty} ly
                             </div>
-                            {ev.total_qty > 0 && (
-                              <span className="inline-block text-[10px] px-1.5 py-0.2 rounded bg-slate-100 dark:bg-slate-800 text-slate-500">
+                            {ev.total_qty > 0 ? (
+                              <div className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.2 rounded-full inline-block mt-0.5 border border-indigo-200/60">
                                 Hạng #{ev.sales_rank}
-                              </span>
+                              </div>
+                            ) : (
+                              <div className="text-[10px] text-slate-400">Chưa bán</div>
                             )}
                           </td>
 
                           {/* Profit & Margin */}
-                          <td className="px-3 py-2.5 text-right font-medium">
-                            <div className="text-slate-900 dark:text-white font-bold">
-                              {ev.total_profit.toLocaleString()}đ
+                          <td className="px-3 py-3 text-right">
+                            <div className="font-black text-slate-900 text-xs">
+                              {new Intl.NumberFormat('vi-VN', {
+                                style: 'currency',
+                                currency: 'VND',
+                              }).format(ev.total_profit)}
                             </div>
                             <div
-                              className={`text-[10px] font-bold ${
+                              className={`text-[10px] font-bold mt-0.5 ${
                                 ev.margin_percent >= 60
-                                  ? 'text-emerald-500'
+                                  ? 'text-emerald-600'
                                   : ev.margin_percent >= 40
-                                  ? 'text-amber-500'
-                                  : 'text-slate-400'
+                                  ? 'text-amber-600'
+                                  : 'text-slate-500'
                               }`}
                             >
                               Biên LN: {ev.margin_percent}%
@@ -683,10 +712,10 @@ export default function AutoTaggingModal({
                           </td>
 
                           {/* Current Tag */}
-                          <td className="px-3 py-2.5 text-center">
+                          <td className="px-3 py-3 text-center">
                             {ev.current_tag !== 'none' ? (
                               <span
-                                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${currentBadge.badgeClasses}`}
+                                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-extrabold border ${currentBadge.badgeClasses}`}
                               >
                                 <span>{currentBadge.icon}</span>
                                 <span>{currentBadge.name}</span>
@@ -697,10 +726,10 @@ export default function AutoTaggingModal({
                           </td>
 
                           {/* Suggested Tag */}
-                          <td className="px-3 py-2.5 text-center">
+                          <td className="px-3 py-3 text-center">
                             {ev.suggested_tag !== 'none' ? (
                               <span
-                                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border shadow-xs ${suggestedBadge.badgeClasses}`}
+                                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-extrabold border shadow-2xs ${suggestedBadge.badgeClasses}`}
                               >
                                 <span>{suggestedBadge.icon}</span>
                                 <span>{suggestedBadge.name}</span>
@@ -711,12 +740,14 @@ export default function AutoTaggingModal({
                           </td>
 
                           {/* Reason */}
-                          <td className="px-3.5 py-2.5">
+                          <td className="px-3.5 py-3">
                             <div
                               className={`text-[11px] font-medium leading-snug ${
                                 ev.will_change
-                                  ? 'text-amber-600 dark:text-amber-400 font-bold'
-                                  : 'text-slate-500 dark:text-slate-400'
+                                  ? 'text-amber-800 font-bold'
+                                  : ev.tag_locked
+                                  ? 'text-indigo-700 font-semibold'
+                                  : 'text-slate-600'
                               }`}
                             >
                               {ev.reason}
@@ -724,7 +755,7 @@ export default function AutoTaggingModal({
                           </td>
 
                           {/* Lock Button */}
-                          <td className="px-3 py-2.5 text-center">
+                          <td className="px-3 py-3 text-center">
                             <button
                               type="button"
                               onClick={() => handleToggleLock(ev.product_id, ev.tag_locked)}
@@ -733,16 +764,16 @@ export default function AutoTaggingModal({
                                   ? 'Đang khóa nhãn thủ công (bấm để mở khóa)'
                                   : 'Bấm để khóa cố định nhãn này'
                               }
-                              className={`p-1.5 rounded-lg border transition ${
+                              className={`p-1.5 rounded-xl border transition cursor-pointer ${
                                 ev.tag_locked
-                                  ? 'bg-amber-500/10 text-amber-600 border-amber-500/30 hover:bg-amber-500/20'
-                                  : 'bg-slate-50 dark:bg-slate-800 text-slate-400 border-slate-200 dark:border-slate-700 hover:text-slate-600 dark:hover:text-slate-200'
+                                  ? 'bg-amber-50 text-amber-700 border-amber-300 hover:bg-amber-100 shadow-2xs'
+                                  : 'bg-slate-50 text-slate-400 border-slate-200 hover:text-slate-600 hover:bg-slate-100'
                               }`}
                             >
                               {ev.tag_locked ? (
-                                <Lock className="w-3.5 h-3.5" />
+                                <Lock className="w-4 h-4 text-amber-600" />
                               ) : (
-                                <Unlock className="w-3.5 h-3.5" />
+                                <Unlock className="w-4 h-4" />
                               )}
                             </button>
                           </td>
@@ -757,17 +788,17 @@ export default function AutoTaggingModal({
         </div>
 
         {/* Footer Actions */}
-        <div className="px-5 py-3.5 border-t border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/80 flex items-center justify-between gap-3">
-          <div className="text-xs text-slate-500 flex items-center gap-1.5">
-            <AlertCircle className="w-4 h-4 text-indigo-500 shrink-0" />
+        <div className="px-5 py-3.5 border-t border-slate-200 bg-slate-50 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
+          <div className="text-xs text-slate-600 flex items-center gap-1.5">
+            <AlertCircle className="w-4 h-4 text-indigo-600 shrink-0" />
             <span>Món có biểu tượng 🔒 Khóa sẽ không bao giờ bị ghi đè tự động.</span>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-xl transition"
+              className="px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-200 bg-slate-100 rounded-xl transition cursor-pointer border border-slate-200"
             >
               Đóng
             </button>
@@ -775,7 +806,7 @@ export default function AutoTaggingModal({
               type="button"
               onClick={handleApplyChanges}
               disabled={applying || (previewResult?.changed_products_count || 0) === 0}
-              className="flex items-center gap-2 px-5 py-2 text-xs font-bold bg-gradient-to-r from-amber-500 to-indigo-600 text-white hover:from-amber-600 hover:to-indigo-700 rounded-xl shadow-md shadow-indigo-500/20 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-1.5 px-5 py-2 text-xs font-bold bg-gradient-to-r from-amber-500 to-indigo-600 text-white hover:from-amber-600 hover:to-indigo-700 rounded-xl shadow-md shadow-indigo-500/20 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Sparkles className={`w-4 h-4 ${applying ? 'animate-spin' : ''}`} />
               <span>
