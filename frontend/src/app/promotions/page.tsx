@@ -24,6 +24,7 @@ import {
 import AppShell from '@/components/AppShell';
 import { fetchApi } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
+import { useConfirm } from '@/context/ConfirmContext';
 import { formatCurrency, SettingsMap } from '@/lib/utils';
 import ModernSelect from '@/components/common/ModernSelect';
 
@@ -73,6 +74,7 @@ interface Product {
 
 export default function PromotionsPage() {
   const { t } = useTranslation();
+  const { confirm, showAlert } = useConfirm();
   const [promotions, setPromotions] = useState<Promotion[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -212,7 +214,7 @@ export default function PromotionsPage() {
         await loadData();
         setIsModalOpen(false);
       } else {
-        alert(res.message || 'Failed to update promotion');
+        showAlert(t('common.error') || 'Lỗi', res.message || 'Failed to update promotion', 'danger');
       }
     } else {
       const res = await fetchApi<Promotion>('/promotions', {
@@ -223,18 +225,25 @@ export default function PromotionsPage() {
         await loadData();
         setIsModalOpen(false);
       } else {
-        alert(res.message || 'Failed to create promotion');
+        showAlert(t('common.error') || 'Lỗi', res.message || 'Failed to create promotion', 'danger');
       }
     }
   };
 
   const handleDeletePromotion = async (id: number) => {
-    if (!confirm(t('promotions.confirm_delete'))) return;
+    const isConfirmed = await confirm({
+      title: t('promotions.confirm_delete') || 'Xóa chương trình khuyến mãi?',
+      message: 'Chương trình này sẽ bị xóa và không thể áp dụng cho các đơn hàng tiếp theo.',
+      type: 'danger',
+      confirmText: t('common.delete') || 'Xóa khuyến mãi',
+    });
+    if (!isConfirmed) return;
+
     const res = await fetchApi(`/promotions/${id}`, { method: 'DELETE' });
     if (res.status === 'success') {
       loadData();
     } else {
-      alert(res.message || 'Failed to delete promotion');
+      showAlert(t('common.error') || 'Lỗi', res.message || 'Failed to delete promotion', 'danger');
     }
   };
 
@@ -249,7 +258,7 @@ export default function PromotionsPage() {
         prev.map((p) => (p.id === promo.id ? { ...p, is_active: newStatus } : p))
       );
     } else {
-      alert(res.message || 'Failed to toggle status');
+      showAlert(t('common.error') || 'Lỗi', res.message || 'Failed to toggle status', 'danger');
     }
   };
 

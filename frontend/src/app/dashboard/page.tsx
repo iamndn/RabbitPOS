@@ -32,7 +32,7 @@ import {
 import AppShell from '@/components/AppShell';
 import AllProductsRankingModal from '@/components/dashboard/AllProductsRankingModal';
 import ProductSalesPerformanceSection from '@/components/dashboard/ProductSalesPerformanceSection';
-import ModernDateRangePicker, { DatePeriod } from '@/components/common/ModernDateRangePicker';
+import ModernDateRangePicker, { DatePeriod, computeDateRange, getLocalDateStr } from '@/components/common/ModernDateRangePicker';
 import { fetchApi } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
 import { exportToCsv } from '@/lib/exportCsv';
@@ -52,8 +52,8 @@ export default function DashboardPage() {
 
   // Timeframe Filter
   const [period, setPeriod] = useState<'today' | 'yesterday' | 'week' | 'month' | 'year' | 'custom'>('today');
-  const [customFrom, setCustomFrom] = useState<string>(new Date().toISOString().slice(0, 10));
-  const [customTo, setCustomTo] = useState<string>(new Date().toISOString().slice(0, 10));
+  const [customFrom, setCustomFrom] = useState<string>(() => getLocalDateStr());
+  const [customTo, setCustomTo] = useState<string>(() => getLocalDateStr());
 
   // Analytics Data States
   const [revenueData, setRevenueData] = useState<RevenueAnalyticsResponse | null>(null);
@@ -67,7 +67,7 @@ export default function DashboardPage() {
 
   // Email Report Modal state
   const [showEmailModal, setShowEmailModal] = useState<boolean>(false);
-  const [emailDate, setEmailDate] = useState<string>(new Date().toISOString().slice(0, 10));
+  const [emailDate, setEmailDate] = useState<string>(() => getLocalDateStr());
   const [emailSending, setEmailSending] = useState<boolean>(false);
   const [emailToast, setEmailToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
@@ -144,30 +144,10 @@ export default function DashboardPage() {
 
   const handlePeriodChange = (newPeriod: 'today' | 'yesterday' | 'week' | 'month' | 'year' | 'custom') => {
     setPeriod(newPeriod);
-    const now = new Date();
-    if (newPeriod === 'today') {
-      setCustomFrom(now.toISOString().slice(0, 10));
-      setCustomTo(now.toISOString().slice(0, 10));
-    } else if (newPeriod === 'yesterday') {
-      const y = new Date(now);
-      y.setDate(y.getDate() - 1);
-      setCustomFrom(y.toISOString().slice(0, 10));
-      setCustomTo(y.toISOString().slice(0, 10));
-    } else if (newPeriod === 'week') {
-      const day = now.getDay();
-      const diff = now.getDate() - day + (day === 0 ? -6 : 1);
-      const mon = new Date(now);
-      mon.setDate(diff);
-      setCustomFrom(mon.toISOString().slice(0, 10));
-      setCustomTo(now.toISOString().slice(0, 10));
-    } else if (newPeriod === 'month') {
-      const start = new Date(now.getFullYear(), now.getMonth(), 1);
-      setCustomFrom(start.toISOString().slice(0, 10));
-      setCustomTo(now.toISOString().slice(0, 10));
-    } else if (newPeriod === 'year') {
-      const start = new Date(now.getFullYear(), 0, 1);
-      setCustomFrom(start.toISOString().slice(0, 10));
-      setCustomTo(now.toISOString().slice(0, 10));
+    if (newPeriod !== 'custom') {
+      const range = computeDateRange(newPeriod);
+      setCustomFrom(range.from);
+      setCustomTo(range.to);
     }
   };
 

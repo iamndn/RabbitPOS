@@ -177,7 +177,7 @@ func (s *ImporterService) GenerateExcelTemplate() ([]byte, error) {
 	f.SetRowStyle(sheet4, 1, 1, amberHeaderStyle)
 	f.SetRowHeight(sheet4, 1, 28)
 
-	nowStr := time.Now().Format("2006-01-02 08:30")
+	nowStr := time.Now().Format("2006-01-02 15:04")
 	sampleTransactions := [][]interface{}{
 		{nowStr, "Thu", "Nạp tiền đầu ca", 500000, "Tiền mặt", "NDN", "Tiền thối két đầu ngày"},
 		{nowStr, "Chi", "Mua nguyên vật liệu", 250000, "Tiền mặt", "NHUNG", "Mua hoa quả tươi chợ sớm"},

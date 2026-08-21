@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { fetchApi } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
+import { useConfirm } from '@/context/ConfirmContext';
 import { TransactionCategory } from '@/types/transaction_category';
 import ModernSelect from '@/components/common/ModernSelect';
 
@@ -31,6 +32,7 @@ export default function TransactionCategoryModal({
   onCategoriesUpdated,
 }: TransactionCategoryModalProps) {
   const { t } = useTranslation();
+  const { showAlert } = useConfirm();
 
   const [activeFilter, setActiveFilter] = useState<'all' | 'outflow' | 'inflow'>('all');
   const [isEditing, setIsEditing] = useState<boolean>(false);
@@ -147,10 +149,10 @@ export default function TransactionCategoryModal({
         }
         onCategoriesUpdated();
       } else {
-        alert(res.message || 'Xóa danh mục thất bại');
+        showAlert(t('common.error') || 'Lỗi', res.message || 'Xóa danh mục thất bại', 'danger');
       }
     } catch (err: any) {
-      alert(err.message || 'Lỗi khi xóa danh mục');
+      showAlert(t('common.error') || 'Lỗi', err.message || 'Lỗi khi xóa danh mục', 'danger');
     } finally {
       setDeleteSubmitting(false);
     }

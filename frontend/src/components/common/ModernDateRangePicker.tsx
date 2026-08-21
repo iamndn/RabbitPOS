@@ -21,14 +21,29 @@ interface ModernDateRangePickerProps {
   align?: 'left' | 'right';
 }
 
+export function getLocalDateStr(d: Date = new Date()): string {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+export function getLocalMonthStr(d: Date = new Date()): string {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  return `${year}-${month}`;
+}
+
+export function toLocalDateStr(isoStr?: string | null): string {
+  if (!isoStr) return '';
+  const d = new Date(isoStr);
+  if (isNaN(d.getTime())) return isoStr.slice(0, 10);
+  return getLocalDateStr(d);
+}
+
 export function computeDateRange(period: DatePeriod, customFrom?: string, customTo?: string): { from: string; to: string } {
   const now = new Date();
-  const formatDate = (d: Date) => {
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
+  const formatDate = (d: Date) => getLocalDateStr(d);
 
   if (period === 'today') {
     const todayStr = formatDate(now);

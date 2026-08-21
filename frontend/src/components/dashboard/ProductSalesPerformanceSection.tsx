@@ -16,7 +16,7 @@ import {
   RefreshCw,
   Tag,
 } from 'lucide-react';
-import ModernDateRangePicker, { DatePeriod, DateRangeChangeParams } from '@/components/common/ModernDateRangePicker';
+import ModernDateRangePicker, { DatePeriod, DateRangeChangeParams, getLocalDateStr } from '@/components/common/ModernDateRangePicker';
 import ModernSelect, { ModernSelectOption } from '@/components/common/ModernSelect';
 import { fetchApi } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
@@ -62,8 +62,8 @@ export default function ProductSalesPerformanceSection({
   const { t } = useTranslation();
 
   const [period, setPeriod] = useState<DatePeriod>(initialPeriod);
-  const [customFrom, setCustomFrom] = useState<string>(initialFrom ?? new Date().toISOString().slice(0, 10));
-  const [customTo, setCustomTo] = useState<string>(initialTo ?? new Date().toISOString().slice(0, 10));
+  const [customFrom, setCustomFrom] = useState<string>(() => initialFrom ?? getLocalDateStr());
+  const [customTo, setCustomTo] = useState<string>(() => initialTo ?? getLocalDateStr());
 
   const [searchInput, setSearchInput] = useState<string>('');
   const debouncedSearch = useDebounce(searchInput, 250);

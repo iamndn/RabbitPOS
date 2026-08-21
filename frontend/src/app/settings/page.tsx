@@ -1075,19 +1075,37 @@ export default function SettingsPage() {
                             </p>
                           </div>
                         </div>
-                        <button
-                          type="button"
-                          onClick={handleDownloadTemplate}
-                          disabled={downloadingTemplate}
-                          className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white font-bold text-xs py-2.5 px-4 rounded-xl shadow-xs transition flex items-center gap-2 shrink-0 self-start sm:self-auto"
-                        >
-                          {downloadingTemplate ? (
-                            <RefreshCw className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <Download className="w-4 h-4" />
-                          )}
-                          <span>{t('settings.download_template_btn')}</span>
-                        </button>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <a
+                            href="/mau_import_don_hang.xlsx"
+                            download="mau_import_don_hang.xlsx"
+                            className="bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs py-2.5 px-3.5 rounded-xl border border-slate-200 shadow-2xs transition flex items-center gap-1.5 shrink-0"
+                          >
+                            <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+                            <span>Mẫu đơn hàng (.xlsx)</span>
+                          </a>
+                          <a
+                            href="/mau_import_don_hang.csv"
+                            download="mau_import_don_hang.csv"
+                            className="bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs py-2.5 px-3.5 rounded-xl border border-slate-200 shadow-2xs transition flex items-center gap-1.5 shrink-0"
+                          >
+                            <FileSpreadsheet className="w-4 h-4 text-sky-600" />
+                            <span>Mẫu đơn (.csv)</span>
+                          </a>
+                          <button
+                            type="button"
+                            onClick={handleDownloadTemplate}
+                            disabled={downloadingTemplate}
+                            className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white font-bold text-xs py-2.5 px-4 rounded-xl shadow-xs transition flex items-center gap-2 shrink-0 self-start sm:self-auto"
+                          >
+                            {downloadingTemplate ? (
+                              <RefreshCw className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Download className="w-4 h-4" />
+                            )}
+                            <span>{t('settings.download_template_btn')}</span>
+                          </button>
+                        </div>
                       </div>
 
                       {/* Supported Sheets Overview Pills */}

@@ -37,10 +37,11 @@ import {
 } from 'lucide-react';
 import AppShell from '@/components/AppShell';
 import TransactionCategoryModal from '@/components/transactions/TransactionCategoryModal';
-import ModernDateRangePicker, { DatePeriod, computeDateRange } from '@/components/common/ModernDateRangePicker';
+import ModernDateRangePicker, { DatePeriod, computeDateRange, getLocalMonthStr, getLocalDateStr, toLocalDateStr } from '@/components/common/ModernDateRangePicker';
 import ModernSelect from '@/components/common/ModernSelect';
 import { fetchApi } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
+import { useConfirm } from '@/context/ConfirmContext';
 import { exportToCsv } from '@/lib/exportCsv';
 import { formatCurrency, SettingsMap } from '@/lib/utils';
 import { CartItem, ProductVariant, Product } from '@/components/pos/VariantSelectorModal';
@@ -116,6 +117,7 @@ interface OrderApi {
 export default function TransactionsPage() {
   const router = useRouter();
   const { t } = useTranslation();
+  const { confirm, showAlert } = useConfirm();
 
   // Active View Tab: 'transactions' | 'orders' | 'funds'
   const [activeTab, setActiveTab] = useState<'transactions' | 'orders' | 'funds'>('transactions');
@@ -129,7 +131,7 @@ export default function TransactionsPage() {
 
   // Funds Management & Audit States
   const [periodSummary, setPeriodSummary] = useState<FundsPeriodSummaryResponse | null>(null);
-  const [selectedMonth, setSelectedMonth] = useState<string>(new Date().toISOString().slice(0, 7));
+  const [selectedMonth, setSelectedMonth] = useState<string>(() => getLocalMonthStr());
   const [fundsPeriod, setFundsPeriod] = useState<DatePeriod>('month');
   const [fundsCustomFrom, setFundsCustomFrom] = useState<string>(() => computeDateRange('month').from);
   const [fundsCustomTo, setFundsCustomTo] = useState<string>(() => computeDateRange('month').to);
@@ -438,7 +440,7 @@ export default function TransactionsPage() {
         setModalCreatedAt(null);
         loadData();
       } else {
-        alert(res.message || 'Failed to update transaction');
+        showAlert(t('common.error') || 'Lỗi', res.message || 'Failed to update transaction', 'danger');
       }
     } else {
       const res = await fetchApi<Transaction>('/transactions', {
@@ -461,7 +463,7 @@ export default function TransactionsPage() {
         setModalCreatedAt(null);
         loadData();
       } else {
-        alert(t('tx.log_failed', { error: res.message }));
+        showAlert(t('common.error') || 'Lỗi', t('tx.log_failed', { error: res.message }), 'danger');
       }
     }
   };
@@ -477,7 +479,7 @@ export default function TransactionsPage() {
       setDeletingTransaction(null);
       loadData();
     } else {
-      alert(res.message || 'Failed to delete transaction');
+      showAlert(t('common.error') || 'Lỗi', res.message || 'Failed to delete transaction', 'danger');
     }
   };
 
@@ -504,7 +506,7 @@ export default function TransactionsPage() {
       setCancellingOrder(null);
       await loadData();
     } else {
-      alert(res.message || 'Failed to cancel order');
+      showAlert(t('common.error') || 'Lỗi', res.message || 'Failed to cancel order', 'danger');
     }
     setCancelLoading(false);
   };
@@ -574,7 +576,7 @@ export default function TransactionsPage() {
       router.push('/');
     } catch (e) {
       console.error('Failed to restore re-order cart', e);
-      alert('Không thể khôi phục giỏ hàng');
+      showAlert(t('common.error') || 'Lỗi', 'Không thể khôi phục giỏ hàng', 'danger');
     }
   };
 
@@ -616,7 +618,7 @@ export default function TransactionsPage() {
     const matchesFund = selectedFundId ? tx.fund_id === selectedFundId : true;
     const matchesType = selectedType !== 'all' ? tx.transaction_type === selectedType : true;
     const matchesCat = selectedCategory !== 'all' ? tx.category === selectedCategory : true;
-    const txDate = tx.created_at ? tx.created_at.slice(0, 10) : '';
+    const txDate = toLocalDateStr(tx.created_at);
     const matchesDate = (!customFrom || txDate >= customFrom) && (!customTo || txDate <= customTo);
     return matchesFund && matchesType && matchesCat && matchesDate;
   });
@@ -630,7 +632,7 @@ export default function TransactionsPage() {
       order.order_code.toLowerCase().includes(debouncedOrderSearch.toLowerCase()) ||
       (order.cashier_name || '').toLowerCase().includes(debouncedOrderSearch.toLowerCase());
     const matchesStatus = orderStatusFilter === 'all' ? true : order.status === orderStatusFilter;
-    const orderDate = order.created_at ? order.created_at.slice(0, 10) : '';
+    const orderDate = toLocalDateStr(order.created_at);
     const matchesDate = (!customFrom || orderDate >= customFrom) && (!customTo || orderDate <= customTo);
     return matchesSearch && matchesStatus && matchesDate;
   });

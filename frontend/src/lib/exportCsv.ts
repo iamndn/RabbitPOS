@@ -9,7 +9,7 @@ export interface CsvColumn<T> {
 
 export function exportToCsv<T>(filename: string, data: T[], columns: CsvColumn<T>[]) {
   if (!data || data.length === 0) {
-    alert('No data available to export.');
+    console.warn('exportToCsv: No data available to export.');
     return;
   }
 

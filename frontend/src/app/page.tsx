@@ -11,6 +11,7 @@ import ReceiptModal, { CompletedOrderData } from '@/components/pos/ReceiptModal'
 import { Promotion } from '@/app/promotions/page';
 import { fetchApi, ApiResponse, getImageUrl } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
+import { useConfirm } from '@/context/ConfirmContext';
 import { formatCurrency, SettingsMap } from '@/lib/utils';
 
 interface Category {
@@ -81,6 +82,7 @@ const ProductCard = React.memo(function ProductCard({
   orderBtnLabel,
   t,
 }: ProductCardProps) {
+  const { showAlert } = useConfirm();
   const startingPrice = useMemo(() => {
     return Array.isArray(product.variants) && product.variants.length > 0
       ? Math.min(...product.variants.map((v) => v.retail_price))
@@ -94,11 +96,11 @@ const ProductCard = React.memo(function ProductCard({
 
   const handleClick = () => {
     if (isSuspended) {
-      alert(`${product.name} hiện đang tạm ngưng phục vụ.`);
+      showAlert(t('common.info') || 'Thông báo', `${product.name} hiện đang tạm ngưng phục vụ.`, 'warning');
       return;
     }
     if (isComingSoon) {
-      alert(`${product.name} sắp ra mắt, quý khách vui lòng chờ nhé!`);
+      showAlert(t('common.info') || 'Thông báo', `${product.name} sắp ra mắt, quý khách vui lòng chờ nhé!`, 'info');
       return;
     }
     onSelect(product);
@@ -180,6 +182,7 @@ const ProductCard = React.memo(function ProductCard({
 
 export default function PosPage() {
   const { t } = useTranslation();
+  const { showAlert } = useConfirm();
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [activeCategoryId, setActiveCategoryId] = useState<number | null>(null);
@@ -430,7 +433,7 @@ export default function PosPage() {
 
     const fundIdNum = Number(targetFundId);
     if (!fundIdNum || isNaN(fundIdNum)) {
-      alert(t('pos.order_failed', { message: 'Invalid payment fund selected' }));
+      showAlert(t('common.error') || 'Lỗi', t('pos.order_failed', { message: 'Invalid payment fund selected' }), 'danger');
       return;
     }
 
@@ -504,7 +507,7 @@ export default function PosPage() {
       setOrderSuccessMessage(t('pos.order_success', { code: res.data.order_code }));
       setTimeout(() => setOrderSuccessMessage(null), 5000);
     } else {
-      alert(t('pos.order_failed', { message: res.message }));
+      showAlert(t('common.error') || 'Lỗi', t('pos.order_failed', { message: res.message }), 'danger');
     }
   };
 

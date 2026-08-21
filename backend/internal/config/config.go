@@ -195,7 +195,7 @@ func (c *Config) validateSecurity() error {
 
 // GetDSN returns PostgreSQL Connection Data Source Name
 func (c *Config) GetDSN() string {
-	return fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable TimeZone=UTC",
+	return fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable TimeZone=Asia/Ho_Chi_Minh",
 		c.DBHost, c.DBUser, c.DBPassword, c.DBName, c.DBPort)
 }
 

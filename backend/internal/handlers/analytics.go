@@ -85,14 +85,22 @@ func (h *AnalyticsHandler) SendDailyReportEmail(c *gin.Context) {
 	}, fmt.Sprintf("Email report sent successfully to %d recipient(s)", len(recipients)))
 }
 
+// getAnalyticsLocation returns Vietnam timezone (Asia/Ho_Chi_Minh / ICT +07:00)
+func getAnalyticsLocation() *time.Location {
+	loc, err := time.LoadLocation("Asia/Ho_Chi_Minh")
+	if err != nil {
+		return time.FixedZone("ICT", 7*3600)
+	}
+	return loc
+}
+
 // parseAnalyticsPeriod parses period, from, to query parameters and returns current and previous time windows
 func parseAnalyticsPeriod(c *gin.Context) (startTime, endTime, prevStartTime, prevEndTime time.Time, periodName, fromStr, toStr string) {
-	now := time.Now()
+	loc := getAnalyticsLocation()
+	now := time.Now().In(loc)
 	period := strings.ToLower(c.DefaultQuery("period", "today"))
 	fromParam := c.Query("from")
 	toParam := c.Query("to")
-
-	loc := now.Location()
 
 	switch period {
 	case "today":
@@ -274,42 +282,42 @@ func (h *AnalyticsHandler) GetRevenueAnalytics(c *gin.Context) {
 		groupFormat = "YYYY-MM-DD HH24:00"
 		timelineQuery = `
 			SELECT 
-				TO_CHAR(created_at, 'YYYY-MM-DD HH24:00') as date,
+				TO_CHAR(created_at AT TIME ZONE 'Asia/Ho_Chi_Minh', 'YYYY-MM-DD HH24:00') as date,
 				COALESCE(SUM(total_amount), 0) as net_revenue,
 				COALESCE(SUM(subtotal), 0) as gross_sales,
 				COALESCE(SUM(discount_amount + promotion_discount + platform_fee_discount), 0) as discounts,
 				COUNT(id) as orders_count
 			FROM orders
 			WHERE status = 'completed' AND created_at BETWEEN ? AND ?
-			GROUP BY TO_CHAR(created_at, 'YYYY-MM-DD HH24:00')
+			GROUP BY TO_CHAR(created_at AT TIME ZONE 'Asia/Ho_Chi_Minh', 'YYYY-MM-DD HH24:00')
 			ORDER BY date ASC
 		`
 	} else if durationHours <= 24*90 { // Under 90 days: group by day
 		groupFormat = "YYYY-MM-DD"
 		timelineQuery = `
 			SELECT 
-				TO_CHAR(created_at, 'YYYY-MM-DD') as date,
+				TO_CHAR(created_at AT TIME ZONE 'Asia/Ho_Chi_Minh', 'YYYY-MM-DD') as date,
 				COALESCE(SUM(total_amount), 0) as net_revenue,
 				COALESCE(SUM(subtotal), 0) as gross_sales,
 				COALESCE(SUM(discount_amount + promotion_discount + platform_fee_discount), 0) as discounts,
 				COUNT(id) as orders_count
 			FROM orders
 			WHERE status = 'completed' AND created_at BETWEEN ? AND ?
-			GROUP BY TO_CHAR(created_at, 'YYYY-MM-DD')
+			GROUP BY TO_CHAR(created_at AT TIME ZONE 'Asia/Ho_Chi_Minh', 'YYYY-MM-DD')
 			ORDER BY date ASC
 		`
 	} else { // Over 90 days / year: group by month
 		groupFormat = "YYYY-MM"
 		timelineQuery = `
 			SELECT 
-				TO_CHAR(created_at, 'YYYY-MM') as date,
+				TO_CHAR(created_at AT TIME ZONE 'Asia/Ho_Chi_Minh', 'YYYY-MM') as date,
 				COALESCE(SUM(total_amount), 0) as net_revenue,
 				COALESCE(SUM(subtotal), 0) as gross_sales,
 				COALESCE(SUM(discount_amount + promotion_discount + platform_fee_discount), 0) as discounts,
 				COUNT(id) as orders_count
 			FROM orders
 			WHERE status = 'completed' AND created_at BETWEEN ? AND ?
-			GROUP BY TO_CHAR(created_at, 'YYYY-MM')
+			GROUP BY TO_CHAR(created_at AT TIME ZONE 'Asia/Ho_Chi_Minh', 'YYYY-MM')
 			ORDER BY date ASC
 		`
 	}
@@ -509,23 +517,23 @@ func (h *AnalyticsHandler) GetProfitAnalytics(c *gin.Context) {
 	timelineQuery := fmt.Sprintf(`
 		WITH order_daily AS (
 			SELECT 
-				TO_CHAR(orders.created_at, '%s') as dt,
+				TO_CHAR(orders.created_at AT TIME ZONE 'Asia/Ho_Chi_Minh', '%s') as dt,
 				COALESCE(SUM(orders.total_amount), 0) as rev,
 				COALESCE(SUM(product_variants.cogs_price * order_items.quantity), 0) as cogs
 			FROM orders
 			JOIN order_items ON order_items.order_id = orders.id
 			JOIN product_variants ON product_variants.id = order_items.product_variant_id
 			WHERE orders.status = 'completed' AND orders.created_at BETWEEN ? AND ?
-			GROUP BY TO_CHAR(orders.created_at, '%s')
+			GROUP BY TO_CHAR(orders.created_at AT TIME ZONE 'Asia/Ho_Chi_Minh', '%s')
 		),
 		expense_daily AS (
 			SELECT 
-				TO_CHAR(created_at, '%s') as dt,
+				TO_CHAR(created_at AT TIME ZONE 'Asia/Ho_Chi_Minh', '%s') as dt,
 				COALESCE(SUM(CASE WHEN transaction_type = 'outflow' AND category != 'reconciliation_variance' THEN amount ELSE 0 END), 0) as exp,
 				COALESCE(SUM(CASE WHEN transaction_type = 'inflow' AND reference_order_id IS NULL AND category != 'reconciliation_variance' THEN amount ELSE 0 END), 0) as inf
 			FROM transactions
 			WHERE created_at BETWEEN ? AND ?
-			GROUP BY TO_CHAR(created_at, '%s')
+			GROUP BY TO_CHAR(created_at AT TIME ZONE 'Asia/Ho_Chi_Minh', '%s')
 		),
 		all_dates AS (
 			SELECT dt FROM order_daily UNION SELECT dt FROM expense_daily
@@ -831,12 +839,12 @@ func (h *AnalyticsHandler) GetCashFlowSummary(c *gin.Context) {
 	var results []DailyAggregate
 	query := `
 		SELECT 
-			TO_CHAR(created_at, 'YYYY-MM-DD') AS date,
+			TO_CHAR(created_at AT TIME ZONE 'Asia/Ho_Chi_Minh', 'YYYY-MM-DD') AS date,
 			SUM(CASE WHEN transaction_type = 'inflow' THEN amount ELSE 0 END) AS inflow,
 			SUM(CASE WHEN transaction_type = 'outflow' THEN amount ELSE 0 END) AS outflow
 		FROM transactions
 		WHERE created_at BETWEEN ? AND ?
-		GROUP BY TO_CHAR(created_at, 'YYYY-MM-DD')
+		GROUP BY TO_CHAR(created_at AT TIME ZONE 'Asia/Ho_Chi_Minh', 'YYYY-MM-DD')
 		ORDER BY date ASC
 	`
 
@@ -859,14 +867,13 @@ func (h *AnalyticsHandler) GetCashFlowSummary(c *gin.Context) {
 }
 
 func parseDateRange(c *gin.Context) (time.Time, time.Time, string, string) {
-	now := time.Now()
+	loc := getAnalyticsLocation()
+	now := time.Now().In(loc)
 	startDateStr := c.Query("start_date")
 	endDateStr := c.Query("end_date")
 
 	var startDate, endDate time.Time
 	var err error
-
-	loc := now.Location()
 
 	if startDateStr != "" {
 		startDate, err = time.ParseInLocation("2006-01-02", startDateStr, loc)

@@ -24,6 +24,7 @@ import {
 import AppShell from '@/components/AppShell';
 import { fetchApi, getImageUrl, uploadImage } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
+import { useConfirm } from '@/context/ConfirmContext';
 import { formatCurrency, SettingsMap } from '@/lib/utils';
 import ModernSelect from '@/components/common/ModernSelect';
 
@@ -67,6 +68,7 @@ interface Topping {
 
 export default function ProductsPage() {
   const { t } = useTranslation();
+  const { confirm, showAlert } = useConfirm();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -120,7 +122,7 @@ export default function ProductsPage() {
     if (res.status === 'success' && res.data?.url) {
       setFormImageUrl(res.data.url);
     } else {
-      alert(res.message || 'Failed to upload image');
+      showAlert(t('common.error') || 'Lỗi', res.message || 'Failed to upload image', 'danger');
     }
     setUploadingProductImg(false);
   };
@@ -133,7 +135,7 @@ export default function ProductsPage() {
     if (res.status === 'success' && res.data?.url) {
       setCatImageUrl(res.data.url);
     } else {
-      alert(res.message || 'Failed to upload image');
+      showAlert(t('common.error') || 'Lỗi', res.message || 'Failed to upload image', 'danger');
     }
     setUploadingCatImg(false);
   };
@@ -256,13 +258,13 @@ export default function ProductsPage() {
         setProducts((prev) =>
           prev.map((p) => (p.id === product.id ? { ...p, is_active: product.is_active } : p))
         );
-        alert(t('products.update_failed', { message: res.message }));
+        showAlert(t('common.error') || 'Lỗi', t('products.update_failed', { message: res.message }), 'danger');
       }
     } catch (err: any) {
       setProducts((prev) =>
         prev.map((p) => (p.id === product.id ? { ...p, is_active: product.is_active } : p))
       );
-      alert(t('products.update_failed', { message: err?.message }));
+      showAlert(t('common.error') || 'Lỗi', t('products.update_failed', { message: err?.message }), 'danger');
     }
   };
 
@@ -332,7 +334,7 @@ export default function ProductsPage() {
         loadCatalog();
         setIsProductModalOpen(false);
       } else {
-        alert(t('products.update_product_failed', { error: res.message }));
+        showAlert(t('common.error') || 'Lỗi', t('products.update_product_failed', { error: res.message }), 'danger');
       }
     } else {
       const res = await fetchApi<Product>('/products', {
@@ -356,18 +358,25 @@ export default function ProductsPage() {
         loadCatalog();
         setIsProductModalOpen(false);
       } else {
-        alert(t('products.create_product_failed', { error: res.message }));
+        showAlert(t('common.error') || 'Lỗi', t('products.create_product_failed', { error: res.message }), 'danger');
       }
     }
   };
 
   const handleDeleteProduct = async (id: number) => {
-    if (!confirm(t('products.confirm_delete_product'))) return;
+    const isConfirmed = await confirm({
+      title: t('products.confirm_delete_product') || 'Xóa món ăn này?',
+      message: 'Món này và các biến thể sẽ bị xóa vĩnh viễn khỏi menu bán hàng.',
+      type: 'danger',
+      confirmText: t('common.delete') || 'Xóa món',
+    });
+    if (!isConfirmed) return;
+
     const res = await fetchApi(`/products/${id}`, { method: 'DELETE' });
     if (res.status === 'success') {
       loadCatalog();
     } else {
-      alert(t('products.delete_product_failed', { error: res.message }));
+      showAlert(t('common.error') || 'Lỗi', t('products.delete_product_failed', { error: res.message }), 'danger');
     }
   };
 
@@ -405,7 +414,7 @@ export default function ProductsPage() {
         loadCatalog();
         setIsCategoryModalOpen(false);
       } else {
-        alert(t('products.update_cat_failed', { error: res.message }));
+        showAlert(t('common.error') || 'Lỗi', t('products.update_cat_failed', { error: res.message }), 'danger');
       }
     } else {
       const res = await fetchApi<Category>('/categories', {
@@ -420,18 +429,25 @@ export default function ProductsPage() {
         loadCatalog();
         setIsCategoryModalOpen(false);
       } else {
-        alert(t('products.create_cat_failed', { error: res.message }));
+        showAlert(t('common.error') || 'Lỗi', t('products.create_cat_failed', { error: res.message }), 'danger');
       }
     }
   };
 
   const handleDeleteCategory = async (id: number) => {
-    if (!confirm(t('products.confirm_delete_category'))) return;
+    const isConfirmed = await confirm({
+      title: t('products.confirm_delete_category') || 'Xóa danh mục?',
+      message: 'Các món trong danh mục này sẽ không còn nhóm phân loại.',
+      type: 'danger',
+      confirmText: t('common.delete') || 'Xóa danh mục',
+    });
+    if (!isConfirmed) return;
+
     const res = await fetchApi(`/categories/${id}`, { method: 'DELETE' });
     if (res.status === 'success') {
       loadCatalog();
     } else {
-      alert(t('products.delete_cat_failed', { error: res.message }));
+      showAlert(t('common.error') || 'Lỗi', t('products.delete_cat_failed', { error: res.message }), 'danger');
     }
   };
 
@@ -463,19 +479,26 @@ export default function ProductsPage() {
     if (editingTopping) {
       const res = await fetchApi<Topping>(`/toppings/${editingTopping.id}`, { method: 'PUT', body: JSON.stringify(payload) });
       if (res.status === 'success') { await loadToppings(); setIsToppingModalOpen(false); }
-      else alert('Cập nhật topping thất bại: ' + res.message);
+      else showAlert(t('common.error') || 'Lỗi', 'Cập nhật topping thất bại: ' + res.message, 'danger');
     } else {
       const res = await fetchApi<Topping>('/toppings', { method: 'POST', body: JSON.stringify(payload) });
       if (res.status === 'success') { await loadToppings(); setIsToppingModalOpen(false); }
-      else alert('Tạo topping thất bại: ' + res.message);
+      else showAlert(t('common.error') || 'Lỗi', 'Tạo topping thất bại: ' + res.message, 'danger');
     }
   };
 
   const handleDeleteTopping = async (id: number) => {
-    if (!confirm(t('products.confirm_delete_topping'))) return;
+    const isConfirmed = await confirm({
+      title: t('products.confirm_delete_topping') || 'Xóa Topping?',
+      message: 'Topping này sẽ bị xóa khỏi danh sách tùy chọn món.',
+      type: 'danger',
+      confirmText: t('common.delete') || 'Xóa topping',
+    });
+    if (!isConfirmed) return;
+
     const res = await fetchApi(`/toppings/${id}`, { method: 'DELETE' });
     if (res.status === 'success') await loadToppings();
-    else alert('Xóa topping thất bại: ' + res.message);
+    else showAlert(t('common.error') || 'Lỗi', 'Xóa topping thất bại: ' + res.message, 'danger');
   };
 
   const handleToggleToppingStatus = async (topping: Topping) => {
@@ -493,7 +516,7 @@ export default function ProductsPage() {
     if (res.status === 'success') {
       setToppings((prev) => prev.map((tp) => (tp.id === topping.id ? { ...tp, is_active: newStatus } : tp)));
     } else {
-      alert('Cập nhật trạng thái thất bại: ' + res.message);
+      showAlert(t('common.error') || 'Lỗi', 'Cập nhật trạng thái thất bại: ' + res.message, 'danger');
     }
   };
 
