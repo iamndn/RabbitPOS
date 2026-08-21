@@ -1,18 +1,23 @@
 'use client';
 
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import dynamic from 'next/dynamic';
 import { ShoppingBag, Coffee, RefreshCw, CheckCircle2, AlertCircle, Plus, Search, Check, Tag } from 'lucide-react';
 import AppShell from '@/components/AppShell';
-import VariantSelectorModal, { CartItem, Product } from '@/components/pos/VariantSelectorModal';
+import type { CartItem, Product } from '@/components/pos/VariantSelectorModal';
 import CartDrawer from '@/components/pos/CartDrawer';
-import CheckoutModal from '@/components/pos/CheckoutModal';
-import VietQRModal from '@/components/pos/VietQRModal';
-import ReceiptModal, { CompletedOrderData } from '@/components/pos/ReceiptModal';
+import type { CompletedOrderData } from '@/components/pos/ReceiptModal';
 import { Promotion } from '@/app/promotions/page';
 import { fetchApi, ApiResponse, getImageUrl } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
 import { useConfirm } from '@/context/ConfirmContext';
 import { formatCurrency, SettingsMap } from '@/lib/utils';
+
+// Dynamic lazy-loaded modals for reduced bundle size and instant page responsiveness
+const VariantSelectorModal = dynamic(() => import('@/components/pos/VariantSelectorModal'), { ssr: false });
+const CheckoutModal = dynamic(() => import('@/components/pos/CheckoutModal'), { ssr: false });
+const VietQRModal = dynamic(() => import('@/components/pos/VietQRModal'), { ssr: false });
+const ReceiptModal = dynamic(() => import('@/components/pos/ReceiptModal'), { ssr: false });
 
 interface Category {
   id: number;

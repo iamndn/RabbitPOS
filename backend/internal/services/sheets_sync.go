@@ -435,7 +435,7 @@ func (s *SheetsSyncService) AppendOrderRow(order models.Order) {
 	// Load order relations if missing
 	if order.Fund == nil || len(order.Items) == 0 {
 		var fullOrder models.Order
-		if err := s.db.Preload("Fund").Preload("Promotion").Preload("Items.Variant").First(&fullOrder, order.ID).Error; err == nil {
+		if err := s.db.Preload("Fund").Preload("Promotion").Preload("Items.Variant.Product").First(&fullOrder, order.ID).Error; err == nil {
 			order = fullOrder
 		}
 	}
@@ -445,7 +445,15 @@ func (s *SheetsSyncService) AppendOrderRow(order models.Order) {
 	for _, it := range order.Items {
 		variantName := "Món"
 		if it.Variant != nil {
-			variantName = it.Variant.VariantName
+			if it.Variant.Product != nil && it.Variant.Product.Name != "" {
+				if it.Variant.VariantName != "" && it.Variant.VariantName != "Default" && it.Variant.VariantName != it.Variant.Product.Name {
+					variantName = fmt.Sprintf("%s (%s)", it.Variant.Product.Name, it.Variant.VariantName)
+				} else {
+					variantName = it.Variant.Product.Name
+				}
+			} else if it.Variant.VariantName != "" {
+				variantName = it.Variant.VariantName
+			}
 		}
 		itemDesc := fmt.Sprintf("%s (x%d)", variantName, it.Quantity)
 
@@ -761,7 +769,15 @@ func (s *SheetsSyncService) SyncAllToGoogleSheets() error {
 		for _, it := range o.Items {
 			variantName := "Món"
 			if it.Variant != nil {
-				variantName = it.Variant.VariantName
+				if it.Variant.Product != nil && it.Variant.Product.Name != "" {
+					if it.Variant.VariantName != "" && it.Variant.VariantName != "Default" && it.Variant.VariantName != it.Variant.Product.Name {
+						variantName = fmt.Sprintf("%s (%s)", it.Variant.Product.Name, it.Variant.VariantName)
+					} else {
+						variantName = it.Variant.Product.Name
+					}
+				} else if it.Variant.VariantName != "" {
+					variantName = it.Variant.VariantName
+				}
 			}
 			itemDesc := fmt.Sprintf("%s (x%d)", variantName, it.Quantity)
 

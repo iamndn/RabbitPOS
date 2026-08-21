@@ -36,6 +36,7 @@ type Product struct {
 type ProductVariant struct {
 	ID          uint      `gorm:"primaryKey" json:"id"`
 	ProductID   uint      `gorm:"not null;index" json:"product_id"`
+	Product     *Product  `gorm:"foreignKey:ProductID;constraint:OnDelete:CASCADE" json:"product,omitempty"`
 	VariantName string    `gorm:"type:varchar(100);not null" json:"variant_name"`
 	CogsPrice   float64   `gorm:"type:numeric(10,2);not null;default:0.00" json:"cogs_price"`
 	RetailPrice float64   `gorm:"type:numeric(10,2);not null;default:0.00" json:"retail_price"`

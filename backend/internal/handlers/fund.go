@@ -7,24 +7,35 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/RabbitPOS/backend/internal/cache"
 	"github.com/RabbitPOS/backend/internal/models"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
 
+const fundsCacheKey = "funds:list"
+
 type FundHandler struct {
-	db *gorm.DB
+	db    *gorm.DB
+	cache *cache.TTLCache
 }
 
-func NewFundHandler(db *gorm.DB) *FundHandler {
-	return &FundHandler{db: db}
+func NewFundHandler(db *gorm.DB, c *cache.TTLCache) *FundHandler {
+	return &FundHandler{db: db, cache: c}
 }
 
-// ListFunds returns active payment funds (Cash Drawer, Bank Accounts, E-Wallets)
+// ListFunds returns active payment funds (Cash Drawer, Bank Accounts, E-Wallets) with in-memory caching
 func (h *FundHandler) ListFunds(c *gin.Context) {
+	if h.cache != nil {
+		if cached, ok := h.cache.Get(fundsCacheKey); ok {
+			models.SendSuccess(c, http.StatusOK, cached, "Funds retrieved successfully")
+			return
+		}
+	}
+
 	funds := make([]models.Fund, 0)
 	if err := h.db.Where("is_active = ?", true).Order("id asc").Find(&funds).Error; err != nil {
-		models.SendInternalError(c, "Failed to retrieve funds: "+err.Error())
+		models.SendInternalErrorLogged(c, "Failed to retrieve funds", err)
 		return
 	}
 
@@ -34,6 +45,10 @@ func (h *FundHandler) ListFunds(c *gin.Context) {
 			{ID: 1, Name: "Cash Drawer", FundType: models.FundTypeCash, CurrentBalance: 0, IsActive: true},
 			{ID: 2, Name: "MBBank Account", FundType: models.FundTypeBank, CurrentBalance: 0, IsActive: true},
 		}
+	}
+
+	if h.cache != nil {
+		h.cache.SetWithTTL(fundsCacheKey, funds, 1*time.Minute)
 	}
 
 	models.SendSuccess(c, http.StatusOK, funds, "Funds retrieved successfully")
@@ -161,8 +176,12 @@ func (h *FundHandler) ReconcileFund(c *gin.Context) {
 	})
 
 	if err != nil {
-		models.SendInternalError(c, "Failed to reconcile fund balance: "+err.Error())
+		models.SendInternalErrorLogged(c, "Failed to reconcile fund balance", err)
 		return
+	}
+
+	if h.cache != nil {
+		h.cache.Invalidate(fundsCacheKey)
 	}
 
 	// Fetch updated fund

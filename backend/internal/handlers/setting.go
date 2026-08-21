@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/RabbitPOS/backend/internal/cache"
 	"github.com/RabbitPOS/backend/internal/models"
 	"github.com/RabbitPOS/backend/internal/services"
 	"github.com/gin-gonic/gin"
@@ -11,26 +12,40 @@ import (
 	"gorm.io/gorm/clause"
 )
 
+const settingsCacheKey = "settings:all"
+
 type SettingHandler struct {
 	db       *gorm.DB
 	emailSvc *services.EmailService
+	cache    *cache.TTLCache
 }
 
-func NewSettingHandler(db *gorm.DB, emailSvc *services.EmailService) *SettingHandler {
-	return &SettingHandler{db: db, emailSvc: emailSvc}
+func NewSettingHandler(db *gorm.DB, emailSvc *services.EmailService, c *cache.TTLCache) *SettingHandler {
+	return &SettingHandler{db: db, emailSvc: emailSvc, cache: c}
 }
 
-// GetSettings retrieves all system settings as a JSON key-value object map
+// GetSettings retrieves all system settings as a JSON key-value object map with in-memory caching
 func (h *SettingHandler) GetSettings(c *gin.Context) {
+	if h.cache != nil {
+		if cached, ok := h.cache.Get(settingsCacheKey); ok {
+			models.SendSuccess(c, http.StatusOK, cached, "Settings retrieved successfully")
+			return
+		}
+	}
+
 	var settings []models.Setting
 	if err := h.db.Find(&settings).Error; err != nil {
-		models.SendInternalError(c, "Failed to retrieve settings: "+err.Error())
+		models.SendInternalErrorLogged(c, "Failed to retrieve settings", err)
 		return
 	}
 
 	settingsMap := make(map[string]string)
 	for _, s := range settings {
 		settingsMap[s.Key] = s.Value
+	}
+
+	if h.cache != nil {
+		h.cache.SetWithTTL(settingsCacheKey, settingsMap, 10*time.Minute)
 	}
 
 	models.SendSuccess(c, http.StatusOK, settingsMap, "Settings retrieved successfully")
@@ -40,10 +55,7 @@ func (h *SettingHandler) GetSettings(c *gin.Context) {
 func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 	var req models.UpdateSettingsRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, models.ResponseEnvelope{
-			Status:  "error",
-			Message: "Invalid settings payload: " + err.Error(),
-		})
+		models.SendError(c, http.StatusBadRequest, "Invalid settings payload")
 		return
 	}
 
@@ -71,8 +83,12 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 	})
 
 	if err != nil {
-		models.SendInternalError(c, "Failed to update settings: "+err.Error())
+		models.SendInternalErrorLogged(c, "Failed to update settings", err)
 		return
+	}
+
+	if h.cache != nil {
+		h.cache.Invalidate(settingsCacheKey)
 	}
 
 	// Fetch updated settings map
@@ -82,6 +98,10 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 	settingsMap := make(map[string]string)
 	for _, s := range settings {
 		settingsMap[s.Key] = s.Value
+	}
+
+	if h.cache != nil {
+		h.cache.SetWithTTL(settingsCacheKey, settingsMap, 10*time.Minute)
 	}
 
 	models.SendSuccess(c, http.StatusOK, settingsMap, "Settings updated successfully")

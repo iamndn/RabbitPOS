@@ -2,25 +2,40 @@ package handlers
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
 
+	"github.com/RabbitPOS/backend/internal/cache"
 	"github.com/RabbitPOS/backend/internal/models"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
 
 type ProductHandler struct {
-	db *gorm.DB
+	db    *gorm.DB
+	cache *cache.TTLCache
 }
 
-func NewProductHandler(db *gorm.DB) *ProductHandler {
-	return &ProductHandler{db: db}
+func NewProductHandler(db *gorm.DB, c *cache.TTLCache) *ProductHandler {
+	return &ProductHandler{db: db, cache: c}
 }
 
-// ListProducts lists products with optional filters (category_id, tag, is_active)
+// ListProducts lists products with optional filters and high-performance in-memory caching
 func (h *ProductHandler) ListProducts(c *gin.Context) {
+	categoryIDStr := c.Query("category_id")
+	tag := c.Query("tag")
+	isActiveStr := c.Query("is_active")
+
+	cacheKey := fmt.Sprintf("products:list:%s:%s:%s", categoryIDStr, tag, isActiveStr)
+	if h.cache != nil {
+		if cached, ok := h.cache.Get(cacheKey); ok {
+			models.SendSuccess(c, http.StatusOK, cached, "Products retrieved successfully")
+			return
+		}
+	}
+
 	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
 	defer cancel()
 
@@ -31,17 +46,17 @@ func (h *ProductHandler) ListProducts(c *gin.Context) {
 		}).
 		Preload("VariantGroups")
 
-	if categoryIDStr := c.Query("category_id"); categoryIDStr != "" {
+	if categoryIDStr != "" {
 		if categoryID, err := strconv.ParseUint(categoryIDStr, 10, 32); err == nil {
 			query = query.Where("category_id = ?", categoryID)
 		}
 	}
 
-	if tag := c.Query("tag"); tag != "" {
+	if tag != "" {
 		query = query.Where("tag = ?", tag)
 	}
 
-	if isActiveStr := c.Query("is_active"); isActiveStr != "" {
+	if isActiveStr != "" {
 		if isActive, err := strconv.ParseBool(isActiveStr); err == nil {
 			query = query.Where("is_active = ?", isActive)
 		}
@@ -49,8 +64,12 @@ func (h *ProductHandler) ListProducts(c *gin.Context) {
 
 	products := make([]models.Product, 0)
 	if err := query.Order("name asc").Find(&products).Error; err != nil {
-		models.SendInternalError(c, "Failed to retrieve products: "+err.Error())
+		models.SendInternalErrorLogged(c, "Failed to retrieve products", err)
 		return
+	}
+
+	if h.cache != nil {
+		h.cache.SetWithTTL(cacheKey, products, 3*time.Minute)
 	}
 
 	models.SendSuccess(c, http.StatusOK, products, "Products retrieved successfully")
@@ -146,8 +165,12 @@ func (h *ProductHandler) CreateProduct(c *gin.Context) {
 	})
 
 	if err != nil {
-		models.SendInternalError(c, "Failed to create product: "+err.Error())
+		models.SendInternalErrorLogged(c, "Failed to create product", err)
 		return
+	}
+
+	if h.cache != nil {
+		h.cache.InvalidatePrefix("products:")
 	}
 
 	// Reload product with relations
@@ -171,13 +194,13 @@ func (h *ProductHandler) UpdateProduct(c *gin.Context) {
 			models.SendError(c, http.StatusNotFound, "Product not found")
 			return
 		}
-		models.SendInternalError(c, "Failed to find product")
+		models.SendInternalErrorLogged(c, "Failed to find product", err)
 		return
 	}
 
 	var req models.UpdateProductRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		models.SendError(c, http.StatusBadRequest, "Invalid request payload: "+err.Error())
+		models.SendError(c, http.StatusBadRequest, "Invalid request payload")
 		return
 	}
 
@@ -201,8 +224,12 @@ func (h *ProductHandler) UpdateProduct(c *gin.Context) {
 	}
 
 	if err := h.db.Save(&product).Error; err != nil {
-		models.SendInternalError(c, "Failed to update product")
+		models.SendInternalErrorLogged(c, "Failed to update product", err)
 		return
+	}
+
+	if h.cache != nil {
+		h.cache.InvalidatePrefix("products:")
 	}
 
 	h.db.Preload("Category").Preload("Variants").Preload("VariantGroups").First(&product, product.ID)
@@ -225,13 +252,17 @@ func (h *ProductHandler) DeleteProduct(c *gin.Context) {
 			models.SendError(c, http.StatusNotFound, "Product not found")
 			return
 		}
-		models.SendInternalError(c, "Failed to find product")
+		models.SendInternalErrorLogged(c, "Failed to find product", err)
 		return
 	}
 
 	if err := h.db.Delete(&product).Error; err != nil {
-		models.SendInternalError(c, "Failed to delete product")
+		models.SendInternalErrorLogged(c, "Failed to delete product", err)
 		return
+	}
+
+	if h.cache != nil {
+		h.cache.InvalidatePrefix("products:")
 	}
 
 	models.SendSuccess(c, http.StatusOK, nil, "Product deleted successfully")

@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/RabbitPOS/backend/internal/cache"
 	"github.com/RabbitPOS/backend/internal/models"
 	"github.com/RabbitPOS/backend/internal/services"
 	"github.com/gin-gonic/gin"
@@ -17,13 +18,14 @@ import (
 type TransactionHandler struct {
 	db            *gorm.DB
 	sheetsSyncSvc *services.SheetsSyncService
+	fundCache     *cache.TTLCache
 }
 
-func NewTransactionHandler(db *gorm.DB, sheetsSyncSvc *services.SheetsSyncService) *TransactionHandler {
-	return &TransactionHandler{db: db, sheetsSyncSvc: sheetsSyncSvc}
+func NewTransactionHandler(db *gorm.DB, sheetsSyncSvc *services.SheetsSyncService, fundCache *cache.TTLCache) *TransactionHandler {
+	return &TransactionHandler{db: db, sheetsSyncSvc: sheetsSyncSvc, fundCache: fundCache}
 }
 
-// ListTransactions retrieves transaction history with filters
+// ListTransactions retrieves transaction history with filters and pagination support
 func (h *TransactionHandler) ListTransactions(c *gin.Context) {
 	query := h.db.Model(&models.Transaction{}).Preload("Fund").Preload("ReferenceOrder")
 
@@ -41,9 +43,47 @@ func (h *TransactionHandler) ListTransactions(c *gin.Context) {
 		query = query.Where("category = ?", category)
 	}
 
+	pageStr := c.Query("page")
+	pageSizeStr := c.Query("page_size")
+
+	// If page parameter provided, perform paginated query
+	if pageStr != "" {
+		page, _ := strconv.Atoi(pageStr)
+		if page < 1 {
+			page = 1
+		}
+		pageSize, _ := strconv.Atoi(pageSizeStr)
+		if pageSize < 1 || pageSize > 100 {
+			pageSize = 25
+		}
+
+		var total int64
+		if err := query.Count(&total).Error; err != nil {
+			models.SendInternalErrorLogged(c, "Failed to count transactions", err)
+			return
+		}
+
+		transactions := make([]models.Transaction, 0)
+		if err := query.Order("created_at desc").Offset((page - 1) * pageSize).Limit(pageSize).Find(&transactions).Error; err != nil {
+			models.SendInternalErrorLogged(c, "Failed to retrieve transactions", err)
+			return
+		}
+
+		totalPages := int((total + int64(pageSize) - 1) / int64(pageSize))
+		models.SendSuccess(c, http.StatusOK, gin.H{
+			"items":       transactions,
+			"page":        page,
+			"page_size":   pageSize,
+			"total_items": total,
+			"total_pages": totalPages,
+		}, "Transactions retrieved successfully")
+		return
+	}
+
+	// Default unpaginated query for backwards compatibility
 	transactions := make([]models.Transaction, 0)
 	if err := query.Order("created_at desc").Find(&transactions).Error; err != nil {
-		models.SendInternalError(c, "Failed to retrieve transactions: "+err.Error())
+		models.SendInternalErrorLogged(c, "Failed to retrieve transactions", err)
 		return
 	}
 
@@ -128,8 +168,12 @@ func (h *TransactionHandler) CreateTransaction(c *gin.Context) {
 	})
 
 	if err != nil {
-		models.SendInternalError(c, "Failed to record transaction: "+err.Error())
+		models.SendInternalErrorLogged(c, "Failed to record transaction", err)
 		return
+	}
+
+	if h.fundCache != nil {
+		h.fundCache.Invalidate("funds:list")
 	}
 
 	h.db.Preload("Fund").First(&transaction, transaction.ID)
@@ -157,7 +201,7 @@ func (h *TransactionHandler) UpdateTransaction(c *gin.Context) {
 			models.SendError(c, http.StatusNotFound, "Transaction not found")
 			return
 		}
-		models.SendInternalError(c, "Database query error: "+err.Error())
+		models.SendInternalErrorLogged(c, "Failed to find transaction", err)
 		return
 	}
 
@@ -173,7 +217,7 @@ func (h *TransactionHandler) UpdateTransaction(c *gin.Context) {
 
 	var req models.UpdateTransactionRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		models.SendError(c, http.StatusBadRequest, "Invalid request payload: "+err.Error())
+		models.SendError(c, http.StatusBadRequest, "Invalid request payload")
 		return
 	}
 
@@ -188,7 +232,7 @@ func (h *TransactionHandler) UpdateTransaction(c *gin.Context) {
 	}
 
 	err = h.db.Transaction(func(tx *gorm.DB) error {
-		// 1. Revert effect of old transaction on the old fund
+		// 1. Revert effect of existing transaction on its original fund
 		if existingTx.TransactionType == models.TransactionTypeInflow {
 			if err := tx.Model(&models.Fund{}).Where("id = ?", existingTx.FundID).
 				Update("current_balance", gorm.Expr("current_balance - ?", existingTx.Amount)).Error; err != nil {
@@ -232,8 +276,12 @@ func (h *TransactionHandler) UpdateTransaction(c *gin.Context) {
 	})
 
 	if err != nil {
-		models.SendInternalError(c, "Failed to update transaction: "+err.Error())
+		models.SendInternalErrorLogged(c, "Failed to update transaction", err)
 		return
+	}
+
+	if h.fundCache != nil {
+		h.fundCache.Invalidate("funds:list")
 	}
 
 	h.db.Preload("Fund").First(&existingTx, existingTx.ID)
@@ -255,7 +303,7 @@ func (h *TransactionHandler) DeleteTransaction(c *gin.Context) {
 			models.SendError(c, http.StatusNotFound, "Transaction not found")
 			return
 		}
-		models.SendInternalError(c, "Database query error: "+err.Error())
+		models.SendInternalErrorLogged(c, "Failed to find transaction", err)
 		return
 	}
 
@@ -292,8 +340,12 @@ func (h *TransactionHandler) DeleteTransaction(c *gin.Context) {
 	})
 
 	if err != nil {
-		models.SendInternalError(c, "Failed to delete transaction: "+err.Error())
+		models.SendInternalErrorLogged(c, "Failed to delete transaction", err)
 		return
+	}
+
+	if h.fundCache != nil {
+		h.fundCache.Invalidate("funds:list")
 	}
 
 	models.SendSuccess(c, http.StatusOK, gin.H{"id": id}, "Transaction deleted successfully")

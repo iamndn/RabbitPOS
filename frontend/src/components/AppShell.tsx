@@ -40,7 +40,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [currentUser, setCurrentUser] = useState<UserInfo | null>(null);
   const [mounted, setMounted] = useState<boolean>(false);
   const [health, setHealth] = useState<HealthData | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [storeLogo, setStoreLogo] = useState<string | null>(null);
   const [storeName, setStoreName] = useState<string>('Thỏ Juice & Coffee');
@@ -59,10 +58,59 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
+  // Effect 1: App Mount Only (Initial Health check + Background 60s health monitor + Load store settings)
   useEffect(() => {
     setMounted(true);
 
-    // 1. Auth Guard Check
+    const loadInitialData = async () => {
+      // 1. Initial Health Check
+      try {
+        const hRes = await fetchApi<HealthData>('/health');
+        if (hRes.status === 'success') {
+          setHealth(hRes.data);
+          setError(null);
+        } else {
+          setError(hRes.message);
+        }
+      } catch (err: any) {
+        setError(err.message || 'Không thể kết nối máy chủ');
+      }
+
+      // 2. Load store logo & store name from settings
+      try {
+        const sRes = await fetchApi<Record<string, string>>('/settings');
+        if (sRes.status === 'success' && sRes.data) {
+          const data = sRes.data as Record<string, string>;
+          if (data.store_logo_url) setStoreLogo(data.store_logo_url);
+          if (data.store_name) setStoreName(data.store_name);
+        }
+      } catch {
+        // Non-blocking
+      }
+    };
+
+    loadInitialData();
+
+    // Silent background health polling every 60s without blocking UI
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetchApi<HealthData>('/health', { skipCache: true });
+        if (res.status === 'success') {
+          setHealth(res.data);
+          setError(null);
+        } else {
+          setError(res.message);
+        }
+      } catch {
+        // Silent background check
+      }
+    }, 60_000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Effect 2: Fast synchronous route & auth guard (Runs on pathname change, 0ms, 0 network requests)
+  useEffect(() => {
     if (!isAuthenticated()) {
       router.push('/login');
       return;
@@ -71,39 +119,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     const u = getAuthUser();
     setCurrentUser(u);
 
-    // 2. Role Guard Check: Restrict Staff from Admin routes
+    // Role Guard Check: Restrict Staff from Admin routes
     if (u && u.role === 'staff') {
       const adminRoutes = ['/products', '/promotions', '/transactions', '/funds', '/dashboard', '/settings'];
       if (adminRoutes.some((route) => pathname.startsWith(route))) {
         router.push('/');
       }
     }
-
-    checkHealth();
-
-    // 3. Load store logo & store name from settings
-    const loadSettings = async () => {
-      const res = await fetchApi<Record<string, string>>('/settings');
-      if (res.status === 'success' && res.data) {
-        const data = res.data as Record<string, string>;
-        if (data.store_logo_url) setStoreLogo(data.store_logo_url);
-        if (data.store_name) setStoreName(data.store_name);
-      }
-    };
-    loadSettings();
-  }, [pathname]);
-
-  const checkHealth = async () => {
-    setLoading(true);
-    setError(null);
-    const res = await fetchApi<HealthData>('/health');
-    if (res.status === 'success') {
-      setHealth(res.data);
-    } else {
-      setError(res.message);
-    }
-    setLoading(false);
-  };
+  }, [pathname, router]);
 
   const handleLogout = async () => {
     await fetchApi('/auth/logout', { method: 'POST' });

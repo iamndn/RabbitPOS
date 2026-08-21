@@ -17,8 +17,14 @@ import (
 func InitDB(cfg *config.Config) (*gorm.DB, error) {
 	dsn := cfg.GetDSN()
 
+	logLevel := logger.Warn
+	if cfg.AppEnv == "development" {
+		logLevel = logger.Info
+	}
+
 	gormConfig := &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Info),
+		Logger:      logger.Default.LogMode(logLevel),
+		PrepareStmt: true,
 	}
 
 	var db *gorm.DB

@@ -1,42 +1,58 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 
+	"github.com/RabbitPOS/backend/internal/cache"
 	"github.com/RabbitPOS/backend/internal/models"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
 
 type ToppingHandler struct {
-	db *gorm.DB
+	db    *gorm.DB
+	cache *cache.TTLCache
 }
 
-func NewToppingHandler(db *gorm.DB) *ToppingHandler {
-	return &ToppingHandler{db: db}
+func NewToppingHandler(db *gorm.DB, c *cache.TTLCache) *ToppingHandler {
+	return &ToppingHandler{db: db, cache: c}
 }
 
-// ListToppings returns active toppings. Supports ?category_id=X to return global toppings
-// (category_id IS NULL) PLUS toppings scoped to that specific category.
+// ListToppings returns active toppings with in-memory caching.
+// Supports ?category_id=X to return global toppings (category_id IS NULL) PLUS toppings scoped to that category.
 func (h *ToppingHandler) ListToppings(c *gin.Context) {
-	toppings := make([]models.Topping, 0)
+	catIDStr := c.Query("category_id")
+	cacheKey := fmt.Sprintf("toppings:active:%s", catIDStr)
 
+	if h.cache != nil {
+		if cached, ok := h.cache.Get(cacheKey); ok {
+			models.SendSuccess(c, http.StatusOK, cached, "Toppings retrieved successfully")
+			return
+		}
+	}
+
+	toppings := make([]models.Topping, 0)
 	query := h.db.Where("is_active = ?", true)
 
-	if catIDStr := c.Query("category_id"); catIDStr != "" {
+	if catIDStr != "" {
 		catID, err := strconv.ParseUint(catIDStr, 10, 64)
 		if err != nil {
 			models.SendError(c, http.StatusBadRequest, "Invalid category_id parameter")
 			return
 		}
-		// Return global toppings (NULL category) + toppings for this specific category
 		query = query.Where("category_id IS NULL OR category_id = ?", catID)
 	}
 
 	if err := query.Order("name asc").Find(&toppings).Error; err != nil {
-		models.SendInternalError(c, "Failed to retrieve toppings: "+err.Error())
+		models.SendInternalErrorLogged(c, "Failed to retrieve toppings", err)
 		return
+	}
+
+	if h.cache != nil {
+		h.cache.SetWithTTL(cacheKey, toppings, 5*time.Minute)
 	}
 
 	models.SendSuccess(c, http.StatusOK, toppings, "Toppings retrieved successfully")
@@ -44,11 +60,22 @@ func (h *ToppingHandler) ListToppings(c *gin.Context) {
 
 // ListAllToppings returns all toppings (including inactive) for admin management
 func (h *ToppingHandler) ListAllToppings(c *gin.Context) {
-	toppings := make([]models.Topping, 0)
+	cacheKey := "toppings:all"
+	if h.cache != nil {
+		if cached, ok := h.cache.Get(cacheKey); ok {
+			models.SendSuccess(c, http.StatusOK, cached, "All toppings retrieved successfully")
+			return
+		}
+	}
 
+	toppings := make([]models.Topping, 0)
 	if err := h.db.Order("name asc").Find(&toppings).Error; err != nil {
-		models.SendInternalError(c, "Failed to retrieve toppings: "+err.Error())
+		models.SendInternalErrorLogged(c, "Failed to retrieve toppings", err)
 		return
+	}
+
+	if h.cache != nil {
+		h.cache.SetWithTTL(cacheKey, toppings, 5*time.Minute)
 	}
 
 	models.SendSuccess(c, http.StatusOK, toppings, "All toppings retrieved successfully")
@@ -58,7 +85,7 @@ func (h *ToppingHandler) ListAllToppings(c *gin.Context) {
 func (h *ToppingHandler) CreateTopping(c *gin.Context) {
 	var req models.CreateToppingRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		models.SendError(c, http.StatusBadRequest, "Invalid request: "+err.Error())
+		models.SendError(c, http.StatusBadRequest, "Invalid request payload")
 		return
 	}
 
@@ -76,8 +103,12 @@ func (h *ToppingHandler) CreateTopping(c *gin.Context) {
 	}
 
 	if err := h.db.Create(&topping).Error; err != nil {
-		models.SendInternalError(c, "Failed to create topping: "+err.Error())
+		models.SendInternalErrorLogged(c, "Failed to create topping", err)
 		return
+	}
+
+	if h.cache != nil {
+		h.cache.InvalidatePrefix("toppings:")
 	}
 
 	models.SendSuccess(c, http.StatusCreated, topping, "Topping created successfully")
@@ -98,13 +129,13 @@ func (h *ToppingHandler) UpdateTopping(c *gin.Context) {
 			models.SendError(c, http.StatusNotFound, "Topping not found")
 			return
 		}
-		models.SendInternalError(c, "Database error")
+		models.SendInternalErrorLogged(c, "Database error finding topping", err)
 		return
 	}
 
 	var req models.UpdateToppingRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		models.SendError(c, http.StatusBadRequest, "Invalid request: "+err.Error())
+		models.SendError(c, http.StatusBadRequest, "Invalid request payload")
 		return
 	}
 
@@ -119,8 +150,12 @@ func (h *ToppingHandler) UpdateTopping(c *gin.Context) {
 	}
 
 	if err := h.db.Save(&topping).Error; err != nil {
-		models.SendInternalError(c, "Failed to update topping: "+err.Error())
+		models.SendInternalErrorLogged(c, "Failed to update topping", err)
 		return
+	}
+
+	if h.cache != nil {
+		h.cache.InvalidatePrefix("toppings:")
 	}
 
 	models.SendSuccess(c, http.StatusOK, topping, "Topping updated successfully")
@@ -136,8 +171,12 @@ func (h *ToppingHandler) DeleteTopping(c *gin.Context) {
 	}
 
 	if err := h.db.Delete(&models.Topping{}, id).Error; err != nil {
-		models.SendInternalError(c, "Failed to delete topping: "+err.Error())
+		models.SendInternalErrorLogged(c, "Failed to delete topping", err)
 		return
+	}
+
+	if h.cache != nil {
+		h.cache.InvalidatePrefix("toppings:")
 	}
 
 	models.SendSuccess(c, http.StatusOK, nil, "Topping deleted successfully")

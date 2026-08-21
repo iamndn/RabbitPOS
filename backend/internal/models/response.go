@@ -1,6 +1,7 @@
 package models
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -32,10 +33,22 @@ func SendError(c *gin.Context, statusCode int, message string) {
 	})
 }
 
-// Default error helper for internal server error
+// SendInternalError sends a safe internal error response to client
 func SendInternalError(c *gin.Context, message string) {
 	if message == "" {
 		message = "An unexpected error occurred"
 	}
 	SendError(c, http.StatusInternalServerError, message)
 }
+
+// SendInternalErrorLogged logs detailed internal error on server and returns sanitized message to client
+func SendInternalErrorLogged(c *gin.Context, publicMessage string, internalErr error) {
+	if internalErr != nil {
+		log.Printf("[SERVER ERROR] %s | path=%s | method=%s | err=%v", publicMessage, c.Request.URL.Path, c.Request.Method, internalErr)
+	}
+	if publicMessage == "" {
+		publicMessage = "An unexpected error occurred"
+	}
+	SendError(c, http.StatusInternalServerError, publicMessage)
+}
+

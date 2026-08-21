@@ -2,7 +2,9 @@ package routes
 
 import (
 	"os"
+	"time"
 
+	"github.com/RabbitPOS/backend/internal/cache"
 	"github.com/RabbitPOS/backend/internal/config"
 	"github.com/RabbitPOS/backend/internal/handlers"
 	"github.com/RabbitPOS/backend/internal/middleware"
@@ -34,21 +36,28 @@ func SetupRouter(cfg *config.Config, db *gorm.DB, emailSvc *services.EmailServic
 	// Instantiate Services
 	importerSvc := services.NewImporterService(db)
 
-	// Instantiate Handlers
+	// Instantiate In-Memory TTL Caches for high-frequency, low-mutation entities
+	catCache := cache.NewTTLCache(5 * time.Minute)
+	productCache := cache.NewTTLCache(3 * time.Minute)
+	fundCache := cache.NewTTLCache(1 * time.Minute)
+	settingCache := cache.NewTTLCache(10 * time.Minute)
+	toppingCache := cache.NewTTLCache(5 * time.Minute)
+
+	// Instantiate Handlers with TTL Cache instances
 	healthHandler := handlers.NewHealthHandler(db)
 	authHandler := handlers.NewAuthHandler(db, cfg)
 	uploadHandler := handlers.NewUploadHandler()
-	categoryHandler := handlers.NewCategoryHandler(db)
-	productHandler := handlers.NewProductHandler(db)
-	variantHandler := handlers.NewVariantHandler(db)
-	fundHandler := handlers.NewFundHandler(db)
-	orderHandler := handlers.NewOrderHandler(db, sheetsSyncSvc)
-	txHandler := handlers.NewTransactionHandler(db, sheetsSyncSvc)
+	categoryHandler := handlers.NewCategoryHandler(db, catCache)
+	productHandler := handlers.NewProductHandler(db, productCache)
+	variantHandler := handlers.NewVariantHandler(db, productCache)
+	fundHandler := handlers.NewFundHandler(db, fundCache)
+	orderHandler := handlers.NewOrderHandler(db, sheetsSyncSvc, fundCache)
+	txHandler := handlers.NewTransactionHandler(db, sheetsSyncSvc, fundCache)
 	analyticsHandler := handlers.NewAnalyticsHandler(db, emailSvc)
-	settingHandler := handlers.NewSettingHandler(db, emailSvc)
+	settingHandler := handlers.NewSettingHandler(db, emailSvc, settingCache)
 	backupHandler := handlers.NewBackupHandler(db)
 	importerHandler := handlers.NewImporterHandler(importerSvc)
-	toppingHandler := handlers.NewToppingHandler(db)
+	toppingHandler := handlers.NewToppingHandler(db, toppingCache)
 	promotionHandler := handlers.NewPromotionHandler(db)
 	txCategoryHandler := handlers.NewTransactionCategoryHandler(db)
 	sheetsSyncHandler := handlers.NewSheetsSyncHandler(sheetsSyncSvc)

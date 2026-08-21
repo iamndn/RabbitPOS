@@ -4,17 +4,19 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/RabbitPOS/backend/internal/cache"
 	"github.com/RabbitPOS/backend/internal/models"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
 
 type VariantHandler struct {
-	db *gorm.DB
+	db    *gorm.DB
+	cache *cache.TTLCache
 }
 
-func NewVariantHandler(db *gorm.DB) *VariantHandler {
-	return &VariantHandler{db: db}
+func NewVariantHandler(db *gorm.DB, c *cache.TTLCache) *VariantHandler {
+	return &VariantHandler{db: db, cache: c}
 }
 
 // AddVariantToProduct creates a new variant for a target product ID
@@ -32,13 +34,13 @@ func (h *VariantHandler) AddVariantToProduct(c *gin.Context) {
 			models.SendError(c, http.StatusNotFound, "Product not found")
 			return
 		}
-		models.SendInternalError(c, "Failed to verify product existence")
+		models.SendInternalErrorLogged(c, "Failed to verify product existence", err)
 		return
 	}
 
 	var req models.CreateVariantRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		models.SendError(c, http.StatusBadRequest, "Invalid request payload: "+err.Error())
+		models.SendError(c, http.StatusBadRequest, "Invalid request payload")
 		return
 	}
 
@@ -57,8 +59,12 @@ func (h *VariantHandler) AddVariantToProduct(c *gin.Context) {
 	}
 
 	if err := h.db.Create(&variant).Error; err != nil {
-		models.SendInternalError(c, "Failed to create variant: "+err.Error())
+		models.SendInternalErrorLogged(c, "Failed to create variant", err)
 		return
+	}
+
+	if h.cache != nil {
+		h.cache.InvalidatePrefix("products:")
 	}
 
 	models.SendSuccess(c, http.StatusCreated, variant, "Variant added successfully")
@@ -79,13 +85,13 @@ func (h *VariantHandler) UpdateVariant(c *gin.Context) {
 			models.SendError(c, http.StatusNotFound, "Variant not found")
 			return
 		}
-		models.SendInternalError(c, "Failed to find variant")
+		models.SendInternalErrorLogged(c, "Failed to find variant", err)
 		return
 	}
 
 	var req models.UpdateVariantRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		models.SendError(c, http.StatusBadRequest, "Invalid request payload: "+err.Error())
+		models.SendError(c, http.StatusBadRequest, "Invalid request payload")
 		return
 	}
 
@@ -106,8 +112,12 @@ func (h *VariantHandler) UpdateVariant(c *gin.Context) {
 	}
 
 	if err := h.db.Save(&variant).Error; err != nil {
-		models.SendInternalError(c, "Failed to update variant")
+		models.SendInternalErrorLogged(c, "Failed to update variant", err)
 		return
+	}
+
+	if h.cache != nil {
+		h.cache.InvalidatePrefix("products:")
 	}
 
 	models.SendSuccess(c, http.StatusOK, variant, "Variant updated successfully")
@@ -128,13 +138,17 @@ func (h *VariantHandler) DeleteVariant(c *gin.Context) {
 			models.SendError(c, http.StatusNotFound, "Variant not found")
 			return
 		}
-		models.SendInternalError(c, "Failed to find variant")
+		models.SendInternalErrorLogged(c, "Failed to find variant", err)
 		return
 	}
 
 	if err := h.db.Delete(&variant).Error; err != nil {
-		models.SendInternalError(c, "Failed to delete variant")
+		models.SendInternalErrorLogged(c, "Failed to delete variant", err)
 		return
+	}
+
+	if h.cache != nil {
+		h.cache.InvalidatePrefix("products:")
 	}
 
 	models.SendSuccess(c, http.StatusOK, nil, "Variant deleted successfully")

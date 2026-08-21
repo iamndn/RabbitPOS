@@ -38,6 +38,7 @@ main
 main.exe
 backend/main
 backend/main.exe
+gen-lang-client.json
 
 # Go Module Cache & Dependencies
 .gomodcache/

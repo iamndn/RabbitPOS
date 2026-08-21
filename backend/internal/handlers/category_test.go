@@ -14,8 +14,8 @@ import (
 )
 
 func setupTestDB(t *testing.T) *gorm.DB {
-	// Attempt to connect to test postgres DB or skip if not available locally
-	dsn := "host=localhost user=postgres password=postgres dbname=rabbitpos port=5432 sslmode=disable"
+	// Attempt to connect to test postgres DB with 2s timeout or skip if not available
+	dsn := "host=localhost user=admin password=password123 dbname=rabbitpos port=5432 sslmode=disable connect_timeout=2"
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		t.Skip("PostgreSQL test database not available, skipping integration test:", err)
@@ -29,7 +29,7 @@ func TestCategoryHandler_ListCategories(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	db := setupTestDB(t)
 
-	handler := NewCategoryHandler(db)
+	handler := NewCategoryHandler(db, nil)
 	router := gin.New()
 	router.GET("/api/v1/categories", handler.ListCategories)
 
@@ -55,7 +55,7 @@ func TestCategoryHandler_CreateCategory(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	db := setupTestDB(t)
 
-	handler := NewCategoryHandler(db)
+	handler := NewCategoryHandler(db, nil)
 	router := gin.New()
 	router.POST("/api/v1/categories", handler.CreateCategory)
 

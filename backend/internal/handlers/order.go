@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/RabbitPOS/backend/internal/cache"
 	"github.com/RabbitPOS/backend/internal/models"
 	"github.com/RabbitPOS/backend/internal/services"
 	"github.com/gin-gonic/gin"
@@ -16,13 +17,14 @@ import (
 type OrderHandler struct {
 	db            *gorm.DB
 	sheetsSyncSvc *services.SheetsSyncService
+	fundCache     *cache.TTLCache
 }
 
-func NewOrderHandler(db *gorm.DB, sheetsSyncSvc *services.SheetsSyncService) *OrderHandler {
-	return &OrderHandler{db: db, sheetsSyncSvc: sheetsSyncSvc}
+func NewOrderHandler(db *gorm.DB, sheetsSyncSvc *services.SheetsSyncService, fundCache *cache.TTLCache) *OrderHandler {
+	return &OrderHandler{db: db, sheetsSyncSvc: sheetsSyncSvc, fundCache: fundCache}
 }
 
-// ListOrders retrieves orders with loaded relations and optional filters
+// ListOrders retrieves orders with loaded relations, optional filters and pagination
 func (h *OrderHandler) ListOrders(c *gin.Context) {
 	query := h.db.Model(&models.Order{}).
 		Preload("Fund").
@@ -39,9 +41,47 @@ func (h *OrderHandler) ListOrders(c *gin.Context) {
 		query = query.Where("status = ?", status)
 	}
 
+	pageStr := c.Query("page")
+	pageSizeStr := c.Query("page_size")
+
+	// If page parameter provided, perform paginated query
+	if pageStr != "" {
+		page, _ := strconv.Atoi(pageStr)
+		if page < 1 {
+			page = 1
+		}
+		pageSize, _ := strconv.Atoi(pageSizeStr)
+		if pageSize < 1 || pageSize > 100 {
+			pageSize = 25
+		}
+
+		var total int64
+		if err := query.Count(&total).Error; err != nil {
+			models.SendInternalErrorLogged(c, "Failed to count orders", err)
+			return
+		}
+
+		orders := make([]models.Order, 0)
+		if err := query.Order("created_at desc").Offset((page - 1) * pageSize).Limit(pageSize).Find(&orders).Error; err != nil {
+			models.SendInternalErrorLogged(c, "Failed to retrieve orders", err)
+			return
+		}
+
+		totalPages := int((total + int64(pageSize) - 1) / int64(pageSize))
+		models.SendSuccess(c, http.StatusOK, gin.H{
+			"items":       orders,
+			"page":        page,
+			"page_size":   pageSize,
+			"total_items": total,
+			"total_pages": totalPages,
+		}, "Orders retrieved successfully")
+		return
+	}
+
+	// Default unpaginated query for backwards compatibility
 	orders := make([]models.Order, 0)
 	if err := query.Order("created_at desc").Find(&orders).Error; err != nil {
-		models.SendInternalError(c, "Failed to retrieve orders: "+err.Error())
+		models.SendInternalErrorLogged(c, "Failed to retrieve orders", err)
 		return
 	}
 
@@ -228,8 +268,12 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 	})
 
 	if err != nil {
-		models.SendInternalError(c, "Failed to process order transaction: "+err.Error())
+		models.SendInternalErrorLogged(c, "Failed to process order transaction", err)
 		return
+	}
+
+	if h.fundCache != nil {
+		h.fundCache.Invalidate("funds:list")
 	}
 
 	// Load order relations for response
@@ -252,28 +296,28 @@ func (h *OrderHandler) CancelOrder(c *gin.Context) {
 		return
 	}
 
-	var req models.CancelOrderRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		models.SendError(c, http.StatusBadRequest, "Invalid cancellation payload: "+err.Error())
-		return
-	}
-
 	var order models.Order
-	if err := h.db.Preload("Fund").First(&order, id).Error; err != nil {
+	if err := h.db.First(&order, id).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			models.SendError(c, http.StatusNotFound, "Order not found")
 			return
 		}
-		models.SendInternalError(c, "Database error retrieving order")
+		models.SendInternalErrorLogged(c, "Failed to find order", err)
 		return
 	}
 
 	if order.Status == models.OrderStatusCancelled {
-		models.SendError(c, http.StatusBadRequest, "Order has already been cancelled")
+		models.SendError(c, http.StatusBadRequest, "Order is already cancelled")
 		return
 	}
 
-	// Extract cashier info
+	var req models.CancelOrderRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		models.SendError(c, http.StatusBadRequest, "Invalid request payload")
+		return
+	}
+
+	// Extract cashier identity from JWT context for attribution
 	cashierName := ""
 	var cashierIDPtr *uint
 	if usernameVal, ok := c.Get("username"); ok {
@@ -288,14 +332,14 @@ func (h *OrderHandler) CancelOrder(c *gin.Context) {
 	}
 
 	now := time.Now()
-
 	err = h.db.Transaction(func(tx *gorm.DB) error {
 		// 1. Update Order Status
-		order.Status = models.OrderStatusCancelled
-		order.CancelReason = req.CancelReason
-		order.CancelledAt = &now
-
-		if err := tx.Save(&order).Error; err != nil {
+		orderUpdates := map[string]interface{}{
+			"status":        models.OrderStatusCancelled,
+			"cancel_reason": req.CancelReason,
+			"cancelled_at":  &now,
+		}
+		if err := tx.Model(&order).Updates(orderUpdates).Error; err != nil {
 			return err
 		}
 
@@ -329,8 +373,12 @@ func (h *OrderHandler) CancelOrder(c *gin.Context) {
 	})
 
 	if err != nil {
-		models.SendInternalError(c, "Failed to cancel order: "+err.Error())
+		models.SendInternalErrorLogged(c, "Failed to cancel order", err)
 		return
+	}
+
+	if h.fundCache != nil {
+		h.fundCache.Invalidate("funds:list")
 	}
 
 	h.db.Preload("Fund").Preload("Promotion").Preload("Items.Variant").First(&order, order.ID)
