@@ -37,6 +37,8 @@ type Transaction struct {
 	CashierID   *uint  `gorm:"index" json:"cashier_id,omitempty"`
 	CashierName string `gorm:"type:varchar(100);default:''" json:"cashier_name"`
 	CreatedAt   time.Time `json:"created_at"`
+	// PurchaseItems contains itemized inventory purchase items if logged with this transaction
+	PurchaseItems []PurchaseItem `gorm:"foreignKey:TransactionID;constraint:OnDelete:CASCADE" json:"purchase_items,omitempty"`
 }
 
 // Request & Response DTOs
@@ -51,6 +53,8 @@ type CreateTransactionRequest struct {
 	CreatedBy string `json:"created_by"`
 	// CreatedAt is an optional custom transaction timestamp (e.g. for backfilling past transactions)
 	CreatedAt *time.Time `json:"created_at"`
+	// PurchaseItems is an optional list of itemized ingredient/packaging purchases
+	PurchaseItems []PurchaseItemInput `json:"purchase_items,omitempty"`
 }
 
 type UpdateTransactionRequest struct {

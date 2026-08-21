@@ -27,7 +27,10 @@ func NewTransactionHandler(db *gorm.DB, sheetsSyncSvc *services.SheetsSyncServic
 
 // ListTransactions retrieves transaction history with filters and pagination support
 func (h *TransactionHandler) ListTransactions(c *gin.Context) {
-	query := h.db.Model(&models.Transaction{}).Preload("Fund").Preload("ReferenceOrder")
+	query := h.db.Model(&models.Transaction{}).
+		Preload("Fund").
+		Preload("ReferenceOrder").
+		Preload("PurchaseItems.Ingredient")
 
 	if fundIDStr := c.Query("fund_id"); fundIDStr != "" {
 		if fundID, err := strconv.ParseUint(fundIDStr, 10, 32); err == nil {
@@ -164,6 +167,102 @@ func (h *TransactionHandler) CreateTransaction(c *gin.Context) {
 			}
 		}
 
+		// 3. Process optional itemized purchase items (Ingredients & Packaging)
+		if len(req.PurchaseItems) > 0 {
+			for _, item := range req.PurchaseItems {
+				ingName := strings.TrimSpace(item.IngredientName)
+				if ingName == "" && (item.IngredientID == nil || *item.IngredientID == 0) {
+					continue
+				}
+
+				var ingredient models.Ingredient
+				var findErr error
+
+				if item.IngredientID != nil && *item.IngredientID > 0 {
+					findErr = tx.First(&ingredient, *item.IngredientID).Error
+				} else {
+					findErr = tx.Where("LOWER(name) = LOWER(?)", ingName).First(&ingredient).Error
+				}
+
+				unit := strings.TrimSpace(item.Unit)
+				if unit == "" {
+					unit = "kg"
+				}
+				category := strings.TrimSpace(item.Category)
+				if category == "" {
+					category = "fruit"
+				}
+
+				if errors.Is(findErr, gorm.ErrRecordNotFound) {
+					// Create new ingredient
+					ingredient = models.Ingredient{
+						Name:                 ingName,
+						Category:             category,
+						Unit:                 unit,
+						LatestPurchasePrice:  item.UnitPrice,
+						AveragePurchasePrice: item.UnitPrice,
+						YieldRate:            1.0000,
+						CreatedAt:            txTime,
+						UpdatedAt:            txTime,
+					}
+					if err := tx.Create(&ingredient).Error; err != nil {
+						return err
+					}
+				} else if findErr == nil {
+					// Update existing ingredient latest price and unit if unset
+					ingredient.LatestPurchasePrice = item.UnitPrice
+					if ingredient.Unit == "" {
+						ingredient.Unit = unit
+					}
+					if item.Category != "" && (ingredient.Category == "" || ingredient.Category == "fruit") {
+						ingredient.Category = category
+					}
+					ingredient.UpdatedAt = txTime
+					if err := tx.Save(&ingredient).Error; err != nil {
+						return err
+					}
+				} else {
+					return findErr
+				}
+
+				// Insert Purchase Item record
+				subtotal := math.Round(item.Quantity*item.UnitPrice*100) / 100
+				purchaseItem := models.PurchaseItem{
+					TransactionID: transaction.ID,
+					IngredientID:  ingredient.ID,
+					Quantity:      item.Quantity,
+					UnitPrice:     item.UnitPrice,
+					Subtotal:      subtotal,
+					CreatedAt:     txTime,
+				}
+				if err := tx.Create(&purchaseItem).Error; err != nil {
+					return err
+				}
+
+				// Recalculate weighted average purchase price for this ingredient
+				type CostSummary struct {
+					TotalCost float64 `gorm:"column:total_cost"`
+					TotalQty  float64 `gorm:"column:total_qty"`
+				}
+				var summary CostSummary
+				tx.Model(&models.PurchaseItem{}).
+					Select("COALESCE(SUM(subtotal), 0) AS total_cost, COALESCE(SUM(quantity), 0) AS total_qty").
+					Where("ingredient_id = ?", ingredient.ID).
+					Scan(&summary)
+
+				if summary.TotalQty > 0 {
+					ingredient.AveragePurchasePrice = math.Round((summary.TotalCost/summary.TotalQty)*100) / 100
+				} else {
+					ingredient.AveragePurchasePrice = item.UnitPrice
+				}
+				ingredient.LatestPurchasePrice = item.UnitPrice
+				ingredient.UpdatedAt = txTime
+				if err := tx.Save(&ingredient).Error; err != nil {
+					return err
+				}
+			}
+		}
+
 		return nil
 	})
 
@@ -176,7 +275,7 @@ func (h *TransactionHandler) CreateTransaction(c *gin.Context) {
 		h.fundCache.Invalidate("funds:list")
 	}
 
-	h.db.Preload("Fund").First(&transaction, transaction.ID)
+	h.db.Preload("Fund").Preload("PurchaseItems.Ingredient").First(&transaction, transaction.ID)
 
 	// Trigger non-blocking real-time Google Sheets sync if enabled
 	if h.sheetsSyncSvc != nil {

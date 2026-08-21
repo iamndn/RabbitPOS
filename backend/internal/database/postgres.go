@@ -72,6 +72,9 @@ func InitDB(cfg *config.Config) (*gorm.DB, error) {
 		&models.Setting{},
 		&models.Topping{},
 		&models.TransactionCategoryItem{},
+		&models.Ingredient{},
+		&models.PurchaseItem{},
+		&models.RecipeItem{},
 	)
 	if err != nil {
 		log.Printf("Warning: Failed during DB auto-migration: %v", err)

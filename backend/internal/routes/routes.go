@@ -62,6 +62,7 @@ func SetupRouter(cfg *config.Config, db *gorm.DB, emailSvc *services.EmailServic
 	txCategoryHandler := handlers.NewTransactionCategoryHandler(db)
 	sheetsSyncHandler := handlers.NewSheetsSyncHandler(sheetsSyncSvc)
 	autoTaggingHandler := handlers.NewAutoTaggingHandler(autoTaggingSvc)
+	purchaseHandler := handlers.NewPurchaseHandler(db, productCache, toppingCache)
 
 	// API v1 Group
 	v1 := router.Group("/api/v1")
@@ -105,10 +106,23 @@ func SetupRouter(cfg *config.Config, db *gorm.DB, emailSvc *services.EmailServic
 			// Transaction Categories: read list for manual transactions
 			authenticated.GET("/transaction-categories", txCategoryHandler.ListCategories)
 
+			// Ingredients: read list for expense logging autocomplete
+			authenticated.GET("/purchases/ingredients", purchaseHandler.ListIngredients)
+
 			// Admin-Only Routes (Management, Financial Ledger, Analytics & Settings Update)
 			adminOnly := authenticated.Group("")
 			adminOnly.Use(middleware.RequireRole(models.RoleAdmin))
 			{
+				// Inventory Purchases, Ingredients & Recipe Cost Management
+				adminOnly.POST("/purchases/ingredients", purchaseHandler.CreateIngredient)
+				adminOnly.PUT("/purchases/ingredients/:id", purchaseHandler.UpdateIngredient)
+				adminOnly.DELETE("/purchases/ingredients/:id", purchaseHandler.DeleteIngredient)
+				adminOnly.GET("/purchases/ingredients/:id/history", purchaseHandler.GetIngredientHistory)
+				adminOnly.GET("/purchases/cost-comparison", purchaseHandler.GetCostComparison)
+				adminOnly.POST("/purchases/apply-cost", purchaseHandler.ApplyCostToMenu)
+				adminOnly.GET("/purchases/recipes/:target_type/:target_id", purchaseHandler.GetRecipe)
+				adminOnly.POST("/purchases/recipes/:target_type/:target_id", purchaseHandler.SaveRecipe)
+
 				// Catalog Management Mutations
 				adminOnly.POST("/categories", categoryHandler.CreateCategory)
 				adminOnly.PUT("/categories/:id", categoryHandler.UpdateCategory)
