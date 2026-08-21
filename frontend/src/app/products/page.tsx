@@ -20,6 +20,7 @@ import {
   ChevronDown,
   ChevronUp,
   Layers,
+  Sparkles,
 } from 'lucide-react';
 import AppShell from '@/components/AppShell';
 import { fetchApi, getImageUrl, uploadImage } from '@/lib/api';
@@ -27,6 +28,11 @@ import { useTranslation } from '@/lib/i18n/LanguageContext';
 import { useConfirm } from '@/context/ConfirmContext';
 import { formatCurrency, SettingsMap } from '@/lib/utils';
 import ModernSelect from '@/components/common/ModernSelect';
+import TagManagerModal, {
+  CustomTag,
+  DEFAULT_SYSTEM_TAGS,
+  getTagBadgeStyle,
+} from '@/components/products/TagManagerModal';
 
 interface Category {
   id: number;
@@ -77,6 +83,10 @@ export default function ProductsPage() {
   const [selectedTag, setSelectedTag] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [settings, setSettings] = useState<SettingsMap | null>(null);
+
+  // Tag Manager State
+  const [isTagModalOpen, setIsTagModalOpen] = useState<boolean>(false);
+  const [customTags, setCustomTags] = useState<CustomTag[]>([]);
 
   // Category Management Panel
   const [catPanelOpen, setCatPanelOpen] = useState<boolean>(false);
@@ -140,6 +150,22 @@ export default function ProductsPage() {
     setUploadingCatImg(false);
   };
 
+  const handleSaveTags = async (updatedTags: CustomTag[]) => {
+    const payload = {
+      custom_product_tags: JSON.stringify(updatedTags),
+    };
+    const res = await fetchApi<any>('/settings', {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+    if (res.status === 'success') {
+      setCustomTags(updatedTags);
+      setSettings((prev) => (prev ? { ...prev, custom_product_tags: JSON.stringify(updatedTags) } : null));
+    } else {
+      throw new Error(res.message || 'Failed to save tags');
+    }
+  };
+
   const loadCatalog = async (retryCount = 0) => {
     setLoading(true);
 
@@ -151,16 +177,27 @@ export default function ProductsPage() {
       ]);
 
       if (settingsRes.status === 'success' && settingsRes.data) {
+        let map: SettingsMap = {};
         if (Array.isArray(settingsRes.data)) {
-          const map: SettingsMap = {};
           settingsRes.data.forEach((s: any) => {
             if (s && s.key) {
               map[s.key] = s.value;
             }
           });
-          setSettings(map);
         } else if (typeof settingsRes.data === 'object') {
-          setSettings(settingsRes.data as SettingsMap);
+          map = settingsRes.data as SettingsMap;
+        }
+        setSettings(map);
+
+        if (map.custom_product_tags) {
+          try {
+            const parsed = JSON.parse(map.custom_product_tags);
+            if (Array.isArray(parsed)) {
+              setCustomTags(parsed);
+            }
+          } catch (e) {
+            console.error('Failed to parse custom_product_tags', e);
+          }
         }
       }
 
@@ -525,6 +562,24 @@ export default function ProductsPage() {
   const safeCategories = useMemo(() => (Array.isArray(categories) ? categories : []), [categories]);
   const safeToppings = useMemo(() => (Array.isArray(toppings) ? toppings : []), [toppings]);
 
+  const productCountsByTag = useMemo(() => {
+    const counts: Record<string, number> = {};
+    safeProducts.forEach((p) => {
+      if (p.tag && p.tag !== 'none') {
+        counts[p.tag] = (counts[p.tag] || 0) + 1;
+      }
+    });
+    return counts;
+  }, [safeProducts]);
+
+  const allAvailableTags = useMemo(() => {
+    return [...DEFAULT_SYSTEM_TAGS, ...customTags];
+  }, [customTags]);
+
+  const totalVariantsCount = useMemo(() => {
+    return safeProducts.reduce((acc, p) => acc + (p.variants?.length || 0), 0);
+  }, [safeProducts]);
+
   const filteredProducts = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     return safeProducts.filter((p) => {
@@ -561,22 +616,89 @@ export default function ProductsPage() {
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <button
+              onClick={() => setIsTagModalOpen(true)}
+              className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold px-3 py-2.5 rounded-xl border border-indigo-200 flex items-center gap-1.5 transition cursor-pointer shadow-2xs"
+            >
+              <Tag className="w-4 h-4 text-indigo-600" />
+              <span>Quản lý Nhãn</span>
+              <span className="bg-indigo-600 text-white text-[10px] px-1.5 py-0.2 rounded-full font-black">
+                {allAvailableTags.length}
+              </span>
+            </button>
+            <button
               onClick={openCreateToppingModal}
-              className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-3 py-2.5 rounded-xl border border-slate-200 flex items-center gap-1.5 transition"
+              className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-3 py-2.5 rounded-xl border border-slate-200 flex items-center gap-1.5 transition cursor-pointer"
             >
               <Layers className="w-4 h-4 text-violet-500" /> + {t('products.add_topping')}
             </button>
             <button
               onClick={openCreateCategoryModal}
-              className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-3 py-2.5 rounded-xl border border-slate-200 flex items-center gap-1.5 transition"
+              className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-3 py-2.5 rounded-xl border border-slate-200 flex items-center gap-1.5 transition cursor-pointer"
             >
               <FolderPlus className="w-4 h-4 text-slate-500" /> + {t('products.add_category')}
             </button>
             <button
               onClick={openCreateModal}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl flex items-center gap-1.5 shadow-sm transition"
+              className="bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white text-xs font-bold px-4 py-2.5 rounded-xl flex items-center gap-1.5 shadow-sm transition cursor-pointer"
             >
               <Plus className="w-4 h-4" /> {t('products.add_product')}
+            </button>
+          </div>
+        </div>
+
+        {/* KPI Metric Summary Row */}
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+          <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center justify-between">
+            <div>
+              <span className="text-[11px] font-bold text-slate-500 uppercase">Tổng số món</span>
+              <div className="text-xl font-black text-slate-900 mt-0.5">{safeProducts.length}</div>
+            </div>
+            <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
+              <Package className="w-5 h-5" />
+            </div>
+          </div>
+
+          <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center justify-between">
+            <div>
+              <span className="text-[11px] font-bold text-slate-500 uppercase">Danh mục</span>
+              <div className="text-xl font-black text-slate-900 mt-0.5">{safeCategories.length}</div>
+            </div>
+            <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
+              <FolderOpen className="w-5 h-5" />
+            </div>
+          </div>
+
+          <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center justify-between">
+            <div>
+              <span className="text-[11px] font-bold text-slate-500 uppercase">Biến thể / Size</span>
+              <div className="text-xl font-black text-slate-900 mt-0.5">{totalVariantsCount}</div>
+            </div>
+            <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
+              <Percent className="w-5 h-5" />
+            </div>
+          </div>
+
+          <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center justify-between">
+            <div>
+              <span className="text-[11px] font-bold text-slate-500 uppercase">Topping</span>
+              <div className="text-xl font-black text-slate-900 mt-0.5">{safeToppings.length}</div>
+            </div>
+            <div className="w-9 h-9 rounded-xl bg-violet-50 text-violet-600 flex items-center justify-center font-bold">
+              <Layers className="w-5 h-5" />
+            </div>
+          </div>
+
+          <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-2xs col-span-2 sm:col-span-1 flex items-center justify-between">
+            <div>
+              <span className="text-[11px] font-bold text-slate-500 uppercase">Nhãn món (Tags)</span>
+              <div className="text-xl font-black text-indigo-600 mt-0.5">{allAvailableTags.length}</div>
+            </div>
+            <button
+              onClick={() => setIsTagModalOpen(true)}
+              className="w-9 h-9 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 flex items-center justify-center font-bold transition cursor-pointer"
+              title="Quản lý Nhãn"
+            >
+              <Tag className="w-5 h-5" />
             </button>
           </div>
         </div>
@@ -809,17 +931,19 @@ export default function ProductsPage() {
             </div>
 
             {/* Tag Filter */}
-            <div className="w-full sm:w-44">
+            <div className="w-full sm:w-52">
               <ModernSelect
                 value={selectedTag}
                 onChange={(val) => setSelectedTag(String(val))}
                 options={[
                   { value: 'all', label: t('products.filter_all_tags') || 'Tất cả nhãn' },
-                  { value: 'featured', label: t('products.badge_featured') || '⭐ Nổi bật', badge: '⭐ Nổi bật', badgeColor: 'amber' },
-                  { value: 'best_seller', label: t('products.badge_bestseller') || '🔥 Bán chạy', badge: '🔥 Bán chạy', badgeColor: 'rose' },
-                  { value: 'new', label: t('products.badge_new') || '✨ Món mới', badge: '✨ Món mới', badgeColor: 'emerald' },
-                  { value: 'coming_soon', label: t('products.badge_comingsoon') || '⏳ Sắp ra mắt', badge: '⏳ Sắp ra mắt', badgeColor: 'indigo' },
-                  { value: 'suspended', label: t('products.badge_suspended') || '⛔ Tạm ngưng', badge: '⛔ Tạm ngưng', badgeColor: 'slate' },
+                  ...allAvailableTags.map((tg) => ({
+                    value: tg.id,
+                    label: `${tg.icon} ${tg.name}`,
+                    badge: `${tg.icon} ${tg.name}`,
+                    badgeColor: (tg.color || 'emerald') as any,
+                  })),
+                  { value: 'none', label: 'Không gắn nhãn' },
                 ]}
               />
             </div>
@@ -931,35 +1055,15 @@ export default function ProductsPage() {
                             <div>
                               <div className="font-semibold text-slate-900 text-sm flex items-center gap-1.5">
                                 <span className={product.is_active === false ? 'line-through text-slate-500' : ''}>{product.name}</span>
-                                {product.tag && product.tag !== 'none' && (
-                                  <span
-                                    className={`text-[9px] uppercase font-extrabold px-1.5 py-0.5 rounded border ${
-                                      product.tag === 'featured'
-                                        ? 'bg-amber-50 text-amber-700 border-amber-200'
-                                        : product.tag === 'best_seller'
-                                        ? 'bg-rose-50 text-rose-700 border-rose-200'
-                                        : product.tag === 'new'
-                                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                        : product.tag === 'coming_soon'
-                                        ? 'bg-blue-50 text-blue-700 border-blue-200'
-                                        : product.tag === 'suspended'
-                                        ? 'bg-slate-100 text-slate-700 border-slate-300'
-                                        : 'bg-indigo-50 text-indigo-700 border-indigo-200'
-                                    }`}
-                                  >
-                                    {product.tag === 'featured'
-                                      ? '⭐ ' + t('products.featured')
-                                      : product.tag === 'best_seller'
-                                      ? '🔥 ' + t('products.best_seller')
-                                      : product.tag === 'new'
-                                      ? '✨ ' + t('products.new')
-                                      : product.tag === 'coming_soon'
-                                      ? '⏳ ' + t('products.coming_soon')
-                                      : product.tag === 'suspended'
-                                      ? '⛔ ' + t('products.suspended')
-                                      : product.tag.replace('_', ' ')}
-                                  </span>
-                                )}
+                                {product.tag && product.tag !== 'none' && (() => {
+                                  const style = getTagBadgeStyle(product.tag, customTags);
+                                  return (
+                                    <span className={`text-[10px] uppercase font-extrabold px-2 py-0.5 rounded-lg border inline-flex items-center gap-1 ${style.badgeClasses}`}>
+                                      <span>{style.icon}</span>
+                                      <span>{style.name}</span>
+                                    </span>
+                                  );
+                                })()}
                               </div>
                               <span className="text-slate-400 text-[11px] truncate max-w-xs block">
                                 {product.description || t('products.no_description')}
@@ -1089,35 +1193,15 @@ export default function ProductsPage() {
                             <span className={`font-bold text-sm text-slate-900 ${product.is_active === false ? 'line-through text-slate-500' : ''}`}>
                               {product.name}
                             </span>
-                            {product.tag && product.tag !== 'none' && (
-                              <span
-                                className={`text-[9px] uppercase font-extrabold px-1.5 py-0.5 rounded border ${
-                                  product.tag === 'featured'
-                                    ? 'bg-amber-50 text-amber-700 border-amber-200'
-                                    : product.tag === 'best_seller'
-                                    ? 'bg-rose-50 text-rose-700 border-rose-200'
-                                    : product.tag === 'new'
-                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                    : product.tag === 'coming_soon'
-                                    ? 'bg-blue-50 text-blue-700 border-blue-200'
-                                    : product.tag === 'suspended'
-                                    ? 'bg-slate-100 text-slate-700 border-slate-300'
-                                    : 'bg-indigo-50 text-indigo-700 border-indigo-200'
-                                }`}
-                              >
-                                {product.tag === 'featured'
-                                  ? '⭐ ' + t('products.featured')
-                                  : product.tag === 'best_seller'
-                                  ? '🔥 ' + t('products.best_seller')
-                                  : product.tag === 'new'
-                                  ? '✨ ' + t('products.new')
-                                  : product.tag === 'coming_soon'
-                                  ? '⏳ ' + t('products.coming_soon')
-                                  : product.tag === 'suspended'
-                                  ? '⛔ ' + t('products.suspended')
-                                  : product.tag.replace('_', ' ')}
-                              </span>
-                            )}
+                            {product.tag && product.tag !== 'none' && (() => {
+                              const style = getTagBadgeStyle(product.tag, customTags);
+                              return (
+                                <span className={`text-[10px] uppercase font-extrabold px-2 py-0.5 rounded-lg border inline-flex items-center gap-1 ${style.badgeClasses}`}>
+                                  <span>{style.icon}</span>
+                                  <span>{style.name}</span>
+                                </span>
+                              );
+                            })()}
                           </div>
                           <span className="text-slate-400 text-xs truncate block mt-0.5">
                             {product.category?.name || t('products.unassigned')}
@@ -1272,17 +1356,27 @@ export default function ProductsPage() {
               </div>
 
               <div>
-                <label className="font-semibold text-slate-700 mb-1 block">{t('products.badge')}</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="font-semibold text-slate-700">{t('products.badge') || 'Huy hiệu / Nhãn sản phẩm'}</label>
+                  <button
+                    type="button"
+                    onClick={() => setIsTagModalOpen(true)}
+                    className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 cursor-pointer"
+                  >
+                    <Sparkles className="w-3 h-3" /> Quản lý nhãn món
+                  </button>
+                </div>
                 <ModernSelect
                   value={formTag}
                   onChange={(val) => setFormTag(String(val))}
                   options={[
                     { value: 'none', label: t('products.badge_none') || 'Không gắn nhãn' },
-                    { value: 'featured', label: t('products.badge_featured') || '⭐ Nổi bật', badge: '⭐ Nổi bật', badgeColor: 'amber' },
-                    { value: 'best_seller', label: t('products.badge_bestseller') || '🔥 Bán chạy', badge: '🔥 Bán chạy', badgeColor: 'rose' },
-                    { value: 'new', label: t('products.badge_new') || '✨ Món mới', badge: '✨ Món mới', badgeColor: 'emerald' },
-                    { value: 'coming_soon', label: t('products.badge_comingsoon') || '⏳ Sắp ra mắt', badge: '⏳ Sắp ra mắt', badgeColor: 'indigo' },
-                    { value: 'suspended', label: t('products.badge_suspended') || '⛔ Tạm ngưng', badge: '⛔ Tạm ngưng', badgeColor: 'slate' },
+                    ...allAvailableTags.map((tg) => ({
+                      value: tg.id,
+                      label: `${tg.icon} ${tg.name}`,
+                      badge: `${tg.icon} ${tg.name}`,
+                      badgeColor: (tg.color || 'emerald') as any,
+                    })),
                   ]}
                 />
               </div>
@@ -1607,6 +1701,15 @@ export default function ProductsPage() {
           </div>
         </div>
       )}
+
+      {/* Tag Manager Modal */}
+      <TagManagerModal
+        isOpen={isTagModalOpen}
+        onClose={() => setIsTagModalOpen(false)}
+        customTags={customTags}
+        onSaveTags={handleSaveTags}
+        productCountsByTag={productCountsByTag}
+      />
     </AppShell>
   );
 }

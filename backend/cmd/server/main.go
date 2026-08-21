@@ -26,15 +26,16 @@ func main() {
 		log.Printf("Warning: Database initialization error: %v. Running in degraded mode without DB connection.", err)
 	}
 
-	// Initialize Email & Google Sheets Services
+	// Initialize Email, Google Sheets & Auto-Tagging Services
 	emailSvc := services.NewEmailService(db)
 	sheetsSyncSvc := services.NewSheetsSyncService(db)
+	autoTaggingSvc := services.NewAutoTaggingService(db, nil)
 
 	// Start the automated daily report scheduler in the background
-	go startDailyReportScheduler(db, emailSvc, sheetsSyncSvc)
+	go startDailyReportScheduler(db, emailSvc, sheetsSyncSvc, autoTaggingSvc)
 
 	// Setup HTTP Router
-	router := routes.SetupRouter(cfg, db, emailSvc, sheetsSyncSvc)
+	router := routes.SetupRouter(cfg, db, emailSvc, sheetsSyncSvc, autoTaggingSvc)
 
 	// Start Server
 	serverAddr := ":" + cfg.Port
@@ -45,10 +46,10 @@ func main() {
 }
 
 // startDailyReportScheduler ticks every 60 seconds, compares current time to
-// the configured daily_report_time setting, and fires SendDailyFinancialReport
-// and SyncAllToGoogleSheets once per day when the closing time window (e.g. 22:30) is reached.
-func startDailyReportScheduler(db *gorm.DB, emailSvc *services.EmailService, sheetsSyncSvc *services.SheetsSyncService) {
-	log.Println("[Scheduler] Daily email report & Google Sheets sync scheduler started")
+// the configured daily_report_time setting, and fires SendDailyFinancialReport,
+// SyncAllToGoogleSheets, and RunNightlyJob (Auto-Tagging) once per day when the closing time window (e.g. 22:30) is reached.
+func startDailyReportScheduler(db *gorm.DB, emailSvc *services.EmailService, sheetsSyncSvc *services.SheetsSyncService, autoTaggingSvc *services.AutoTaggingService) {
+	log.Println("[Scheduler] Daily email report, Google Sheets sync & Auto-Tagging scheduler started")
 
 	// Track the last date we fired the report to prevent duplicate sends
 	lastFiredDate := ""
@@ -60,10 +61,6 @@ func startDailyReportScheduler(db *gorm.DB, emailSvc *services.EmailService, she
 		// If neither email nor sheets sync is enabled, continue
 		isEmailEnabled := emailSvc.IsDailyReportEnabled()
 		isSheetsEnabled := sheetsSyncSvc.IsSyncEnabled()
-
-		if !isEmailEnabled && !isSheetsEnabled {
-			continue
-		}
 
 		configuredTime := emailSvc.GetDailyReportTime() // e.g. "22:30"
 		todayKey := now.Format("2006-01-02")            // e.g. "2026-08-19"
@@ -106,6 +103,13 @@ func startDailyReportScheduler(db *gorm.DB, emailSvc *services.EmailService, she
 					}
 				}(now)
 			}
+
+			// 3. Perform Automated Product Auto-Tagging Recalculation
+			go func() {
+				if err := autoTaggingSvc.RunNightlyJob(); err != nil {
+					log.Printf("[Scheduler] ERROR in nightly auto-tagging: %v", err)
+				}
+			}()
 		}
 	}
 }

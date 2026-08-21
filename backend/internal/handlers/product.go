@@ -124,12 +124,18 @@ func (h *ProductHandler) CreateProduct(c *gin.Context) {
 		isActive = *req.IsActive
 	}
 
+	tagLocked := false
+	if req.TagLocked != nil {
+		tagLocked = *req.TagLocked
+	}
+
 	product := models.Product{
 		CategoryID:  req.CategoryID,
 		Name:        req.Name,
 		Description: req.Description,
 		ImageURL:    req.ImageURL,
 		Tag:         tag,
+		TagLocked:   tagLocked,
 		IsActive:    isActive,
 	}
 
@@ -218,6 +224,9 @@ func (h *ProductHandler) UpdateProduct(c *gin.Context) {
 	}
 	if req.Tag != nil {
 		product.Tag = *req.Tag
+	}
+	if req.TagLocked != nil {
+		product.TagLocked = *req.TagLocked
 	}
 	if req.IsActive != nil {
 		product.IsActive = *req.IsActive

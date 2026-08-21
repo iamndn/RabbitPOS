@@ -532,7 +532,7 @@ export default function SettingsPage() {
                 }`}
               >
                 <Mail className={`w-4 h-4 ${activeTab === 'email' ? 'text-emerald-600' : 'text-slate-400'}`} />
-                <span>{t('email_report.settings_section_title').split(' ')[0]}</span>
+                <span>{t('settings.tab_email') || 'Cấu hình Email'}</span>
               </button>
 
               {/* Tab 5: Google Sheets Sync */}

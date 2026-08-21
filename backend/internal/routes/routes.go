@@ -15,7 +15,7 @@ import (
 )
 
 // SetupRouter initializes Gin engine with middlewares, auth protection, and API endpoints
-func SetupRouter(cfg *config.Config, db *gorm.DB, emailSvc *services.EmailService, sheetsSyncSvc *services.SheetsSyncService) *gin.Engine {
+func SetupRouter(cfg *config.Config, db *gorm.DB, emailSvc *services.EmailService, sheetsSyncSvc *services.SheetsSyncService, autoTaggingSvc *services.AutoTaggingService) *gin.Engine {
 	if cfg.AppEnv == "production" {
 		gin.SetMode(gin.ReleaseMode)
 	}
@@ -61,6 +61,7 @@ func SetupRouter(cfg *config.Config, db *gorm.DB, emailSvc *services.EmailServic
 	promotionHandler := handlers.NewPromotionHandler(db)
 	txCategoryHandler := handlers.NewTransactionCategoryHandler(db)
 	sheetsSyncHandler := handlers.NewSheetsSyncHandler(sheetsSyncSvc)
+	autoTaggingHandler := handlers.NewAutoTaggingHandler(autoTaggingSvc)
 
 	// API v1 Group
 	v1 := router.Group("/api/v1")
@@ -116,6 +117,13 @@ func SetupRouter(cfg *config.Config, db *gorm.DB, emailSvc *services.EmailServic
 				adminOnly.POST("/products", productHandler.CreateProduct)
 				adminOnly.PUT("/products/:id", productHandler.UpdateProduct)
 				adminOnly.DELETE("/products/:id", productHandler.DeleteProduct)
+
+				// Automated Product Tagging Engine Endpoints
+				adminOnly.GET("/products/auto-tag/config", autoTaggingHandler.GetConfig)
+				adminOnly.PUT("/products/auto-tag/config", autoTaggingHandler.SaveConfig)
+				adminOnly.POST("/products/auto-tag/preview", autoTaggingHandler.Preview)
+				adminOnly.POST("/products/auto-tag/apply", autoTaggingHandler.Apply)
+				adminOnly.POST("/products/auto-tag/toggle-lock", autoTaggingHandler.ToggleLock)
 
 				adminOnly.POST("/products/:id/variants", variantHandler.AddVariantToProduct)
 				adminOnly.PUT("/variants/:id", variantHandler.UpdateVariant)

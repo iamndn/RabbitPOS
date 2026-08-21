@@ -214,12 +214,12 @@ export default function DashboardPage() {
 
         {/* Email Report Confirmation Modal */}
         {showEmailModal && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-150">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[92vh] flex flex-col overflow-hidden border border-slate-100 animate-in zoom-in-95 duration-150">
               {/* Modal Header */}
-              <div className="flex items-center justify-between p-5 border-b border-slate-100">
+              <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-100 shrink-0">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center shrink-0">
                     <Mail className="w-5 h-5 text-emerald-600" />
                   </div>
                   <div>
@@ -227,28 +227,28 @@ export default function DashboardPage() {
                     <p className="text-xs text-slate-500 mt-0.5">{t('email_report.modal_subtitle')}</p>
                   </div>
                 </div>
-                <button onClick={() => setShowEmailModal(false)} className="text-slate-400 hover:text-slate-600 transition">
+                <button onClick={() => setShowEmailModal(false)} className="text-slate-400 hover:text-slate-600 transition p-1 cursor-pointer">
                   <X className="w-5 h-5" />
                 </button>
               </div>
               {/* Modal Body */}
-              <div className="p-5 space-y-4">
+              <div className="p-4 sm:p-5 space-y-4 overflow-y-auto max-h-[calc(92vh-140px)]">
                 {/* Date Picker */}
-                <div>
+                <div className="min-w-0">
                   <label className="block text-xs font-semibold text-slate-700 mb-1.5">{t('email_report.date_label')}</label>
                   <input
                     type="date"
                     value={emailDate}
                     onChange={(e) => setEmailDate(e.target.value)}
-                    className="w-full text-sm border border-slate-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                    className="w-full max-w-full block text-sm border border-slate-200 rounded-xl px-3 py-2.5 bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-400 min-h-[42px] box-border"
                   />
                 </div>
                 {/* Recipients */}
-                <div>
+                <div className="min-w-0">
                   <label className="block text-xs font-semibold text-slate-700 mb-2">{t('email_report.recipients_label')}</label>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-1.5">
                     {EMAIL_RECIPIENTS.map((email) => (
-                      <span key={email} className="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full px-3 py-1 font-medium">
+                      <span key={email} className="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full px-2.5 py-1 font-medium break-all">
                         {email}
                       </span>
                     ))}
@@ -256,10 +256,10 @@ export default function DashboardPage() {
                 </div>
               </div>
               {/* Modal Footer */}
-              <div className="flex gap-3 p-5 pt-0">
+              <div className="flex gap-3 p-4 sm:p-5 pt-0 shrink-0 mt-auto">
                 <button
                   onClick={() => setShowEmailModal(false)}
-                  className="flex-1 text-sm font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 py-2.5 rounded-xl transition"
+                  className="flex-1 text-sm font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 py-2.5 rounded-xl transition cursor-pointer"
                   disabled={emailSending}
                 >
                   {t('email_report.cancel')}
@@ -267,7 +267,7 @@ export default function DashboardPage() {
                 <button
                   onClick={handleSendEmailReport}
                   disabled={emailSending}
-                  className="flex-1 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 py-2.5 rounded-xl transition flex items-center justify-center gap-2 disabled:opacity-60"
+                  className="flex-1 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 py-2.5 rounded-xl transition flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer shadow-sm"
                 >
                   {emailSending ? (
                     <><RefreshCw className="w-4 h-4 animate-spin" />{t('email_report.sending')}</>

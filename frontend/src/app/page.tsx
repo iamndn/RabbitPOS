@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import dynamic from 'next/dynamic';
-import { ShoppingBag, Coffee, RefreshCw, CheckCircle2, AlertCircle, Plus, Search, Check, Tag } from 'lucide-react';
+import { ShoppingBag, Coffee, RefreshCw, CheckCircle2, AlertCircle, Plus, Search, Check, Tag, X, Sparkles, SlidersHorizontal } from 'lucide-react';
 import AppShell from '@/components/AppShell';
 import type { CartItem, Product } from '@/components/pos/VariantSelectorModal';
 import CartDrawer from '@/components/pos/CartDrawer';
@@ -12,6 +12,7 @@ import { fetchApi, ApiResponse, getImageUrl } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
 import { useConfirm } from '@/context/ConfirmContext';
 import { formatCurrency, SettingsMap } from '@/lib/utils';
+import { CustomTag, DEFAULT_SYSTEM_TAGS, getTagBadgeStyle } from '@/components/products/TagManagerModal';
 
 // Dynamic lazy-loaded modals for reduced bundle size and instant page responsiveness
 const VariantSelectorModal = dynamic(() => import('@/components/pos/VariantSelectorModal'), { ssr: false });
@@ -31,6 +32,7 @@ interface CategoryTabsProps {
   categories: Category[];
   activeCategoryId: number | null;
   totalProductsCount: number;
+  products: Product[];
   onSelectCategory: (id: number | null) => void;
   allLabel: string;
 }
@@ -39,6 +41,7 @@ const CategoryTabs = React.memo(function CategoryTabs({
   categories,
   activeCategoryId,
   totalProductsCount,
+  products,
   onSelectCategory,
   allLabel,
 }: CategoryTabsProps) {
@@ -46,27 +49,45 @@ const CategoryTabs = React.memo(function CategoryTabs({
     <div className="flex overflow-x-auto space-x-2 pb-1 w-full sm:w-auto scrollbar-none no-scrollbar py-1">
       <button
         onClick={() => onSelectCategory(null)}
-        className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap shadow-xs transition active:scale-95 hardware-accelerated ${
+        className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap shadow-xs transition active:scale-95 hardware-accelerated flex items-center gap-1.5 cursor-pointer ${
           activeCategoryId === null
-            ? 'bg-emerald-800 text-white shadow-sm font-bold'
-            : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+            ? 'bg-emerald-800 text-white shadow-sm font-black ring-2 ring-emerald-600/30'
+            : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200/80'
         }`}
       >
-        {allLabel} ({totalProductsCount})
+        <span>{allLabel}</span>
+        <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+          activeCategoryId === null ? 'bg-emerald-700 text-white' : 'bg-slate-100 text-slate-600'
+        }`}>
+          {totalProductsCount}
+        </span>
       </button>
-      {categories.map((cat) => (
-        <button
-          key={cat.id}
-          onClick={() => onSelectCategory(cat.id)}
-          className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap shadow-xs transition active:scale-95 hardware-accelerated ${
-            activeCategoryId === cat.id
-              ? 'bg-emerald-800 text-white shadow-sm font-bold'
-              : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
-          }`}
-        >
-          {cat.name}
-        </button>
-      ))}
+      {categories.map((cat) => {
+        const catCount = products.filter((p) => p.is_active !== false && p.category_id === cat.id).length;
+        const isSelected = activeCategoryId === cat.id;
+        const catImg = getImageUrl(cat.image_url);
+        return (
+          <button
+            key={cat.id}
+            onClick={() => onSelectCategory(cat.id)}
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap shadow-xs transition active:scale-95 hardware-accelerated flex items-center gap-1.5 cursor-pointer ${
+              isSelected
+                ? 'bg-emerald-800 text-white shadow-sm font-black ring-2 ring-emerald-600/30'
+                : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200/80'
+            }`}
+          >
+            {catImg && (
+              <img src={catImg} alt="" className="w-3.5 h-3.5 rounded object-cover shrink-0" />
+            )}
+            <span>{cat.name}</span>
+            <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+              isSelected ? 'bg-emerald-700 text-white' : 'bg-slate-100 text-slate-600'
+            }`}>
+              {catCount}
+            </span>
+          </button>
+        );
+      })}
     </div>
   );
 });
@@ -75,7 +96,9 @@ const CategoryTabs = React.memo(function CategoryTabs({
 interface ProductCardProps {
   product: Product;
   settings: SettingsMap | null;
+  customTags: CustomTag[];
   onSelect: (product: Product) => void;
+  onQuickAdd: (product: Product) => void;
   orderBtnLabel: string;
   t: (key: string, params?: any) => string;
 }
@@ -83,7 +106,9 @@ interface ProductCardProps {
 const ProductCard = React.memo(function ProductCard({
   product,
   settings,
+  customTags,
   onSelect,
+  onQuickAdd,
   orderBtnLabel,
   t,
 }: ProductCardProps) {
@@ -98,8 +123,11 @@ const ProductCard = React.memo(function ProductCard({
 
   const isSuspended = product.tag === 'suspended';
   const isComingSoon = product.tag === 'coming_soon';
+  const variantsCount = product.variants?.length || 0;
+  const isSingleVariant = variantsCount === 1;
 
-  const handleClick = () => {
+  const handleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (isSuspended) {
       showAlert(t('common.info') || 'Thông báo', `${product.name} hiện đang tạm ngưng phục vụ.`, 'warning');
       return;
@@ -108,18 +136,33 @@ const ProductCard = React.memo(function ProductCard({
       showAlert(t('common.info') || 'Thông báo', `${product.name} sắp ra mắt, quý khách vui lòng chờ nhé!`, 'info');
       return;
     }
+    if (isSingleVariant) {
+      onQuickAdd(product);
+    } else {
+      onSelect(product);
+    }
+  };
+
+  const handleOpenCustomize = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isSuspended || isComingSoon) return;
     onSelect(product);
   };
+
+  const tagStyle = useMemo(() => {
+    if (!product.tag || product.tag === 'none') return null;
+    return getTagBadgeStyle(product.tag, customTags);
+  }, [product.tag, customTags]);
 
   return (
     <div
       onClick={handleClick}
-      className={`bg-white p-2 sm:p-3 rounded-2xl border border-slate-200 shadow-xs hover:shadow-md hover:border-emerald-300 transition-all active:scale-95 flex flex-col justify-between cursor-pointer group hardware-accelerated min-w-0 w-full ${
-        isSuspended ? 'opacity-70' : ''
+      className={`bg-white p-2 sm:p-2.5 rounded-2xl border border-slate-200/90 shadow-2xs hover:shadow-md hover:border-emerald-400 transition-all active:scale-[0.98] flex flex-col justify-between cursor-pointer group hardware-accelerated min-w-0 w-full relative select-none ${
+        isSuspended ? 'opacity-70 bg-slate-50/70' : ''
       }`}
     >
       <div className="min-w-0">
-        <div className="w-full h-24 sm:h-28 bg-slate-100 rounded-xl mb-2 flex items-center justify-center text-slate-400 overflow-hidden relative">
+        <div className="w-full h-24 sm:h-28 bg-slate-100 rounded-xl mb-1.5 flex items-center justify-center text-slate-400 overflow-hidden relative">
           {imageUrl ? (
             <img
               src={imageUrl}
@@ -131,54 +174,58 @@ const ProductCard = React.memo(function ProductCard({
           ) : (
             <Coffee className="w-7 h-7 sm:w-8 sm:h-8 opacity-40 text-slate-400" />
           )}
+
+          {/* Size / Variant Badge */}
+          {variantsCount > 1 && (
+            <span className="absolute bottom-1 right-1 bg-slate-900/80 backdrop-blur-xs text-white text-[9px] font-bold px-1.5 py-0.5 rounded-md shadow-xs">
+              {variantsCount} size
+            </span>
+          )}
         </div>
-        {product.tag && product.tag !== 'none' && (
-          <span
-            className={`text-[9px] uppercase font-extrabold px-1.5 py-0.5 rounded border inline-block mb-1 max-w-full truncate ${
-              product.tag === 'featured'
-                ? 'bg-amber-50 text-amber-700 border-amber-200'
-                : product.tag === 'best_seller'
-                ? 'bg-rose-50 text-rose-700 border-rose-200'
-                : product.tag === 'new'
-                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                : product.tag === 'coming_soon'
-                ? 'bg-blue-50 text-blue-700 border-blue-200'
-                : product.tag === 'suspended'
-                ? 'bg-slate-100 text-slate-700 border-slate-300'
-                : 'bg-emerald-50 text-emerald-700 border-emerald-200'
-            }`}
-          >
-            {product.tag === 'featured'
-              ? '⭐ ' + (t('products.featured') || 'Nổi bật')
-              : product.tag === 'best_seller'
-              ? '🔥 ' + (t('products.best_seller') || 'Bán chạy')
-              : product.tag === 'new'
-              ? '✨ ' + (t('products.new') || 'Món mới')
-              : product.tag === 'coming_soon'
-              ? '⏳ ' + (t('products.coming_soon') || 'Sắp ra mắt')
-              : product.tag === 'suspended'
-              ? '⛔ ' + (t('products.suspended') || 'Tạm ngưng')
-              : product.tag.replace('_', ' ')}
-          </span>
+
+        {/* Tag Badge */}
+        {tagStyle && (
+          <div className="mb-1">
+            <span className={`text-[9px] uppercase font-extrabold px-1.5 py-0.5 rounded-md border inline-flex items-center gap-0.5 max-w-full truncate ${tagStyle.badgeClasses}`}>
+              <span>{tagStyle.icon}</span>
+              <span className="truncate">{tagStyle.name}</span>
+            </span>
+          </div>
         )}
-        <h3 className="font-semibold text-slate-900 text-xs leading-snug group-hover:text-emerald-700 transition line-clamp-2 break-words">
+
+        <h3 className="font-bold text-slate-900 text-xs leading-snug group-hover:text-emerald-700 transition line-clamp-2 break-words">
           {product.name}
         </h3>
       </div>
-      <div className="mt-2 flex items-center justify-between gap-1 pt-1 border-t border-slate-50 min-w-0">
-        <span className="font-bold text-emerald-800 text-xs truncate min-w-0">{formatCurrency(startingPrice, settings)}</span>
+
+      <div className="mt-2 flex items-center justify-between gap-1 pt-1.5 border-t border-slate-100 min-w-0">
+        <span className="font-black text-emerald-700 text-xs truncate min-w-0">{formatCurrency(startingPrice, settings)}</span>
         {isSuspended ? (
           <span className="bg-slate-100 text-slate-500 text-[10px] font-bold px-1.5 py-0.5 rounded-lg border border-slate-200 shrink-0">
             ⛔ {t('products.suspended') || 'Tạm ngưng'}
           </span>
         ) : isComingSoon ? (
-          <span className="bg-blue-50 text-blue-600 text-[10px] font-bold px-1.5 py-0.5 rounded-lg border border-blue-200 shrink-0">
+          <span className="bg-sky-50 text-sky-600 text-[10px] font-bold px-1.5 py-0.5 rounded-lg border border-sky-200 shrink-0">
             ⏳ {t('products.coming_soon') || 'Sắp có'}
           </span>
-        ) : (
-          <span className="bg-emerald-50 group-hover:bg-emerald-700 group-hover:text-white text-emerald-700 text-[10px] sm:text-[11px] font-bold px-1.5 sm:px-2 py-1 rounded-lg transition flex items-center gap-0.5 shrink-0">
+        ) : isSingleVariant ? (
+          <button
+            type="button"
+            onClick={handleClick}
+            className="bg-emerald-50 group-hover:bg-emerald-700 group-hover:text-white text-emerald-700 text-[10px] sm:text-[11px] font-bold px-2 py-1 rounded-lg transition flex items-center gap-0.5 shrink-0 active:scale-95 shadow-2xs"
+            title="Thêm nhanh vào giỏ"
+          >
             <Plus className="w-3.5 h-3.5" /> {orderBtnLabel}
-          </span>
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={handleOpenCustomize}
+            className="bg-slate-100 group-hover:bg-emerald-600 group-hover:text-white text-slate-700 text-[10px] font-bold px-2 py-1 rounded-lg transition flex items-center gap-0.5 shrink-0 active:scale-95"
+            title="Tùy chọn size & topping"
+          >
+            <SlidersHorizontal className="w-3 h-3" /> Chọn size
+          </button>
         )}
       </div>
     </div>
@@ -190,6 +237,7 @@ export default function PosPage() {
   const { showAlert } = useConfirm();
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [customTags, setCustomTags] = useState<CustomTag[]>([]);
   const [activeCategoryId, setActiveCategoryId] = useState<number | null>(null);
   const [activeTag, setActiveTag] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -240,14 +288,25 @@ export default function PosPage() {
       ]);
 
       if (settingsRes.status === 'success' && settingsRes.data) {
+        let map: SettingsMap = {};
         if (Array.isArray(settingsRes.data)) {
-          const map: SettingsMap = {};
           settingsRes.data.forEach((s: any) => {
             if (s && s.key) map[s.key] = s.value;
           });
-          setSettings(map);
         } else if (typeof settingsRes.data === 'object') {
-          setSettings(settingsRes.data as SettingsMap);
+          map = settingsRes.data as SettingsMap;
+        }
+        setSettings(map);
+
+        if (map.custom_product_tags) {
+          try {
+            const parsed = JSON.parse(map.custom_product_tags);
+            if (Array.isArray(parsed)) {
+              setCustomTags(parsed);
+            }
+          } catch (e) {
+            console.error('Failed to parse custom_product_tags', e);
+          }
         }
       }
 
@@ -428,6 +487,28 @@ export default function PosPage() {
     setSelectedProductForVariant(product);
   }, []);
 
+  const handleQuickAdd = useCallback(
+    (product: Product) => {
+      if (!product.variants || product.variants.length === 0) return;
+      const variant = product.variants[0];
+      const newItem: CartItem = {
+        id: `${product.id}-${variant.id}-${Date.now()}`,
+        product: product,
+        selectedVariant: variant,
+        sugarLevel: '100%',
+        iceLevel: '100%',
+        selectedToppings: [],
+        toppingsPrice: 0,
+        quantity: 1,
+        unitPrice: variant.retail_price,
+        lineTotal: variant.retail_price,
+        notes: '',
+      };
+      handleAddToCart(newItem);
+    },
+    [handleAddToCart]
+  );
+
   const handleSelectCategory = useCallback((id: number | null) => {
     setActiveCategoryId(id);
   }, []);
@@ -531,6 +612,10 @@ export default function PosPage() {
   const safeProducts = useMemo(() => (Array.isArray(products) ? products : []), [products]);
   const safeCartItems = useMemo(() => (Array.isArray(cartItems) ? cartItems : []), [cartItems]);
 
+  const allAvailableTags = useMemo(() => {
+    return [...DEFAULT_SYSTEM_TAGS, ...customTags];
+  }, [customTags]);
+
   // Memoized Filtered Products
   const filteredProducts = useMemo(() => {
     return safeProducts.filter((p) => {
@@ -589,19 +674,34 @@ export default function PosPage() {
             categories={safeCategories}
             activeCategoryId={activeCategoryId}
             totalProductsCount={safeProducts.filter((p) => p.is_active !== false).length}
+            products={safeProducts}
             onSelectCategory={handleSelectCategory}
             allLabel={t('pos.all_items')}
           />
 
-          <div className="relative w-full sm:w-64 shrink-0">
+          <div className="relative w-full sm:w-72 shrink-0">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
             <input
               type="text"
-              placeholder={t('pos.search_placeholder')}
+              placeholder={t('pos.search_placeholder') || 'Tìm món nhanh theo tên, mô tả...'}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+              className="w-full pl-9 pr-14 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white shadow-2xs"
             />
+            {searchQuery ? (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2 top-2 p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition cursor-pointer"
+                title="Xóa tìm kiếm"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            ) : (
+              <span className="absolute right-2.5 top-2.5 text-[10px] font-bold text-slate-400 pointer-events-none">
+                {filteredProducts.length} món
+              </span>
+            )}
           </div>
         </div>
 
@@ -609,64 +709,46 @@ export default function PosPage() {
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none no-scrollbar text-xs w-full">
           <button
             onClick={() => setActiveTag(null)}
-            className={`px-3 py-1 rounded-lg font-medium whitespace-nowrap transition cursor-pointer shrink-0 ${
+            className={`px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition cursor-pointer shrink-0 shadow-2xs flex items-center gap-1.5 ${
               activeTag === null
-                ? 'bg-slate-800 text-white shadow-2xs font-semibold'
-                : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
+                ? 'bg-slate-900 text-white font-extrabold shadow-sm ring-1 ring-slate-700'
+                : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
             }`}
           >
-            {t('common.all')} ({safeProducts.filter((p) => p.is_active !== false && (activeCategoryId === null || p.category_id === activeCategoryId)).length})
+            <span>{t('common.all')}</span>
+            <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+              activeTag === null ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-600'
+            }`}>
+              {safeProducts.filter((p) => p.is_active !== false && (activeCategoryId === null || p.category_id === activeCategoryId)).length}
+            </span>
           </button>
-          <button
-            onClick={() => setActiveTag(activeTag === 'featured' ? null : 'featured')}
-            className={`px-3 py-1 rounded-lg font-medium whitespace-nowrap transition cursor-pointer flex items-center gap-1 shrink-0 ${
-              activeTag === 'featured'
-                ? 'bg-amber-500 text-white shadow-2xs font-semibold'
-                : 'bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200'
-            }`}
-          >
-            ⭐ {t('products.featured') || 'Nổi bật'}
-          </button>
-          <button
-            onClick={() => setActiveTag(activeTag === 'best_seller' ? null : 'best_seller')}
-            className={`px-3 py-1 rounded-lg font-medium whitespace-nowrap transition cursor-pointer flex items-center gap-1 shrink-0 ${
-              activeTag === 'best_seller'
-                ? 'bg-rose-500 text-white shadow-2xs font-semibold'
-                : 'bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200'
-            }`}
-          >
-            🔥 {t('products.best_seller') || 'Bán chạy'}
-          </button>
-          <button
-            onClick={() => setActiveTag(activeTag === 'new' ? null : 'new')}
-            className={`px-3 py-1 rounded-lg font-medium whitespace-nowrap transition cursor-pointer flex items-center gap-1 shrink-0 ${
-              activeTag === 'new'
-                ? 'bg-emerald-600 text-white shadow-2xs font-semibold'
-                : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200'
-            }`}
-          >
-            ✨ {t('products.new') || 'Món mới'}
-          </button>
-          <button
-            onClick={() => setActiveTag(activeTag === 'coming_soon' ? null : 'coming_soon')}
-            className={`px-3 py-1 rounded-lg font-medium whitespace-nowrap transition cursor-pointer flex items-center gap-1 shrink-0 ${
-              activeTag === 'coming_soon'
-                ? 'bg-blue-600 text-white shadow-2xs font-semibold'
-                : 'bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200'
-            }`}
-          >
-            ⏳ {t('products.coming_soon') || 'Sắp ra mắt'}
-          </button>
-          <button
-            onClick={() => setActiveTag(activeTag === 'suspended' ? null : 'suspended')}
-            className={`px-3 py-1 rounded-lg font-medium whitespace-nowrap transition cursor-pointer flex items-center gap-1 shrink-0 ${
-              activeTag === 'suspended'
-                ? 'bg-slate-700 text-white shadow-2xs font-semibold'
-                : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200'
-            }`}
-          >
-            ⛔ {t('products.suspended') || 'Tạm ngưng'}
-          </button>
+          {allAvailableTags.map((tg) => {
+            const count = safeProducts.filter(
+              (p) => p.is_active !== false && p.tag === tg.id && (activeCategoryId === null || p.category_id === activeCategoryId)
+            ).length;
+            const isSelected = activeTag === tg.id;
+            return (
+              <button
+                key={tg.id}
+                onClick={() => setActiveTag(isSelected ? null : tg.id)}
+                className={`px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition cursor-pointer flex items-center gap-1.5 shrink-0 shadow-2xs ${
+                  isSelected
+                    ? 'bg-emerald-700 text-white font-extrabold shadow-sm ring-2 ring-emerald-500/30'
+                    : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+                }`}
+              >
+                <span>{tg.icon}</span>
+                <span>{tg.name}</span>
+                {count > 0 && (
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                    isSelected ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600'
+                  }`}>
+                    {count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
 
         {/* Product Card Grid */}
@@ -681,8 +763,10 @@ export default function PosPage() {
             ))}
           </div>
         ) : filteredProducts.length === 0 ? (
-          <div className="bg-white p-8 rounded-2xl border border-slate-200 text-center text-slate-500 text-xs">
-            {t('pos.no_drinks')}
+          <div className="bg-white p-12 rounded-2xl border border-slate-200 text-center text-slate-500 text-xs shadow-2xs">
+            <Coffee className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+            <p className="font-semibold text-slate-600">{t('pos.no_drinks')}</p>
+            <p className="text-[11px] text-slate-400 mt-1">Thử chọn danh mục khác hoặc xóa bộ lọc tìm kiếm.</p>
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-3.5 pb-36 md:pb-24">
@@ -691,7 +775,9 @@ export default function PosPage() {
                 key={product.id}
                 product={product}
                 settings={settings}
+                customTags={customTags}
                 onSelect={handleSelectProductForVariant}
+                onQuickAdd={handleQuickAdd}
                 orderBtnLabel={t('pos.order_button')}
                 t={t}
               />

@@ -24,7 +24,8 @@ type Product struct {
 	Name          string           `gorm:"type:varchar(150);not null" json:"name"`
 	Description   string           `gorm:"type:text" json:"description"`
 	ImageURL      string           `gorm:"type:text" json:"image_url"`
-	Tag           ProductTag       `gorm:"type:varchar(20);default:'none'" json:"tag"`
+	Tag           ProductTag       `gorm:"type:varchar(50);default:'none'" json:"tag"`
+	TagLocked     bool             `gorm:"default:false;index" json:"tag_locked"`
 	IsActive      bool             `gorm:"default:true;index" json:"is_active"`
 	Variants      []ProductVariant `gorm:"foreignKey:ProductID;constraint:OnDelete:CASCADE" json:"variants,omitempty"`
 	VariantGroups []VariantGroup   `gorm:"foreignKey:ProductID;constraint:OnDelete:CASCADE" json:"variant_groups,omitempty"`
@@ -65,6 +66,7 @@ type CreateProductRequest struct {
 	Description string                 `json:"description"`
 	ImageURL    string                 `json:"image_url"`
 	Tag         ProductTag             `json:"tag"`
+	TagLocked   *bool                  `json:"tag_locked"`
 	IsActive    *bool                  `json:"is_active"`
 	Variants    []CreateVariantRequest `json:"variants"`
 }
@@ -75,6 +77,7 @@ type UpdateProductRequest struct {
 	Description *string     `json:"description"`
 	ImageURL    *string     `json:"image_url"`
 	Tag         *ProductTag `json:"tag"`
+	TagLocked   *bool       `json:"tag_locked"`
 	IsActive    *bool       `json:"is_active"`
 }
 

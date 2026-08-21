@@ -182,9 +182,9 @@ export default function ModernDateRangePicker({
             onClick={() => setIsOpen(false)}
           />
           <div
-            className={`fixed inset-x-3 top-24 z-50 max-w-sm mx-auto sm:mx-0 sm:max-w-none sm:w-80 sm:absolute sm:top-auto sm:inset-x-auto ${
+            className={`fixed inset-x-3 sm:inset-x-auto top-1/2 -translate-y-1/2 sm:translate-y-0 sm:top-auto z-50 max-w-[340px] sm:max-w-none w-auto sm:w-84 sm:absolute ${
               align === 'right' ? 'sm:right-0 sm:left-auto' : 'sm:left-0 sm:right-auto'
-            } mt-2 bg-white rounded-2xl shadow-2xl border border-slate-200/90 p-4 animate-in fade-in zoom-in-95 duration-150 text-slate-800`}
+            } mt-2 mx-auto sm:mx-0 bg-white rounded-2xl shadow-2xl border border-slate-200/90 p-4 animate-in fade-in zoom-in-95 duration-150 text-slate-800`}
           >
             {/* Header */}
             <div className="flex items-center justify-between pb-2.5 mb-2.5 border-b border-slate-100">
@@ -192,7 +192,7 @@ export default function ModernDateRangePicker({
                 <Calendar className="w-3.5 h-3.5 text-indigo-600" />
                 {locale === 'vi' ? 'Chọn khoảng thời gian' : 'Select Date Range'}
               </span>
-              <span className="text-[10px] text-slate-400 font-medium">{presetLabel}</span>
+              <span className="text-[10px] text-indigo-600 font-bold bg-indigo-50 px-2 py-0.5 rounded-full">{presetLabel}</span>
             </div>
 
             {/* Quick Presets Grid */}
@@ -218,29 +218,31 @@ export default function ModernDateRangePicker({
               })}
             </div>
 
-            {/* Custom Date Inputs Section */}
-            <div className="bg-slate-50/80 p-3 rounded-xl border border-slate-100 space-y-2.5">
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">
-                    {locale === 'vi' ? 'Từ ngày' : 'From'}
+            {/* Custom Date Inputs Section (Responsive 1-col on mobile, 2-cols on desktop) */}
+            <div className="bg-slate-50/90 p-3 rounded-xl border border-slate-200/70 space-y-2.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <div className="min-w-0">
+                  <label className="text-[10px] font-bold text-slate-600 uppercase flex items-center gap-1 mb-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 inline-block"></span>
+                    {locale === 'vi' ? 'Từ ngày' : 'From Date'}
                   </label>
                   <input
                     type="date"
                     value={tempFrom}
                     onChange={(e) => setTempFrom(e.target.value)}
-                    className="w-full px-2.5 py-2 text-xs font-semibold border border-slate-200 rounded-xl bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 min-h-[38px]"
+                    className="w-full min-w-0 px-2.5 py-2 text-xs font-semibold border border-slate-200 rounded-xl bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-400 min-h-[38px] box-border shadow-2xs"
                   />
                 </div>
-                <div>
-                  <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">
-                    {locale === 'vi' ? 'Đến ngày' : 'To'}
+                <div className="min-w-0">
+                  <label className="text-[10px] font-bold text-slate-600 uppercase flex items-center gap-1 mb-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span>
+                    {locale === 'vi' ? 'Đến ngày' : 'To Date'}
                   </label>
                   <input
                     type="date"
                     value={tempTo}
                     onChange={(e) => setTempTo(e.target.value)}
-                    className="w-full px-2.5 py-2 text-xs font-semibold border border-slate-200 rounded-xl bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 min-h-[38px]"
+                    className="w-full min-w-0 px-2.5 py-2 text-xs font-semibold border border-slate-200 rounded-xl bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-400 min-h-[38px] box-border shadow-2xs"
                   />
                 </div>
               </div>
@@ -248,7 +250,7 @@ export default function ModernDateRangePicker({
               <button
                 type="button"
                 onClick={handleApplyCustom}
-                className="w-full mt-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-3 rounded-xl shadow-sm transition flex items-center justify-center gap-1.5 text-xs"
+                className="w-full mt-1 bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white font-bold py-2.5 px-3 rounded-xl shadow-sm transition flex items-center justify-center gap-1.5 text-xs cursor-pointer"
               >
                 <span>{locale === 'vi' ? 'Áp dụng khoảng ngày' : 'Apply Range'}</span>
                 <ArrowRight className="w-3.5 h-3.5" />

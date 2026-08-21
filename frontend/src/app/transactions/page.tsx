@@ -225,6 +225,10 @@ export default function TransactionsPage() {
   // Breakdown States
   const [breakdownType, setBreakdownType] = useState<'outflow' | 'inflow'>('outflow');
   const [categoryBreakdown, setCategoryBreakdown] = useState<CategoryBreakdownResponse | null>(null);
+  const [inflowTotal, setInflowTotal] = useState<number>(0);
+  const [outflowTotal, setOutflowTotal] = useState<number>(0);
+  const [inflowCount, setInflowCount] = useState<number>(0);
+  const [outflowCount, setOutflowCount] = useState<number>(0);
   const [breakdownPeriod, setBreakdownPeriod] = useState<DatePeriod>('month');
   const [breakdownFromDate, setBreakdownFromDate] = useState<string>(() => computeDateRange('month').from);
   const [breakdownToDate, setBreakdownToDate] = useState<string>(() => computeDateRange('month').to);
@@ -246,13 +250,30 @@ export default function TransactionsPage() {
     setBreakdownLoading(true);
     setBreakdownType(t);
     try {
-      let url = `/transactions/category-breakdown?type=${t}&period=${p}`;
+      let customQuery = '';
       if (p === 'custom' && f && to) {
-        url += `&from=${encodeURIComponent(f)}&to=${encodeURIComponent(to)}`;
+        customQuery = `&from=${encodeURIComponent(f)}&to=${encodeURIComponent(to)}`;
       }
-      const catRes = await fetchApi<CategoryBreakdownResponse>(url);
-      if (catRes.status === 'success' && catRes.data) {
-        setCategoryBreakdown(catRes.data);
+
+      // Concurrently fetch both Inflows & Outflows for the period so total KPI is always live & automatic
+      const [outRes, inRes] = await Promise.all([
+        fetchApi<CategoryBreakdownResponse>(`/transactions/category-breakdown?type=outflow&period=${p}${customQuery}`),
+        fetchApi<CategoryBreakdownResponse>(`/transactions/category-breakdown?type=inflow&period=${p}${customQuery}`),
+      ]);
+
+      if (outRes.status === 'success' && outRes.data) {
+        setOutflowTotal(outRes.data.total_amount || 0);
+        setOutflowCount(outRes.data.total_count || 0);
+        if (t === 'outflow') {
+          setCategoryBreakdown(outRes.data);
+        }
+      }
+      if (inRes.status === 'success' && inRes.data) {
+        setInflowTotal(inRes.data.total_amount || 0);
+        setInflowCount(inRes.data.total_count || 0);
+        if (t === 'inflow') {
+          setCategoryBreakdown(inRes.data);
+        }
       }
     } catch (err) {
       console.error('Failed to load category breakdown', err);
@@ -277,12 +298,13 @@ export default function TransactionsPage() {
       }
     }
 
-    const [fundRes, txRes, orderRes, prodRes, catRes, txCatRes] = await Promise.all([
+    const [fundRes, txRes, orderRes, prodRes, outRes, inRes, txCatRes] = await Promise.all([
       fetchApi<Fund[]>('/funds'),
       fetchApi<Transaction[]>('/transactions'),
       fetchApi<OrderApi[]>('/orders'),
       fetchApi<Product[]>('/products'),
-      fetchApi<CategoryBreakdownResponse>(`/transactions/category-breakdown?type=${breakdownType}`),
+      fetchApi<CategoryBreakdownResponse>(`/transactions/category-breakdown?type=outflow&period=${breakdownPeriod}`),
+      fetchApi<CategoryBreakdownResponse>(`/transactions/category-breakdown?type=inflow&period=${breakdownPeriod}`),
       fetchApi<TransactionCategory[]>('/transaction-categories'),
     ]);
 
@@ -301,8 +323,19 @@ export default function TransactionsPage() {
     if (prodRes.status === 'success' && Array.isArray(prodRes.data)) {
       setProducts(prodRes.data);
     }
-    if (catRes.status === 'success' && catRes.data) {
-      setCategoryBreakdown(catRes.data);
+    if (outRes.status === 'success' && outRes.data) {
+      setOutflowTotal(outRes.data.total_amount || 0);
+      setOutflowCount(outRes.data.total_count || 0);
+      if (breakdownType === 'outflow') {
+        setCategoryBreakdown(outRes.data);
+      }
+    }
+    if (inRes.status === 'success' && inRes.data) {
+      setInflowTotal(inRes.data.total_amount || 0);
+      setInflowCount(inRes.data.total_count || 0);
+      if (breakdownType === 'inflow') {
+        setCategoryBreakdown(inRes.data);
+      }
     }
     if (txCatRes.status === 'success' && Array.isArray(txCatRes.data)) {
       setTxCategories(txCatRes.data);
@@ -848,6 +881,58 @@ export default function TransactionsPage() {
                       {t('tx.inflows')}
                     </button>
                   </div>
+                </div>
+              </div>
+
+              {/* Auto-shown Period Total Summary Bar */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3.5 bg-slate-50/80 rounded-xl border border-slate-100">
+                <div className="flex items-center justify-between p-2.5 bg-white rounded-xl border border-emerald-100/80 shadow-2xs">
+                  <div>
+                    <span className="text-[11px] font-bold text-slate-500 uppercase flex items-center gap-1">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
+                      {t('tx.inflows') || 'Tổng Thu'}
+                    </span>
+                    <div className="text-base sm:text-lg font-black text-emerald-600 mt-0.5">
+                      +{formatCurrency(inflowTotal, settings)}
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-bold px-2 py-1 bg-emerald-50 text-emerald-700 rounded-lg border border-emerald-200/60">
+                    {inflowCount} {t('tx.transactions_count') || 'giao dịch'}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between p-2.5 bg-white rounded-xl border border-rose-100/80 shadow-2xs">
+                  <div>
+                    <span className="text-[11px] font-bold text-slate-500 uppercase flex items-center gap-1">
+                      <span className="w-2 h-2 rounded-full bg-rose-500 inline-block"></span>
+                      {t('tx.outflows') || 'Tổng Chi'}
+                    </span>
+                    <div className="text-base sm:text-lg font-black text-rose-600 mt-0.5">
+                      -{formatCurrency(outflowTotal, settings)}
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-bold px-2 py-1 bg-rose-50 text-rose-700 rounded-lg border border-rose-200/60">
+                    {outflowCount} {t('tx.transactions_count') || 'giao dịch'}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between p-2.5 bg-white rounded-xl border border-indigo-100/80 shadow-2xs">
+                  <div>
+                    <span className="text-[11px] font-bold text-slate-500 uppercase flex items-center gap-1">
+                      <span className="w-2 h-2 rounded-full bg-indigo-500 inline-block"></span>
+                      {t('tx.net_cash_flow') || 'Thu Chi Ròng'}
+                    </span>
+                    <div className={`text-base sm:text-lg font-black mt-0.5 ${inflowTotal - outflowTotal >= 0 ? 'text-indigo-600' : 'text-rose-600'}`}>
+                      {inflowTotal - outflowTotal >= 0 ? '+' : ''}{formatCurrency(inflowTotal - outflowTotal, settings)}
+                    </div>
+                  </div>
+                  <span className={`text-[10px] font-black px-2 py-1 rounded-lg border ${
+                    inflowTotal - outflowTotal >= 0 
+                      ? 'bg-indigo-50 text-indigo-700 border-indigo-200/60' 
+                      : 'bg-rose-50 text-rose-700 border-rose-200/60'
+                  }`}>
+                    {inflowTotal - outflowTotal >= 0 ? 'Dương quỹ' : 'Âm quỹ'}
+                  </span>
                 </div>
               </div>
 
