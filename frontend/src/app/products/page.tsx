@@ -37,6 +37,8 @@ import TagManagerModal, {
   getTagBadgeStyle,
 } from '@/components/products/TagManagerModal';
 import AutoTaggingModal from '@/components/products/AutoTaggingModal';
+import CategoryManagerModal from '@/components/products/CategoryManagerModal';
+import ToppingManagerModal from '@/components/products/ToppingManagerModal';
 
 interface Category {
   id: number;
@@ -82,6 +84,7 @@ export default function ProductsPage() {
   const { confirm, showAlert } = useConfirm();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [toppings, setToppings] = useState<Topping[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
@@ -89,26 +92,14 @@ export default function ProductsPage() {
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [settings, setSettings] = useState<SettingsMap | null>(null);
 
-  // Tag Manager State
+  // Popup Modal States
+  const [isProductModalOpen, setIsProductModalOpen] = useState<boolean>(false);
+  const [isCategoryManagerOpen, setIsCategoryManagerOpen] = useState<boolean>(false);
+  const [isToppingManagerOpen, setIsToppingManagerOpen] = useState<boolean>(false);
   const [isTagModalOpen, setIsTagModalOpen] = useState<boolean>(false);
   const [isAutoTagModalOpen, setIsAutoTagModalOpen] = useState<boolean>(false);
   const [customTags, setCustomTags] = useState<CustomTag[]>([]);
-
-  // Category Management Panel
-  const [catPanelOpen, setCatPanelOpen] = useState<boolean>(false);
-
-  // Modal States
-  const [isProductModalOpen, setIsProductModalOpen] = useState<boolean>(false);
-  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState<boolean>(false);
-  const [isToppingModalOpen, setIsToppingModalOpen] = useState<boolean>(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
-  const [editingTopping, setEditingTopping] = useState<Topping | null>(null);
-
-  // Topping Panel
-  const [toppingPanelOpen, setToppingPanelOpen] = useState<boolean>(false);
-  const [toppings, setToppings] = useState<Topping[]>([]);
-  const [toppingForm, setToppingForm] = useState({ name: '', price: 0, cogs: 0, category_id: null as number | null, is_active: true });
 
   // Product Form State
   const [formName, setFormName] = useState<string>('');
@@ -122,14 +113,8 @@ export default function ProductsPage() {
     { variant_name: 'Size M', cogs_price: 1.0, retail_price: 3.5, sku: '' },
   ]);
 
-  // Category Form State
-  const [catName, setCatName] = useState<string>('');
-  const [catImageUrl, setCatImageUrl] = useState<string>('');
-  const [catDisplayOrder, setCatDisplayOrder] = useState<number>(1);
-
   // Upload states
   const [uploadingProductImg, setUploadingProductImg] = useState<boolean>(false);
-  const [uploadingCatImg, setUploadingCatImg] = useState<boolean>(false);
 
   const handleProductFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -142,19 +127,6 @@ export default function ProductsPage() {
       showAlert(t('common.error') || 'Lỗi', res.message || 'Failed to upload image', 'danger');
     }
     setUploadingProductImg(false);
-  };
-
-  const handleCatFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploadingCatImg(true);
-    const res = await uploadImage(file);
-    if (res.status === 'success' && res.data?.url) {
-      setCatImageUrl(res.data.url);
-    } else {
-      showAlert(t('common.error') || 'Lỗi', res.message || 'Failed to upload image', 'danger');
-    }
-    setUploadingCatImg(false);
   };
 
   const handleSaveTags = async (updatedTags: CustomTag[]) => {
@@ -428,145 +400,6 @@ export default function ProductsPage() {
     }
   };
 
-  // ── Category Modal Helpers ─────────────────────────────────────────────────
-  const openCreateCategoryModal = () => {
-    setEditingCategory(null);
-    setCatName('');
-    setCatImageUrl('');
-    setCatDisplayOrder(categories.length + 1);
-    setIsCategoryModalOpen(true);
-  };
-
-  const openEditCategoryModal = (cat: Category) => {
-    setEditingCategory(cat);
-    setCatName(cat.name);
-    setCatImageUrl(cat.image_url || '');
-    setCatDisplayOrder(cat.display_order);
-    setIsCategoryModalOpen(true);
-  };
-
-  const handleSaveCategory = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!catName) return;
-
-    if (editingCategory) {
-      const res = await fetchApi<Category>(`/categories/${editingCategory.id}`, {
-        method: 'PUT',
-        body: JSON.stringify({
-          name: catName,
-          image_url: catImageUrl,
-          display_order: Number(catDisplayOrder),
-        }),
-      });
-      if (res.status === 'success') {
-        loadCatalog();
-        setIsCategoryModalOpen(false);
-      } else {
-        showAlert(t('common.error') || 'Lỗi', t('products.update_cat_failed', { error: res.message }), 'danger');
-      }
-    } else {
-      const res = await fetchApi<Category>('/categories', {
-        method: 'POST',
-        body: JSON.stringify({
-          name: catName,
-          image_url: catImageUrl,
-          display_order: Number(catDisplayOrder),
-        }),
-      });
-      if (res.status === 'success') {
-        loadCatalog();
-        setIsCategoryModalOpen(false);
-      } else {
-        showAlert(t('common.error') || 'Lỗi', t('products.create_cat_failed', { error: res.message }), 'danger');
-      }
-    }
-  };
-
-  const handleDeleteCategory = async (id: number) => {
-    const isConfirmed = await confirm({
-      title: t('products.confirm_delete_category') || 'Xóa danh mục?',
-      message: 'Các món trong danh mục này sẽ không còn nhóm phân loại.',
-      type: 'danger',
-      confirmText: t('common.delete') || 'Xóa danh mục',
-    });
-    if (!isConfirmed) return;
-
-    const res = await fetchApi(`/categories/${id}`, { method: 'DELETE' });
-    if (res.status === 'success') {
-      loadCatalog();
-    } else {
-      showAlert(t('common.error') || 'Lỗi', t('products.delete_cat_failed', { error: res.message }), 'danger');
-    }
-  };
-
-  // ── Topping Handlers ──────────────────────────────────────────────────────
-  const openCreateToppingModal = () => {
-    setEditingTopping(null);
-    setToppingForm({ name: '', price: 0, cogs: 0, category_id: null, is_active: true });
-    setIsToppingModalOpen(true);
-  };
-
-  const openEditToppingModal = (topping: Topping) => {
-    setEditingTopping(topping);
-    setToppingForm({ name: topping.name, price: topping.price, cogs: topping.cogs, category_id: topping.category_id, is_active: topping.is_active });
-    setIsToppingModalOpen(true);
-  };
-
-  const handleSaveTopping = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!toppingForm.name) return;
-
-    const payload = {
-      name: toppingForm.name,
-      price: Number(toppingForm.price),
-      cogs: Number(toppingForm.cogs) || 0,
-      category_id: toppingForm.category_id || null,
-      is_active: toppingForm.is_active,
-    };
-
-    if (editingTopping) {
-      const res = await fetchApi<Topping>(`/toppings/${editingTopping.id}`, { method: 'PUT', body: JSON.stringify(payload) });
-      if (res.status === 'success') { await loadToppings(); setIsToppingModalOpen(false); }
-      else showAlert(t('common.error') || 'Lỗi', 'Cập nhật topping thất bại: ' + res.message, 'danger');
-    } else {
-      const res = await fetchApi<Topping>('/toppings', { method: 'POST', body: JSON.stringify(payload) });
-      if (res.status === 'success') { await loadToppings(); setIsToppingModalOpen(false); }
-      else showAlert(t('common.error') || 'Lỗi', 'Tạo topping thất bại: ' + res.message, 'danger');
-    }
-  };
-
-  const handleDeleteTopping = async (id: number) => {
-    const isConfirmed = await confirm({
-      title: t('products.confirm_delete_topping') || 'Xóa Topping?',
-      message: 'Topping này sẽ bị xóa khỏi danh sách tùy chọn món.',
-      type: 'danger',
-      confirmText: t('common.delete') || 'Xóa topping',
-    });
-    if (!isConfirmed) return;
-
-    const res = await fetchApi(`/toppings/${id}`, { method: 'DELETE' });
-    if (res.status === 'success') await loadToppings();
-    else showAlert(t('common.error') || 'Lỗi', 'Xóa topping thất bại: ' + res.message, 'danger');
-  };
-
-  const handleToggleToppingStatus = async (topping: Topping) => {
-    const newStatus = !topping.is_active;
-    const res = await fetchApi<Topping>(`/toppings/${topping.id}`, {
-      method: 'PUT',
-      body: JSON.stringify({
-        name: topping.name,
-        price: Number(topping.price),
-        cogs: Number(topping.cogs) || 0,
-        category_id: topping.category_id,
-        is_active: newStatus,
-      }),
-    });
-    if (res.status === 'success') {
-      setToppings((prev) => prev.map((tp) => (tp.id === topping.id ? { ...tp, is_active: newStatus } : tp)));
-    } else {
-      showAlert(t('common.error') || 'Lỗi', 'Cập nhật trạng thái thất bại: ' + res.message, 'danger');
-    }
-  };
 
   // ── Filtering ──────────────────────────────────────────────────────────────
   const safeProducts = useMemo(() => (Array.isArray(products) ? products : []), [products]);
@@ -627,16 +460,8 @@ export default function ProductsPage() {
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <button
-              onClick={() => setIsAutoTagModalOpen(true)}
-              className="bg-gradient-to-r from-amber-500/10 to-indigo-500/10 hover:from-amber-500/20 hover:to-indigo-500/20 text-indigo-700 text-xs font-bold px-3 py-2.5 rounded-xl border border-indigo-200/80 flex items-center gap-1.5 transition cursor-pointer shadow-2xs"
-              title="Tự động phân hạng & gán nhãn theo doanh thu, lợi nhuận"
-            >
-              <Sparkles className="w-4 h-4 text-amber-500" />
-              <span>⚡ Tự Động Gán Nhãn</span>
-            </button>
-            <button
               onClick={() => setIsTagModalOpen(true)}
-              className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold px-3 py-2.5 rounded-xl border border-indigo-200 flex items-center gap-1.5 transition cursor-pointer shadow-2xs"
+              className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold px-3.5 py-2.5 rounded-xl border border-indigo-200 flex items-center gap-1.5 transition cursor-pointer shadow-2xs"
             >
               <Tag className="w-4 h-4 text-indigo-600" />
               <span>Quản lý Nhãn</span>
@@ -645,16 +470,24 @@ export default function ProductsPage() {
               </span>
             </button>
             <button
-              onClick={openCreateToppingModal}
-              className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-3 py-2.5 rounded-xl border border-slate-200 flex items-center gap-1.5 transition cursor-pointer"
+              onClick={() => setIsCategoryManagerOpen(true)}
+              className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold px-3.5 py-2.5 rounded-xl border border-emerald-200 flex items-center gap-1.5 transition cursor-pointer shadow-2xs"
             >
-              <Layers className="w-4 h-4 text-violet-500" /> + {t('products.add_topping')}
+              <FolderOpen className="w-4 h-4 text-emerald-600" />
+              <span>Quản lý Danh mục</span>
+              <span className="bg-emerald-600 text-white text-[10px] px-1.5 py-0.2 rounded-full font-black">
+                {safeCategories.length}
+              </span>
             </button>
             <button
-              onClick={openCreateCategoryModal}
-              className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-3 py-2.5 rounded-xl border border-slate-200 flex items-center gap-1.5 transition cursor-pointer"
+              onClick={() => setIsToppingManagerOpen(true)}
+              className="bg-violet-50 hover:bg-violet-100 text-violet-700 text-xs font-bold px-3.5 py-2.5 rounded-xl border border-violet-200 flex items-center gap-1.5 transition cursor-pointer shadow-2xs"
             >
-              <FolderPlus className="w-4 h-4 text-slate-500" /> + {t('products.add_category')}
+              <Layers className="w-4 h-4 text-violet-600" />
+              <span>Quản lý Topping</span>
+              <span className="bg-violet-600 text-white text-[10px] px-1.5 py-0.2 rounded-full font-black">
+                {safeToppings.length}
+              </span>
             </button>
             <button
               onClick={openCreateModal}
@@ -665,7 +498,7 @@ export default function ProductsPage() {
           </div>
         </div>
 
-        {/* KPI Metric Summary Row */}
+        {/* KPI Metric Summary Row with Direct Clickable Shortcuts */}
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
           <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center justify-between">
             <div>
@@ -677,12 +510,16 @@ export default function ProductsPage() {
             </div>
           </div>
 
-          <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center justify-between">
+          <div
+            onClick={() => setIsCategoryManagerOpen(true)}
+            className="bg-white hover:bg-emerald-50/40 p-3.5 rounded-2xl border border-slate-200/80 hover:border-emerald-300 shadow-2xs flex items-center justify-between transition cursor-pointer group"
+            title="Nhấp để mở Quản lý Danh mục"
+          >
             <div>
-              <span className="text-[11px] font-bold text-slate-500 uppercase">Danh mục</span>
-              <div className="text-xl font-black text-slate-900 mt-0.5">{safeCategories.length}</div>
+              <span className="text-[11px] font-bold text-slate-500 uppercase group-hover:text-emerald-700">Danh mục</span>
+              <div className="text-xl font-black text-slate-900 group-hover:text-emerald-600 mt-0.5">{safeCategories.length}</div>
             </div>
-            <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
+            <div className="w-9 h-9 rounded-xl bg-emerald-50 group-hover:bg-emerald-100 text-emerald-600 flex items-center justify-center font-bold transition">
               <FolderOpen className="w-5 h-5" />
             </div>
           </div>
@@ -697,242 +534,33 @@ export default function ProductsPage() {
             </div>
           </div>
 
-          <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center justify-between">
+          <div
+            onClick={() => setIsToppingManagerOpen(true)}
+            className="bg-white hover:bg-violet-50/40 p-3.5 rounded-2xl border border-slate-200/80 hover:border-violet-300 shadow-2xs flex items-center justify-between transition cursor-pointer group"
+            title="Nhấp để mở Quản lý Topping"
+          >
             <div>
-              <span className="text-[11px] font-bold text-slate-500 uppercase">Topping</span>
-              <div className="text-xl font-black text-slate-900 mt-0.5">{safeToppings.length}</div>
+              <span className="text-[11px] font-bold text-slate-500 uppercase group-hover:text-violet-700">Topping</span>
+              <div className="text-xl font-black text-slate-900 group-hover:text-violet-600 mt-0.5">{safeToppings.length}</div>
             </div>
-            <div className="w-9 h-9 rounded-xl bg-violet-50 text-violet-600 flex items-center justify-center font-bold">
+            <div className="w-9 h-9 rounded-xl bg-violet-50 group-hover:bg-violet-100 text-violet-600 flex items-center justify-center font-bold transition">
               <Layers className="w-5 h-5" />
             </div>
           </div>
 
-          <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-2xs col-span-2 sm:col-span-1 flex items-center justify-between">
+          <div
+            onClick={() => setIsTagModalOpen(true)}
+            className="bg-white hover:bg-indigo-50/40 p-3.5 rounded-2xl border border-slate-200/80 hover:border-indigo-300 shadow-2xs col-span-2 sm:col-span-1 flex items-center justify-between transition cursor-pointer group"
+            title="Nhấp để mở Quản lý Nhãn"
+          >
             <div>
-              <span className="text-[11px] font-bold text-slate-500 uppercase">Nhãn món (Tags)</span>
+              <span className="text-[11px] font-bold text-slate-500 uppercase group-hover:text-indigo-700">Nhãn món (Tags)</span>
               <div className="text-xl font-black text-indigo-600 mt-0.5">{allAvailableTags.length}</div>
             </div>
-            <button
-              onClick={() => setIsTagModalOpen(true)}
-              className="w-9 h-9 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 flex items-center justify-center font-bold transition cursor-pointer"
-              title="Quản lý Nhãn"
-            >
+            <div className="w-9 h-9 rounded-xl bg-indigo-50 group-hover:bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold transition">
               <Tag className="w-5 h-5" />
-            </button>
+            </div>
           </div>
-        </div>
-
-        {/* Category Management Panel */}
-        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-          <button
-            onClick={() => setCatPanelOpen(!catPanelOpen)}
-            className="w-full flex items-center justify-between px-5 py-3.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition"
-          >
-            <span className="flex items-center gap-2">
-              <FolderOpen className="w-4 h-4 text-indigo-500" />
-              {t('products.manage_categories')}
-              <span className="bg-indigo-50 text-indigo-600 text-[11px] font-bold px-2 py-0.5 rounded-full border border-indigo-200">
-                {safeCategories.length}
-              </span>
-            </span>
-            {catPanelOpen ? (
-              <ChevronUp className="w-4 h-4 text-slate-400" />
-            ) : (
-              <ChevronDown className="w-4 h-4 text-slate-400" />
-            )}
-          </button>
-
-          {catPanelOpen && (
-            <div className="border-t border-slate-100 divide-y divide-slate-100">
-              {safeCategories.length === 0 ? (
-                <p className="text-xs text-slate-400 text-center py-6">
-                  {t('products.no_categories')}
-                </p>
-              ) : (
-                safeCategories.map((cat) => (
-                  <div
-                    key={cat.id}
-                    className="flex items-center justify-between px-5 py-3 hover:bg-slate-50 transition"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center overflow-hidden shrink-0">
-                        {getImageUrl(cat.image_url) ? (
-                          <img
-                            src={getImageUrl(cat.image_url)!}
-                            alt={cat.name}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <FolderOpen className="w-4 h-4 text-slate-400" />
-                        )}
-                      </div>
-                      <div>
-                        <span className="text-sm font-semibold text-slate-800">{cat.name}</span>
-                        <span className="ml-2 text-xs text-slate-400">
-                          #{cat.display_order} · {t('pos.items_count', { count: safeProducts.filter((p) => p.category_id === cat.id).length })}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => openEditCategoryModal(cat)}
-                        className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition"
-                        title={t('products.edit_category')}
-                      >
-                        <Edit2 className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteCategory(cat.id)}
-                        className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
-                        title={t('products.delete_category')}
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Topping Management Panel */}
-        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-          <button
-            onClick={() => setToppingPanelOpen(!toppingPanelOpen)}
-            className="w-full flex items-center justify-between px-5 py-3.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition"
-          >
-            <span className="flex items-center gap-2">
-              <Layers className="w-4 h-4 text-violet-500" />
-              {t('products.manage_toppings')}
-              <span className="bg-violet-50 text-violet-600 text-[11px] font-bold px-2 py-0.5 rounded-full border border-violet-200">
-                {safeToppings.length}
-              </span>
-            </span>
-            {toppingPanelOpen ? (
-              <ChevronUp className="w-4 h-4 text-slate-400" />
-            ) : (
-              <ChevronDown className="w-4 h-4 text-slate-400" />
-            )}
-          </button>
-
-          {toppingPanelOpen && (
-            <div className="border-t border-slate-100">
-              {safeToppings.length === 0 ? (
-                <p className="text-xs text-slate-400 text-center py-6">{t('products.no_toppings')}</p>
-              ) : (
-                <>
-                  {/* Desktop Topping Table */}
-                  <div className="hidden md:block divide-y divide-slate-100">
-                    {/* Table Header */}
-                    <div className="grid grid-cols-6 gap-2 px-5 py-2.5 bg-slate-50 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                      <span className="col-span-2">{t('products.topping_name')}</span>
-                      <span>{t('products.topping_price')}</span>
-                      <span>{t('products.topping_category')}</span>
-                      <span className="text-center">{t('common.status')}</span>
-                      <span className="text-right">{t('common.actions')}</span>
-                    </div>
-                    {safeToppings.map((tp) => (
-                      <div key={tp.id} className="grid grid-cols-6 gap-2 px-5 py-3 items-center hover:bg-slate-50 transition">
-                        <div className="col-span-2 flex items-center gap-2">
-                          <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${tp.is_active ? 'bg-emerald-500 ring-4 ring-emerald-100' : 'bg-slate-300'}`} />
-                          <span className={`text-sm font-semibold ${tp.is_active ? 'text-slate-800' : 'text-slate-400 line-through'}`}>{tp.name}</span>
-                        </div>
-                        <span className="text-sm text-indigo-600 font-bold">{formatCurrency(tp.price, settings)}</span>
-                        <span className="text-xs text-slate-500">
-                          {tp.category_id
-                            ? safeCategories.find((c) => c.id === tp.category_id)?.name || `#${tp.category_id}`
-                            : <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-600">{t('products.global')}</span>
-                          }
-                        </span>
-                        {/* Interactive On/Off Quick Toggle Button */}
-                        <div className="flex justify-center">
-                          <button
-                            type="button"
-                            onClick={() => handleToggleToppingStatus(tp)}
-                            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold transition cursor-pointer ${
-                              tp.is_active
-                                ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 shadow-sm'
-                                : 'bg-slate-100 text-slate-500 hover:bg-slate-200 border border-slate-200'
-                            }`}
-                            title={tp.is_active ? 'Bấm để Tắt' : 'Bấm để Bật'}
-                          >
-                            <span className={`w-1.5 h-1.5 rounded-full ${tp.is_active ? 'bg-emerald-500' : 'bg-slate-400'}`} />
-                            {tp.is_active ? t('common.active') : t('common.inactive')}
-                          </button>
-                        </div>
-                        {/* Action buttons */}
-                        <div className="flex items-center justify-end gap-1">
-                          <button
-                            onClick={() => openEditToppingModal(tp)}
-                            className="p-1.5 text-slate-400 hover:text-violet-600 hover:bg-violet-50 rounded-lg transition"
-                            title={t('products.edit_topping')}
-                          >
-                            <Edit2 className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteTopping(tp.id)}
-                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
-                            title={t('products.delete_topping')}
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Mobile Topping Cards */}
-                  <div className="md:hidden divide-y divide-slate-100">
-                    {safeToppings.map((tp) => (
-                      <div key={tp.id} className="p-3.5 space-y-2.5 bg-white">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${tp.is_active ? 'bg-emerald-500 ring-4 ring-emerald-100' : 'bg-slate-300'}`} />
-                            <span className={`text-sm font-bold ${tp.is_active ? 'text-slate-900' : 'text-slate-400 line-through'}`}>{tp.name}</span>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => handleToggleToppingStatus(tp)}
-                            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold transition cursor-pointer ${
-                              tp.is_active
-                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                                : 'bg-slate-100 text-slate-500 border border-slate-200'
-                            }`}
-                          >
-                            <span className={`w-1.5 h-1.5 rounded-full ${tp.is_active ? 'bg-emerald-500' : 'bg-slate-400'}`} />
-                            {tp.is_active ? t('common.active') : t('common.inactive')}
-                          </button>
-                        </div>
-                        <div className="flex items-center justify-between text-xs text-slate-500">
-                          <span>Giá: <strong className="text-indigo-600 font-bold text-sm">{formatCurrency(tp.price, settings)}</strong></span>
-                          <span className="text-[11px] px-2 py-0.5 bg-slate-100 text-slate-600 rounded-lg">
-                            {tp.category_id
-                              ? safeCategories.find((c) => c.id === tp.category_id)?.name || `#${tp.category_id}`
-                              : t('products.global')}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-end gap-2 pt-1 border-t border-slate-50">
-                          <button
-                            onClick={() => openEditToppingModal(tp)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition"
-                          >
-                            <Edit2 className="w-3.5 h-3.5" /> {t('common.edit')}
-                          </button>
-                          <button
-                            onClick={() => handleDeleteTopping(tp.id)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg transition"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" /> {t('common.delete')}
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
-          )}
         </div>
 
         {/* Filter Controls Bar */}
@@ -1512,217 +1140,24 @@ export default function ProductsPage() {
         </div>
       )}
 
-      {/* Category Form Modal (Create & Edit) */}
-      {isCategoryModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h2 className="font-bold text-lg text-slate-900">
-                {editingCategory ? t('products.edit_category') : t('products.add_category')}
-              </h2>
-              <button
-                onClick={() => setIsCategoryModalOpen(false)}
-                className="p-1 text-slate-400 hover:text-slate-600 rounded-lg"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
+      {/* Category Manager Modal */}
+      <CategoryManagerModal
+        isOpen={isCategoryManagerOpen}
+        onClose={() => setIsCategoryManagerOpen(false)}
+        categories={safeCategories}
+        products={safeProducts}
+        onCategoriesUpdated={loadCatalog}
+      />
 
-            <form onSubmit={handleSaveCategory} className="space-y-4 text-xs">
-              <div>
-                <label className="font-semibold text-slate-700 mb-1 block">{t('products.category_name')} *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder={t('products.category_name_placeholder')}
-                  value={catName}
-                  onChange={(e) => setCatName(e.target.value)}
-                  className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
-              </div>
-
-              <div>
-                <label className="font-semibold text-slate-700 mb-1 block">{t('products.image_url')}</label>
-                <div className="flex items-center space-x-3">
-                  <div className="w-12 h-12 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center overflow-hidden shrink-0 relative">
-                    {getImageUrl(catImageUrl) ? (
-                      <img src={getImageUrl(catImageUrl)!} alt={t('products.image_preview')} className="w-full h-full object-cover" />
-                    ) : (
-                      <ImageIcon className="w-5 h-5 text-slate-400" />
-                    )}
-                    {uploadingCatImg && (
-                      <div className="absolute inset-0 bg-slate-900/40 flex items-center justify-center">
-                        <Loader2 className="w-4 h-4 text-white animate-spin" />
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex-1 space-y-1.5">
-                    <label className="cursor-pointer bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-3 py-1.5 rounded-xl border border-slate-200 inline-flex items-center gap-1.5 transition">
-                      <Upload className="w-3.5 h-3.5" /> {t('products.upload_image')}
-                      <input type="file" accept="image/*" onChange={handleCatFileChange} className="hidden" />
-                    </label>
-                    <input
-                      type="text"
-                      value={catImageUrl}
-                      onChange={(e) => setCatImageUrl(e.target.value)}
-                      placeholder={t('products.image_url_placeholder')}
-                      className="w-full p-2 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <label className="font-semibold text-slate-700 mb-1 block">{t('products.display_order')}</label>
-                <input
-                  type="number"
-                  value={catDisplayOrder === 0 ? '' : catDisplayOrder}
-                  onChange={(e) => {
-                    const raw = e.target.value.replace(/\D/g, '');
-                    setCatDisplayOrder(raw === '' ? 0 : parseInt(raw, 10));
-                  }}
-                  className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
-              </div>
-
-              <div className="flex justify-end space-x-2 pt-2 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setIsCategoryModalOpen(false)}
-                  className="px-4 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl"
-                >
-                  {t('common.cancel')}
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-sm"
-                >
-                  {editingCategory ? t('products.save_category_btn') : t('products.create_category_btn')}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* ── Topping Create/Edit Modal ─────────────────────────────────── */}
-      {isToppingModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <Layers className="w-5 h-5 text-violet-600" />
-                {editingTopping ? t('products.edit_topping') : t('products.create_topping_title')}
-              </h3>
-              <button onClick={() => setIsToppingModalOpen(false)} className="p-1.5 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveTopping} className="space-y-4 text-sm">
-              {/* Name */}
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">{t('products.topping_name')} *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="VD: Trân châu trắng"
-                  value={toppingForm.name}
-                  onChange={(e) => setToppingForm({ ...toppingForm, name: e.target.value })}
-                  className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500 text-sm"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                {/* Retail Price */}
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">{t('products.topping_price')}</label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="500"
-                    value={toppingForm.price}
-                    onChange={(e) => setToppingForm({ ...toppingForm, price: e.target.value === '' ? 0 : Number(e.target.value) })}
-                    className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500 text-sm"
-                  />
-                </div>
-                {/* COGS */}
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">{t('products.topping_cogs')}</label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="500"
-                    value={toppingForm.cogs}
-                    onChange={(e) => setToppingForm({ ...toppingForm, cogs: e.target.value === '' ? 0 : Number(e.target.value) })}
-                    className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500 text-sm"
-                  />
-                </div>
-              </div>
-
-              {/* Category */}
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">{t('products.topping_category')}</label>
-                <ModernSelect
-                  value={toppingForm.category_id ?? ''}
-                  placeholder={t('products.topping_global')}
-                  clearable={true}
-                  onChange={(val) => setToppingForm({ ...toppingForm, category_id: val === '' || val === null ? null : Number(val) })}
-                  options={[
-                    { value: '', label: t('products.topping_global'), badge: 'Toàn cục', badgeColor: 'indigo' },
-                    ...safeCategories.map((cat) => ({
-                      value: cat.id,
-                      label: cat.name,
-                      icon: <FolderOpen className="w-3.5 h-3.5 text-slate-400" />,
-                    })),
-                  ]}
-                />
-              </div>
-
-              {/* Is Active On/Off Switch */}
-              <div className="flex items-center justify-between p-3.5 bg-slate-50 rounded-2xl border border-slate-200">
-                <div>
-                  <span className="block text-xs font-bold text-slate-800 uppercase tracking-wide">{t('products.is_active')}</span>
-                  <span className="text-[11px] text-slate-500">
-                    {toppingForm.is_active ? 'Topping đang BẬT (sẵn sàng phục vụ)' : 'Topping đang TẮT (tạm hết)'}
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={toppingForm.is_active}
-                  onClick={() => setToppingForm({ ...toppingForm, is_active: !toppingForm.is_active })}
-                  className={`w-12 h-6 flex items-center rounded-full p-1 transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2 ${
-                    toppingForm.is_active ? 'bg-violet-600' : 'bg-slate-300'
-                  }`}
-                >
-                  <span
-                    className={`w-4 h-4 bg-white rounded-full shadow-md transform transition-transform duration-200 ease-in-out ${
-                      toppingForm.is_active ? 'translate-x-6' : 'translate-x-0'
-                    }`}
-                  />
-                </button>
-              </div>
-
-              <div className="flex justify-end space-x-2 pt-2 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setIsToppingModalOpen(false)}
-                  className="px-4 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl"
-                >
-                  {t('common.cancel')}
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 text-xs font-bold text-white bg-violet-600 hover:bg-violet-700 rounded-xl shadow-sm"
-                >
-                  {editingTopping ? t('products.save_topping_btn') : t('products.create_topping_btn')}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* Topping Manager Modal */}
+      <ToppingManagerModal
+        isOpen={isToppingManagerOpen}
+        onClose={() => setIsToppingManagerOpen(false)}
+        toppings={safeToppings}
+        categories={safeCategories}
+        onToppingsUpdated={loadToppings}
+        settings={settings}
+      />
 
       {/* Tag Manager Modal */}
       <TagManagerModal
@@ -1731,6 +1166,10 @@ export default function ProductsPage() {
         customTags={customTags}
         onSaveTags={handleSaveTags}
         productCountsByTag={productCountsByTag}
+        onOpenAutoTagging={() => {
+          setIsTagModalOpen(false);
+          setIsAutoTagModalOpen(true);
+        }}
       />
 
       {/* Auto-Tagging Engine Modal */}

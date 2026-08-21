@@ -56,6 +56,7 @@ interface TagManagerModalProps {
   customTags: CustomTag[];
   onSaveTags: (tags: CustomTag[]) => Promise<void>;
   productCountsByTag?: Record<string, number>;
+  onOpenAutoTagging?: () => void;
 }
 
 export default function TagManagerModal({
@@ -64,6 +65,7 @@ export default function TagManagerModal({
   customTags,
   onSaveTags,
   productCountsByTag = {},
+  onOpenAutoTagging,
 }: TagManagerModalProps) {
   const { t } = useTranslation();
   const { confirm, showAlert } = useConfirm();
@@ -182,28 +184,73 @@ export default function TagManagerModal({
     <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-150">
       <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[92vh] flex flex-col overflow-hidden border border-slate-100 animate-in zoom-in-95 duration-150">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-100 shrink-0">
+        <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-100 shrink-0 bg-slate-50/50">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
+            <div className="w-10 h-10 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold shadow-2xs">
               <Tag className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-extrabold text-slate-900 text-base">Quản Lý Nhãn Sản Phẩm (Tags)</h3>
+              <div className="flex items-center gap-2">
+                <h3 className="font-extrabold text-slate-900 text-base">Quản Lý Nhãn Sản Phẩm (Tags)</h3>
+                <span className="bg-indigo-100 text-indigo-700 text-xs px-2 py-0.5 rounded-full font-black">
+                  {DEFAULT_SYSTEM_TAGS.length + tags.length}
+                </span>
+              </div>
               <p className="text-xs text-slate-500 mt-0.5">
                 Tạo và tùy biến các huy hiệu gắn lên món ăn (Bán chạy, Món mới, Signature, Khuyến mãi...)
               </p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition cursor-pointer"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            {onOpenAutoTagging && (
+              <button
+                type="button"
+                onClick={onOpenAutoTagging}
+                className="bg-gradient-to-r from-amber-500/15 via-indigo-500/15 to-amber-500/15 hover:from-amber-500/25 hover:to-indigo-500/25 text-indigo-950 text-xs font-black px-3.5 py-2 rounded-xl border border-indigo-200/90 flex items-center gap-1.5 transition cursor-pointer shadow-2xs"
+                title="Tự động phân hạng & gán nhãn Best Seller, Món mới, Lợi nhuận cao"
+              >
+                <Sparkles className="w-4 h-4 text-amber-500" />
+                <span className="hidden sm:inline">⚡ Tự Động Gán Nhãn</span>
+                <span className="sm:hidden">⚡ Auto-Tag</span>
+              </button>
+            )}
+            <button
+              onClick={onClose}
+              className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Content Body */}
-        <div className="p-4 sm:p-6 overflow-y-auto space-y-6 flex-1">
+        <div className="p-4 sm:p-6 overflow-y-auto space-y-5 flex-1">
+          {/* Auto-tagging Quick Feature Banner */}
+          {onOpenAutoTagging && (
+            <div className="bg-gradient-to-r from-amber-50 via-indigo-50/60 to-purple-50 p-3.5 rounded-2xl border border-indigo-100 flex items-center justify-between gap-3 shadow-2xs">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center font-black shrink-0 shadow-xs">
+                  ⚡
+                </div>
+                <div className="min-w-0">
+                  <div className="text-xs font-bold text-slate-900 truncate">
+                    Bộ Động Cơ Tự Động Gán Nhãn (Auto-Tagging Engine)
+                  </div>
+                  <div className="text-[11px] text-slate-500 truncate">
+                    Tự động tính Best Seller, Món mới, Biên lợi nhuận cao từ doanh số thực tế
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={onOpenAutoTagging}
+                className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white text-xs font-bold rounded-xl transition cursor-pointer shrink-0 shadow-2xs"
+              >
+                Cấu hình &amp; Chạy
+              </button>
+            </div>
+          )}
+
           {/* Tag Editor Form */}
           <form onSubmit={handleSaveForm} className="bg-slate-50/80 p-4 sm:p-5 rounded-2xl border border-slate-200/80 space-y-4">
             <div className="flex items-center justify-between">
