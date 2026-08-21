@@ -173,6 +173,20 @@ export default function DashboardPage() {
           </div>
 
           <div className="flex items-center space-x-2">
+            {/* Google Sheet Quick Action Button */}
+            {settings?.google_sheets_spreadsheet_id ? (
+              <a
+                href={`https://docs.google.com/spreadsheets/d/${settings.google_sheets_spreadsheet_id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-teal-50 hover:bg-teal-100 text-teal-700 text-xs font-bold px-3.5 py-2.5 rounded-xl border border-teal-200 flex items-center gap-1.5 transition shadow-2xs"
+                title={t('settings.open_google_sheet') || 'Mở Google Sheet'}
+              >
+                <FileSpreadsheet className="w-4 h-4 text-teal-600" />
+                <span className="hidden sm:inline">📊 Mở Google Sheet</span>
+              </a>
+            ) : null}
+
             {/* Email Report Button */}
             <button
               onClick={() => { setEmailDate(new Date().toISOString().slice(0, 10)); setShowEmailModal(true); }}

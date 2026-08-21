@@ -8,16 +8,18 @@ import (
 	"time"
 
 	"github.com/RabbitPOS/backend/internal/models"
+	"github.com/RabbitPOS/backend/internal/services"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
 
 type OrderHandler struct {
-	db *gorm.DB
+	db            *gorm.DB
+	sheetsSyncSvc *services.SheetsSyncService
 }
 
-func NewOrderHandler(db *gorm.DB) *OrderHandler {
-	return &OrderHandler{db: db}
+func NewOrderHandler(db *gorm.DB, sheetsSyncSvc *services.SheetsSyncService) *OrderHandler {
+	return &OrderHandler{db: db, sheetsSyncSvc: sheetsSyncSvc}
 }
 
 // ListOrders retrieves orders with loaded relations and optional filters
@@ -233,6 +235,11 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 	// Load order relations for response
 	h.db.Preload("Fund").Preload("Promotion").Preload("Items.Variant").First(&order, order.ID)
 
+	// Trigger non-blocking real-time Google Sheets sync if enabled
+	if h.sheetsSyncSvc != nil {
+		go h.sheetsSyncSvc.AppendOrderRow(order)
+	}
+
 	models.SendSuccess(c, http.StatusCreated, order, "Order created successfully")
 }
 
@@ -327,6 +334,12 @@ func (h *OrderHandler) CancelOrder(c *gin.Context) {
 	}
 
 	h.db.Preload("Fund").Preload("Promotion").Preload("Items.Variant").First(&order, order.ID)
+
+	// Trigger non-blocking real-time Google Sheets sync if enabled
+	if h.sheetsSyncSvc != nil {
+		go h.sheetsSyncSvc.AppendOrderRow(order)
+	}
+
 	models.SendSuccess(c, http.StatusOK, order, "Order cancelled successfully")
 }
 

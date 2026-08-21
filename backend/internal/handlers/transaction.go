@@ -9,16 +9,18 @@ import (
 	"time"
 
 	"github.com/RabbitPOS/backend/internal/models"
+	"github.com/RabbitPOS/backend/internal/services"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
 
 type TransactionHandler struct {
-	db *gorm.DB
+	db            *gorm.DB
+	sheetsSyncSvc *services.SheetsSyncService
 }
 
-func NewTransactionHandler(db *gorm.DB) *TransactionHandler {
-	return &TransactionHandler{db: db}
+func NewTransactionHandler(db *gorm.DB, sheetsSyncSvc *services.SheetsSyncService) *TransactionHandler {
+	return &TransactionHandler{db: db, sheetsSyncSvc: sheetsSyncSvc}
 }
 
 // ListTransactions retrieves transaction history with filters
@@ -131,6 +133,11 @@ func (h *TransactionHandler) CreateTransaction(c *gin.Context) {
 	}
 
 	h.db.Preload("Fund").First(&transaction, transaction.ID)
+
+	// Trigger non-blocking real-time Google Sheets sync if enabled
+	if h.sheetsSyncSvc != nil {
+		go h.sheetsSyncSvc.AppendTransactionRow(transaction)
+	}
 
 	models.SendSuccess(c, http.StatusCreated, transaction, "Transaction logged successfully")
 }

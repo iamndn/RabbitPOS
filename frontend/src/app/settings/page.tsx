@@ -27,6 +27,8 @@ import {
   CreditCard,
   Clock,
   Trash2,
+  ExternalLink,
+  Zap,
 } from 'lucide-react';
 import AppShell from '@/components/AppShell';
 import { fetchApi, uploadImage, getImageUrl, getApiBaseUrl } from '@/lib/api';
@@ -36,7 +38,7 @@ import ModernSelect from '@/components/common/ModernSelect';
 
 export default function SettingsPage() {
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState<'store' | 'currency' | 'vietqr' | 'email' | 'backup'>('store');
+  const [activeTab, setActiveTab] = useState<'store' | 'currency' | 'vietqr' | 'email' | 'sheets' | 'backup'>('store');
   const [backupSubTab, setBackupSubTab] = useState<'json_backup' | 'excel_import'>('json_backup');
 
   const [loading, setLoading] = useState<boolean>(true);
@@ -67,10 +69,23 @@ export default function SettingsPage() {
     report_recipient_emails: 'nhanhdn.jfw@gmail.com,candynhung754@gmail.com,150498tranquangdat@gmail.com',
     enable_daily_email_report: 'true',
     daily_report_time: '22:30',
+    google_sheets_sync_enabled: 'false',
+    google_sheets_spreadsheet_id: '',
+    google_sheets_service_account_json: '',
+    google_sheets_auto_realtime_sync: 'true',
+    google_sheets_last_synced_at: '',
+    google_sheets_last_sync_status: 'idle',
+    google_sheets_last_sync_error: '',
   });
 
   const [testingSmtp, setTestingSmtp] = useState<boolean>(false);
   const [smtpTestResult, setSmtpTestResult] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  // Google Sheets Action States
+  const [testingSheets, setTestingSheets] = useState<boolean>(false);
+  const [sheetsTestResult, setSheetsTestResult] = useState<{ type: 'success' | 'error'; message: string; details?: any } | null>(null);
+  const [syncingSheetsNow, setSyncingSheetsNow] = useState<boolean>(false);
+  const sheetsJsonFileRef = useRef<HTMLInputElement>(null);
 
   // JSON Backup & Restore State
   const [exportingBackup, setExportingBackup] = useState<boolean>(false);
@@ -325,6 +340,96 @@ export default function SettingsPage() {
     }
   };
 
+  // Google Sheets Connection Test Handler
+  const handleTestSheetsConnection = async () => {
+    setTestingSheets(true);
+    setSheetsTestResult(null);
+    try {
+      const res = await fetchApi<any>('/settings/sheets/test-connection', {
+        method: 'POST',
+        body: JSON.stringify({
+          spreadsheet_id: form.google_sheets_spreadsheet_id,
+          service_account_json: form.google_sheets_service_account_json,
+        }),
+      });
+      if (res.status === 'success' && res.data) {
+        setSheetsTestResult({
+          type: 'success',
+          message: res.message || t('google_sheets.test_success_msg'),
+          details: res.data,
+        });
+        setToastMessage(t('google_sheets.test_success_msg'));
+        setTimeout(() => setToastMessage(null), 3500);
+      } else {
+        setSheetsTestResult({
+          type: 'error',
+          message: res.message || t('google_sheets.test_error_msg', { error: 'Unknown' }),
+        });
+      }
+    } catch (err: any) {
+      setSheetsTestResult({
+        type: 'error',
+        message: err.message || t('google_sheets.test_error_msg', { error: 'Unknown' }),
+      });
+    } finally {
+      setTestingSheets(false);
+    }
+  };
+
+  // Google Sheets Sync All Now Handler
+  const handleSyncSheetsNow = async () => {
+    setSyncingSheetsNow(true);
+    setErrorMessage(null);
+    setToastMessage(null);
+    try {
+      const res = await fetchApi<any>('/settings/sheets/sync-now', {
+        method: 'POST',
+      });
+      if (res.status === 'success') {
+        setToastMessage(t('google_sheets.sync_success_msg'));
+        if (res.data) {
+          setForm((prev: any) => ({
+            ...prev,
+            google_sheets_last_synced_at: res.data.last_synced_at || new Date().toISOString(),
+            google_sheets_last_sync_status: 'success',
+            google_sheets_last_sync_error: '',
+          }));
+        }
+        setTimeout(() => setToastMessage(null), 4000);
+      } else {
+        const errMsg = res.message || t('google_sheets.sync_error_msg', { error: 'Unknown' });
+        setErrorMessage(errMsg);
+        setForm((prev: any) => ({
+          ...prev,
+          google_sheets_last_sync_status: 'error',
+          google_sheets_last_sync_error: res.message || '',
+        }));
+      }
+    } catch (err: any) {
+      const errMsg = err.message || t('google_sheets.sync_error_msg', { error: 'Unknown' });
+      setErrorMessage(errMsg);
+    } finally {
+      setSyncingSheetsNow(false);
+    }
+  };
+
+  // Google Sheets Service Account JSON File Selection Handler
+  const handleSheetsJsonFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      JSON.parse(text); // validate json syntax
+      handleChange('google_sheets_service_account_json', text);
+      setToastMessage('Đã tải lên tệp Service Account JSON thành công!');
+      setTimeout(() => setToastMessage(null), 3000);
+    } catch {
+      setErrorMessage('Tệp tải lên không phải là JSON hợp lệ.');
+    } finally {
+      if (sheetsJsonFileRef.current) sheetsJsonFileRef.current.value = '';
+    }
+  };
+
   return (
     <AppShell>
       <div className="space-y-4 sm:space-y-6 max-w-5xl mx-auto w-full max-w-full overflow-x-hidden">
@@ -430,7 +535,21 @@ export default function SettingsPage() {
                 <span>{t('email_report.settings_section_title').split(' ')[0]}</span>
               </button>
 
-              {/* Tab 5: Backup & Data Management */}
+              {/* Tab 5: Google Sheets Sync */}
+              <button
+                type="button"
+                onClick={() => setActiveTab('sheets')}
+                className={`py-2.5 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 shrink-0 ${
+                  activeTab === 'sheets'
+                    ? 'bg-white text-teal-700 shadow-sm border border-slate-200/60'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+                }`}
+              >
+                <FileSpreadsheet className={`w-4 h-4 ${activeTab === 'sheets' ? 'text-teal-600' : 'text-slate-400'}`} />
+                <span>{t('google_sheets.tab_title') || 'Google Sheets'}</span>
+              </button>
+
+              {/* Tab 6: Backup & Data Management */}
               <button
                 type="button"
                 onClick={() => setActiveTab('backup')}
@@ -867,7 +986,338 @@ export default function SettingsPage() {
               </div>
             )}
 
-            {/* TAB 5: Backup & Data Management (with Sub-tab Switcher) */}
+            {/* TAB 5: Google Sheets Synchronization */}
+            {activeTab === 'sheets' && (
+              <div className="space-y-6 text-xs animate-in fade-in duration-150">
+                {/* 1. Configuration & Service Account Card */}
+                <div className="bg-white p-5 sm:p-7 rounded-2xl border border-slate-200/80 shadow-xs space-y-6">
+                  <div className="pb-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2.5 bg-teal-50 rounded-xl border border-teal-100 text-teal-600">
+                        <FileSpreadsheet className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-slate-900 text-sm">
+                          {t('google_sheets.section_title')}
+                        </h3>
+                        <p className="text-slate-500 text-xs mt-0.5">
+                          {t('google_sheets.section_desc')}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Quick status pill */}
+                    <div className="flex items-center gap-2">
+                      <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold text-xs border ${
+                        form.google_sheets_sync_enabled === 'true' && form.google_sheets_spreadsheet_id
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                          : 'bg-slate-50 text-slate-600 border-slate-200'
+                      }`}>
+                        <span className={`w-2 h-2 rounded-full ${
+                          form.google_sheets_sync_enabled === 'true' && form.google_sheets_spreadsheet_id
+                            ? 'bg-emerald-500 animate-pulse'
+                            : 'bg-slate-400'
+                        }`} />
+                        {form.google_sheets_sync_enabled === 'true' && form.google_sheets_spreadsheet_id
+                          ? t('google_sheets.connected_badge')
+                          : t('google_sheets.not_connected_badge')}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Sync Switches */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* Enable Sync Master Switch */}
+                    <label className="flex items-start gap-3 cursor-pointer bg-teal-50/70 border border-teal-200/80 rounded-2xl p-4 transition hover:bg-teal-50">
+                      <input
+                        type="checkbox"
+                        checked={form.google_sheets_sync_enabled === 'true'}
+                        onChange={(e) => handleChange('google_sheets_sync_enabled', e.target.checked ? 'true' : 'false')}
+                        className="w-4 h-4 accent-teal-600 rounded mt-0.5"
+                      />
+                      <div>
+                        <span className="text-xs font-bold text-teal-950 block">
+                          {t('google_sheets.enable_sync')}
+                        </span>
+                        <span className="text-[11px] text-teal-700">
+                          {t('google_sheets.enable_sync_desc')}
+                        </span>
+                      </div>
+                    </label>
+
+                    {/* Real-time Append Switch */}
+                    <label className="flex items-start gap-3 cursor-pointer bg-emerald-50/70 border border-emerald-200/80 rounded-2xl p-4 transition hover:bg-emerald-50">
+                      <input
+                        type="checkbox"
+                        checked={form.google_sheets_auto_realtime_sync !== 'false'}
+                        onChange={(e) => handleChange('google_sheets_auto_realtime_sync', e.target.checked ? 'true' : 'false')}
+                        className="w-4 h-4 accent-emerald-600 rounded mt-0.5"
+                      />
+                      <div>
+                        <span className="text-xs font-bold text-emerald-950 block flex items-center gap-1.5">
+                          <Zap className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                          {t('google_sheets.realtime_sync')}
+                        </span>
+                        <span className="text-[11px] text-emerald-700">
+                          {t('google_sheets.realtime_sync_desc')}
+                        </span>
+                      </div>
+                    </label>
+                  </div>
+
+                  {/* Spreadsheet ID Input */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <label className="font-semibold text-slate-700 block">
+                        {t('google_sheets.spreadsheet_id')} <span className="text-rose-500">*</span>
+                      </label>
+                      {form.google_sheets_spreadsheet_id && (
+                        <a
+                          href={`https://docs.google.com/spreadsheets/d/${form.google_sheets_spreadsheet_id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[11px] font-semibold text-teal-600 hover:text-teal-700 flex items-center gap-1"
+                        >
+                          <span>{t('google_sheets.open_sheet_link')}</span>
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                      )}
+                    </div>
+                    <input
+                      type="text"
+                      value={form.google_sheets_spreadsheet_id || ''}
+                      onChange={(e) => handleChange('google_sheets_spreadsheet_id', e.target.value)}
+                      className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-slate-50/50 hover:bg-white focus:bg-white transition font-mono text-xs"
+                      placeholder={t('google_sheets.spreadsheet_id_placeholder')}
+                    />
+                    <p className="text-[11px] text-slate-400">
+                      {t('google_sheets.spreadsheet_id_hint')}
+                    </p>
+                  </div>
+
+                  {/* Service Account JSON Input & File Upload */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="font-semibold text-slate-700 block">
+                        {t('google_sheets.service_account_json')} <span className="text-rose-500">*</span>
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => sheetsJsonFileRef.current?.click()}
+                        className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-3 py-1.5 rounded-xl border border-slate-200 flex items-center gap-1.5 transition shadow-2xs"
+                      >
+                        <FileJson className="w-3.5 h-3.5 text-teal-600" />
+                        <span>{t('google_sheets.upload_json_btn')}</span>
+                      </button>
+                    </div>
+
+                    <input
+                      ref={sheetsJsonFileRef}
+                      type="file"
+                      accept=".json,application/json"
+                      onChange={handleSheetsJsonFileSelect}
+                      className="hidden"
+                    />
+
+                    <textarea
+                      rows={5}
+                      value={form.google_sheets_service_account_json || ''}
+                      onChange={(e) => handleChange('google_sheets_service_account_json', e.target.value)}
+                      className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-slate-50/50 hover:bg-white focus:bg-white transition font-mono text-[11px] leading-relaxed"
+                      placeholder='{\n  "type": "service_account",\n  "project_id": "...",\n  "client_email": "...",\n  "private_key": "..."\n}'
+                    />
+                    <p className="text-[11px] text-slate-400">
+                      {t('google_sheets.service_account_json_hint')}
+                    </p>
+                  </div>
+
+                  {/* Important Google Permission Warning Banner */}
+                  <div className="bg-amber-50/80 border border-amber-200 text-amber-900 p-4 rounded-2xl flex items-start gap-3">
+                    <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                    <div className="text-[11px] space-y-0.5">
+                      <span className="font-bold">{t('google_sheets.permission_warning_title')}</span>
+                      <p className="text-amber-800 leading-relaxed">
+                        {t('google_sheets.permission_warning_desc')}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Test Connection Button & Result Box */}
+                  <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 border-t border-slate-100">
+                    <div className="flex-1">
+                      {sheetsTestResult && (
+                        <div className={`p-3 rounded-xl border flex items-start gap-2 text-[11px] font-semibold animate-in fade-in ${
+                          sheetsTestResult.type === 'success'
+                            ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                            : 'bg-rose-50 border-rose-200 text-rose-800'
+                        }`}>
+                          {sheetsTestResult.type === 'success' ? (
+                            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                          ) : (
+                            <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                          )}
+                          <div>
+                            <span>{sheetsTestResult.message}</span>
+                            {sheetsTestResult.details?.sheets && (
+                              <p className="font-normal text-emerald-700 mt-0.5 text-[10px]">
+                                Các trang tính: {sheetsTestResult.details.sheets.join(', ')}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleTestSheetsConnection}
+                      disabled={testingSheets || !form.google_sheets_spreadsheet_id || !form.google_sheets_service_account_json}
+                      className="bg-teal-600 hover:bg-teal-700 disabled:bg-slate-300 text-white font-bold text-xs py-2.5 px-5 rounded-xl transition flex items-center justify-center gap-2 shadow-xs shrink-0"
+                    >
+                      {testingSheets ? (
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Check className="w-3.5 h-3.5" />
+                      )}
+                      <span>{testingSheets ? t('google_sheets.testing_connection') : t('google_sheets.test_connection_btn')}</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* 2. Sync Status & Controls Card */}
+                <div className="bg-white p-5 sm:p-7 rounded-2xl border border-slate-200/80 shadow-xs space-y-5">
+                  <div className="pb-4 border-b border-slate-100 flex items-center gap-3">
+                    <div className="p-2.5 bg-indigo-50 rounded-xl border border-indigo-100 text-indigo-600">
+                      <RefreshCw className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-slate-900 text-sm">
+                        {t('google_sheets.sync_status_title')}
+                      </h3>
+                      <p className="text-slate-500 text-xs mt-0.5">
+                        {t('google_sheets.sync_status_desc')}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Status Metrics Banner */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 space-y-1">
+                      <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wide block">
+                        {t('google_sheets.status_label')}
+                      </span>
+                      <span className="font-extrabold text-sm text-slate-800 flex items-center gap-2">
+                        <span className={`w-2.5 h-2.5 rounded-full ${
+                          form.google_sheets_last_sync_status === 'success'
+                            ? 'bg-emerald-500'
+                            : form.google_sheets_last_sync_status === 'error'
+                            ? 'bg-rose-500'
+                            : 'bg-slate-400'
+                        }`} />
+                        {form.google_sheets_last_sync_status === 'success'
+                          ? t('google_sheets.status_success')
+                          : form.google_sheets_last_sync_status === 'error'
+                          ? t('google_sheets.status_error')
+                          : t('google_sheets.status_idle')}
+                      </span>
+                    </div>
+
+                    <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 space-y-1">
+                      <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wide block">
+                        {t('google_sheets.last_synced_at')}
+                      </span>
+                      <span className="font-bold text-xs text-slate-800 block">
+                        {form.google_sheets_last_synced_at || t('google_sheets.never_synced')}
+                      </span>
+                    </div>
+
+                    <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 flex items-center justify-between">
+                      <div>
+                        <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wide block">
+                          Trang Tính
+                        </span>
+                        <span className="font-bold text-xs text-slate-800">5 Tabs Chuẩn</span>
+                      </div>
+                      {form.google_sheets_spreadsheet_id ? (
+                        <a
+                          href={`https://docs.google.com/spreadsheets/d/${form.google_sheets_spreadsheet_id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="bg-teal-50 hover:bg-teal-100 border border-teal-200 text-teal-700 font-bold px-3 py-2 rounded-xl text-xs flex items-center gap-1.5 transition"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                          <span>Mở Sheet</span>
+                        </a>
+                      ) : (
+                        <span className="text-[11px] text-slate-400 italic">Chưa nhập ID</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Sync Error Alert if any */}
+                  {form.google_sheets_last_sync_error && (
+                    <div className="bg-rose-50 border border-rose-200 text-rose-900 p-4 rounded-2xl flex items-start gap-3">
+                      <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                      <div className="text-[11px] space-y-0.5">
+                        <span className="font-bold">Lỗi đồng bộ gần nhất:</span>
+                        <p className="text-rose-800 font-mono text-[10px]">{form.google_sheets_last_sync_error}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Managed Tabs Visual List */}
+                  <div className="space-y-2.5 pt-2">
+                    <span className="font-bold text-slate-800 text-xs block">
+                      {t('google_sheets.synced_tabs_title')}
+                    </span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      <div className="bg-slate-50/70 border border-slate-200/70 rounded-xl p-3 space-y-0.5">
+                        <span className="font-bold text-slate-900 block text-xs">{t('google_sheets.tab_1_name')}</span>
+                        <p className="text-[11px] text-slate-500">{t('google_sheets.tab_1_desc')}</p>
+                      </div>
+                      <div className="bg-slate-50/70 border border-slate-200/70 rounded-xl p-3 space-y-0.5">
+                        <span className="font-bold text-slate-900 block text-xs">{t('google_sheets.tab_2_name')}</span>
+                        <p className="text-[11px] text-slate-500">{t('google_sheets.tab_2_desc')}</p>
+                      </div>
+                      <div className="bg-slate-50/70 border border-slate-200/70 rounded-xl p-3 space-y-0.5">
+                        <span className="font-bold text-slate-900 block text-xs">{t('google_sheets.tab_3_name')}</span>
+                        <p className="text-[11px] text-slate-500">{t('google_sheets.tab_3_desc')}</p>
+                      </div>
+                      <div className="bg-slate-50/70 border border-slate-200/70 rounded-xl p-3 space-y-0.5">
+                        <span className="font-bold text-slate-900 block text-xs">{t('google_sheets.tab_4_name')}</span>
+                        <p className="text-[11px] text-slate-500">{t('google_sheets.tab_4_desc')}</p>
+                      </div>
+                      <div className="sm:col-span-2 bg-slate-50/70 border border-slate-200/70 rounded-xl p-3 space-y-0.5">
+                        <span className="font-bold text-slate-900 block text-xs">{t('google_sheets.tab_5_name')}</span>
+                        <p className="text-[11px] text-slate-500">{t('google_sheets.tab_5_desc')}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Sync All Now Trigger Button */}
+                  <div className="pt-3 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3">
+                    <p className="text-[11px] text-slate-400">
+                      Đồng bộ định kỳ tự động chạy mỗi đêm lúc 22:30 cùng báo cáo doanh thu.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={handleSyncSheetsNow}
+                      disabled={syncingSheetsNow || !form.google_sheets_spreadsheet_id || !form.google_sheets_service_account_json}
+                      className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 text-white font-bold text-xs py-3 px-6 rounded-xl shadow-xs transition flex items-center justify-center gap-2 shrink-0 w-full sm:w-auto"
+                    >
+                      {syncingSheetsNow ? (
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <UploadCloud className="w-4 h-4" />
+                      )}
+                      <span>{syncingSheetsNow ? t('google_sheets.syncing_now') : t('google_sheets.sync_all_now_btn')}</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* TAB 6: Backup & Data Management (with Sub-tab Switcher) */}
             {activeTab === 'backup' && (
               <div className="space-y-6 text-xs animate-in fade-in duration-150">
                 {/* Sub-Tab Switcher inside Backup Tab */}

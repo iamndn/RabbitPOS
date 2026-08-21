@@ -13,7 +13,7 @@ import (
 )
 
 // SetupRouter initializes Gin engine with middlewares, auth protection, and API endpoints
-func SetupRouter(cfg *config.Config, db *gorm.DB, emailSvc *services.EmailService) *gin.Engine {
+func SetupRouter(cfg *config.Config, db *gorm.DB, emailSvc *services.EmailService, sheetsSyncSvc *services.SheetsSyncService) *gin.Engine {
 	if cfg.AppEnv == "production" {
 		gin.SetMode(gin.ReleaseMode)
 	}
@@ -31,6 +31,9 @@ func SetupRouter(cfg *config.Config, db *gorm.DB, emailSvc *services.EmailServic
 	router.StaticFile("/logo.png", "./uploads/logo.png")
 	router.StaticFile("/favicon.ico", "./uploads/logo.png")
 
+	// Instantiate Services
+	importerSvc := services.NewImporterService(db)
+
 	// Instantiate Handlers
 	healthHandler := handlers.NewHealthHandler(db)
 	authHandler := handlers.NewAuthHandler(db, cfg)
@@ -39,16 +42,16 @@ func SetupRouter(cfg *config.Config, db *gorm.DB, emailSvc *services.EmailServic
 	productHandler := handlers.NewProductHandler(db)
 	variantHandler := handlers.NewVariantHandler(db)
 	fundHandler := handlers.NewFundHandler(db)
-	orderHandler := handlers.NewOrderHandler(db)
-	txHandler := handlers.NewTransactionHandler(db)
+	orderHandler := handlers.NewOrderHandler(db, sheetsSyncSvc)
+	txHandler := handlers.NewTransactionHandler(db, sheetsSyncSvc)
 	analyticsHandler := handlers.NewAnalyticsHandler(db, emailSvc)
 	settingHandler := handlers.NewSettingHandler(db, emailSvc)
 	backupHandler := handlers.NewBackupHandler(db)
-	importerSvc := services.NewImporterService(db)
 	importerHandler := handlers.NewImporterHandler(importerSvc)
 	toppingHandler := handlers.NewToppingHandler(db)
 	promotionHandler := handlers.NewPromotionHandler(db)
 	txCategoryHandler := handlers.NewTransactionCategoryHandler(db)
+	sheetsSyncHandler := handlers.NewSheetsSyncHandler(sheetsSyncSvc)
 
 	// API v1 Group
 	v1 := router.Group("/api/v1")
@@ -151,6 +154,11 @@ func SetupRouter(cfg *config.Config, db *gorm.DB, emailSvc *services.EmailServic
 				adminOnly.PUT("/settings", settingHandler.UpdateSettings)
 				// SMTP connectivity test
 				adminOnly.POST("/settings/test-smtp", settingHandler.TestSMTP)
+
+				// Google Sheets Bi-Modal Synchronization Endpoints
+				adminOnly.POST("/settings/sheets/test-connection", sheetsSyncHandler.TestConnection)
+				adminOnly.POST("/settings/sheets/sync-now", sheetsSyncHandler.SyncNow)
+				adminOnly.GET("/settings/sheets/status", sheetsSyncHandler.GetStatus)
 
 				// Database Manual Backup & Restore
 				adminOnly.GET("/backup/export", backupHandler.ExportBackup)

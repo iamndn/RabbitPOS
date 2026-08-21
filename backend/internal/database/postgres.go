@@ -244,6 +244,26 @@ func seedSettings(db *gorm.DB) {
 			log.Println("[SEED] Setting 'store_logo_url' added to existing settings.")
 		}
 	}
+
+	// Ensure Google Sheets sync settings exist even if settings were already seeded previously
+	googleSheetsDefaults := []models.Setting{
+		{Key: "google_sheets_sync_enabled", Value: "false", UpdatedAt: now},
+		{Key: "google_sheets_spreadsheet_id", Value: "", UpdatedAt: now},
+		{Key: "google_sheets_service_account_json", Value: "", UpdatedAt: now},
+		{Key: "google_sheets_auto_realtime_sync", Value: "true", UpdatedAt: now},
+		{Key: "google_sheets_last_synced_at", Value: "", UpdatedAt: now},
+		{Key: "google_sheets_last_sync_status", Value: "idle", UpdatedAt: now},
+		{Key: "google_sheets_last_sync_error", Value: "", UpdatedAt: now},
+	}
+	for _, gs := range googleSheetsDefaults {
+		var s models.Setting
+		if err := db.Where("key = ?", gs.Key).First(&s).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				db.Create(&gs)
+				log.Printf("[SEED] Setting '%s' added to existing settings.", gs.Key)
+			}
+		}
+	}
 }
 
 // seedDemoCatalog inserts sample products and categories for development/demo purposes.
