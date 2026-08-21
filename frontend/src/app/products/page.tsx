@@ -21,6 +21,9 @@ import {
   ChevronUp,
   Layers,
   Sparkles,
+  Lock,
+  Unlock,
+  Zap,
 } from 'lucide-react';
 import AppShell from '@/components/AppShell';
 import { fetchApi, getImageUrl, uploadImage } from '@/lib/api';
@@ -33,6 +36,7 @@ import TagManagerModal, {
   DEFAULT_SYSTEM_TAGS,
   getTagBadgeStyle,
 } from '@/components/products/TagManagerModal';
+import AutoTaggingModal from '@/components/products/AutoTaggingModal';
 
 interface Category {
   id: number;
@@ -58,6 +62,7 @@ interface Product {
   description: string;
   image_url: string;
   tag: string;
+  tag_locked?: boolean;
   is_active?: boolean;
   variants: ProductVariant[];
   created_at?: string;
@@ -86,6 +91,7 @@ export default function ProductsPage() {
 
   // Tag Manager State
   const [isTagModalOpen, setIsTagModalOpen] = useState<boolean>(false);
+  const [isAutoTagModalOpen, setIsAutoTagModalOpen] = useState<boolean>(false);
   const [customTags, setCustomTags] = useState<CustomTag[]>([]);
 
   // Category Management Panel
@@ -110,6 +116,7 @@ export default function ProductsPage() {
   const [formDescription, setFormDescription] = useState<string>('');
   const [formImageUrl, setFormImageUrl] = useState<string>('');
   const [formTag, setFormTag] = useState<string>('none');
+  const [formTagLocked, setFormTagLocked] = useState<boolean>(false);
   const [formIsActive, setFormIsActive] = useState<boolean>(true);
   const [formVariants, setFormVariants] = useState<ProductVariant[]>([
     { variant_name: 'Size M', cogs_price: 1.0, retail_price: 3.5, sku: '' },
@@ -254,6 +261,7 @@ export default function ProductsPage() {
     setFormDescription('');
     setFormImageUrl('');
     setFormTag('none');
+    setFormTagLocked(false);
     setFormIsActive(true);
     setFormCategoryId(categories[0]?.id || 0);
     setFormVariants([
@@ -269,6 +277,7 @@ export default function ProductsPage() {
     setFormDescription(product.description || '');
     setFormImageUrl(product.image_url || '');
     setFormTag(product.tag || 'none');
+    setFormTagLocked(product.tag_locked || false);
     setFormIsActive(product.is_active !== false);
     setFormVariants(
       product.variants && product.variants.length > 0
@@ -340,6 +349,7 @@ export default function ProductsPage() {
           description: formDescription,
           image_url: formImageUrl,
           tag: formTag,
+          tag_locked: formTagLocked,
           is_active: formIsActive,
         }),
       });
@@ -382,6 +392,7 @@ export default function ProductsPage() {
           description: formDescription,
           image_url: formImageUrl,
           tag: formTag,
+          tag_locked: formTagLocked,
           is_active: formIsActive,
           variants: formVariants.map((v) => ({
             variant_name: v.variant_name,
@@ -615,6 +626,14 @@ export default function ProductsPage() {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => setIsAutoTagModalOpen(true)}
+              className="bg-gradient-to-r from-amber-500/10 to-indigo-500/10 hover:from-amber-500/20 hover:to-indigo-500/20 text-indigo-700 text-xs font-bold px-3 py-2.5 rounded-xl border border-indigo-200/80 flex items-center gap-1.5 transition cursor-pointer shadow-2xs"
+              title="Tự động phân hạng & gán nhãn theo doanh thu, lợi nhuận"
+            >
+              <Sparkles className="w-4 h-4 text-amber-500" />
+              <span>⚡ Tự Động Gán Nhãn</span>
+            </button>
             <button
               onClick={() => setIsTagModalOpen(true)}
               className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold px-3 py-2.5 rounded-xl border border-indigo-200 flex items-center gap-1.5 transition cursor-pointer shadow-2xs"
@@ -1061,9 +1080,19 @@ export default function ProductsPage() {
                                     <span className={`text-[10px] uppercase font-extrabold px-2 py-0.5 rounded-lg border inline-flex items-center gap-1 ${style.badgeClasses}`}>
                                       <span>{style.icon}</span>
                                       <span>{style.name}</span>
+                                      {product.tag_locked && (
+                                        <span title="Đã khóa nhãn thủ công">
+                                          <Lock className="w-2.5 h-2.5 text-amber-500" />
+                                        </span>
+                                      )}
                                     </span>
                                   );
                                 })()}
+                                {product.tag_locked && (!product.tag || product.tag === 'none') && (
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 inline-flex items-center gap-1 border border-slate-200" title="Khóa không gắn nhãn">
+                                    <Lock className="w-2.5 h-2.5 text-amber-500" /> Khóa
+                                  </span>
+                                )}
                               </div>
                               <span className="text-slate-400 text-[11px] truncate max-w-xs block">
                                 {product.description || t('products.no_description')}
@@ -1104,34 +1133,33 @@ export default function ProductsPage() {
                             {margin.toFixed(1)}%
                           </span>
                         </td>
-                        {/* Interactive POS On/Off Quick Toggle Button */}
                         <td className="py-3 px-4 text-center">
                           <button
                             type="button"
                             onClick={() => handleToggleProductStatus(product)}
-                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold transition cursor-pointer ${
+                            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold transition cursor-pointer ${
                               product.is_active !== false
-                                ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 shadow-2xs'
-                                : 'bg-slate-100 text-slate-500 hover:bg-slate-200 border border-slate-200'
+                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                : 'bg-slate-100 text-slate-500 border border-slate-200'
                             }`}
-                            title={product.is_active !== false ? 'Bấm để tắt hiển thị trên POS' : 'Bấm để bật hiển thị trên POS'}
+                            title={product.is_active !== false ? 'Bấm để tạm dừng bán' : 'Bấm để mở bán lại'}
                           >
                             <span className={`w-1.5 h-1.5 rounded-full ${product.is_active !== false ? 'bg-emerald-500' : 'bg-slate-400'}`} />
                             {product.is_active !== false ? t('products.status_selling') : t('products.status_hidden')}
                           </button>
                         </td>
                         <td className="py-3 px-4 text-right">
-                          <div className="flex items-center justify-end space-x-2">
+                          <div className="flex items-center justify-end space-x-1">
                             <button
                               onClick={() => openEditModal(product)}
-                              className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition"
-                              title={t('products.edit_product')}
+                              className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition"
+                              title={t('common.edit')}
                             >
                               <Edit2 className="w-4 h-4" />
                             </button>
                             <button
                               onClick={() => handleDeleteProduct(product.id)}
-                              className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
+                              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
                               title={t('common.delete')}
                             >
                               <Trash2 className="w-4 h-4" />
@@ -1178,14 +1206,13 @@ export default function ProductsPage() {
                     key={product.id}
                     className={`p-4 space-y-3 transition ${product.is_active === false ? 'opacity-65 bg-slate-50/60' : 'bg-white'}`}
                   >
-                    {/* Top: Image, Name, Badge, Status Toggle */}
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex items-center gap-3 min-w-0">
                         <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center overflow-hidden border border-slate-200 shrink-0">
                           {getImageUrl(product.image_url) ? (
                             <img src={getImageUrl(product.image_url)!} alt={product.name} className="w-full h-full object-cover" />
                           ) : (
-                            <Coffee className="w-6 h-6 text-slate-400" />
+                            <Coffee className="w-5 h-6 text-slate-400" />
                           )}
                         </div>
                         <div className="min-w-0">
@@ -1199,62 +1226,56 @@ export default function ProductsPage() {
                                 <span className={`text-[10px] uppercase font-extrabold px-2 py-0.5 rounded-lg border inline-flex items-center gap-1 ${style.badgeClasses}`}>
                                   <span>{style.icon}</span>
                                   <span>{style.name}</span>
+                                  {product.tag_locked && <Lock className="w-2.5 h-2.5 text-amber-500" />}
                                 </span>
                               );
                             })()}
+                            {product.tag_locked && (!product.tag || product.tag === 'none') && (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 inline-flex items-center gap-1 border border-slate-200">
+                                <Lock className="w-2.5 h-2.5 text-amber-500" />
+                              </span>
+                            )}
                           </div>
                           <span className="text-slate-400 text-xs truncate block mt-0.5">
                             {product.category?.name || t('products.unassigned')}
                           </span>
                         </div>
                       </div>
-
-                      {/* Quick status toggle button */}
-                      <button
-                        type="button"
-                        onClick={() => handleToggleProductStatus(product)}
-                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold shrink-0 transition cursor-pointer ${
-                          product.is_active !== false
-                            ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 shadow-2xs'
-                            : 'bg-slate-100 text-slate-500 hover:bg-slate-200 border border-slate-200'
-                        }`}
-                        title={product.is_active !== false ? 'Bấm để tắt hiển thị trên POS' : 'Bấm để bật hiển thị trên POS'}
-                      >
-                        <span className={`w-1.5 h-1.5 rounded-full ${product.is_active !== false ? 'bg-emerald-500' : 'bg-slate-400'}`} />
-                        {product.is_active !== false ? t('products.status_selling') : t('products.status_hidden')}
-                      </button>
                     </div>
 
-                    {/* Variants & Pricing Pills */}
                     <div className="flex flex-wrap items-center justify-between gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-xs">
                       <div className="flex flex-wrap gap-1.5">
                         {variants.map((v) => (
-                          <span key={v.id || v.variant_name} className="bg-white text-slate-700 px-2 py-0.5 rounded-lg border border-slate-200 text-[11px]">
-                            {v.variant_name}: <strong className="text-indigo-600 font-bold">{formatCurrency(v.retail_price, settings)}</strong>
+                          <span key={v.id || v.variant_name} className="bg-white px-2 py-0.5 rounded-lg border border-slate-200 text-slate-700 font-medium">
+                            {v.variant_name}: <strong className="text-indigo-600">{formatCurrency(v.retail_price, settings)}</strong>
                           </span>
                         ))}
                       </div>
-                      {margin > 0 && (
-                        <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-200">
-                          Lợi nhuận ~{margin.toFixed(0)}%
-                        </span>
-                      )}
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${
+                          margin >= 60
+                            ? 'bg-emerald-50 text-emerald-600 border border-emerald-200'
+                            : margin >= 40
+                            ? 'bg-amber-50 text-amber-600 border border-amber-200'
+                            : 'bg-rose-50 text-rose-600 border border-rose-200'
+                        }`}
+                      >
+                        {margin.toFixed(1)}% LN
+                      </span>
                     </div>
 
-                    {/* Mobile Action Buttons */}
-                    <div className="flex items-center justify-end gap-2 pt-1">
+                    <div className="flex items-center justify-end space-x-2 pt-1 border-t border-slate-50">
                       <button
                         onClick={() => openEditModal(product)}
-                        className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-indigo-50 text-slate-700 hover:text-indigo-600 rounded-xl text-xs font-semibold border border-slate-200 transition cursor-pointer"
+                        className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition cursor-pointer"
                       >
-                        <Edit2 className="w-3.5 h-3.5" /> {t('products.edit_product')}
+                        <Edit2 className="w-3.5 h-3.5" /> {t('common.edit')}
                       </button>
                       <button
                         onClick={() => handleDeleteProduct(product.id)}
-                        className="inline-flex items-center justify-center p-2 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl text-xs font-semibold border border-rose-200 transition cursor-pointer"
-                        title={t('common.delete')}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-xl transition cursor-pointer"
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        <Trash2 className="w-3.5 h-3.5" /> {t('common.delete')}
                       </button>
                     </div>
                   </div>
@@ -1267,66 +1288,60 @@ export default function ProductsPage() {
 
       {/* Product Form Modal */}
       {isProductModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h2 className="font-bold text-lg text-slate-900">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-100 w-full max-w-2xl my-8 overflow-hidden">
+            <div className="flex items-center justify-between p-5 border-b border-slate-100">
+              <h3 className="text-base font-bold text-slate-900">
                 {editingProduct ? t('products.edit_product') : t('products.create_product')}
-              </h2>
+              </h3>
               <button
+                type="button"
                 onClick={() => setIsProductModalOpen(false)}
-                className="p-1 text-slate-400 hover:text-slate-600 rounded-lg"
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleSaveProduct} className="space-y-4 text-xs">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <form onSubmit={handleSaveProduct} className="p-5 space-y-4 max-h-[75vh] overflow-y-auto">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="font-semibold text-slate-700 mb-1 block">
-                    {t('products.product_name')} *
-                  </label>
+                  <label className="font-semibold text-slate-700">{t('products.product_name')} *</label>
                   <input
                     type="text"
                     required
                     value={formName}
                     onChange={(e) => setFormName(e.target.value)}
                     placeholder={t('products.product_name_placeholder')}
-                    className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full p-2.5 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
                   />
                 </div>
+
                 <div>
-                  <label className="font-semibold text-slate-700 mb-1 block">
-                    {t('products.category')} *
-                  </label>
+                  <label className="font-semibold text-slate-700">{t('products.category')} *</label>
                   <ModernSelect
                     value={formCategoryId}
-                    placeholder="Chọn danh mục..."
                     onChange={(val) => setFormCategoryId(Number(val))}
-                    options={categories.map((cat) => ({
-                      value: cat.id,
-                      label: cat.name,
-                      icon: <FolderOpen className="w-3.5 h-3.5 text-indigo-500" />,
-                    }))}
+                    options={categories.map((c) => ({ value: c.id, label: c.name }))}
                   />
                 </div>
               </div>
 
               <div>
-                <label className="font-semibold text-slate-700 mb-1 block">{t('products.description')}</label>
+                <label className="font-semibold text-slate-700">{t('products.description')}</label>
                 <textarea
                   rows={2}
                   value={formDescription}
                   onChange={(e) => setFormDescription(e.target.value)}
                   placeholder={t('products.description_placeholder')}
-                  className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full p-2.5 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
                 />
               </div>
 
+              {/* Image Upload Row */}
               <div>
-                <label className="font-semibold text-slate-700 mb-1 block">{t('products.image_url')}</label>
-                <div className="flex items-center space-x-3">
+                <label className="font-semibold text-slate-700 block mb-1.5">{t('products.image')}</label>
+                <div className="flex items-center gap-3">
                   <div className="w-14 h-14 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center overflow-hidden shrink-0 relative">
                     {getImageUrl(formImageUrl) ? (
                       <img src={getImageUrl(formImageUrl)!} alt={t('products.image_preview')} className="w-full h-full object-cover" />
@@ -1709,6 +1724,14 @@ export default function ProductsPage() {
         customTags={customTags}
         onSaveTags={handleSaveTags}
         productCountsByTag={productCountsByTag}
+      />
+
+      {/* Auto-Tagging Engine Modal */}
+      <AutoTaggingModal
+        isOpen={isAutoTagModalOpen}
+        onClose={() => setIsAutoTagModalOpen(false)}
+        customTags={customTags}
+        onTagsUpdated={loadCatalog}
       />
     </AppShell>
   );
