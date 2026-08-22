@@ -24,6 +24,7 @@ import {
   Lock,
   Unlock,
   Zap,
+  Gift,
 } from 'lucide-react';
 import AppShell from '@/components/AppShell';
 import { fetchApi, getImageUrl, uploadImage } from '@/lib/api';
@@ -39,6 +40,7 @@ import TagManagerModal, {
 import AutoTaggingModal from '@/components/products/AutoTaggingModal';
 import CategoryManagerModal from '@/components/products/CategoryManagerModal';
 import ToppingManagerModal from '@/components/products/ToppingManagerModal';
+import PromotionsModal from '@/components/products/PromotionsModal';
 
 interface Category {
   id: number;
@@ -96,6 +98,7 @@ export default function ProductsPage() {
   const [isProductModalOpen, setIsProductModalOpen] = useState<boolean>(false);
   const [isCategoryManagerOpen, setIsCategoryManagerOpen] = useState<boolean>(false);
   const [isToppingManagerOpen, setIsToppingManagerOpen] = useState<boolean>(false);
+  const [isPromotionsModalOpen, setIsPromotionsModalOpen] = useState<boolean>(false);
   const [isTagModalOpen, setIsTagModalOpen] = useState<boolean>(false);
   const [isAutoTagModalOpen, setIsAutoTagModalOpen] = useState<boolean>(false);
   const [customTags, setCustomTags] = useState<CustomTag[]>([]);
@@ -224,6 +227,12 @@ export default function ProductsPage() {
   useEffect(() => {
     loadCatalog();
     loadToppings();
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('open') === 'promotions') {
+        setIsPromotionsModalOpen(true);
+      }
+    }
   }, []);
 
   // ── Product Modal Helpers ──────────────────────────────────────────────────
@@ -488,6 +497,13 @@ export default function ProductsPage() {
               <span className="bg-violet-600 text-white text-[10px] px-1.5 py-0.2 rounded-full font-black">
                 {safeToppings.length}
               </span>
+            </button>
+            <button
+              onClick={() => setIsPromotionsModalOpen(true)}
+              className="bg-amber-50 hover:bg-amber-100 text-amber-800 text-xs font-bold px-3.5 py-2.5 rounded-xl border border-amber-200 flex items-center gap-1.5 transition cursor-pointer shadow-2xs"
+            >
+              <Gift className="w-4 h-4 text-amber-600" />
+              <span>Quản lý Khuyến mãi</span>
             </button>
             <button
               onClick={openCreateModal}
@@ -1178,6 +1194,13 @@ export default function ProductsPage() {
         onClose={() => setIsAutoTagModalOpen(false)}
         customTags={customTags}
         onTagsUpdated={loadCatalog}
+      />
+
+      {/* Promotions & Discounts Manager Modal */}
+      <PromotionsModal
+        isOpen={isPromotionsModalOpen}
+        onClose={() => setIsPromotionsModalOpen(false)}
+        settings={settings}
       />
     </AppShell>
   );
