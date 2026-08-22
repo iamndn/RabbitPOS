@@ -162,7 +162,7 @@ const ProductCard = React.memo(function ProductCard({
       }`}
     >
       <div className="min-w-0">
-        <div className="w-full h-24 sm:h-28 bg-slate-100 rounded-xl mb-1.5 flex items-center justify-center text-slate-400 overflow-hidden relative">
+        <div className="w-full aspect-square bg-slate-100 rounded-xl mb-1.5 flex items-center justify-center text-slate-400 overflow-hidden relative">
           {imageUrl ? (
             <img
               src={imageUrl}

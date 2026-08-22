@@ -2,7 +2,7 @@
   "nav": {
     "pos": "POS",
     "catalog": "Sản phẩm",
-    "purchases": "Nhập Hàng & Giá Vốn",
+    "purchases": "Nhập hàng",
     "promotions": "Khuyến mãi",
     "transactions": "Sổ Thu Chi",
     "funds": "Quỹ tiền",
@@ -258,7 +258,7 @@
   "tx": {
     "title": "Sổ Thu Chi & Giao Dịch",
     "subtitle": "Ghi nhận dòng tiền ra/vào, nguyên liệu, chi phí vận hành và doanh thu thanh toán.",
-    "tab_purchases": "Nhập hàng & Giá vốn",
+    "tab_purchases": "Nhập hàng",
     "tab_ledger": "Sổ thu chi",
     "tab_transactions": "Sổ Thu Chi",
     "tab_orders": "Lịch sử Đơn hàng",

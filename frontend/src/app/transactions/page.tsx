@@ -806,7 +806,7 @@ export default function TransactionsPage() {
               }`}
             >
               <ShoppingBag className="w-4 h-4 text-emerald-600 shrink-0" />
-              <span>{t('tx.tab_purchases') || '📦 Nhập hàng & Giá vốn'}</span>
+              <span>{t('tx.tab_purchases') || '📦 Nhập hàng'}</span>
             </button>
 
             {/* TAB 2: Financial Ledger */}

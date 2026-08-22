@@ -2,7 +2,7 @@
   "nav": {
     "pos": "Point of Sale (POS)",
     "catalog": "Products & Menu",
-    "purchases": "Purchases & Cost Estimator",
+    "purchases": "Purchases",
     "promotions": "Promotions",
     "transactions": "Cash Flow Ledger",
     "funds": "Funds & Accounts",
@@ -258,7 +258,7 @@
   "tx": {
     "title": "Cash Flow & Transaction Ledger",
     "subtitle": "Track revenue inflows, raw ingredient purchases, operational outflows, and expenses.",
-    "tab_purchases": "Purchases & Costing",
+    "tab_purchases": "Purchases",
     "tab_ledger": "Cash Ledger",
     "tab_transactions": "Financial Ledger",
     "tab_orders": "POS Orders History",

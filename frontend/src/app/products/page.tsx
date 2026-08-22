@@ -474,9 +474,6 @@ export default function ProductsPage() {
             >
               <Tag className="w-4 h-4 text-indigo-600" />
               <span>Quản lý Nhãn</span>
-              <span className="bg-indigo-600 text-white text-[10px] px-1.5 py-0.2 rounded-full font-black">
-                {allAvailableTags.length}
-              </span>
             </button>
             <button
               onClick={() => setIsCategoryManagerOpen(true)}
@@ -484,9 +481,6 @@ export default function ProductsPage() {
             >
               <FolderOpen className="w-4 h-4 text-emerald-600" />
               <span>Quản lý Danh mục</span>
-              <span className="bg-emerald-600 text-white text-[10px] px-1.5 py-0.2 rounded-full font-black">
-                {safeCategories.length}
-              </span>
             </button>
             <button
               onClick={() => setIsToppingManagerOpen(true)}
@@ -494,9 +488,6 @@ export default function ProductsPage() {
             >
               <Layers className="w-4 h-4 text-violet-600" />
               <span>Quản lý Topping</span>
-              <span className="bg-violet-600 text-white text-[10px] px-1.5 py-0.2 rounded-full font-black">
-                {safeToppings.length}
-              </span>
             </button>
             <button
               onClick={() => setIsPromotionsModalOpen(true)}
@@ -511,71 +502,6 @@ export default function ProductsPage() {
             >
               <Plus className="w-4 h-4" /> {t('products.add_product')}
             </button>
-          </div>
-        </div>
-
-        {/* KPI Metric Summary Row with Direct Clickable Shortcuts */}
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-          <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center justify-between">
-            <div>
-              <span className="text-[11px] font-bold text-slate-500 uppercase">Tổng số món</span>
-              <div className="text-xl font-black text-slate-900 mt-0.5">{safeProducts.length}</div>
-            </div>
-            <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
-              <Package className="w-5 h-5" />
-            </div>
-          </div>
-
-          <div
-            onClick={() => setIsCategoryManagerOpen(true)}
-            className="bg-white hover:bg-emerald-50/40 p-3.5 rounded-2xl border border-slate-200/80 hover:border-emerald-300 shadow-2xs flex items-center justify-between transition cursor-pointer group"
-            title="Nhấp để mở Quản lý Danh mục"
-          >
-            <div>
-              <span className="text-[11px] font-bold text-slate-500 uppercase group-hover:text-emerald-700">Danh mục</span>
-              <div className="text-xl font-black text-slate-900 group-hover:text-emerald-600 mt-0.5">{safeCategories.length}</div>
-            </div>
-            <div className="w-9 h-9 rounded-xl bg-emerald-50 group-hover:bg-emerald-100 text-emerald-600 flex items-center justify-center font-bold transition">
-              <FolderOpen className="w-5 h-5" />
-            </div>
-          </div>
-
-          <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center justify-between">
-            <div>
-              <span className="text-[11px] font-bold text-slate-500 uppercase">Biến thể / Size</span>
-              <div className="text-xl font-black text-slate-900 mt-0.5">{totalVariantsCount}</div>
-            </div>
-            <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
-              <Percent className="w-5 h-5" />
-            </div>
-          </div>
-
-          <div
-            onClick={() => setIsToppingManagerOpen(true)}
-            className="bg-white hover:bg-violet-50/40 p-3.5 rounded-2xl border border-slate-200/80 hover:border-violet-300 shadow-2xs flex items-center justify-between transition cursor-pointer group"
-            title="Nhấp để mở Quản lý Topping"
-          >
-            <div>
-              <span className="text-[11px] font-bold text-slate-500 uppercase group-hover:text-violet-700">Topping</span>
-              <div className="text-xl font-black text-slate-900 group-hover:text-violet-600 mt-0.5">{safeToppings.length}</div>
-            </div>
-            <div className="w-9 h-9 rounded-xl bg-violet-50 group-hover:bg-violet-100 text-violet-600 flex items-center justify-center font-bold transition">
-              <Layers className="w-5 h-5" />
-            </div>
-          </div>
-
-          <div
-            onClick={() => setIsTagModalOpen(true)}
-            className="bg-white hover:bg-indigo-50/40 p-3.5 rounded-2xl border border-slate-200/80 hover:border-indigo-300 shadow-2xs col-span-2 sm:col-span-1 flex items-center justify-between transition cursor-pointer group"
-            title="Nhấp để mở Quản lý Nhãn"
-          >
-            <div>
-              <span className="text-[11px] font-bold text-slate-500 uppercase group-hover:text-indigo-700">Nhãn món (Tags)</span>
-              <div className="text-xl font-black text-indigo-600 mt-0.5">{allAvailableTags.length}</div>
-            </div>
-            <div className="w-9 h-9 rounded-xl bg-indigo-50 group-hover:bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold transition">
-              <Tag className="w-5 h-5" />
-            </div>
           </div>
         </div>
 

@@ -36,6 +36,7 @@ export interface PurchaseLineItem {
   unit: string;
   unit_price: number;
   subtotal: number;
+  is_custom_new?: boolean;
 }
 
 interface TransactionModalProps {
@@ -80,7 +81,7 @@ export default function TransactionModal({
   // Itemized Purchases Mode (Default ON for new outflows)
   const [isPurchaseLogging, setIsPurchaseLogging] = useState<boolean>(true);
   const [purchaseItems, setPurchaseItems] = useState<PurchaseLineItem[]>([
-    { ingredient_name: '', category: 'fruit', quantity: 1, unit: 'kg', unit_price: 0, subtotal: 0 },
+    { ingredient_name: '', category: 'fruit', quantity: 1, unit: 'kg', unit_price: 0, subtotal: 0, is_custom_new: false },
   ]);
 
   // Known Ingredients Catalog for Autocomplete
@@ -124,7 +125,7 @@ export default function TransactionModal({
       setModalCreatedAt(null);
       setIsPurchaseLogging(true);
       setPurchaseItems([
-        { ingredient_name: '', category: 'fruit', quantity: 1, unit: 'kg', unit_price: 0, subtotal: 0 },
+        { ingredient_name: '', category: 'fruit', quantity: 1, unit: 'kg', unit_price: 0, subtotal: 0, is_custom_new: false },
       ]);
     }
   }, [isOpen, initialData, funds, txCategories]);
@@ -137,17 +138,66 @@ export default function TransactionModal({
     }
   }, [purchaseItems, isPurchaseLogging, modalType]);
 
-  const handleAddRow = () => {
+  const handleAddRow = (isCustom = false) => {
     setPurchaseItems((prev) => [
       ...prev,
-      { ingredient_name: '', category: 'fruit', quantity: 1, unit: 'kg', unit_price: 0, subtotal: 0 },
+      { ingredient_name: '', category: 'fruit', quantity: 1, unit: 'kg', unit_price: 0, subtotal: 0, is_custom_new: isCustom },
     ]);
+  };
+
+  const handleSelectIngredient = (index: number, selectedVal: string) => {
+    if (selectedVal === '__custom_new__') {
+      setPurchaseItems((prev) => {
+        const updated = [...prev];
+        updated[index] = {
+          ...updated[index],
+          ingredient_id: undefined,
+          ingredient_name: '',
+          is_custom_new: true,
+        };
+        return updated;
+      });
+      return;
+    }
+
+    const ingId = parseInt(selectedVal, 10);
+    const found = knownIngredients.find((ing) => ing.id === ingId);
+    if (found) {
+      setPurchaseItems((prev) => {
+        const updated = [...prev];
+        const item = updated[index];
+        const unitPrice = found.latest_purchase_price || found.average_purchase_price || 0;
+        const qty = item.quantity > 0 ? item.quantity : 1;
+        updated[index] = {
+          ...item,
+          ingredient_id: found.id,
+          ingredient_name: found.name,
+          category: (found.category as any) || 'ingredient',
+          unit: found.unit || 'kg',
+          unit_price: unitPrice,
+          subtotal: Math.round(qty * unitPrice),
+          is_custom_new: false,
+        };
+        return updated;
+      });
+    } else {
+      setPurchaseItems((prev) => {
+        const updated = [...prev];
+        updated[index] = {
+          ...updated[index],
+          ingredient_id: undefined,
+          ingredient_name: '',
+          is_custom_new: false,
+        };
+        return updated;
+      });
+    }
   };
 
   const handleRemoveRow = (index: number) => {
     if (purchaseItems.length === 1) {
       setPurchaseItems([
-        { ingredient_name: '', category: 'fruit', quantity: 1, unit: 'kg', unit_price: 0, subtotal: 0 },
+        { ingredient_name: '', category: 'fruit', quantity: 1, unit: 'kg', unit_price: 0, subtotal: 0, is_custom_new: false },
       ]);
       return;
     }
@@ -472,17 +522,60 @@ export default function TransactionModal({
                         {purchaseItems.map((item, idx) => (
                           <tr key={idx} className="group">
                             <td className="py-1.5 pr-1.5">
-                              <input
-                                list="ingredient-suggestions"
-                                type="text"
-                                required
-                                placeholder="Vd: Cam sành, Cà rốt..."
-                                value={item.ingredient_name}
-                                onChange={(e) =>
-                                  handleItemChange(idx, 'ingredient_name', e.target.value)
-                                }
-                                className="w-full h-8 px-2 border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
-                              />
+                              {item.is_custom_new ? (
+                                <div className="flex items-center gap-1">
+                                  <input
+                                    type="text"
+                                    required
+                                    autoFocus
+                                    placeholder="Nhập tên NL mới..."
+                                    value={item.ingredient_name}
+                                    onChange={(e) =>
+                                      handleItemChange(idx, 'ingredient_name', e.target.value)
+                                    }
+                                    className="w-full h-8 px-2 border border-amber-300 bg-amber-50/60 rounded-lg text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setPurchaseItems((prev) => {
+                                        const updated = [...prev];
+                                        updated[idx] = {
+                                          ...updated[idx],
+                                          is_custom_new: false,
+                                          ingredient_id: undefined,
+                                          ingredient_name: '',
+                                        };
+                                        return updated;
+                                      });
+                                    }}
+                                    className="text-[10px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-1.5 py-1 rounded-md border border-emerald-200 shrink-0 cursor-pointer"
+                                    title="Chọn từ danh sách có sẵn"
+                                  >
+                                    ↺ DS
+                                  </button>
+                                </div>
+                              ) : (
+                                <select
+                                  required
+                                  value={item.ingredient_id || ''}
+                                  onChange={(e) => handleSelectIngredient(idx, e.target.value)}
+                                  className="w-full h-8 px-2 border border-slate-200 rounded-lg text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+                                >
+                                  <option value="">— Chọn nguyên liệu có sẵn —</option>
+                                  {knownIngredients.map((ing) => (
+                                    <option key={ing.id} value={ing.id}>
+                                      {ing.name} ({ing.unit}){' '}
+                                      {ing.latest_purchase_price > 0
+                                        ? `— ${formatCurrency(ing.latest_purchase_price)}`
+                                        : ''}
+                                    </option>
+                                  ))}
+                                  <option value="__custom_new__" className="font-bold text-amber-700">
+                                    ➕ Nhập nguyên liệu mới...
+                                  </option>
+                                </select>
+                              )}
                             </td>
                             <td className="py-1.5 pr-1.5">
                               <select
@@ -567,18 +660,61 @@ export default function TransactionModal({
                         key={idx}
                         className="bg-white p-2.5 rounded-xl border border-emerald-200/80 shadow-2xs space-y-2"
                       >
-                        <div className="flex items-center justify-between gap-2">
-                          <input
-                            list="ingredient-suggestions"
-                            type="text"
-                            required
-                            placeholder="Tên nguyên liệu..."
-                            value={item.ingredient_name}
-                            onChange={(e) =>
-                              handleItemChange(idx, 'ingredient_name', e.target.value)
-                            }
-                            className="flex-1 h-8 px-2 border border-slate-200 rounded-lg text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-slate-50 focus:bg-white"
-                          />
+                        <div className="flex items-center justify-between gap-1.5">
+                          {item.is_custom_new ? (
+                            <div className="flex items-center gap-1.5 flex-1">
+                              <input
+                                type="text"
+                                required
+                                autoFocus
+                                placeholder="Nhập tên nguyên liệu mới..."
+                                value={item.ingredient_name}
+                                onChange={(e) =>
+                                  handleItemChange(idx, 'ingredient_name', e.target.value)
+                                }
+                                className="flex-1 h-8 px-2 border border-amber-300 bg-amber-50/60 rounded-lg text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setPurchaseItems((prev) => {
+                                    const updated = [...prev];
+                                    updated[idx] = {
+                                      ...updated[idx],
+                                      is_custom_new: false,
+                                      ingredient_id: undefined,
+                                      ingredient_name: '',
+                                    };
+                                    return updated;
+                                  });
+                                }}
+                                className="text-[10px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-2 py-1.5 rounded-lg border border-emerald-200 shrink-0 cursor-pointer"
+                                title="Chọn từ danh sách có sẵn"
+                              >
+                                ↺ Có sẵn
+                              </button>
+                            </div>
+                          ) : (
+                            <select
+                              required
+                              value={item.ingredient_id || ''}
+                              onChange={(e) => handleSelectIngredient(idx, e.target.value)}
+                              className="flex-1 h-8 px-2 border border-slate-200 rounded-lg text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-slate-50 focus:bg-white"
+                            >
+                              <option value="">— Chọn nguyên liệu có sẵn —</option>
+                              {knownIngredients.map((ing) => (
+                                <option key={ing.id} value={ing.id}>
+                                  {ing.name} ({ing.unit}){' '}
+                                  {ing.latest_purchase_price > 0
+                                    ? `— ${formatCurrency(ing.latest_purchase_price)}`
+                                    : ''}
+                                </option>
+                              ))}
+                              <option value="__custom_new__" className="font-bold text-amber-700">
+                                ➕ Nhập nguyên liệu mới...
+                              </option>
+                            </select>
+                          )}
                           <button
                             type="button"
                             onClick={() => handleRemoveRow(idx)}
@@ -652,24 +788,25 @@ export default function TransactionModal({
                     ))}
                   </div>
 
-                  {/* Datalist suggestions */}
-                  <datalist id="ingredient-suggestions">
-                    {knownIngredients.map((ing) => (
-                      <option key={ing.id} value={ing.name}>
-                        {ing.unit} - {formatCurrency(ing.latest_purchase_price)}
-                      </option>
-                    ))}
-                  </datalist>
-
-                  <div className="flex items-center justify-between pt-1">
-                    <button
-                      type="button"
-                      onClick={handleAddRow}
-                      className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 hover:text-emerald-900 bg-white hover:bg-emerald-100/50 px-2.5 py-1.5 rounded-lg border border-emerald-300 transition active:scale-95 shadow-2xs cursor-pointer"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      <span>Thêm mặt hàng</span>
-                    </button>
+                  <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleAddRow(false)}
+                        className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 hover:text-emerald-900 bg-white hover:bg-emerald-100/50 px-2.5 py-1.5 rounded-lg border border-emerald-300 transition active:scale-95 shadow-2xs cursor-pointer"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Thêm mặt hàng</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleAddRow(true)}
+                        className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-800 hover:text-amber-950 bg-amber-50 hover:bg-amber-100 px-2.5 py-1.5 rounded-lg border border-amber-300 transition active:scale-95 shadow-2xs cursor-pointer"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>+ Thêm nguyên liệu mới</span>
+                      </button>
+                    </div>
                     <div className="text-xs font-bold text-emerald-900">
                       Tổng tiền: <span className="text-rose-600 text-sm font-black">{formatCurrency(modalAmount)}</span>
                     </div>
