@@ -24,7 +24,7 @@ import {
   Calendar,
 } from 'lucide-react';
 import { CartItem } from './VariantSelectorModal';
-import { Promotion } from '@/app/promotions/page';
+import { Promotion } from '@/types/promotion';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
 import { fetchApi } from '@/lib/api';
 import { formatCurrency, SettingsMap } from '@/lib/utils';

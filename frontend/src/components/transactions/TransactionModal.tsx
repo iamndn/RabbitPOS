@@ -77,8 +77,8 @@ export default function TransactionModal({
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Itemized Purchases Mode
-  const [isPurchaseLogging, setIsPurchaseLogging] = useState<boolean>(false);
+  // Itemized Purchases Mode (Default ON for new outflows)
+  const [isPurchaseLogging, setIsPurchaseLogging] = useState<boolean>(true);
   const [purchaseItems, setPurchaseItems] = useState<PurchaseLineItem[]>([
     { ingredient_name: '', category: 'fruit', quantity: 1, unit: 'kg', unit_price: 0, subtotal: 0 },
   ]);
@@ -122,7 +122,7 @@ export default function TransactionModal({
       setModalAmount(0);
       setModalDescription('');
       setModalCreatedAt(null);
-      setIsPurchaseLogging(false);
+      setIsPurchaseLogging(true);
       setPurchaseItems([
         { ingredient_name: '', category: 'fruit', quantity: 1, unit: 'kg', unit_price: 0, subtotal: 0 },
       ]);
@@ -353,6 +353,7 @@ export default function TransactionModal({
                 type="button"
                 onClick={() => {
                   setModalType('outflow');
+                  setIsPurchaseLogging(true);
                   const cat = txCategories.find((c) => c.type === 'outflow' || c.type === 'both');
                   setModalCategory(cat?.code || cat?.name || 'ingredient_purchase');
                 }}

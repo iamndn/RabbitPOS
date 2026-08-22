@@ -134,8 +134,8 @@ export default function TransactionsPage() {
   const { t } = useTranslation();
   const { confirm, showAlert } = useConfirm();
 
-  // Active View Tab: 'purchases' (Default) | 'ledger' | 'orders'
-  const [activeTab, setActiveTab] = useState<TransactionTab>('purchases');
+  // Active View Tab: 'ledger' (Default) | 'purchases' | 'orders'
+  const [activeTab, setActiveTab] = useState<TransactionTab>('ledger');
   const [showFundsSection, setShowFundsSection] = useState<boolean>(false);
 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -789,16 +789,6 @@ export default function TransactionsPage() {
                 </button>
               </>
             )}
-
-            {activeTab === 'purchases' && (
-              <button
-                type="button"
-                onClick={handleOpenCreateModal}
-                className="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-black px-3.5 py-2 rounded-xl flex items-center gap-1.5 shadow-xs transition active:scale-95 cursor-pointer"
-              >
-                <Plus className="w-3.5 h-3.5" /> + Ghi Nhận Mua Hàng
-              </button>
-            )}
           </div>
         </div>
 
@@ -958,58 +948,6 @@ export default function TransactionsPage() {
                       {t('tx.inflows')}
                     </button>
                   </div>
-                </div>
-              </div>
-
-              {/* Auto-shown Period Total Summary Bar */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3.5 bg-slate-50/80 rounded-xl border border-slate-100">
-                <div className="flex items-center justify-between p-2.5 bg-white rounded-xl border border-emerald-100/80 shadow-2xs">
-                  <div>
-                    <span className="text-[11px] font-bold text-slate-500 uppercase flex items-center gap-1">
-                      <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
-                      {t('tx.inflows') || 'Tổng Thu'}
-                    </span>
-                    <div className="text-base sm:text-lg font-black text-emerald-600 mt-0.5">
-                      +{formatCurrency(inflowTotal, settings)}
-                    </div>
-                  </div>
-                  <span className="text-[10px] font-bold px-2 py-1 bg-emerald-50 text-emerald-700 rounded-lg border border-emerald-200/60">
-                    {inflowCount} {t('tx.transactions_count') || 'giao dịch'}
-                  </span>
-                </div>
-
-                <div className="flex items-center justify-between p-2.5 bg-white rounded-xl border border-rose-100/80 shadow-2xs">
-                  <div>
-                    <span className="text-[11px] font-bold text-slate-500 uppercase flex items-center gap-1">
-                      <span className="w-2 h-2 rounded-full bg-rose-500 inline-block"></span>
-                      {t('tx.outflows') || 'Tổng Chi'}
-                    </span>
-                    <div className="text-base sm:text-lg font-black text-rose-600 mt-0.5">
-                      -{formatCurrency(outflowTotal, settings)}
-                    </div>
-                  </div>
-                  <span className="text-[10px] font-bold px-2 py-1 bg-rose-50 text-rose-700 rounded-lg border border-rose-200/60">
-                    {outflowCount} {t('tx.transactions_count') || 'giao dịch'}
-                  </span>
-                </div>
-
-                <div className="flex items-center justify-between p-2.5 bg-white rounded-xl border border-indigo-100/80 shadow-2xs">
-                  <div>
-                    <span className="text-[11px] font-bold text-slate-500 uppercase flex items-center gap-1">
-                      <span className="w-2 h-2 rounded-full bg-indigo-500 inline-block"></span>
-                      {t('tx.net_cash_flow') || 'Thu Chi Ròng'}
-                    </span>
-                    <div className={`text-base sm:text-lg font-black mt-0.5 ${inflowTotal - outflowTotal >= 0 ? 'text-indigo-600' : 'text-rose-600'}`}>
-                      {inflowTotal - outflowTotal >= 0 ? '+' : ''}{formatCurrency(inflowTotal - outflowTotal, settings)}
-                    </div>
-                  </div>
-                  <span className={`text-[10px] font-black px-2 py-1 rounded-lg border ${
-                    inflowTotal - outflowTotal >= 0 
-                      ? 'bg-indigo-50 text-indigo-700 border-indigo-200/60' 
-                      : 'bg-rose-50 text-rose-700 border-rose-200/60'
-                  }`}>
-                    {inflowTotal - outflowTotal >= 0 ? 'Dương quỹ' : 'Âm quỹ'}
-                  </span>
                 </div>
               </div>
 

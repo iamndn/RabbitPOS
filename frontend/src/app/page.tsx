@@ -7,7 +7,7 @@ import AppShell from '@/components/AppShell';
 import type { CartItem, Product } from '@/components/pos/VariantSelectorModal';
 import CartDrawer from '@/components/pos/CartDrawer';
 import type { CompletedOrderData } from '@/components/pos/ReceiptModal';
-import { Promotion } from '@/app/promotions/page';
+import { Promotion } from '@/types/promotion';
 import { fetchApi, ApiResponse, getImageUrl } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
 import { useConfirm } from '@/context/ConfirmContext';
