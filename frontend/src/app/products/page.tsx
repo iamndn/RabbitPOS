@@ -573,7 +573,7 @@ export default function ProductsPage() {
                 placeholder={t('products.search_placeholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white shadow-2xs"
+                className="app-input pl-9 pr-4"
               />
             </div>
 

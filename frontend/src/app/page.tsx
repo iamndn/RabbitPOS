@@ -686,7 +686,7 @@ export default function PosPage() {
               placeholder={t('pos.search_placeholder') || 'Tìm món nhanh theo tên, mô tả...'}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-14 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white shadow-2xs"
+              className="app-input pl-9 pr-14"
             />
             {searchQuery ? (
               <button
