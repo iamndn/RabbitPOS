@@ -378,12 +378,12 @@ func (h *PurchaseHandler) GetCostComparison(c *gin.Context) {
 			estimatedLatest = math.Round(estimatedLatest*100) / 100
 			estimatedAvg = math.Round(estimatedAvg*100) / 100
 
-			diff := estimatedLatest - tp.Cogs
+			diff := estimatedLatest - tp.COGS
 			var marginPct float64 = 0.0
 			if tp.Price > 0 {
 				costForMargin := estimatedLatest
 				if costForMargin <= 0 {
-					costForMargin = tp.Cogs
+					costForMargin = tp.COGS
 				}
 				marginPct = math.Round(((tp.Price-costForMargin)/tp.Price)*1000) / 10
 			}
@@ -395,7 +395,7 @@ func (h *PurchaseHandler) GetCostComparison(c *gin.Context) {
 				VariantName:      "Topping",
 				CategoryName:     catName,
 				RetailPrice:      tp.Price,
-				CurrentCOGS:      tp.Cogs,
+				CurrentCOGS:      tp.COGS,
 				EstimatedCOGS:    estimatedLatest,
 				EstimatedCOGSAvg: estimatedAvg,
 				Difference:       diff,
@@ -412,25 +412,28 @@ func (h *PurchaseHandler) GetCostComparison(c *gin.Context) {
 // ApplyCostToMenu updates the menu COGS (cogs_price for product_variant, cogs for topping)
 func (h *PurchaseHandler) ApplyCostToMenu(c *gin.Context) {
 	var req models.ApplyCostRequest
-	// Support single item or multiple items in payload
 	if err := c.ShouldBindJSON(&req); err != nil {
-		// Try single item bind
-		var single models.ApplyCostItem
-		if err2 := c.ShouldBindJSON(&single); err2 != nil {
-			models.SendError(c, http.StatusBadRequest, "Invalid payload: "+err.Error())
-			return
-		}
-		req.Items = []models.ApplyCostItem{single}
+		models.SendError(c, http.StatusBadRequest, "Invalid payload: "+err.Error())
+		return
 	}
 
-	if len(req.Items) == 0 {
+	itemsToApply := req.Items
+	if len(itemsToApply) == 0 && req.TargetType != "" && req.TargetID > 0 && req.NewCost != nil {
+		itemsToApply = append(itemsToApply, models.ApplyCostItem{
+			TargetType: req.TargetType,
+			TargetID:   req.TargetID,
+			NewCost:    *req.NewCost,
+		})
+	}
+
+	if len(itemsToApply) == 0 {
 		models.SendError(c, http.StatusBadRequest, "No items provided to apply cost")
 		return
 	}
 
 	appliedCount := 0
 	err := h.db.Transaction(func(tx *gorm.DB) error {
-		for _, item := range req.Items {
+		for _, item := range itemsToApply {
 			if item.TargetType == "topping" {
 				if err := tx.Model(&models.Topping{}).Where("id = ?", item.TargetID).Update("cogs", item.NewCost).Error; err != nil {
 					return err

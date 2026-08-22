@@ -13,6 +13,7 @@ type Topping struct {
 	Price      float64   `gorm:"type:numeric(15,2);not null;default:0" json:"price"`
 	COGS       float64   `gorm:"type:numeric(15,2);not null;default:0" json:"cogs"`
 	CategoryID *uint     `gorm:"index"                               json:"category_id"`
+	Category   *Category `gorm:"foreignKey:CategoryID"               json:"category,omitempty"`
 	IsActive   bool      `gorm:"not null;default:true"               json:"is_active"`
 	CreatedAt  time.Time `json:"created_at"`
 	UpdatedAt  time.Time `json:"updated_at"`

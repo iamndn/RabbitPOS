@@ -2,6 +2,7 @@
   "nav": {
     "pos": "POS",
     "catalog": "Sản phẩm",
+    "purchases": "Nhập Hàng & Giá Vốn",
     "promotions": "Khuyến mãi",
     "transactions": "Sổ Thu Chi",
     "funds": "Quỹ tiền",
@@ -660,5 +661,24 @@
     "tab_5_desc": "Tên món, danh mục, biến thể/size, giá vốn, giá bán lẻ, biên LN gộp %, trạng thái bán",
     "permission_warning_title": "Lưu ý cấp quyền Google Sheet:",
     "permission_warning_desc": "Hãy chia sẻ quyền 'Chỉnh sửa' (Editor) của file Google Sheets cho email của Service Account (client_email trong tệp JSON)."
+  },
+  "purchases": {
+    "page_title": "Nhập Hàng & Định Lượng Giá Vốn",
+    "page_subtitle": "Theo dõi biến động giá nguyên liệu, tính toán giá vốn theo công thức & đồng bộ vào Menu",
+    "btn_add_ingredient": "Thêm Nguyên Liệu",
+    "btn_expense_purchase": "Chi Nhập Hàng",
+    "tab_cost_estimator": "Bảng Tính & Cập Nhật Giá Vốn (BOM)",
+    "tab_ingredients": "Danh Mục & Giá Nhập Nguyên Liệu",
+    "kpi_tracked_ingredients": "Nguyên liệu theo dõi",
+    "kpi_items_with_recipe": "Đã định lượng công thức",
+    "kpi_est_margin": "Biên Lãi Gộp Dự Tính",
+    "kpi_cost_variance": "Chênh lệch giá vốn",
+    "basis_latest": "Giá nhập gần nhất",
+    "basis_average": "Giá trung bình",
+    "btn_bulk_apply": "Áp Dụng Tất Cả Giá Vốn Mới",
+    "btn_apply_single": "Áp dụng",
+    "btn_recipe": "Công thức",
+    "recipe_modal_title": "Định Lượng Công Thức (BOM)",
+    "history_modal_title": "Lịch Sử Nhập Hàng"
   }
 }

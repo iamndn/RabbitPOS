@@ -2,6 +2,7 @@
   "nav": {
     "pos": "Point of Sale (POS)",
     "catalog": "Products & Menu",
+    "purchases": "Purchases & Cost Estimator",
     "promotions": "Promotions",
     "transactions": "Cash Flow Ledger",
     "funds": "Funds & Accounts",
@@ -660,5 +661,24 @@
     "tab_5_desc": "Product Name, Category, Variant/Size, COGS Price, Retail Price, Margin %, Active Status",
     "permission_warning_title": "Permission Requirement:",
     "permission_warning_desc": "Ensure the Service Account email (client_email in JSON) is granted 'Editor' access on the target Google Spreadsheet."
+  },
+  "purchases": {
+    "page_title": "Purchases & Cost Estimator",
+    "page_subtitle": "Track ingredient price trends, estimate BOM recipe cost & synchronize with menu COGS",
+    "btn_add_ingredient": "Add Ingredient",
+    "btn_expense_purchase": "Log Purchase Expense",
+    "tab_cost_estimator": "Recipe Cost Estimator (BOM)",
+    "tab_ingredients": "Ingredient Catalog & Price Tracker",
+    "kpi_tracked_ingredients": "Tracked Ingredients",
+    "kpi_items_with_recipe": "Items with Recipe",
+    "kpi_est_margin": "Estimated Gross Margin",
+    "kpi_cost_variance": "Cost Variance",
+    "basis_latest": "Latest Purchase Price",
+    "basis_average": "Weighted Avg Price",
+    "btn_bulk_apply": "Apply All Calculated Costs",
+    "btn_apply_single": "Apply Cost",
+    "btn_recipe": "Recipe",
+    "recipe_modal_title": "Bill of Materials (BOM) Recipe",
+    "history_modal_title": "Purchase Invoice History"
   }
 }

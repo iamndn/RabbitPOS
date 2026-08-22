@@ -95,3 +95,16 @@ Standard response envelope:
 - `PUT /settings` — Update system configuration (Admin only).
 - `POST /upload` — Upload image file (categories, products, store logo) with 5MB limit (Protected).
 - `GET /health` — Check service health and PostgreSQL database connectivity (Public).
+
+---
+
+## 9. Inventory Purchases, Ingredients & Recipe BOM Management
+- `GET /purchases/ingredients` — List all tracked raw ingredients, fruits, produce, and packaging (Protected).
+- `POST /purchases/ingredients` — Create a new raw ingredient with category, unit, yield rate (Admin only).
+- `PUT /purchases/ingredients/:id` — Update ingredient name, category, unit, yield rate (Admin only).
+- `DELETE /purchases/ingredients/:id` — Delete ingredient (Admin only, checks for active recipe usage).
+- `GET /purchases/ingredients/:id/history` — Get purchase invoice history log and unit price fluctuations (Protected).
+- `GET /purchases/cost-comparison` — Estimate theoretical COGS for all active product variants and toppings based on BOM recipes vs menu COGS (Protected).
+- `POST /purchases/apply-cost` — Single or bulk 1-click update of calculated BOM COGS into menu `product_variants.cogs_price` or `toppings.cogs` (Admin only).
+- `GET /purchases/recipes/:target_type/:target_id` — Get BOM recipe items and ingredients for a product variant or topping (Protected).
+- `POST /purchases/recipes/:target_type/:target_id` — Save BOM recipe items with usage quantities (Admin only).

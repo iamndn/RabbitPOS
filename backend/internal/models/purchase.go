@@ -112,5 +112,8 @@ type ApplyCostItem struct {
 }
 
 type ApplyCostRequest struct {
-	Items []ApplyCostItem `json:"items" binding:"required"`
+	TargetType string          `json:"target_type"` // Optional single item
+	TargetID   uint            `json:"target_id"`   // Optional single item
+	NewCost    *float64        `json:"new_cost"`    // Optional single item
+	Items      []ApplyCostItem `json:"items"`       // Bulk items
 }

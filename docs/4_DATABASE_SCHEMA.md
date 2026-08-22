@@ -148,3 +148,35 @@
 - `key` (VARCHAR(100), UNIQUE, NOT NULL)
 - `value` (TEXT, NOT NULL)
 - `created_at`, `updated_at` (TIMESTAMPTZ)
+
+---
+
+## 6. Inventory Purchases, Ingredients & Recipe BOM Domain
+
+### `ingredients`
+- `id` (PK, BIGSERIAL)
+- `name` (VARCHAR(200), UNIQUE, NOT NULL) — e.g., "Cam sành", "Cà rốt", "Sữa đặc", "Ly 500ml"
+- `category` (VARCHAR(50), NOT NULL, DEFAULT 'fruit') — `fruit`, `ingredient`, `packaging`, `other`
+- `unit` (VARCHAR(50), NOT NULL, DEFAULT 'kg') — `kg`, `g`, `ml`, `lít`, `lon`, `hộp`, `cái`
+- `yield_rate` (NUMERIC(5,4), NOT NULL, DEFAULT 1.0000) — e.g. 0.45 for Orange juice extraction, 0.55 for Carrot
+- `latest_purchase_price` (NUMERIC(15,2), NOT NULL, DEFAULT 0.00) — Most recent unit purchase price
+- `average_purchase_price` (NUMERIC(15,2), NOT NULL, DEFAULT 0.00) — Weighted average historical unit purchase price
+- `created_at`, `updated_at` (TIMESTAMPTZ)
+
+### `purchase_items`
+- `id` (PK, BIGSERIAL)
+- `transaction_id` (BIGINT, NOT NULL, FK -> `transactions.id` ON DELETE CASCADE)
+- `ingredient_id` (BIGINT, NOT NULL, FK -> `ingredients.id` ON DELETE CASCADE)
+- `quantity` (NUMERIC(12,4), NOT NULL) — Amount purchased
+- `unit` (VARCHAR(50), DEFAULT '')
+- `unit_price` (NUMERIC(15,2), NOT NULL) — Price per unit in VND
+- `subtotal` (NUMERIC(15,2), NOT NULL) — quantity * unit_price
+- `created_at`, `updated_at` (TIMESTAMPTZ)
+
+### `recipe_items`
+- `id` (PK, BIGSERIAL)
+- `product_variant_id` (BIGINT, NULL, FK -> `product_variants.id` ON DELETE CASCADE)
+- `topping_id` (BIGINT, NULL, FK -> `toppings.id` ON DELETE CASCADE)
+- `ingredient_id` (BIGINT, NOT NULL, FK -> `ingredients.id` ON DELETE CASCADE)
+- `usage_quantity` (NUMERIC(12,4), NOT NULL) — Quantity needed per serving/portion
+- `created_at`, `updated_at` (TIMESTAMPTZ)
