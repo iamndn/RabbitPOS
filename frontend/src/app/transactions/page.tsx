@@ -38,7 +38,6 @@ import {
 import AppShell from '@/components/AppShell';
 import TransactionCategoryModal from '@/components/transactions/TransactionCategoryModal';
 import TransactionModal from '@/components/transactions/TransactionModal';
-import PurchasesCostTab from '@/components/transactions/PurchasesCostTab';
 import ModernDateRangePicker, { DatePeriod, computeDateRange, getLocalMonthStr, getLocalDateStr, toLocalDateStr } from '@/components/common/ModernDateRangePicker';
 import ModernSelect from '@/components/common/ModernSelect';
 import { fetchApi } from '@/lib/api';
@@ -127,14 +126,14 @@ interface OrderApi {
   created_at: string;
 }
 
-export type TransactionTab = 'purchases' | 'ledger' | 'orders';
+export type TransactionTab = 'ledger' | 'orders';
 
 export default function TransactionsPage() {
   const router = useRouter();
   const { t } = useTranslation();
   const { confirm, showAlert } = useConfirm();
 
-  // Active View Tab: 'ledger' (Default) | 'purchases' | 'orders'
+  // Active View Tab: 'ledger' (Default) | 'orders'
   const [activeTab, setActiveTab] = useState<TransactionTab>('ledger');
   const [showFundsSection, setShowFundsSection] = useState<boolean>(false);
 
@@ -184,13 +183,14 @@ export default function TransactionsPage() {
   const [txPage, setTxPage] = useState<number>(1);
   const [orderPage, setOrderPage] = useState<number>(1);
 
-  // Read URL query params on mount (?tab=purchases|ledger|orders)
+  // Read URL query params on mount (?tab=ledger|orders)
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       const tabParam = params.get('tab');
       if (tabParam === 'purchases') {
-        setActiveTab('purchases');
+        router.replace('/purchases');
+        return;
       } else if (tabParam === 'ledger' || tabParam === 'transactions') {
         setActiveTab('ledger');
       } else if (tabParam === 'funds') {
@@ -207,7 +207,7 @@ export default function TransactionsPage() {
         }
       }
     }
-  }, []);
+  }, [router]);
 
   const handleTabChange = (newTab: TransactionTab) => {
     setActiveTab(newTab);
@@ -726,7 +726,7 @@ export default function TransactionsPage() {
               {t('tx.title') || 'Sổ Thu Chi & Giao Dịch'}
             </h1>
             <p className="text-xs text-slate-500 mt-0.5">
-              {t('tx.subtitle') || 'Nhập hàng & định lượng giá vốn, sổ thu chi dòng tiền và lịch sử đơn hàng'}
+              {t('tx.subtitle') || 'Sổ thu chi dòng tiền và lịch sử đơn hàng'}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -792,28 +792,14 @@ export default function TransactionsPage() {
           </div>
         </div>
 
-        {/* Sticky Tab Navigation Bar: 3 Tabs (Purchases & Costing, Ledger, Orders) */}
+        {/* Sticky Tab Navigation Bar: 2 Tabs (Ledger, Orders) */}
         <div className="sticky top-14 z-30 bg-slate-50/95 backdrop-blur-xs pt-1 pb-2 border-b border-slate-200/80">
           <div className="flex space-x-1 sm:space-x-2 bg-slate-200/70 p-1 rounded-2xl overflow-x-auto no-scrollbar">
-            {/* TAB 1: Purchases & Recipe Costing (Default) */}
-            <button
-              type="button"
-              onClick={() => handleTabChange('purchases')}
-              className={`flex-1 min-w-[140px] py-2 px-3 text-xs sm:text-sm font-bold rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
-                activeTab === 'purchases'
-                  ? 'bg-white text-emerald-900 shadow-sm font-extrabold'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <ShoppingBag className="w-4 h-4 text-emerald-600 shrink-0" />
-              <span>{t('tx.tab_purchases') || '📦 Nhập hàng'}</span>
-            </button>
-
-            {/* TAB 2: Financial Ledger */}
+            {/* TAB 1: Financial Ledger */}
             <button
               type="button"
               onClick={() => handleTabChange('ledger')}
-              className={`flex-1 min-w-[120px] py-2 px-3 text-xs sm:text-sm font-bold rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
+              className={`flex-1 min-w-[140px] py-2 px-3 text-xs sm:text-sm font-bold rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
                 activeTab === 'ledger'
                   ? 'bg-white text-emerald-900 shadow-sm font-extrabold'
                   : 'text-slate-600 hover:text-slate-900'
@@ -826,7 +812,7 @@ export default function TransactionsPage() {
               </span>
             </button>
 
-            {/* TAB 3: Order History */}
+            {/* TAB 2: Order History */}
             <button
               type="button"
               onClick={() => handleTabChange('orders')}
@@ -844,17 +830,6 @@ export default function TransactionsPage() {
             </button>
           </div>
         </div>
-
-        {/* ── TAB 1: PURCHASES & RECIPE COST ESTIMATOR (Default) ───────────── */}
-        {activeTab === 'purchases' && (
-          <PurchasesCostTab
-            onOpenExpenseModal={handleOpenCreateModal}
-            settings={settings}
-            funds={safeFunds}
-            txCategories={txCategories}
-            onDataChanged={loadData}
-          />
-        )}
 
         {/* ── TAB 2: FINANCIAL LEDGER TRANSACTIONS ──────────────────────── */}
         {activeTab === 'ledger' && (

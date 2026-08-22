@@ -568,9 +568,11 @@ export default function PurchasesCostTab({
               type="button"
               onClick={handleBulkApplyCosts}
               disabled={bulkApplying}
-              className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 underline active:scale-95 transition cursor-pointer"
+              className="inline-flex items-center gap-1 text-[11px] font-extrabold text-indigo-700 hover:text-indigo-900 bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1 rounded-lg border border-indigo-200 shadow-2xs active:scale-95 transition cursor-pointer"
+              title="Đồng bộ tất cả giá vốn tính từ công thức vào Menu món"
             >
-              {bulkApplying ? 'Đang đồng bộ...' : 'Đồng bộ'}
+              <RefreshCw className={`w-3 h-3 ${bulkApplying ? 'animate-spin' : ''}`} />
+              <span>{bulkApplying ? 'Đang đồng bộ...' : 'Đồng bộ'}</span>
             </button>
           </div>
         </div>
@@ -590,7 +592,7 @@ export default function PurchasesCostTab({
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              <Sparkles className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+              <Scale className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
               <span>Giá Vốn & Định Lượng (BOM)</span>
             </button>
             <button
@@ -619,43 +621,31 @@ export default function PurchasesCostTab({
                 <span>+ Thêm Nguyên Liệu</span>
               </button>
             ) : (
-              <>
-                {/* Pricing Basis Toggle */}
-                <div className="inline-flex items-center bg-slate-100 p-0.5 rounded-xl text-[11px] font-bold text-slate-600">
-                  <button
-                    type="button"
-                    onClick={() => setPricingBasis('latest')}
-                    className={`px-2.5 py-1.5 rounded-lg transition cursor-pointer ${
-                      pricingBasis === 'latest'
-                        ? 'bg-emerald-700 text-white shadow-xs'
-                        : 'hover:text-slate-900'
-                    }`}
-                  >
-                    Giá mới nhất
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setPricingBasis('average')}
-                    className={`px-2.5 py-1.5 rounded-lg transition cursor-pointer ${
-                      pricingBasis === 'average'
-                        ? 'bg-emerald-700 text-white shadow-xs'
-                        : 'hover:text-slate-900'
-                    }`}
-                  >
-                    Giá TB
-                  </button>
-                </div>
-
+              /* Pricing Basis Toggle */
+              <div className="inline-flex items-center bg-slate-100 p-0.5 rounded-xl text-[11px] font-bold text-slate-600">
                 <button
                   type="button"
-                  onClick={handleBulkApplyCosts}
-                  disabled={bulkApplying}
-                  className="inline-flex items-center gap-1 px-3 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-xs transition active:scale-95 cursor-pointer"
+                  onClick={() => setPricingBasis('latest')}
+                  className={`px-2.5 py-1.5 rounded-lg transition cursor-pointer ${
+                    pricingBasis === 'latest'
+                      ? 'bg-emerald-700 text-white shadow-xs'
+                      : 'hover:text-slate-900'
+                  }`}
                 >
-                  <RefreshCw className={`w-3.5 h-3.5 ${bulkApplying ? 'animate-spin' : ''}`} />
-                  <span>Áp Dụng Tất Cả Giá Vốn</span>
+                  Giá mới nhất
                 </button>
-              </>
+                <button
+                  type="button"
+                  onClick={() => setPricingBasis('average')}
+                  className={`px-2.5 py-1.5 rounded-lg transition cursor-pointer ${
+                    pricingBasis === 'average'
+                      ? 'bg-emerald-700 text-white shadow-xs'
+                      : 'hover:text-slate-900'
+                  }`}
+                >
+                  Giá TB
+                </button>
+              </div>
             )}
 
             {onOpenExpenseModal && (
