@@ -138,7 +138,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const allNavItems = [
     { label: t('nav.pos'), href: '/', icon: ShoppingCart, adminOnly: false },
     { label: t('nav.catalog'), href: '/products', icon: Package, adminOnly: true },
-    { label: t('nav.purchases') || 'Nhập Hàng & Giá Vốn', href: '/purchases', icon: ShoppingBag, adminOnly: true },
     { label: t('nav.promotions'), href: '/promotions', icon: Tag, adminOnly: true },
     { label: t('nav.transactions'), href: '/transactions', icon: ArrowUpRight, adminOnly: true },
     { label: t('nav.dashboard'), href: '/dashboard', icon: LayoutDashboard, adminOnly: true },

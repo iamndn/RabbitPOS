@@ -583,7 +583,7 @@ export default function SettingsPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div className="md:col-span-2">
-                    <label className="font-semibold text-slate-700 mb-1.5 block">
+                    <label className="app-label">
                       {t('settings.store_name')} <span className="text-rose-500">*</span>
                     </label>
                     <input
@@ -591,33 +591,33 @@ export default function SettingsPage() {
                       required
                       value={form.store_name || ''}
                       onChange={(e) => handleChange('store_name', e.target.value)}
-                      className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 bg-slate-50/50 hover:bg-white focus:bg-white transition"
+                      className="app-input"
                       placeholder={t('settings.store_name_placeholder')}
                     />
                   </div>
 
                   <div>
-                    <label className="font-semibold text-slate-700 mb-1.5 block">
+                    <label className="app-label">
                       {t('settings.store_phone')}
                     </label>
                     <input
                       type="text"
                       value={form.store_phone || ''}
                       onChange={(e) => handleChange('store_phone', e.target.value)}
-                      className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 bg-slate-50/50 hover:bg-white focus:bg-white transition"
+                      className="app-input"
                       placeholder={t('settings.store_phone_placeholder')}
                     />
                   </div>
 
                   <div>
-                    <label className="font-semibold text-slate-700 mb-1.5 block">
+                    <label className="app-label">
                       {t('settings.store_address')}
                     </label>
                     <input
                       type="text"
                       value={form.store_address || ''}
                       onChange={(e) => handleChange('store_address', e.target.value)}
-                      className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 bg-slate-50/50 hover:bg-white focus:bg-white transition"
+                      className="app-input"
                       placeholder={t('settings.store_address_placeholder')}
                     />
                   </div>

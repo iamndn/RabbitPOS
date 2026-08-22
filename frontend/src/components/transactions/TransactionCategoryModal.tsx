@@ -247,7 +247,7 @@ export default function TransactionCategoryModal({
 
               <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
                 <div className="sm:col-span-7">
-                  <label className="text-xs font-semibold text-slate-600 mb-1 block">
+                  <label className="app-label">
                     {t('tx_cat.name_label') || 'Tên danh mục'} *
                   </label>
                   <input
@@ -256,12 +256,12 @@ export default function TransactionCategoryModal({
                     placeholder={t('tx_cat.name_placeholder') || 'VD: Tiền thuê mặt bằng, Tiền nhân công...'}
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-3 py-2 text-xs font-medium border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                    className="app-input"
                   />
                 </div>
 
                 <div className="sm:col-span-5">
-                  <label className="text-xs font-semibold text-slate-600 mb-1 block">
+                  <label className="app-label">
                     {t('tx_cat.type_label') || 'Loại giao dịch'} *
                   </label>
                   <ModernSelect

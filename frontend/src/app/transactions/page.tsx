@@ -38,6 +38,7 @@ import {
 import AppShell from '@/components/AppShell';
 import TransactionCategoryModal from '@/components/transactions/TransactionCategoryModal';
 import TransactionModal from '@/components/transactions/TransactionModal';
+import PurchasesCostTab from '@/components/transactions/PurchasesCostTab';
 import ModernDateRangePicker, { DatePeriod, computeDateRange, getLocalMonthStr, getLocalDateStr, toLocalDateStr } from '@/components/common/ModernDateRangePicker';
 import ModernSelect from '@/components/common/ModernSelect';
 import { fetchApi } from '@/lib/api';
@@ -49,6 +50,15 @@ import { CartItem, ProductVariant, Product } from '@/components/pos/VariantSelec
 import { CategoryBreakdownResponse, FundsPeriodSummaryResponse } from '@/types/analytics';
 import { TransactionCategory } from '@/types/transaction_category';
 import { PurchaseItem } from '@/types/purchase';
+
+const formatDateTime = (dateStr?: string) => {
+  if (!dateStr) return '—';
+  try {
+    return new Date(dateStr).toLocaleString('vi-VN');
+  } catch {
+    return dateStr;
+  }
+};
 
 interface Fund {
   id: number;
@@ -117,13 +127,16 @@ interface OrderApi {
   created_at: string;
 }
 
+export type TransactionTab = 'purchases' | 'ledger' | 'orders';
+
 export default function TransactionsPage() {
   const router = useRouter();
   const { t } = useTranslation();
   const { confirm, showAlert } = useConfirm();
 
-  // Active View Tab: 'transactions' | 'orders' | 'funds'
-  const [activeTab, setActiveTab] = useState<'transactions' | 'orders' | 'funds'>('transactions');
+  // Active View Tab: 'purchases' (Default) | 'ledger' | 'orders'
+  const [activeTab, setActiveTab] = useState<TransactionTab>('purchases');
+  const [showFundsSection, setShowFundsSection] = useState<boolean>(false);
 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [orders, setOrders] = useState<OrderApi[]>([]);
@@ -171,13 +184,20 @@ export default function TransactionsPage() {
   const [txPage, setTxPage] = useState<number>(1);
   const [orderPage, setOrderPage] = useState<number>(1);
 
-  // Read URL query params on mount (?tab=funds&fund_id=1)
+  // Read URL query params on mount (?tab=purchases|ledger|orders)
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       const tabParam = params.get('tab');
-      if (tabParam === 'funds' || tabParam === 'orders' || tabParam === 'transactions') {
-        setActiveTab(tabParam);
+      if (tabParam === 'purchases') {
+        setActiveTab('purchases');
+      } else if (tabParam === 'ledger' || tabParam === 'transactions') {
+        setActiveTab('ledger');
+      } else if (tabParam === 'funds') {
+        setActiveTab('ledger');
+        setShowFundsSection(true);
+      } else if (tabParam === 'orders') {
+        setActiveTab('orders');
       }
       const fundIdParam = params.get('fund_id');
       if (fundIdParam) {
@@ -188,6 +208,15 @@ export default function TransactionsPage() {
       }
     }
   }, []);
+
+  const handleTabChange = (newTab: TransactionTab) => {
+    setActiveTab(newTab);
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      params.set('tab', newTab);
+      router.replace(`/transactions?${params.toString()}`, { scroll: false });
+    }
+  };
 
   // Debounce order search
   useEffect(() => {
@@ -690,16 +719,18 @@ export default function TransactionsPage() {
     <AppShell>
       <div className="space-y-4 sm:space-y-6 max-w-7xl mx-auto w-full max-w-full overflow-x-hidden">
         {/* Page Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs">
           <div>
-            <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-              <TrendingUp className="w-6 h-6 text-indigo-600" />
-              {t('tx.title')}
+            <h1 className="text-lg sm:text-xl font-black text-slate-900 flex items-center gap-2">
+              <TrendingUp className="w-6 h-6 text-emerald-700 shrink-0" />
+              {t('tx.title') || 'Sổ Thu Chi & Giao Dịch'}
             </h1>
-            <p className="text-xs text-slate-500 mt-1">{t('tx.subtitle')}</p>
+            <p className="text-xs text-slate-500 mt-0.5">
+              {t('tx.subtitle') || 'Nhập hàng & định lượng giá vốn, sổ thu chi dòng tiền và lịch sử đơn hàng'}
+            </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            {activeTab !== 'funds' ? (
+            {activeTab === 'ledger' && (
               <>
                 <ModernDateRangePicker
                   period={period}
@@ -713,87 +744,130 @@ export default function TransactionsPage() {
                   align="right"
                 />
                 <button
+                  type="button"
                   onClick={() => setIsCategoryModalOpen(true)}
-                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-3.5 py-2 rounded-xl border border-slate-200 flex items-center gap-1.5 transition"
+                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-3 py-2 rounded-xl border border-slate-200 flex items-center gap-1.5 transition active:scale-95 cursor-pointer"
                 >
-                  <Tag className="w-4 h-4 text-indigo-600" /> {t('tx_cat.btn_manage_categories') || 'Danh mục'}
+                  <Tag className="w-3.5 h-3.5 text-indigo-600" /> {t('tx_cat.btn_manage_categories') || 'Danh mục'}
                 </button>
                 <button
+                  type="button"
                   onClick={handleExportCsv}
-                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-3.5 py-2 rounded-xl border border-slate-200 flex items-center gap-1.5 transition"
+                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-3 py-2 rounded-xl border border-slate-200 flex items-center gap-1.5 transition active:scale-95 cursor-pointer"
                 >
-                  <Download className="w-4 h-4 text-slate-500" /> {t('common.export_csv')}
+                  <Download className="w-3.5 h-3.5 text-slate-500" /> {t('common.export_csv')}
                 </button>
                 <button
+                  type="button"
                   onClick={handleOpenCreateModal}
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-2 rounded-xl flex items-center gap-1.5 shadow-sm transition"
+                  className="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-black px-3.5 py-2 rounded-xl flex items-center gap-1.5 shadow-xs transition active:scale-95 cursor-pointer"
                 >
-                  <Plus className="w-4 h-4" /> {t('tx.add_expense')}
+                  <Plus className="w-3.5 h-3.5" /> {t('tx.add_expense')}
                 </button>
               </>
-            ) : (
+            )}
+
+            {activeTab === 'orders' && (
+              <>
+                <ModernDateRangePicker
+                  period={period}
+                  customFrom={customFrom}
+                  customTo={customTo}
+                  onChange={({ period: newP, from, to }) => {
+                    setPeriod(newP);
+                    setCustomFrom(from);
+                    setCustomTo(to);
+                  }}
+                  align="right"
+                />
+                <button
+                  type="button"
+                  onClick={handleExportCsv}
+                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-3 py-2 rounded-xl border border-slate-200 flex items-center gap-1.5 transition active:scale-95 cursor-pointer"
+                >
+                  <Download className="w-3.5 h-3.5 text-slate-500" /> {t('common.export_csv')}
+                </button>
+              </>
+            )}
+
+            {activeTab === 'purchases' && (
               <button
-                onClick={() => {
-                  loadData();
-                  loadPeriodSummary();
-                }}
-                className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-3.5 py-2 rounded-xl border border-slate-200 flex items-center gap-1.5 transition"
+                type="button"
+                onClick={handleOpenCreateModal}
+                className="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-black px-3.5 py-2 rounded-xl flex items-center gap-1.5 shadow-xs transition active:scale-95 cursor-pointer"
               >
-                <RefreshCw className={`w-4 h-4 text-indigo-600 ${loading || summaryLoading ? 'animate-spin' : ''}`} />
-                <span>{t('common.loading') === 'Đang tải...' ? 'Làm mới dữ liệu' : 'Refresh'}</span>
+                <Plus className="w-3.5 h-3.5" /> + Ghi Nhận Mua Hàng
               </button>
             )}
           </div>
         </div>
 
-        {/* Tab Navigation: Ledger vs Orders vs Funds */}
-        <div className="flex space-x-2 border-b border-slate-200 overflow-x-auto no-scrollbar scrollbar-none pb-0.5">
-          <button
-            type="button"
-            onClick={() => setActiveTab('transactions')}
-            className={`pb-3 px-4 text-sm font-bold border-b-2 transition flex items-center gap-2 whitespace-nowrap shrink-0 ${activeTab === 'transactions'
-              ? 'border-indigo-600 text-indigo-600'
-              : 'border-transparent text-slate-500 hover:text-slate-700'
+        {/* Sticky Tab Navigation Bar: 3 Tabs (Purchases & Costing, Ledger, Orders) */}
+        <div className="sticky top-14 z-30 bg-slate-50/95 backdrop-blur-xs pt-1 pb-2 border-b border-slate-200/80">
+          <div className="flex space-x-1 sm:space-x-2 bg-slate-200/70 p-1 rounded-2xl overflow-x-auto no-scrollbar">
+            {/* TAB 1: Purchases & Recipe Costing (Default) */}
+            <button
+              type="button"
+              onClick={() => handleTabChange('purchases')}
+              className={`flex-1 min-w-[140px] py-2 px-3 text-xs sm:text-sm font-bold rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
+                activeTab === 'purchases'
+                  ? 'bg-white text-emerald-900 shadow-sm font-extrabold'
+                  : 'text-slate-600 hover:text-slate-900'
               }`}
-          >
-            <TrendingUp className="w-4 h-4" />
-            {t('tx.tab_transactions') || 'Sổ Thu Chi'}
-            <span className="bg-slate-100 text-slate-600 text-xs px-2 py-0.5 rounded-full font-bold">
-              {safeTransactions.length}
-            </span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('orders')}
-            className={`pb-3 px-4 text-sm font-bold border-b-2 transition flex items-center gap-2 whitespace-nowrap shrink-0 ${activeTab === 'orders'
-              ? 'border-indigo-600 text-indigo-600'
-              : 'border-transparent text-slate-500 hover:text-slate-700'
+            >
+              <ShoppingBag className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>{t('tx.tab_purchases') || '📦 Nhập hàng & Giá vốn'}</span>
+            </button>
+
+            {/* TAB 2: Financial Ledger */}
+            <button
+              type="button"
+              onClick={() => handleTabChange('ledger')}
+              className={`flex-1 min-w-[120px] py-2 px-3 text-xs sm:text-sm font-bold rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
+                activeTab === 'ledger'
+                  ? 'bg-white text-emerald-900 shadow-sm font-extrabold'
+                  : 'text-slate-600 hover:text-slate-900'
               }`}
-          >
-            <Receipt className="w-4 h-4" />
-            {t('tx.tab_orders') || 'Lịch sử Đơn hàng'}
-            <span className="bg-indigo-50 text-indigo-600 text-xs px-2 py-0.5 rounded-full font-bold">
-              {safeOrders.length}
-            </span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('funds')}
-            className={`pb-3 px-4 text-sm font-bold border-b-2 transition flex items-center gap-2 ${activeTab === 'funds'
-              ? 'border-indigo-600 text-indigo-600'
-              : 'border-transparent text-slate-500 hover:text-slate-700'
+            >
+              <TrendingUp className="w-4 h-4 text-indigo-600 shrink-0" />
+              <span>{t('tx.tab_ledger') || '💸 Sổ thu chi'}</span>
+              <span className="bg-slate-100 text-slate-600 text-[10px] sm:text-xs px-1.5 py-0.2 rounded-full font-bold">
+                {safeTransactions.length}
+              </span>
+            </button>
+
+            {/* TAB 3: Order History */}
+            <button
+              type="button"
+              onClick={() => handleTabChange('orders')}
+              className={`flex-1 min-w-[140px] py-2 px-3 text-xs sm:text-sm font-bold rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
+                activeTab === 'orders'
+                  ? 'bg-white text-emerald-900 shadow-sm font-extrabold'
+                  : 'text-slate-600 hover:text-slate-900'
               }`}
-          >
-            <Wallet className="w-4 h-4" />
-            {t('tx.tab_funds') || 'Quỹ'}
-            <span className="bg-emerald-50 text-emerald-700 text-xs px-2 py-0.5 rounded-full font-bold">
-              {funds.length}
-            </span>
-          </button>
+            >
+              <Receipt className="w-4 h-4 text-amber-600 shrink-0" />
+              <span>{t('tx.tab_orders') || '🧾 Lịch sử đơn hàng'}</span>
+              <span className="bg-amber-50 text-amber-700 text-[10px] sm:text-xs px-1.5 py-0.2 rounded-full font-bold">
+                {safeOrders.length}
+              </span>
+            </button>
+          </div>
         </div>
 
-        {/* ── TAB 1: FINANCIAL LEDGER TRANSACTIONS ──────────────────────── */}
-        {activeTab === 'transactions' && (
+        {/* ── TAB 1: PURCHASES & RECIPE COST ESTIMATOR (Default) ───────────── */}
+        {activeTab === 'purchases' && (
+          <PurchasesCostTab
+            onOpenExpenseModal={handleOpenCreateModal}
+            settings={settings}
+            funds={safeFunds}
+            txCategories={txCategories}
+            onDataChanged={loadData}
+          />
+        )}
+
+        {/* ── TAB 2: FINANCIAL LEDGER TRANSACTIONS ──────────────────────── */}
+        {activeTab === 'ledger' && (
           <div className="space-y-6">
             {/* KPI Summary Row */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -1296,10 +1370,234 @@ export default function TransactionsPage() {
                 </div>
               )}
             </div>
+
+            {/* Fund Management & Reconciliation Section Inside Ledger */}
+            <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+                <div>
+                  <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
+                    <Wallet className="w-4 h-4 text-emerald-700" />
+                    <span>Quản Lý Tài Khoản Quỹ & Đối Soát Định Kỳ</span>
+                  </h3>
+                  <p className="text-xs text-slate-500">Xem số dư thực tế, đối soát lệch quỹ và bảng cân đối đầu/cuối kỳ</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowFundsSection(!showFundsSection)}
+                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-3 py-1.5 rounded-xl border border-slate-200 flex items-center gap-1.5 transition active:scale-95 cursor-pointer self-start sm:self-auto"
+                >
+                  {showFundsSection ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                  <span>{showFundsSection ? 'Thu gọn' : 'Mở rộng đối soát quỹ'}</span>
+                </button>
+              </div>
+
+              {showFundsSection && (
+                <div className="space-y-6 pt-2">
+                  {/* Funds Real-Time Balance Cards */}
+                  {loading ? (
+                    <div className="flex justify-center py-8">
+                      <RefreshCw className="w-6 h-6 text-indigo-600 animate-spin" />
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {(Array.isArray(funds) ? funds : []).map((fund) => {
+                        const isBank = fund.fund_type === 'bank';
+
+                        return (
+                          <div
+                            key={fund.id}
+                            className="bg-slate-50/50 p-4 rounded-2xl border border-slate-200 shadow-2xs flex flex-col justify-between space-y-3 hover:border-indigo-200 transition"
+                          >
+                            <div className="flex items-start justify-between">
+                              <div className="flex items-center space-x-3">
+                                <div className={`p-2.5 rounded-xl ${isBank ? 'bg-blue-50 text-blue-600' : 'bg-emerald-50 text-emerald-600'}`}>
+                                  {isBank ? <Building2 className="w-5 h-5" /> : <Wallet className="w-5 h-5" />}
+                                </div>
+                                <div>
+                                  <h4 className="font-bold text-slate-900 text-sm">{fund.name}</h4>
+                                  <span className="text-[11px] font-semibold text-slate-400 capitalize">
+                                    {t('funds.fund_type_label', { type: fund.fund_type })}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                                <CheckCircle2 className="w-3 h-3" /> {t('funds.active_badge')}
+                              </span>
+                            </div>
+
+                            {/* Balance Display */}
+                            <div className="bg-white p-3 rounded-xl border border-slate-100 flex items-center justify-between">
+                              <div>
+                                <span className="text-[11px] text-slate-500 font-medium">{t('funds.theoretical_balance')}</span>
+                                <div className="text-xl font-black text-slate-900 mt-0.5">
+                                  {formatCurrency(fund.current_balance, settings)}
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Action Buttons */}
+                            <div className="flex items-center space-x-2 pt-2 border-t border-slate-200/60">
+                              <button
+                                onClick={() => openReconcileModal(fund)}
+                                className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 shadow-2xs transition cursor-pointer"
+                              >
+                                <Scale className="w-3.5 h-3.5" /> {t('funds.reconcile_count')}
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setSelectedFundId(fund.id);
+                                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                                }}
+                                className="bg-white hover:bg-slate-100 text-slate-700 text-xs font-semibold py-2 px-3 rounded-xl border border-slate-200 flex items-center gap-1 transition cursor-pointer"
+                              >
+                                <History className="w-3.5 h-3.5" /> {t('funds.history')}
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* ── PERIODIC BALANCE SUMMARY ─── */}
+                  <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs space-y-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+                      <div>
+                        <h4 className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                          <Coins className="w-4 h-4 text-indigo-600" />
+                          {t('funds.period_summary_title')}
+                        </h4>
+                        <p className="text-[11px] text-slate-500">{t('funds.period_summary_subtitle')}</p>
+                      </div>
+
+                      <div className="flex items-center space-x-2">
+                        <span className="text-xs font-semibold text-slate-600">{t('funds.select_month')}:</span>
+                        <ModernDateRangePicker
+                          period={fundsPeriod}
+                          customFrom={fundsCustomFrom}
+                          customTo={fundsCustomTo}
+                          onChange={({ period: newP, from, to }) => {
+                            setFundsPeriod(newP);
+                            setFundsCustomFrom(from);
+                            setFundsCustomTo(to);
+                            setSelectedMonth(from.slice(0, 7));
+                          }}
+                          align="right"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Table & Cards */}
+                    <div className="hidden md:block overflow-x-auto">
+                      <table className="w-full text-left text-xs">
+                        <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold uppercase text-[11px]">
+                          <tr>
+                            <th className="py-2.5 px-3">{t('funds.fund_name')}</th>
+                            <th className="py-2.5 px-3 text-right">{t('funds.opening_balance')}</th>
+                            <th className="py-2.5 px-3 text-right text-emerald-600">(+) {t('funds.period_inflow')}</th>
+                            <th className="py-2.5 px-3 text-right text-rose-600">(-) {t('funds.period_outflow')}</th>
+                            <th className="py-2.5 px-3 text-right">{t('funds.closing_balance')}</th>
+                            <th className="py-2.5 px-3 text-right">{t('funds.prev_closing_balance')}</th>
+                            <th className="py-2.5 px-3 text-right">{t('funds.growth_rate')}</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {summaryLoading ? (
+                            <tr>
+                              <td colSpan={7} className="py-6 text-center text-slate-400 text-xs">
+                                {t('common.loading')}
+                              </td>
+                            </tr>
+                          ) : periodSummary?.funds && periodSummary.funds.length > 0 ? (
+                            <>
+                              {periodSummary.funds.map((f) => (
+                                <tr key={f.fund_id} className="hover:bg-slate-50 transition">
+                                  <td className="py-2.5 px-3 font-bold text-slate-900 flex items-center gap-2">
+                                    <span
+                                      className={`w-2 h-2 rounded-full ${f.fund_type === 'bank' ? 'bg-blue-500' : 'bg-emerald-500'}`}
+                                    />
+                                    {f.fund_name}
+                                  </td>
+                                  <td className="py-2.5 px-3 text-right text-slate-600 font-medium">
+                                    {formatCurrency(f.current_month.opening_balance, settings)}
+                                  </td>
+                                  <td className="py-2.5 px-3 text-right font-semibold text-emerald-600">
+                                    +{formatCurrency(f.current_month.total_inflow, settings)}
+                                  </td>
+                                  <td className="py-2.5 px-3 text-right font-semibold text-rose-600">
+                                    -{formatCurrency(f.current_month.total_outflow, settings)}
+                                  </td>
+                                  <td className="py-2.5 px-3 text-right font-extrabold text-slate-900">
+                                    {formatCurrency(f.current_month.closing_balance, settings)}
+                                  </td>
+                                  <td className="py-2.5 px-3 text-right text-slate-400">
+                                    {formatCurrency(f.prev_month.closing_balance, settings)}
+                                  </td>
+                                  <td className="py-2.5 px-3 text-right">
+                                    <span
+                                      className={`inline-block px-2 py-0.5 rounded-full font-bold text-[10px] ${f.growth_pct >= 0
+                                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                        : 'bg-rose-50 text-rose-700 border border-rose-200'
+                                        }`}
+                                    >
+                                      {f.growth_pct >= 0 ? '+' : ''}
+                                      {f.growth_pct.toFixed(1)}%
+                                    </span>
+                                  </td>
+                                </tr>
+                              ))}
+
+                              {periodSummary?.totals && (
+                                <tr className="bg-slate-50 font-extrabold text-slate-900 border-t-2 border-slate-200">
+                                  <td className="py-2.5 px-3 uppercase text-xs">{t('common.all')}</td>
+                                  <td className="py-2.5 px-3 text-right">
+                                    {formatCurrency(periodSummary.totals.current_month.opening_balance, settings)}
+                                  </td>
+                                  <td className="py-2.5 px-3 text-right text-emerald-600">
+                                    +{formatCurrency(periodSummary.totals.current_month.total_inflow, settings)}
+                                  </td>
+                                  <td className="py-2.5 px-3 text-right text-rose-600">
+                                    -{formatCurrency(periodSummary.totals.current_month.total_outflow, settings)}
+                                  </td>
+                                  <td className="py-2.5 px-3 text-right text-indigo-600 text-xs">
+                                    {formatCurrency(periodSummary.totals.current_month.closing_balance, settings)}
+                                  </td>
+                                  <td className="py-2.5 px-3 text-right text-slate-500">
+                                    {formatCurrency(periodSummary.totals.prev_month.closing_balance, settings)}
+                                  </td>
+                                  <td className="py-2.5 px-3 text-right">
+                                    <span
+                                      className={`inline-block px-2 py-0.5 rounded-full font-bold text-[10px] ${periodSummary.totals.growth_pct >= 0
+                                        ? 'bg-emerald-100 text-emerald-800'
+                                        : 'bg-rose-100 text-rose-800'
+                                        }`}
+                                    >
+                                      {periodSummary.totals.growth_pct >= 0 ? '+' : ''}
+                                      {periodSummary.totals.growth_pct.toFixed(1)}%
+                                    </span>
+                                  </td>
+                                </tr>
+                              )}
+                            </>
+                          ) : (
+                            <tr>
+                              <td colSpan={7} className="py-6 text-center text-slate-400 text-xs">
+                                {t('funds.no_summary_data')}
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
-        {/* ── TAB 2: POS ORDERS & CANCELLATION LIFECYCLE ───────────────── */}
+        {/* ── TAB 3: POS ORDERS & CANCELLATION LIFECYCLE ───────────────── */}
         {activeTab === 'orders' && (
           <div className="space-y-4">
             {/* Orders Search & Filter */}
@@ -1357,122 +1655,131 @@ export default function TransactionsPage() {
                         </td>
                       </tr>
                     ) : (
-                      filteredOrders.map((order) => {
+                      paginatedOrders.map((order) => {
                         const isCancelled = order.status === 'cancelled';
                         const isExpanded = expandedOrderId === order.id;
-                        const itemsCount = (order.items || []).reduce((acc, it) => acc + it.quantity, 0);
+                        const items = order.items || [];
+                        const itemCount = items.reduce((acc, it) => acc + (it.quantity || 0), 0);
 
                         return (
                           <React.Fragment key={order.id}>
-                            <tr className="hover:bg-slate-50 transition">
+                            <tr
+                              className={`hover:bg-slate-50 transition cursor-pointer ${
+                                isCancelled ? 'opacity-60 bg-rose-50/20' : ''
+                              } ${isExpanded ? 'bg-indigo-50/20' : ''}`}
+                              onClick={() => setExpandedOrderId(isExpanded ? null : order.id)}
+                            >
                               <td className="py-3 px-4 font-mono font-bold text-indigo-600">
-                                {order.order_code}
+                                <div className="flex items-center space-x-1.5">
+                                  {isExpanded ? (
+                                    <ChevronUp className="w-3.5 h-3.5 text-slate-400" />
+                                  ) : (
+                                    <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                                  )}
+                                  <span>{order.order_code}</span>
+                                </div>
                               </td>
-
-                              <td className="py-3 px-4 text-slate-600 font-mono">
-                                {new Date(order.created_at).toLocaleString()}
+                              <td className="py-3 px-4 text-slate-500 whitespace-nowrap">
+                                {formatDateTime(order.created_at)}
                               </td>
-
-                              <td className="py-3 px-4 font-medium text-slate-800">
-                                {order.cashier_name || order.created_by}
+                              <td className="py-3 px-4 font-medium text-slate-700">
+                                {order.cashier_name || order.created_by || '—'}
                               </td>
-
-                              <td className="py-3 px-4 text-slate-700">
-                                {order.fund?.name || `#${order.fund_id}`}
+                              <td className="py-3 px-4 text-slate-600">
+                                {order.fund?.name || (funds.find((f) => f.id === order.fund_id)?.name ?? '—')}
                               </td>
-
-                              <td className="py-3 px-4">
-                                <button
-                                  type="button"
-                                  onClick={() => setExpandedOrderId(isExpanded ? null : order.id)}
-                                  className="inline-flex items-center gap-1 text-slate-700 hover:text-indigo-600 font-medium cursor-pointer"
-                                >
-                                  <span>{itemsCount} món</span>
-                                  {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-                                </button>
+                              <td className="py-3 px-4 font-semibold text-slate-700">
+                                {itemCount} {t('pos.items_count') || 'món'}
                               </td>
-
-                              {/* Status Badge */}
                               <td className="py-3 px-4">
                                 {isCancelled ? (
-                                  <div>
-                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
-                                      <Ban className="w-3 h-3" />
-                                      {t('tx.order_status_cancelled')}
-                                    </span>
-                                    {order.cancel_reason && (
-                                      <span className="block text-[10px] text-rose-500 italic mt-0.5 truncate max-w-xs">
-                                        {order.cancel_reason}
-                                      </span>
-                                    )}
-                                  </div>
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-rose-50 text-rose-600 border border-rose-200">
+                                    <Ban className="w-3 h-3 mr-1" />
+                                    {t('tx.order_status_cancelled') || 'Đã hủy'}
+                                  </span>
                                 ) : (
-                                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                    <CheckCircle2 className="w-3 h-3" />
-                                    {t('tx.order_status_completed')}
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-200">
+                                    <CheckCircle2 className="w-3 h-3 mr-1" />
+                                    {t('tx.order_status_completed') || 'Hoàn thành'}
                                   </span>
                                 )}
                               </td>
-
-                              <td className="py-3 px-4 text-right font-extrabold text-slate-900 text-sm">
+                              <td className="py-3 px-4 text-right font-extrabold text-slate-900">
                                 {formatCurrency(order.total_amount, settings)}
                               </td>
-
-                              {/* Action Buttons: Cancel vs Re-order */}
-                              <td className="py-3 px-4 text-right">
+                              <td className="py-3 px-4 text-right" onClick={(e) => e.stopPropagation()}>
                                 <div className="flex items-center justify-end space-x-1.5">
-                                  {!isCancelled ? (
+                                  <button
+                                    onClick={() => handleReorder(order)}
+                                    title={t('tx.reorder_tooltip') || 'Đặt lại đơn này'}
+                                    className="p-1.5 text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 rounded-lg transition"
+                                  >
+                                    <RotateCcw className="w-4 h-4" />
+                                  </button>
+                                  {!isCancelled && (
                                     <button
-                                      type="button"
-                                      onClick={() => handleOpenCancelModal(order)}
-                                      className="px-2.5 py-1 text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg border border-rose-200 transition flex items-center gap-1 cursor-pointer"
+                                      onClick={() => setCancellingOrder(order)}
+                                      title={t('tx.cancel_order_tooltip') || 'Hủy đơn hàng'}
+                                      className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition"
                                     >
-                                      <Ban className="w-3.5 h-3.5" />
-                                      {t('tx.cancel_order_btn')}
-                                    </button>
-                                  ) : (
-                                    <button
-                                      type="button"
-                                      onClick={() => handleReorder(order)}
-                                      className="px-2.5 py-1 text-xs font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg border border-indigo-200 transition flex items-center gap-1 shadow-sm cursor-pointer"
-                                    >
-                                      <RotateCcw className="w-3.5 h-3.5" />
-                                      {t('tx.reorder_btn')}
+                                      <Ban className="w-4 h-4" />
                                     </button>
                                   )}
                                 </div>
                               </td>
                             </tr>
-
-                            {/* Collapsible Order Items Details Row */}
+                            {/* Expanded Order Items Row */}
                             {isExpanded && (
-                              <tr className="bg-slate-50/80">
-                                <td colSpan={8} className="p-4">
-                                  <div className="bg-white rounded-xl p-3 border border-slate-200 space-y-2 text-xs">
-                                    <h4 className="font-bold text-slate-800 flex items-center gap-1.5">
-                                      <ShoppingBag className="w-4 h-4 text-indigo-600" />
-                                      {t('tx.order_items_detail')} #{order.order_code}
-                                    </h4>
-                                    <div className="divide-y divide-slate-100">
-                                      {(order.items || []).map((it) => (
-                                        <div key={it.id} className="py-1.5 flex justify-between items-center text-slate-700">
-                                          <div>
-                                            <span className="font-semibold">{it.variant?.product?.name || it.variant?.variant_name || 'Món'}</span>
-                                            <span className="text-slate-400 ml-2">x{it.quantity}</span>
-                                            {it.notes && <span className="text-slate-500 block text-[11px] italic">{it.notes}</span>}
+                              <tr className="bg-slate-50/70">
+                                <td colSpan={8} className="p-4 border-t border-slate-100">
+                                  <div className="space-y-3">
+                                    <div className="flex items-center justify-between text-xs text-slate-500">
+                                      <span className="font-semibold text-slate-700 uppercase tracking-wider">
+                                        {t('tx.order_items_detail') || 'Chi tiết món'} ({items.length} mặt hàng)
+                                      </span>
+                                      {order.note && (
+                                        <span className="text-slate-500 italic">
+                                          Ghi chú: {order.note}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                                      {items.map((item) => (
+                                        <div
+                                          key={item.id}
+                                          className="bg-white p-2.5 rounded-xl border border-slate-200 text-xs space-y-1 shadow-2xs"
+                                        >
+                                          <div className="flex justify-between items-start">
+                                            <span className="font-bold text-slate-800">
+                                              {item.variant?.product?.name || item.variant?.variant_name || 'Sản phẩm'}
+                                            </span>
+                                            <span className="font-semibold text-slate-900">
+                                              x{item.quantity}
+                                            </span>
                                           </div>
-                                          <span className="font-bold text-slate-900">{formatCurrency(it.line_total, settings)}</span>
+                                          {item.variant?.variant_name && item.variant?.variant_name !== 'Default' && (
+                                            <div className="text-[11px] text-slate-400 font-medium">
+                                              Size/Loại: {item.variant.variant_name}
+                                            </div>
+                                          )}
+                                          {item.selected_toppings && item.selected_toppings !== '[]' && (
+                                            <div className="text-[10px] text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded-md inline-block">
+                                              + {item.selected_toppings}
+                                            </div>
+                                          )}
+                                          <div className="flex justify-between items-center pt-1 border-t border-slate-100 text-[11px]">
+                                            <span className="text-slate-400">Đơn giá: {formatCurrency(item.unit_price, settings)}</span>
+                                            <span className="font-bold text-indigo-600">{formatCurrency(item.line_total, settings)}</span>
+                                          </div>
                                         </div>
                                       ))}
                                     </div>
-                                    {/* Breakdown summary */}
-                                    <div className="pt-2 border-t border-slate-200 space-y-1 text-right text-[11px] text-slate-600">
-                                      {order.discount_amount > 0 && <div>Giảm giá: -{formatCurrency(order.discount_amount, settings)}</div>}
-                                      {order.promotion_discount > 0 && <div>Khuyến mãi: -{formatCurrency(order.promotion_discount, settings)}</div>}
-                                      {order.platform_fee_discount > 0 && <div>Chiết khấu sàn: -{formatCurrency(order.platform_fee_discount, settings)}</div>}
-                                      {order.shipping_fee > 0 && <div>Phí ship: +{formatCurrency(order.shipping_fee, settings)}</div>}
-                                      {order.surcharge > 0 && <div>Phụ thu: +{formatCurrency(order.surcharge, settings)}</div>}
-                                    </div>
+                                    {isCancelled && order.cancel_reason && (
+                                      <div className="bg-rose-50 border border-rose-100 rounded-xl p-2.5 text-xs text-rose-700 flex items-center gap-2">
+                                        <AlertTriangle className="w-4 h-4 shrink-0" />
+                                        <span>Lý do hủy: {order.cancel_reason} ({formatDateTime(order.cancelled_at || '')})</span>
+                                      </div>
+                                    )}
                                   </div>
                                 </td>
                               </tr>
@@ -1485,120 +1792,129 @@ export default function TransactionsPage() {
                 </table>
               </div>
 
-              {/* Mobile Orders Cards View (< md) */}
+              {/* Mobile Orders View (< md) */}
               <div className="md:hidden divide-y divide-slate-100">
                 {filteredOrders.length === 0 ? (
                   <div className="py-8 text-center text-slate-400 text-xs">
                     {t('tx.no_orders_found')}
                   </div>
                 ) : (
-                  filteredOrders.map((order) => {
+                  paginatedOrders.map((order) => {
                     const isCancelled = order.status === 'cancelled';
                     const isExpanded = expandedOrderId === order.id;
-                    const itemsCount = (order.items || []).reduce((acc, it) => acc + it.quantity, 0);
+                    const items = order.items || [];
+                    const itemCount = items.reduce((acc, it) => acc + (it.quantity || 0), 0);
 
                     return (
-                      <div key={order.id} className="p-4 space-y-3 bg-white">
-                        {/* Header */}
-                        <div className="flex items-start justify-between gap-2">
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span className="font-mono font-bold text-indigo-600 text-sm">
-                                {order.order_code}
-                              </span>
-                              {isCancelled ? (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
-                                  <Ban className="w-3 h-3" />
-                                  {t('tx.order_status_cancelled')}
-                                </span>
-                              ) : (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                  <CheckCircle2 className="w-3 h-3" />
-                                  {t('tx.order_status_completed')}
-                                </span>
-                              )}
-                            </div>
-                            <div className="text-[11px] text-slate-400 font-mono mt-0.5">
-                              {new Date(order.created_at).toLocaleString()}
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <span className="font-extrabold text-slate-900 text-base block">
-                              {formatCurrency(order.total_amount, settings)}
+                      <div
+                        key={order.id}
+                        className={`p-3.5 space-y-2.5 transition ${
+                          isCancelled ? 'bg-rose-50/20' : 'bg-white'
+                        }`}
+                      >
+                        <div
+                          className="flex items-center justify-between cursor-pointer"
+                          onClick={() => setExpandedOrderId(isExpanded ? null : order.id)}
+                        >
+                          <div className="flex items-center space-x-2">
+                            <span className="font-mono font-bold text-indigo-600 text-xs">
+                              {order.order_code}
                             </span>
-                            <span className="text-[11px] text-slate-500">
-                              {order.fund?.name || `#${order.fund_id}`}
+                            <span className="text-slate-300">•</span>
+                            <span className="text-[11px] text-slate-400">
+                              {formatDateTime(order.created_at)}
                             </span>
                           </div>
+                          {isCancelled ? (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-600 border border-rose-200">
+                              Đã hủy
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-200">
+                              Hoàn thành
+                            </span>
+                          )}
                         </div>
 
-                        {/* Meta & Items toggle */}
-                        <div className="flex items-center justify-between text-xs bg-slate-50 p-2.5 rounded-xl border border-slate-100">
-                          <span className="text-slate-600">
-                            Thu ngân: <strong>{order.cashier_name || order.created_by}</strong>
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-slate-500 font-medium">
+                            {itemCount} món • {order.fund?.name || (funds.find((f) => f.id === order.fund_id)?.name ?? 'Tiền mặt')}
                           </span>
-                          <button
-                            type="button"
-                            onClick={() => setExpandedOrderId(isExpanded ? null : order.id)}
-                            className="inline-flex items-center gap-1 font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1 rounded-lg border border-indigo-100 transition cursor-pointer"
-                          >
-                            <ShoppingBag className="w-3.5 h-3.5" />
-                            <span>{itemsCount} món</span>
-                            {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-                          </button>
+                          <span className="font-extrabold text-slate-900 text-sm">
+                            {formatCurrency(order.total_amount, settings)}
+                          </span>
                         </div>
 
-                        {/* Expandable Order Items */}
+                        {/* Expandable items on mobile */}
                         {isExpanded && (
-                          <div className="bg-slate-50/90 rounded-xl p-3 border border-slate-200 space-y-2 text-xs">
-                            <h4 className="font-bold text-slate-800 flex items-center gap-1.5">
-                              <ShoppingBag className="w-4 h-4 text-indigo-600" />
-                              {t('tx.order_items_detail')} #{order.order_code}
-                            </h4>
-                            <div className="divide-y divide-slate-200/60">
-                              {(order.items || []).map((it) => (
-                                <div key={it.id} className="py-1.5 flex justify-between items-center text-slate-700">
+                          <div className="pt-2 border-t border-slate-100 space-y-2 text-xs">
+                            <div className="font-semibold text-slate-600 text-[11px] uppercase tracking-wider">
+                              Chi tiết món:
+                            </div>
+                            <div className="space-y-1.5 bg-slate-50 p-2 rounded-xl">
+                              {items.map((item) => (
+                                <div key={item.id} className="flex justify-between items-start text-xs">
                                   <div>
-                                    <span className="font-semibold">{it.variant?.product?.name || it.variant?.variant_name || 'Món'}</span>
-                                    <span className="text-slate-400 ml-2">x{it.quantity}</span>
-                                    {it.notes && <span className="text-slate-500 block text-[11px] italic">{it.notes}</span>}
+                                    <span className="font-bold text-slate-800">
+                                      {item.variant?.product?.name || item.variant?.variant_name}
+                                    </span>
+                                    {item.variant?.variant_name && item.variant?.variant_name !== 'Default' && (
+                                      <span className="text-[10px] text-slate-400 ml-1">
+                                        ({item.variant.variant_name})
+                                      </span>
+                                    )}
+                                    {item.selected_toppings && item.selected_toppings !== '[]' && (
+                                      <div className="text-[10px] text-indigo-600">
+                                        + {item.selected_toppings}
+                                      </div>
+                                    )}
                                   </div>
-                                  <span className="font-bold text-slate-900">{formatCurrency(it.line_total, settings)}</span>
+                                  <div className="text-right shrink-0">
+                                    <span className="font-semibold text-slate-700">x{item.quantity}</span>
+                                    <span className="text-slate-400 text-[10px] ml-1.5">
+                                      {formatCurrency(item.line_total, settings)}
+                                    </span>
+                                  </div>
                                 </div>
                               ))}
                             </div>
-                            {/* Breakdown summary */}
-                            <div className="pt-2 border-t border-slate-200 space-y-1 text-right text-[11px] text-slate-600">
-                              {order.discount_amount > 0 && <div>Giảm giá: -{formatCurrency(order.discount_amount, settings)}</div>}
-                              {order.promotion_discount > 0 && <div>Khuyến mãi: -{formatCurrency(order.promotion_discount, settings)}</div>}
-                              {order.platform_fee_discount > 0 && <div>Chiết khấu sàn: -{formatCurrency(order.platform_fee_discount, settings)}</div>}
-                              {order.shipping_fee > 0 && <div>Phí ship: +{formatCurrency(order.shipping_fee, settings)}</div>}
-                              {order.surcharge > 0 && <div>Phụ thu: +{formatCurrency(order.surcharge, settings)}</div>}
-                            </div>
+                            {isCancelled && order.cancel_reason && (
+                              <div className="text-xs text-rose-600 bg-rose-50 p-2 rounded-lg border border-rose-100">
+                                Lý do hủy: {order.cancel_reason}
+                              </div>
+                            )}
                           </div>
                         )}
 
-                        {/* Action Buttons */}
-                        <div className="flex items-center justify-end gap-2 pt-1 border-t border-slate-50">
-                          {!isCancelled ? (
-                            <button
-                              type="button"
-                              onClick={() => handleOpenCancelModal(order)}
-                              className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-xl border border-rose-200 transition cursor-pointer"
-                            >
-                              <Ban className="w-3.5 h-3.5" />
-                              {t('tx.cancel_order_btn')}
-                            </button>
-                          ) : (
+                        <div className="flex items-center justify-between pt-1 border-t border-slate-100 text-xs">
+                          <button
+                            type="button"
+                            onClick={() => setExpandedOrderId(isExpanded ? null : order.id)}
+                            className="text-slate-400 hover:text-slate-600 text-[11px] font-semibold flex items-center gap-1 cursor-pointer"
+                          >
+                            {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                            <span>{isExpanded ? 'Thu gọn' : 'Xem chi tiết'}</span>
+                          </button>
+                          <div className="flex items-center space-x-2">
                             <button
                               type="button"
                               onClick={() => handleReorder(order)}
-                              className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-xl border border-indigo-200 transition shadow-xs cursor-pointer"
+                              className="px-2.5 py-1 text-[11px] font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg flex items-center gap-1 transition cursor-pointer"
                             >
-                              <RotateCcw className="w-3.5 h-3.5" />
-                              {t('tx.reorder_btn')}
+                              <RotateCcw className="w-3 h-3" />
+                              <span>Đặt lại</span>
                             </button>
-                          )}
+                            {!isCancelled && (
+                              <button
+                                type="button"
+                                onClick={() => setCancellingOrder(order)}
+                                className="px-2.5 py-1 text-[11px] font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg flex items-center gap-1 transition cursor-pointer"
+                              >
+                                <Ban className="w-3 h-3" />
+                                <span>Hủy đơn</span>
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </div>
                     );
@@ -1616,7 +1932,7 @@ export default function TransactionsPage() {
                     <button
                       onClick={() => setOrderPage((p) => Math.max(1, p - 1))}
                       disabled={orderPage === 1}
-                      className="p-1.5 rounded-lg border border-slate-200 bg-white disabled:opacity-40 hover:bg-slate-100 transition"
+                      className="p-1.5 rounded-lg border border-slate-200 bg-white disabled:opacity-40 hover:bg-slate-100 transition cursor-pointer"
                     >
                       <ChevronLeft className="w-4 h-4 text-slate-600" />
                     </button>
@@ -1624,305 +1940,13 @@ export default function TransactionsPage() {
                     <button
                       onClick={() => setOrderPage((p) => Math.min(totalOrderPages, p + 1))}
                       disabled={orderPage === totalOrderPages}
-                      className="p-1.5 rounded-lg border border-slate-200 bg-white disabled:opacity-40 hover:bg-slate-100 transition"
+                      className="p-1.5 rounded-lg border border-slate-200 bg-white disabled:opacity-40 hover:bg-slate-100 transition cursor-pointer"
                     >
                       <ChevronRight className="w-4 h-4 text-slate-600" />
                     </button>
                   </div>
                 </div>
               )}
-            </div>
-          </div>
-        )}
-
-        {/* ── TAB 3: FUND MANAGEMENT & RECONCILIATION ──────────────────── */}
-        {activeTab === 'funds' && (
-          <div className="space-y-6">
-            {/* Funds Real-Time Balance Cards */}
-            {loading ? (
-              <div className="flex justify-center py-16">
-                <RefreshCw className="w-8 h-8 text-indigo-600 animate-spin" />
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {(Array.isArray(funds) ? funds : []).map((fund) => {
-                  const isBank = fund.fund_type === 'bank';
-
-                  return (
-                    <div
-                      key={fund.id}
-                      className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between space-y-4 hover:border-indigo-200 transition"
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-center space-x-3">
-                          <div className={`p-3 rounded-2xl ${isBank ? 'bg-blue-50 text-blue-600' : 'bg-emerald-50 text-emerald-600'}`}>
-                            {isBank ? <Building2 className="w-6 h-6" /> : <Wallet className="w-6 h-6" />}
-                          </div>
-                          <div>
-                            <h3 className="font-bold text-slate-900 text-base">{fund.name}</h3>
-                            <span className="text-xs font-semibold text-slate-400 capitalize">
-                              {t('funds.fund_type_label', { type: fund.fund_type })}
-                            </span>
-                          </div>
-                        </div>
-
-                        <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold px-2.5 py-1 rounded-full flex items-center gap-1">
-                          <CheckCircle2 className="w-3.5 h-3.5" /> {t('funds.active_badge')}
-                        </span>
-                      </div>
-
-                      {/* Balance Display */}
-                      <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex items-center justify-between">
-                        <div>
-                          <span className="text-xs text-slate-500 font-medium">{t('funds.theoretical_balance')}</span>
-                          <div className="text-2xl font-extrabold text-slate-900 mt-0.5">
-                            {formatCurrency(fund.current_balance, settings)}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Action Buttons */}
-                      <div className="flex items-center space-x-2 pt-2 border-t border-slate-100">
-                        <button
-                          onClick={() => openReconcileModal(fund)}
-                          className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold py-2.5 px-3 rounded-xl flex items-center justify-center gap-1.5 shadow-sm transition"
-                        >
-                          <Scale className="w-4 h-4" /> {t('funds.reconcile_count')}
-                        </button>
-                        <button
-                          onClick={() => {
-                            setSelectedFundId(fund.id);
-                            setActiveTab('transactions');
-                          }}
-                          className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold py-2.5 px-3 rounded-xl flex items-center gap-1 transition"
-                        >
-                          <History className="w-4 h-4" /> {t('funds.history')}
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* ── PERIODIC BALANCE SUMMARY (Opening vs Closing Period Audit) ─── */}
-            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
-                <div>
-                  <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                    <Coins className="w-5 h-5 text-indigo-600" />
-                    {t('funds.period_summary_title')}
-                  </h2>
-                  <p className="text-xs text-slate-500">{t('funds.period_summary_subtitle')}</p>
-                </div>
-
-                {/* Modern Date Range / Month Picker */}
-                <div className="flex items-center space-x-2">
-                  <span className="text-xs font-semibold text-slate-600">{t('funds.select_month')}:</span>
-                  <ModernDateRangePicker
-                    period={fundsPeriod}
-                    customFrom={fundsCustomFrom}
-                    customTo={fundsCustomTo}
-                    onChange={({ period: newP, from, to }) => {
-                      setFundsPeriod(newP);
-                      setFundsCustomFrom(from);
-                      setFundsCustomTo(to);
-                      setSelectedMonth(from.slice(0, 7));
-                    }}
-                    align="right"
-                  />
-                </div>
-              </div>
-
-              {/* Period Summary Table & Mobile Cards */}
-              <div className="hidden md:block overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold uppercase">
-                    <tr>
-                      <th className="py-3 px-4">{t('funds.fund_name')}</th>
-                      <th className="py-3 px-4 text-right">{t('funds.opening_balance')}</th>
-                      <th className="py-3 px-4 text-right text-emerald-600">(+) {t('funds.period_inflow')}</th>
-                      <th className="py-3 px-4 text-right text-rose-600">(-) {t('funds.period_outflow')}</th>
-                      <th className="py-3 px-4 text-right">{t('funds.closing_balance')}</th>
-                      <th className="py-3 px-4 text-right">{t('funds.prev_closing_balance')}</th>
-                      <th className="py-3 px-4 text-right">{t('funds.growth_rate')}</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {summaryLoading ? (
-                      <tr>
-                        <td colSpan={7} className="py-8 text-center text-slate-400">
-                          {t('common.loading')}
-                        </td>
-                      </tr>
-                    ) : periodSummary?.funds && periodSummary.funds.length > 0 ? (
-                      <>
-                        {periodSummary.funds.map((f) => (
-                          <tr key={f.fund_id} className="hover:bg-slate-50 transition">
-                            <td className="py-3 px-4 font-bold text-slate-900 flex items-center gap-2">
-                              <span
-                                className={`w-2 h-2 rounded-full ${f.fund_type === 'bank' ? 'bg-blue-500' : 'bg-emerald-500'
-                                  }`}
-                              />
-                              {f.fund_name}
-                            </td>
-                            <td className="py-3 px-4 text-right text-slate-600 font-medium">
-                              {formatCurrency(f.current_month.opening_balance, settings)}
-                            </td>
-                            <td className="py-3 px-4 text-right font-semibold text-emerald-600">
-                              +{formatCurrency(f.current_month.total_inflow, settings)}
-                            </td>
-                            <td className="py-3 px-4 text-right font-semibold text-rose-600">
-                              -{formatCurrency(f.current_month.total_outflow, settings)}
-                            </td>
-                            <td className="py-3 px-4 text-right font-extrabold text-slate-900">
-                              {formatCurrency(f.current_month.closing_balance, settings)}
-                            </td>
-                            <td className="py-3 px-4 text-right text-slate-400">
-                              {formatCurrency(f.prev_month.closing_balance, settings)}
-                            </td>
-                            <td className="py-3 px-4 text-right">
-                              <span
-                                className={`inline-block px-2 py-0.5 rounded-full font-bold text-[11px] ${f.growth_pct >= 0
-                                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                                  : 'bg-rose-50 text-rose-700 border border-rose-200'
-                                  }`}
-                              >
-                                {f.growth_pct >= 0 ? '+' : ''}
-                                {f.growth_pct.toFixed(1)}%
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
-
-                        {/* Totals Row */}
-                        {periodSummary?.totals && (
-                          <tr className="bg-slate-50 font-extrabold text-slate-900 border-t-2 border-slate-200">
-                            <td className="py-3 px-4 uppercase">{t('common.all')}</td>
-                            <td className="py-3 px-4 text-right">
-                              {formatCurrency(periodSummary.totals.current_month.opening_balance, settings)}
-                            </td>
-                            <td className="py-3 px-4 text-right text-emerald-600">
-                              +{formatCurrency(periodSummary.totals.current_month.total_inflow, settings)}
-                            </td>
-                            <td className="py-3 px-4 text-right text-rose-600">
-                              -{formatCurrency(periodSummary.totals.current_month.total_outflow, settings)}
-                            </td>
-                            <td className="py-3 px-4 text-right text-indigo-600 text-sm">
-                              {formatCurrency(periodSummary.totals.current_month.closing_balance, settings)}
-                            </td>
-                            <td className="py-3 px-4 text-right text-slate-500">
-                              {formatCurrency(periodSummary.totals.prev_month.closing_balance, settings)}
-                            </td>
-                            <td className="py-3 px-4 text-right">
-                              <span
-                                className={`inline-block px-2.5 py-0.5 rounded-full font-bold text-xs ${periodSummary.totals.growth_pct >= 0
-                                  ? 'bg-emerald-100 text-emerald-800'
-                                  : 'bg-rose-100 text-rose-800'
-                                  }`}
-                              >
-                                {periodSummary.totals.growth_pct >= 0 ? '+' : ''}
-                                {periodSummary.totals.growth_pct.toFixed(1)}%
-                              </span>
-                            </td>
-                          </tr>
-                        )}
-                      </>
-                    ) : (
-                      <tr>
-                        <td colSpan={7} className="py-8 text-center text-slate-400">
-                          {t('funds.no_summary_data')}
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Mobile Cards View for Period Summary (< md) */}
-              <div className="md:hidden divide-y divide-slate-100">
-                {summaryLoading ? (
-                  <div className="py-8 text-center text-slate-400 text-xs">
-                    {t('common.loading')}
-                  </div>
-                ) : periodSummary?.funds && periodSummary.funds.length > 0 ? (
-                  <>
-                    {periodSummary.funds.map((f) => (
-                      <div key={f.fund_id} className="p-4 space-y-3 bg-white">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <span
-                              className={`w-2.5 h-2.5 rounded-full ${f.fund_type === 'bank' ? 'bg-blue-500' : 'bg-emerald-500'}`}
-                            />
-                            <span className="font-bold text-slate-900 text-sm">{f.fund_name}</span>
-                          </div>
-                          <span
-                            className={`inline-block px-2 py-0.5 rounded-lg font-bold text-[11px] border ${f.growth_pct >= 0
-                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                              : 'bg-rose-50 text-rose-700 border-rose-200'
-                              }`}
-                          >
-                            {f.growth_pct >= 0 ? '+' : ''}{f.growth_pct.toFixed(1)}%
-                          </span>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-xs">
-                          <div>
-                            <span className="text-[10px] text-slate-400 block">Số dư cuối kỳ</span>
-                            <span className="font-extrabold text-slate-900 text-sm">
-                              {formatCurrency(f.current_month.closing_balance, settings)}
-                            </span>
-                          </div>
-                          <div className="text-right">
-                            <span className="text-[10px] text-slate-400 block">Số dư đầu kỳ</span>
-                            <span className="font-semibold text-slate-600">
-                              {formatCurrency(f.current_month.opening_balance, settings)}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="text-[10px] text-emerald-600 font-semibold block">Thu trong kỳ</span>
-                            <span className="font-bold text-emerald-600">
-                              +{formatCurrency(f.current_month.total_inflow, settings)}
-                            </span>
-                          </div>
-                          <div className="text-right">
-                            <span className="text-[10px] text-rose-600 font-semibold block">Chi trong kỳ</span>
-                            <span className="font-bold text-rose-600">
-                              -{formatCurrency(f.current_month.total_outflow, settings)}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-
-                    {/* Totals Card */}
-                    {periodSummary?.totals && (
-                      <div className="p-4 bg-indigo-50/60 border-t-2 border-indigo-200 space-y-2 text-xs">
-                        <div className="flex items-center justify-between">
-                          <span className="font-extrabold text-indigo-950 uppercase">{t('common.all')} (Tổng cộng)</span>
-                          <span
-                            className={`px-2 py-0.5 rounded-lg font-bold text-xs ${periodSummary.totals.growth_pct >= 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}
-                          >
-                            {periodSummary.totals.growth_pct >= 0 ? '+' : ''}{periodSummary.totals.growth_pct.toFixed(1)}%
-                          </span>
-                        </div>
-                        <div className="flex justify-between items-center text-sm font-extrabold text-indigo-900">
-                          <span>Tổng dư cuối kỳ:</span>
-                          <span>{formatCurrency(periodSummary.totals.current_month.closing_balance, settings)}</span>
-                        </div>
-                        <div className="flex justify-between items-center text-xs text-slate-600 pt-1 border-t border-indigo-100">
-                          <span className="text-emerald-700 font-semibold">Tổng thu: +{formatCurrency(periodSummary.totals.current_month.total_inflow, settings)}</span>
-                          <span className="text-rose-700 font-semibold">Tổng chi: -{formatCurrency(periodSummary.totals.current_month.total_outflow, settings)}</span>
-                        </div>
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <div className="py-8 text-center text-slate-400 text-xs">
-                    {t('funds.no_summary_data')}
-                  </div>
-                )}
-              </div>
             </div>
           </div>
         )}

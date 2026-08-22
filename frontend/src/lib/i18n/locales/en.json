@@ -258,6 +258,8 @@
   "tx": {
     "title": "Cash Flow & Transaction Ledger",
     "subtitle": "Track revenue inflows, raw ingredient purchases, operational outflows, and expenses.",
+    "tab_purchases": "Purchases & Costing",
+    "tab_ledger": "Cash Ledger",
     "tab_transactions": "Financial Ledger",
     "tab_orders": "POS Orders History",
     "tab_funds": "Fund Management",

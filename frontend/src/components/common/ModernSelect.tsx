@@ -148,9 +148,9 @@ export default function ModernSelect({
   };
 
   const sizeClasses = {
-    sm: 'py-1.5 px-2.5 text-xs',
-    md: 'py-2 px-3 text-xs sm:text-sm',
-    lg: 'py-3 px-4 text-sm',
+    sm: 'h-8 px-2.5 text-xs',
+    md: 'h-10 md:h-9 px-3 text-base md:text-sm',
+    lg: 'h-11 px-4 text-base md:text-sm',
   };
 
   return (
@@ -160,8 +160,8 @@ export default function ModernSelect({
         type="button"
         disabled={disabled}
         onClick={() => setIsOpen((prev) => !prev)}
-        className={`w-full bg-white border border-slate-200 rounded-xl flex items-center justify-between text-left font-medium text-slate-800 transition shadow-sm hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 ${
-          isOpen ? 'ring-2 ring-indigo-500/20 border-indigo-500' : ''
+        className={`w-full bg-white border border-slate-200 rounded-xl flex items-center justify-between text-left font-medium text-slate-800 transition shadow-xs hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 ${
+          isOpen ? 'ring-2 ring-emerald-500/20 border-emerald-600' : ''
         } ${sizeClasses[size]} ${className}`}
       >
         <div

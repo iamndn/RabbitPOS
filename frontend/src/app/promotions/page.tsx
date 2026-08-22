@@ -698,7 +698,7 @@ export default function PromotionsPage() {
               <form onSubmit={handleSavePromotion} className="space-y-4 text-xs">
                 {/* Promo Name */}
                 <div>
-                  <label className="font-bold text-slate-700 uppercase tracking-wide block mb-1">
+                  <label className="app-label">
                     {t('promotions.promo_name')} *
                   </label>
                   <input
@@ -707,20 +707,20 @@ export default function PromotionsPage() {
                     placeholder="VD: Giảm 20K Mừng Khai Trương"
                     value={formName}
                     onChange={(e) => setFormName(e.target.value)}
-                    className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm font-semibold"
+                    className="app-input font-semibold"
                   />
                 </div>
 
                 {/* Promo Type */}
                 <div>
-                  <label className="font-bold text-slate-700 uppercase tracking-wide block mb-1">
+                  <label className="app-label">
                     {t('promotions.type_label')} *
                   </label>
                   <div className="grid grid-cols-3 gap-2">
                     <button
                       type="button"
                       onClick={() => setFormType('discount_amount')}
-                      className={`p-2.5 rounded-xl border text-center font-bold transition flex flex-col items-center gap-1 ${
+                      className={`p-2.5 rounded-xl border text-center font-bold transition flex flex-col items-center gap-1 cursor-pointer ${
                         formType === 'discount_amount'
                           ? 'border-emerald-600 bg-emerald-50 text-emerald-700 ring-2 ring-emerald-500/20'
                           : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
@@ -732,7 +732,7 @@ export default function PromotionsPage() {
                     <button
                       type="button"
                       onClick={() => setFormType('discount_percent')}
-                      className={`p-2.5 rounded-xl border text-center font-bold transition flex flex-col items-center gap-1 ${
+                      className={`p-2.5 rounded-xl border text-center font-bold transition flex flex-col items-center gap-1 cursor-pointer ${
                         formType === 'discount_percent'
                           ? 'border-indigo-600 bg-indigo-50 text-indigo-700 ring-2 ring-indigo-500/20'
                           : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
@@ -744,7 +744,7 @@ export default function PromotionsPage() {
                     <button
                       type="button"
                       onClick={() => setFormType('gift_item')}
-                      className={`p-2.5 rounded-xl border text-center font-bold transition flex flex-col items-center gap-1 ${
+                      className={`p-2.5 rounded-xl border text-center font-bold transition flex flex-col items-center gap-1 cursor-pointer ${
                         formType === 'gift_item'
                           ? 'border-amber-600 bg-amber-50 text-amber-700 ring-2 ring-amber-500/20'
                           : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
@@ -759,7 +759,7 @@ export default function PromotionsPage() {
                 {/* Discount Value or Gift Selector */}
                 {formType !== 'gift_item' ? (
                   <div>
-                    <label className="font-bold text-slate-700 uppercase tracking-wide block mb-1">
+                    <label className="app-label">
                       {formType === 'discount_amount' ? t('promotions.discount_amount_label') : t('promotions.discount_percent_label')} *
                     </label>
                     <div className="relative">
@@ -774,38 +774,36 @@ export default function PromotionsPage() {
                           const raw = e.target.value.replace(/\D/g, '');
                           setFormValue(raw === '' ? 0 : parseInt(raw, 10));
                         }}
-                        className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-sm"
+                        placeholder="0"
+                        className="app-input pr-12 font-bold"
                       />
-                      <span className="absolute right-3 top-2.5 font-bold text-slate-400">
+                      <span className="absolute right-3.5 top-1/2 -translate-y-1/2 font-bold text-slate-400">
                         {formType === 'discount_amount' ? 'đ' : '%'}
                       </span>
                     </div>
                   </div>
                 ) : (
                   <div>
-                    <label className="font-bold text-slate-700 uppercase tracking-wide block mb-1">
-                      {t('promotions.select_gift_variant')} *
+                    <label className="app-label">
+                      {t('promotions.gift_variant_label')} *
                     </label>
                     <ModernSelect
-                      value={formGiftVariantId || ''}
-                      placeholder={`-- ${t('promotions.choose_gift_item') || 'Chọn món tặng'} --`}
-                      searchable={true}
-                      searchPlaceholder="Tìm món tặng kèm..."
-                      onChange={(val) => setFormGiftVariantId(val ? Number(val) : null)}
-                      options={allVariants.map((v) => ({
-                        value: v.id,
-                        label: `${v.productName} (${v.variantName})`,
-                        subLabel: formatCurrency(v.price, settings),
-                        badge: '🎁 Quà tặng',
-                        badgeColor: 'amber',
-                      }))}
+                      value={formGiftVariantId || 0}
+                      onChange={(val) => setFormGiftVariantId(Number(val) || null)}
+                      options={[
+                        { value: 0, label: t('promotions.select_gift_placeholder') || '— Chọn món tặng —' },
+                        ...allVariants.map((v) => ({
+                          value: v.id,
+                          label: `${v.productName} - ${v.variantName} (${formatCurrency(v.price, settings)})`,
+                        })),
+                      ]}
                     />
                   </div>
                 )}
 
                 {/* Scope Selection */}
                 <div>
-                  <label className="font-bold text-slate-700 uppercase tracking-wide block mb-1">
+                  <label className="app-label">
                     {t('promotions.scope_label')}
                   </label>
                   <ModernSelect
@@ -882,7 +880,7 @@ export default function PromotionsPage() {
                 {/* Eligibility Conditions */}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="font-bold text-slate-700 uppercase tracking-wide block mb-1">
+                    <label className="app-label">
                       {t('promotions.min_order_amount_label')}
                     </label>
                     <input
@@ -895,11 +893,11 @@ export default function PromotionsPage() {
                         const raw = e.target.value.replace(/\D/g, '');
                         setFormMinOrderAmount(raw === '' ? 0 : parseInt(raw, 10));
                       }}
-                      className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 font-semibold"
+                      className="app-input font-semibold"
                     />
                   </div>
                   <div>
-                    <label className="font-bold text-slate-700 uppercase tracking-wide block mb-1">
+                    <label className="app-label">
                       {t('promotions.min_qty_label')}
                     </label>
                     <input
@@ -911,7 +909,7 @@ export default function PromotionsPage() {
                         const raw = e.target.value.replace(/\D/g, '');
                         setFormMinQuantity(raw === '' ? 0 : parseInt(raw, 10));
                       }}
-                      className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 font-semibold"
+                      className="app-input font-semibold"
                     />
                   </div>
                 </div>
@@ -919,25 +917,25 @@ export default function PromotionsPage() {
                 {/* Start Date & End Date */}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="font-bold text-slate-700 uppercase tracking-wide block mb-1">
+                    <label className="app-label">
                       {t('promotions.start_date_label')}
                     </label>
                     <input
                       type="datetime-local"
                       value={formStartDate}
                       onChange={(e) => setFormStartDate(e.target.value)}
-                      className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                      className="app-input bg-white"
                     />
                   </div>
                   <div>
-                    <label className="font-bold text-slate-700 uppercase tracking-wide block mb-1">
+                    <label className="app-label">
                       {t('promotions.end_date_label')}
                     </label>
                     <input
                       type="datetime-local"
                       value={formEndDate}
                       onChange={(e) => setFormEndDate(e.target.value)}
-                      className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                      className="app-input bg-white"
                     />
                   </div>
                 </div>
@@ -945,7 +943,7 @@ export default function PromotionsPage() {
                 {/* Usage Limit & Is Active Switch */}
                 <div className="grid grid-cols-2 gap-3 items-center">
                   <div>
-                    <label className="font-bold text-slate-700 uppercase tracking-wide block mb-1">
+                    <label className="app-label">
                       {t('promotions.usage_limit_label')}
                     </label>
                     <input
@@ -957,7 +955,7 @@ export default function PromotionsPage() {
                         const raw = e.target.value.replace(/\D/g, '');
                         setFormUsageLimit(raw === '' ? 0 : parseInt(raw, 10));
                       }}
-                      className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="app-input"
                     />
                   </div>
 

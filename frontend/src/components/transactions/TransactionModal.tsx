@@ -450,10 +450,11 @@ export default function TransactionModal({
                 </label>
               </div>
 
-              {/* Itemized Purchase Table */}
+              {/* Itemized Purchase Table & Mobile Card List */}
               {isPurchaseLogging && (
                 <div className="space-y-2 pt-1 border-t border-emerald-200/60">
-                  <div className="overflow-x-auto">
+                  {/* Desktop Table (>= 640px) */}
+                  <div className="hidden sm:block overflow-x-auto">
                     <table className="w-full text-left text-[11px]">
                       <thead>
                         <tr className="text-slate-600 border-b border-emerald-200/60">
@@ -479,7 +480,7 @@ export default function TransactionModal({
                                 onChange={(e) =>
                                   handleItemChange(idx, 'ingredient_name', e.target.value)
                                 }
-                                className="w-full p-1.5 border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+                                className="w-full h-8 px-2 border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
                               />
                             </td>
                             <td className="py-1.5 pr-1.5">
@@ -488,7 +489,7 @@ export default function TransactionModal({
                                 onChange={(e) =>
                                   handleItemChange(idx, 'category', e.target.value)
                                 }
-                                className="w-full p-1.5 border border-slate-200 rounded-lg text-[11px] font-medium bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                className="w-full h-8 px-1.5 border border-slate-200 rounded-lg text-[11px] font-medium bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
                               >
                                 <option value="fruit">Hoa quả</option>
                                 <option value="ingredient">Nguyên liệu</option>
@@ -510,7 +511,7 @@ export default function TransactionModal({
                                     e.target.value === '' ? 0 : parseFloat(e.target.value)
                                   )
                                 }
-                                className="w-full p-1.5 border border-slate-200 rounded-lg text-xs font-semibold text-right text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+                                className="w-full h-8 px-1.5 border border-slate-200 rounded-lg text-xs font-semibold text-right text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
                               />
                             </td>
                             <td className="py-1.5 pr-1.5">
@@ -519,7 +520,7 @@ export default function TransactionModal({
                                 placeholder="kg, ly..."
                                 value={item.unit}
                                 onChange={(e) => handleItemChange(idx, 'unit', e.target.value)}
-                                className="w-full p-1.5 border border-slate-200 rounded-lg text-[11px] font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+                                className="w-full h-8 px-1.5 border border-slate-200 rounded-lg text-[11px] font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
                               />
                             </td>
                             <td className="py-1.5 pr-1.5 text-right">
@@ -537,7 +538,7 @@ export default function TransactionModal({
                                     e.target.value === '' ? 0 : parseFloat(e.target.value)
                                   )
                                 }
-                                className="w-full p-1.5 border border-slate-200 rounded-lg text-xs font-semibold text-right text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+                                className="w-full h-8 px-1.5 border border-slate-200 rounded-lg text-xs font-semibold text-right text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
                               />
                             </td>
                             <td className="py-1.5 pr-1.5 text-right font-bold text-slate-900">
@@ -547,7 +548,7 @@ export default function TransactionModal({
                               <button
                                 type="button"
                                 onClick={() => handleRemoveRow(idx)}
-                                className="p-1 text-slate-400 hover:text-rose-600 rounded-md hover:bg-rose-50 transition"
+                                className="p-1 text-slate-400 hover:text-rose-600 rounded-md hover:bg-rose-50 transition cursor-pointer"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
                               </button>
@@ -556,6 +557,98 @@ export default function TransactionModal({
                         ))}
                       </tbody>
                     </table>
+                  </div>
+
+                  {/* Mobile Compact Cards (< 640px) */}
+                  <div className="sm:hidden space-y-2.5">
+                    {purchaseItems.map((item, idx) => (
+                      <div
+                        key={idx}
+                        className="bg-white p-2.5 rounded-xl border border-emerald-200/80 shadow-2xs space-y-2"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <input
+                            list="ingredient-suggestions"
+                            type="text"
+                            required
+                            placeholder="Tên nguyên liệu..."
+                            value={item.ingredient_name}
+                            onChange={(e) =>
+                              handleItemChange(idx, 'ingredient_name', e.target.value)
+                            }
+                            className="flex-1 h-8 px-2 border border-slate-200 rounded-lg text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-slate-50 focus:bg-white"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveRow(idx)}
+                            className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition shrink-0 cursor-pointer"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-2">
+                          <div>
+                            <span className="text-[10px] text-slate-400 font-semibold block">Số lượng</span>
+                            <div className="flex items-center gap-1">
+                              <input
+                                type="number"
+                                step="any"
+                                min="0.001"
+                                required
+                                value={item.quantity === 0 ? '' : item.quantity}
+                                onChange={(e) =>
+                                  handleItemChange(
+                                    idx,
+                                    'quantity',
+                                    e.target.value === '' ? 0 : parseFloat(e.target.value)
+                                  )
+                                }
+                                className="w-full h-8 px-1.5 border border-slate-200 rounded-lg text-xs font-bold text-slate-800 text-center"
+                              />
+                            </div>
+                          </div>
+
+                          <div>
+                            <span className="text-[10px] text-slate-400 font-semibold block">ĐVT</span>
+                            <input
+                              type="text"
+                              placeholder="kg"
+                              value={item.unit}
+                              onChange={(e) => handleItemChange(idx, 'unit', e.target.value)}
+                              className="w-full h-8 px-1.5 border border-slate-200 rounded-lg text-xs text-center font-medium"
+                            />
+                          </div>
+
+                          <div>
+                            <span className="text-[10px] text-slate-400 font-semibold block">Đơn giá</span>
+                            <input
+                              type="number"
+                              step="any"
+                              min="0"
+                              required
+                              placeholder="20.000"
+                              value={item.unit_price === 0 ? '' : item.unit_price}
+                              onChange={(e) =>
+                                handleItemChange(
+                                  idx,
+                                  'unit_price',
+                                  e.target.value === '' ? 0 : parseFloat(e.target.value)
+                                )
+                              }
+                              className="w-full h-8 px-1.5 border border-slate-200 rounded-lg text-xs font-bold text-slate-800 text-right"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-100">
+                          <span className="text-[10px] text-slate-500 font-medium">Thành tiền:</span>
+                          <span className="font-extrabold text-emerald-800 text-xs">
+                            {formatCurrency(item.subtotal)}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
                   </div>
 
                   {/* Datalist suggestions */}
@@ -571,13 +664,13 @@ export default function TransactionModal({
                     <button
                       type="button"
                       onClick={handleAddRow}
-                      className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 hover:text-emerald-900 bg-white hover:bg-emerald-100/50 px-2.5 py-1 rounded-lg border border-emerald-300 transition active:scale-95 shadow-2xs"
+                      className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 hover:text-emerald-900 bg-white hover:bg-emerald-100/50 px-2.5 py-1.5 rounded-lg border border-emerald-300 transition active:scale-95 shadow-2xs cursor-pointer"
                     >
                       <Plus className="w-3.5 h-3.5" />
-                      <span>Thêm mặt hàng nhập</span>
+                      <span>Thêm mặt hàng</span>
                     </button>
                     <div className="text-xs font-bold text-emerald-900">
-                      Tổng tiền hàng: <span className="text-rose-600 text-sm font-extrabold">{formatCurrency(modalAmount)}</span>
+                      Tổng tiền: <span className="text-rose-600 text-sm font-black">{formatCurrency(modalAmount)}</span>
                     </div>
                   </div>
                 </div>

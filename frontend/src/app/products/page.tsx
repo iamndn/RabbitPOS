@@ -934,19 +934,19 @@ export default function ProductsPage() {
             <form onSubmit={handleSaveProduct} className="p-5 space-y-4 max-h-[75vh] overflow-y-auto">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="font-semibold text-slate-700">{t('products.product_name')} *</label>
+                  <label className="app-label">{t('products.product_name')} *</label>
                   <input
                     type="text"
                     required
                     value={formName}
                     onChange={(e) => setFormName(e.target.value)}
                     placeholder={t('products.product_name_placeholder')}
-                    className="w-full p-2.5 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                    className="app-input"
                   />
                 </div>
 
                 <div>
-                  <label className="font-semibold text-slate-700">{t('products.category')} *</label>
+                  <label className="app-label">{t('products.category')} *</label>
                   <ModernSelect
                     value={formCategoryId}
                     onChange={(val) => setFormCategoryId(Number(val))}
@@ -956,19 +956,19 @@ export default function ProductsPage() {
               </div>
 
               <div>
-                <label className="font-semibold text-slate-700">{t('products.description')}</label>
+                <label className="app-label">{t('products.description')}</label>
                 <textarea
                   rows={2}
                   value={formDescription}
                   onChange={(e) => setFormDescription(e.target.value)}
                   placeholder={t('products.description_placeholder')}
-                  className="w-full p-2.5 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                  className="app-textarea"
                 />
               </div>
 
               {/* Image Upload Row */}
               <div>
-                <label className="font-semibold text-slate-700 block mb-1.5">{t('products.image')}</label>
+                <label className="app-label block mb-1.5">{t('products.image')}</label>
                 <div className="flex items-center gap-3">
                   <div className="w-14 h-14 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center overflow-hidden shrink-0 relative">
                     {getImageUrl(formImageUrl) ? (
@@ -983,7 +983,7 @@ export default function ProductsPage() {
                     )}
                   </div>
                   <div className="flex-1 space-y-1.5">
-                    <label className="cursor-pointer bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-3 py-1.5 rounded-xl border border-slate-200 inline-flex items-center gap-1.5 transition">
+                    <label className="cursor-pointer bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-3 py-1.5 rounded-xl border border-slate-200 inline-flex items-center gap-1.5 transition">
                       <Upload className="w-3.5 h-3.5" /> {t('products.upload_image')}
                       <input type="file" accept="image/*" onChange={handleProductFileChange} className="hidden" />
                     </label>
@@ -992,7 +992,7 @@ export default function ProductsPage() {
                       value={formImageUrl}
                       onChange={(e) => setFormImageUrl(e.target.value)}
                       placeholder={t('products.image_url_placeholder')}
-                      className="w-full p-2 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                      className="app-input"
                     />
                   </div>
                 </div>
@@ -1075,7 +1075,7 @@ export default function ProductsPage() {
                           placeholder={t('products.variant_name_label')}
                           value={v.variant_name}
                           onChange={(e) => handleVariantChange(idx, 'variant_name', e.target.value)}
-                          className="flex-1 p-2 border border-slate-200 rounded-lg text-xs"
+                          className="flex-1 app-input"
                           required
                         />
                         <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -1089,7 +1089,7 @@ export default function ProductsPage() {
                               const raw = e.target.value.replace(/\D/g, '');
                               handleVariantChange(idx, 'retail_price', raw === '' ? 0 : parseInt(raw, 10));
                             }}
-                            className="w-28 p-2 border border-slate-200 rounded-lg text-xs font-semibold"
+                            className="w-28 app-input font-semibold"
                           />
                           <input
                             type="number"
@@ -1101,7 +1101,7 @@ export default function ProductsPage() {
                               const raw = e.target.value.replace(/\D/g, '');
                               handleVariantChange(idx, 'cogs_price', raw === '' ? 0 : parseInt(raw, 10));
                             }}
-                            className="w-28 p-2 border border-slate-200 rounded-lg text-xs font-semibold"
+                            className="w-28 app-input font-semibold"
                           />
                           <span className="text-[10px] font-bold text-emerald-600 w-12 text-right">
                             {vMargin.toFixed(0)}%
