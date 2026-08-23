@@ -678,19 +678,19 @@ export default function PurchasesCostTab({
                     placeholder="Tìm món, trà, size, topping..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="app-input pl-9 pr-14 py-2.5 text-xs"
+                    className="app-input pl-9 pr-28 sm:pr-32 py-2 text-xs placeholder:text-xs"
                   />
                   {searchQuery ? (
                     <button
                       type="button"
                       onClick={() => setSearchQuery('')}
-                      className="absolute right-2.5 top-2.5 p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition cursor-pointer"
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition cursor-pointer"
                       title="Xóa tìm kiếm"
                     >
                       <X className="w-3.5 h-3.5" />
                     </button>
                   ) : (
-                    <span className="absolute right-3 top-3 text-[10px] font-bold text-slate-400 pointer-events-none">
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-md pointer-events-none">
                       {filteredCostItems.length} món
                     </span>
                   )}
@@ -758,20 +758,20 @@ export default function PurchasesCostTab({
                     placeholder="Tìm nguyên liệu, hoa quả, bao bì..."
                     value={ingSearchQuery}
                     onChange={(e) => setIngSearchQuery(e.target.value)}
-                    className="app-input pl-9 pr-14 py-2.5 text-xs"
+                    className="app-input pl-9 pr-28 sm:pr-32 py-2 text-xs placeholder:text-xs"
                   />
                   {ingSearchQuery ? (
                     <button
                       type="button"
                       onClick={() => setIngSearchQuery('')}
-                      className="absolute right-2.5 top-2.5 p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition cursor-pointer"
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition cursor-pointer"
                       title="Xóa tìm kiếm"
                     >
                       <X className="w-3.5 h-3.5" />
                     </button>
                   ) : (
-                    <span className="absolute right-3 top-3 text-[10px] font-bold text-slate-400 pointer-events-none">
-                      {filteredIngredients.length} nguyên liệu
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-md pointer-events-none">
+                      {filteredIngredients.length} NL
                     </span>
                   )}
                 </div>

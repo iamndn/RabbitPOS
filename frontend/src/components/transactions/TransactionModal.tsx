@@ -118,7 +118,7 @@ export default function TransactionModal({
     } else {
       setModalType('outflow');
       setModalFundId(funds[0]?.id || 0);
-      const defaultCat = txCategories.find((c) => c.type === 'outflow' || c.type === 'both');
+      const defaultCat = txCategories.find((c) => c.is_default && (c.type === 'outflow' || c.type === 'both')) || txCategories.find((c) => c.type === 'outflow' || c.type === 'both');
       setModalCategory(defaultCat?.code || defaultCat?.name || 'ingredient_purchase');
       setModalAmount(0);
       setModalDescription('');
@@ -404,10 +404,10 @@ export default function TransactionModal({
                 onClick={() => {
                   setModalType('outflow');
                   setIsPurchaseLogging(true);
-                  const cat = txCategories.find((c) => c.type === 'outflow' || c.type === 'both');
+                  const cat = txCategories.find((c) => c.is_default && (c.type === 'outflow' || c.type === 'both')) || txCategories.find((c) => c.type === 'outflow' || c.type === 'both');
                   setModalCategory(cat?.code || cat?.name || 'ingredient_purchase');
                 }}
-                className={`flex-1 py-2 rounded-xl font-bold transition text-xs flex items-center justify-center gap-1.5 ${
+                className={`flex-1 py-2 rounded-xl font-bold transition text-xs flex items-center justify-center gap-1.5 cursor-pointer ${
                   modalType === 'outflow'
                     ? 'bg-white text-rose-600 shadow-xs'
                     : 'text-slate-500 hover:text-slate-800'
@@ -420,10 +420,10 @@ export default function TransactionModal({
                 onClick={() => {
                   setModalType('inflow');
                   setIsPurchaseLogging(false);
-                  const cat = txCategories.find((c) => c.type === 'inflow' || c.type === 'both');
+                  const cat = txCategories.find((c) => c.is_default && (c.type === 'inflow' || c.type === 'both')) || txCategories.find((c) => c.type === 'inflow' || c.type === 'both');
                   setModalCategory(cat?.code || cat?.name || 'sale');
                 }}
-                className={`flex-1 py-2 rounded-xl font-bold transition text-xs flex items-center justify-center gap-1.5 ${
+                className={`flex-1 py-2 rounded-xl font-bold transition text-xs flex items-center justify-center gap-1.5 cursor-pointer ${
                   modalType === 'inflow'
                     ? 'bg-white text-emerald-600 shadow-xs'
                     : 'text-slate-500 hover:text-slate-800'

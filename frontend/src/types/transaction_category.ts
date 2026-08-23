@@ -3,6 +3,7 @@ export interface TransactionCategory {
   name: string;
   type: 'outflow' | 'inflow' | 'both';
   code?: string;
+  is_default?: boolean;
   is_system: boolean;
   created_at: string;
   updated_at: string;
@@ -12,9 +13,11 @@ export interface CreateTransactionCategoryRequest {
   name: string;
   type: 'outflow' | 'inflow' | 'both';
   code?: string;
+  is_default?: boolean;
 }
 
 export interface UpdateTransactionCategoryRequest {
   name: string;
   type: 'outflow' | 'inflow' | 'both';
+  is_default?: boolean;
 }

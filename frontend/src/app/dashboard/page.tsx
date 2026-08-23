@@ -844,6 +844,14 @@ export default function DashboardPage() {
               </div>
             </div>
 
+            {/* Product Sales & Profit Performance Section — Lợi nhuận theo sản phẩm */}
+            <ProductSalesPerformanceSection
+              initialPeriod={period}
+              initialFrom={period === 'custom' ? customFrom : undefined}
+              initialTo={period === 'custom' ? customTo : undefined}
+              settings={settings}
+            />
+
             {/* Profit vs Revenue Multi-Series Chart */}
             <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -1057,16 +1065,6 @@ export default function DashboardPage() {
               </div>
             </div>
           </div>
-        )}
-
-        {/* Product Sales & Profit Performance Section — visible only in Profit & Loss (P&L) tab */}
-        {activeTab === 'profit' && (
-          <ProductSalesPerformanceSection
-            initialPeriod={period}
-            initialFrom={period === 'custom' ? customFrom : undefined}
-            initialTo={period === 'custom' ? customTo : undefined}
-            settings={settings}
-          />
         )}
 
         {/* All Products Performance Ranking Modal */}

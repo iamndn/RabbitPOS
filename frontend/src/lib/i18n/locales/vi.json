@@ -504,7 +504,7 @@
     "tab_currency": "Tiền tệ",
     "tab_vietqr": "Thanh toán bằng QR",
     "tab_email": "Cấu hình Email",
-    "tab_sheets": "Google Sheets",
+    "tab_sheets": "Đồng bộ Google Sheets",
     "tab_backup": "Sao lưu & Phục hồi",
     "open_google_sheet": "Mở Google Sheet",
     "google_sheet_not_configured": "Chưa cấu hình Google Sheet trong Cài đặt",
@@ -623,8 +623,8 @@
     "period_label": "Kỳ"
   },
   "google_sheets": {
-    "tab_title": "Google Sheets",
-    "section_title": "Đồng Bộ Google Sheets (Google Sheets Cloud Sync)",
+    "tab_title": "Đồng Bộ Google Sheets",
+    "section_title": "Google Sheets (Google Sheets Cloud Sync)",
     "section_desc": "Tự động đồng bộ đơn hàng & giao dịch theo thời gian thực và tự động tạo báo cáo tài chính lên Google Sheets.",
     "enable_sync": "Bật Đồng Bộ Google Sheets",
     "enable_sync_desc": "Kích hoạt kết nối và đồng bộ dữ liệu đa chiều với Google Spreadsheet",

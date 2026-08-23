@@ -429,12 +429,12 @@ func seedTransactionCategories(db *gorm.DB) {
 	}
 
 	defaultCategories := []models.TransactionCategoryItem{
-		{Name: "Mua nguyên liệu", Type: "outflow", Code: "ingredient_purchase", IsSystem: true},
-		{Name: "Chi phí vận hành", Type: "outflow", Code: "utility_bill", IsSystem: true},
-		{Name: "Chi phí khác", Type: "outflow", Code: "other", IsSystem: true},
-		{Name: "Doanh thu bán hàng", Type: "inflow", Code: "sale", IsSystem: true},
-		{Name: "Thu nhập khác", Type: "inflow", Code: "other", IsSystem: true},
-		{Name: "Chênh lệch đối soát", Type: "both", Code: "reconciliation_variance", IsSystem: true},
+		{Name: "Mua nguyên liệu", Type: "outflow", Code: "ingredient_purchase", IsDefault: true, IsSystem: false},
+		{Name: "Chi phí vận hành", Type: "outflow", Code: "utility_bill", IsDefault: false, IsSystem: false},
+		{Name: "Chi phí khác", Type: "outflow", Code: "other", IsDefault: false, IsSystem: false},
+		{Name: "Doanh thu bán hàng", Type: "inflow", Code: "sale", IsDefault: true, IsSystem: false},
+		{Name: "Thu nhập khác", Type: "inflow", Code: "other", IsDefault: false, IsSystem: false},
+		{Name: "Chênh lệch đối soát", Type: "both", Code: "reconciliation_variance", IsDefault: false, IsSystem: false},
 	}
 
 	for _, cat := range defaultCategories {

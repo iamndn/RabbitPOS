@@ -157,6 +157,7 @@ func SetupRouter(cfg *config.Config, db *gorm.DB, emailSvc *services.EmailServic
 				// Transaction Category Management (admin only mutations)
 				adminOnly.POST("/transaction-categories", txCategoryHandler.CreateCategory)
 				adminOnly.PUT("/transaction-categories/:id", txCategoryHandler.UpdateCategory)
+				adminOnly.POST("/transaction-categories/:id/set-default", txCategoryHandler.SetDefaultCategory)
 				adminOnly.DELETE("/transaction-categories/:id", txCategoryHandler.DeleteCategory)
 
 				// Fund Reconciliation & Periodic Balance Summary

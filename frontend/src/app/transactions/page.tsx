@@ -476,8 +476,8 @@ export default function TransactionsPage() {
     setEditingTransaction(null);
     setModalType('outflow');
     if (funds.length > 0) setModalFundId(funds[0].id);
-    const outflowCats = txCategories.filter((c) => c.type === 'outflow' || c.type === 'both');
-    setModalCategory(outflowCats.length > 0 ? (outflowCats[0].code || outflowCats[0].name) : 'ingredient_purchase');
+    const defaultOutflow = txCategories.find((c) => c.is_default && (c.type === 'outflow' || c.type === 'both')) || txCategories.find((c) => c.type === 'outflow' || c.type === 'both');
+    setModalCategory(defaultOutflow?.code || defaultOutflow?.name || 'ingredient_purchase');
     setModalAmount(0);
     setModalDescription('');
     setModalCreatedAt(null);
@@ -933,33 +933,33 @@ export default function TransactionsPage() {
                     }}
                   />
 
-                  {/* Inflow vs Outflow Type Switch */}
-                  <div className="flex items-center space-x-1 bg-slate-100 p-1 rounded-xl text-xs">
+                  {/* Inflow vs Outflow Type Switch (Justified on mobile) */}
+                  <div className="grid grid-cols-2 sm:flex items-center space-x-1 bg-slate-100 p-1 rounded-xl text-xs w-full sm:w-auto">
                     <button
                       type="button"
                       onClick={() => {
                         loadCategoryBreakdown('outflow', breakdownPeriod, breakdownFromDate, breakdownToDate);
                       }}
-                      className={`px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 ${breakdownType === 'outflow'
+                      className={`flex-1 px-3 py-1.5 rounded-lg font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${breakdownType === 'outflow'
                         ? 'bg-white text-rose-600 shadow-sm'
                         : 'text-slate-600 hover:text-slate-900'
                         }`}
                     >
-                      <span className="w-2 h-2 rounded-full bg-rose-500" />
-                      {t('tx.outflows')}
+                      <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0" />
+                      <span>{t('tx.outflows')}</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => {
                         loadCategoryBreakdown('inflow', breakdownPeriod, breakdownFromDate, breakdownToDate);
                       }}
-                      className={`px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 ${breakdownType === 'inflow'
+                      className={`flex-1 px-3 py-1.5 rounded-lg font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${breakdownType === 'inflow'
                         ? 'bg-white text-emerald-600 shadow-sm'
                         : 'text-slate-600 hover:text-slate-900'
                         }`}
                     >
-                      <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                      {t('tx.inflows')}
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                      <span>{t('tx.inflows')}</span>
                     </button>
                   </div>
                 </div>
@@ -1033,20 +1033,20 @@ export default function TransactionsPage() {
                   placeholder={t('tx.search_placeholder') || 'Tìm kiếm giao dịch theo mô tả, thu ngân, mã đơn...'}
                   value={txSearchQuery}
                   onChange={(e) => setTxSearchQuery(e.target.value)}
-                  className="app-input pl-9 pr-14 py-2.5 text-xs"
+                  className="app-input pl-9 pr-28 sm:pr-32 py-2 text-xs placeholder:text-xs"
                 />
                 {txSearchQuery ? (
                   <button
                     type="button"
                     onClick={() => setTxSearchQuery('')}
-                    className="absolute right-2.5 top-2.5 p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition cursor-pointer"
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition cursor-pointer"
                     title="Xóa tìm kiếm"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
                 ) : (
-                  <span className="absolute right-3 top-3 text-[10px] font-bold text-slate-400 pointer-events-none">
-                    {filteredTransactions.length} giao dịch
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-md pointer-events-none">
+                    {filteredTransactions.length} GD
                   </span>
                 )}
               </div>
@@ -1802,20 +1802,20 @@ export default function TransactionsPage() {
                   placeholder={t('tx.search_orders_placeholder') || 'Tìm kiếm mã đơn, thu ngân...'}
                   value={orderSearchQuery}
                   onChange={(e) => setOrderSearchQuery(e.target.value)}
-                  className="app-input pl-9 pr-14 py-2.5 text-xs"
+                  className="app-input pl-9 pr-28 sm:pr-32 py-2 text-xs placeholder:text-xs"
                 />
                 {orderSearchQuery ? (
                   <button
                     type="button"
                     onClick={() => setOrderSearchQuery('')}
-                    className="absolute right-2.5 top-2.5 p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition cursor-pointer"
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition cursor-pointer"
                     title="Xóa tìm kiếm"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
                 ) : (
-                  <span className="absolute right-3 top-3 text-[10px] font-bold text-slate-400 pointer-events-none">
-                    {filteredOrders.length} đơn hàng
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-md pointer-events-none">
+                    {filteredOrders.length} đơn
                   </span>
                 )}
               </div>

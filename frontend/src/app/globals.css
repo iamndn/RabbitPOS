@@ -95,24 +95,16 @@ button, a, input, select, textarea, [role="button"] {
 
 @layer components {
   .app-input {
-    @apply w-full h-10 md:h-9 px-3 py-2 text-base md:text-sm bg-white border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 transition-colors;
+    @apply w-full h-9 px-3 py-2 text-xs md:text-sm bg-white border border-slate-200 rounded-xl text-slate-900 placeholder:text-xs placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 transition-colors;
   }
   .app-label {
     @apply text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5 block;
   }
   .app-select {
-    @apply w-full h-10 md:h-9 px-3 py-2 text-base md:text-sm bg-white border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 transition-colors;
+    @apply w-full h-9 px-3 py-2 text-xs md:text-sm bg-white border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 transition-colors;
   }
   .app-textarea {
-    @apply w-full px-3 py-2 text-base md:text-sm bg-white border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 transition-colors;
-  }
-}
-
-@media screen and (max-width: 768px) {
-  input:not([type="checkbox"]):not([type="radio"]),
-  select,
-  textarea {
-    font-size: 16px !important;
+    @apply w-full px-3 py-2 text-xs md:text-sm bg-white border border-slate-200 rounded-xl text-slate-900 placeholder:text-xs placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 transition-colors;
   }
 }
 
