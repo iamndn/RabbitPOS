@@ -212,8 +212,8 @@ export default function LoginPage() {
 
       {/* ── Password Setup Modal ─────────────────────────────────────── */}
       {showSetupModal && setupData && (
-        <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-white rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-150">
+          <div className="w-full max-w-md bg-white rounded-t-3xl sm:rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 animate-in slide-in-from-bottom-6 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200 pb-safe sm:pb-8 border border-slate-100">
             {/* Header */}
             <div className="text-center space-y-2">
               <div className="inline-flex p-3 bg-amber-50 text-amber-600 rounded-2xl border border-amber-100 shadow-sm">

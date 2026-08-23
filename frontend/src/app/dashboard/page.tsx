@@ -214,65 +214,74 @@ export default function DashboardPage() {
 
         {/* Email Report Confirmation Modal */}
         {showEmailModal && (
-          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-150">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[92vh] flex flex-col overflow-hidden border border-slate-100 animate-in zoom-in-95 duration-150">
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-150">
+            <div className="bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl w-full max-w-md max-h-[92dvh] sm:max-h-[92vh] flex flex-col overflow-hidden border border-slate-100 animate-in zoom-in-95 duration-150 pb-safe">
               {/* Modal Header */}
-              <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-100 shrink-0">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center shrink-0">
-                    <Mail className="w-5 h-5 text-emerald-600" />
+              <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-100 shrink-0 bg-slate-50/50">
+                <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 pr-2">
+                  <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-emerald-100 flex items-center justify-center shrink-0 shadow-2xs">
+                    <Mail className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600" />
                   </div>
-                  <div>
-                    <h3 className="font-bold text-slate-900 text-sm">{t('email_report.modal_title')}</h3>
-                    <p className="text-xs text-slate-500 mt-0.5">{t('email_report.modal_subtitle')}</p>
+                  <div className="min-w-0">
+                    <h3 className="font-extrabold text-slate-900 text-sm sm:text-base truncate">{t('email_report.modal_title')}</h3>
+                    <p className="text-[11px] sm:text-xs text-slate-500 truncate">{t('email_report.modal_subtitle')}</p>
                   </div>
                 </div>
-                <button onClick={() => setShowEmailModal(false)} className="text-slate-400 hover:text-slate-600 transition p-1 cursor-pointer">
+                <button
+                  type="button"
+                  onClick={() => setShowEmailModal(false)}
+                  className="p-2 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 transition cursor-pointer shrink-0"
+                >
                   <X className="w-5 h-5" />
                 </button>
               </div>
+
               {/* Modal Body */}
-              <div className="p-4 sm:p-5 space-y-4 overflow-y-auto max-h-[calc(92vh-140px)]">
+              <div className="p-4 sm:p-5 space-y-4 overflow-y-auto">
                 {/* Date Picker */}
                 <div className="min-w-0">
-                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">{t('email_report.date_label')}</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">{t('email_report.date_label')}</label>
                   <input
                     type="date"
                     value={emailDate}
                     onChange={(e) => setEmailDate(e.target.value)}
-                    className="w-full max-w-full block text-sm border border-slate-200 rounded-xl px-3 py-2.5 bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-400 min-h-[42px] box-border"
+                    className="w-full text-xs font-bold border border-slate-200 rounded-xl px-3 py-2.5 bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-400 min-h-[42px] box-border"
                   />
                 </div>
+
                 {/* Recipients */}
                 <div className="min-w-0">
-                  <label className="block text-xs font-semibold text-slate-700 mb-2">{t('email_report.recipients_label')}</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-2">{t('email_report.recipients_label')}</label>
                   <div className="flex flex-wrap gap-1.5">
                     {EMAIL_RECIPIENTS.map((email) => (
-                      <span key={email} className="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full px-2.5 py-1 font-medium break-all">
+                      <span key={email} className="text-[11px] bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full px-2.5 py-1 font-semibold break-all">
                         {email}
                       </span>
                     ))}
                   </div>
                 </div>
               </div>
-              {/* Modal Footer */}
-              <div className="flex gap-3 p-4 sm:p-5 pt-0 shrink-0 mt-auto">
+
+              {/* Modal Footer (Balanced on mobile) */}
+              <div className="grid grid-cols-2 gap-2.5 p-4 sm:p-5 border-t border-slate-100 bg-slate-50/50 shrink-0">
                 <button
+                  type="button"
                   onClick={() => setShowEmailModal(false)}
-                  className="flex-1 text-sm font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 py-2.5 rounded-xl transition cursor-pointer"
+                  className="w-full text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 py-2.5 rounded-xl transition cursor-pointer text-center justify-center flex items-center"
                   disabled={emailSending}
                 >
                   {t('email_report.cancel')}
                 </button>
                 <button
+                  type="button"
                   onClick={handleSendEmailReport}
                   disabled={emailSending}
-                  className="flex-1 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 py-2.5 rounded-xl transition flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer shadow-sm"
+                  className="w-full text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 py-2.5 rounded-xl transition flex items-center justify-center gap-1.5 disabled:opacity-60 cursor-pointer shadow-xs text-center"
                 >
                   {emailSending ? (
-                    <><RefreshCw className="w-4 h-4 animate-spin" />{t('email_report.sending')}</>
+                    <><RefreshCw className="w-4 h-4 animate-spin" /><span>{t('email_report.sending')}</span></>
                   ) : (
-                    <><Send className="w-4 h-4" />{t('email_report.confirm')}</>
+                    <><Send className="w-4 h-4" /><span>{t('email_report.confirm')}</span></>
                   )}
                 </button>
               </div>

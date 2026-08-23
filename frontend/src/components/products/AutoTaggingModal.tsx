@@ -308,30 +308,32 @@ export default function AutoTaggingModal({
   });
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs animate-fade-in overflow-y-auto">
-      <div className="bg-white w-full max-w-5xl rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92vh]">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-xs animate-fade-in overflow-y-auto">
+      <div className="bg-white w-full max-w-5xl rounded-t-3xl sm:rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92dvh] sm:max-h-[92vh] pb-safe">
         {/* Header */}
-        <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between bg-gradient-to-r from-amber-500/10 via-indigo-500/10 to-transparent shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-amber-500/20 shrink-0">
-              <Sparkles className="w-5 h-5" />
+        <div className="px-4 sm:px-5 py-3.5 sm:py-4 border-b border-slate-200 flex items-center justify-between bg-gradient-to-r from-amber-500/10 via-indigo-500/10 to-transparent shrink-0">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 pr-2">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-amber-500 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-amber-500/20 shrink-0">
+              <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div>
-              <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                Tự Động Gán Nhãn Sản Phẩm
-                <span className="text-xs px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 font-bold border border-indigo-200">
-                  Auto-Tagging Engine
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <h2 className="text-sm sm:text-base font-bold text-slate-900 truncate">
+                  Tự Động Gán Nhãn Sản Phẩm
+                </h2>
+                <span className="text-[10px] sm:text-xs px-2 py-0.2 rounded-full bg-indigo-100 text-indigo-700 font-bold border border-indigo-200">
+                  Auto-Tag
                 </span>
-              </h2>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Tự động phân hạng &amp; gắn nhãn Best Seller, Món mới, Lợi nhuận cao dựa trên dữ liệu kinh doanh thực tế
+              </div>
+              <p className="text-[11px] sm:text-xs text-slate-500 truncate">
+                Tự động phân hạng Best Seller, Món mới, Lợi nhuận cao từ dữ liệu thực tế
               </p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+            className="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition cursor-pointer shrink-0"
           >
             <X className="w-5 h-5" />
           </button>
@@ -610,195 +612,320 @@ export default function AutoTaggingModal({
             </div>
           </div>
 
-          {/* Preview Table */}
-          <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-sm bg-white">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs text-slate-700">
-                <thead className="bg-slate-100 text-[11px] font-black text-slate-700 uppercase tracking-wider border-b border-slate-200">
-                  <tr>
-                    <th className="px-3.5 py-3">Sản Phẩm</th>
-                    <th className="px-3 py-3 text-center">Doanh Số ({config.time_window_days}N)</th>
-                    <th className="px-3 py-3 text-right">Lợi Nhuận &amp; % Biên</th>
-                    <th className="px-3 py-3 text-center">Nhãn Hiện Tại</th>
-                    <th className="px-3 py-3 text-center">Nhãn Đề Xuất</th>
-                    <th className="px-3.5 py-3">Lý Do Đánh Giá</th>
-                    <th className="px-3 py-3 text-center">Khóa Nhãn</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 bg-white">
-                  {loading ? (
-                    <tr>
-                      <td colSpan={7} className="text-center py-10 text-slate-400">
-                        <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-indigo-500" />
-                        Đang phân tích dữ liệu bán hàng...
-                      </td>
-                    </tr>
-                  ) : filteredEvaluations.length === 0 ? (
-                    <tr>
-                      <td colSpan={7} className="text-center py-8 text-slate-400">
-                        Không tìm thấy sản phẩm phù hợp bộ lọc
-                      </td>
-                    </tr>
-                  ) : (
-                    filteredEvaluations.map((ev) => {
-                      const currentBadge = getTagBadgeStyle(ev.current_tag, customTags);
-                      const suggestedBadge = getTagBadgeStyle(ev.suggested_tag, customTags);
+          {/* Preview Container: Mobile Cards & Desktop Table */}
+          <div className="space-y-2">
+            <h4 className="text-xs font-black uppercase text-slate-500 tracking-wider">
+              Kết quả mô phỏng đánh giá ({filteredEvaluations.length} món)
+            </h4>
 
-                      return (
-                        <tr
-                          key={ev.product_id}
-                          className={`hover:bg-slate-50 transition ${
-                            ev.will_change ? 'bg-amber-50/60' : ''
-                          }`}
-                        >
-                          {/* Product Info */}
-                          <td className="px-3.5 py-3">
-                            <div className="flex items-center gap-2.5">
-                              {ev.image_url ? (
-                                <img
-                                  src={ev.image_url}
-                                  alt={ev.product_name}
-                                  className="w-9 h-9 rounded-xl object-cover border border-slate-200 shrink-0"
-                                />
-                              ) : (
-                                <div className="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 text-xs font-black shrink-0 border border-slate-200">
-                                  {ev.product_name.charAt(0)}
-                                </div>
-                              )}
-                              <div className="min-w-0">
-                                <div className="font-bold text-slate-900 truncate">
-                                  {ev.product_name}
-                                </div>
-                                <div className="text-[11px] text-slate-500 truncate">
-                                  {ev.category_name} • Mới {ev.days_since_created} ngày
-                                </div>
-                              </div>
-                            </div>
-                          </td>
+            {loading ? (
+              <div className="text-center py-10 bg-slate-50 rounded-2xl border border-slate-200 text-slate-400">
+                <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-indigo-500" />
+                <p className="text-xs font-semibold">Đang phân tích dữ liệu bán hàng...</p>
+              </div>
+            ) : filteredEvaluations.length === 0 ? (
+              <div className="text-center py-8 bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-slate-400">
+                <p className="text-xs font-semibold">Không tìm thấy sản phẩm phù hợp bộ lọc</p>
+              </div>
+            ) : (
+              <>
+                {/* 1. Mobile Card List (sm:hidden) */}
+                <div className="block sm:hidden space-y-2.5">
+                  {filteredEvaluations.map((ev) => {
+                    const currentBadge = getTagBadgeStyle(ev.current_tag, customTags);
+                    const suggestedBadge = getTagBadgeStyle(ev.suggested_tag, customTags);
 
-                          {/* Sales Volume & Rank */}
-                          <td className="px-3 py-3 text-center">
-                            <div className="font-black text-slate-900 text-xs">
-                              {ev.total_qty} ly
-                            </div>
-                            {ev.total_qty > 0 ? (
-                              <div className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.2 rounded-full inline-block mt-0.5 border border-indigo-200/60">
-                                Hạng #{ev.sales_rank}
-                              </div>
+                    return (
+                      <div
+                        key={ev.product_id}
+                        className={`p-3 rounded-2xl border transition-all space-y-2.5 ${
+                          ev.will_change
+                            ? 'bg-amber-50/70 border-amber-300 ring-2 ring-amber-500/20'
+                            : 'bg-white border-slate-200 shadow-2xs'
+                        }`}
+                      >
+                        {/* Top Product Row + Lock Button */}
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            {ev.image_url ? (
+                              <img
+                                src={ev.image_url}
+                                alt={ev.product_name}
+                                className="w-9 h-9 rounded-xl object-cover border border-slate-200 shrink-0"
+                              />
                             ) : (
-                              <div className="text-[10px] text-slate-400">Chưa bán</div>
+                              <div className="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 text-xs font-black shrink-0 border border-slate-200">
+                                {ev.product_name.charAt(0)}
+                              </div>
                             )}
-                          </td>
-
-                          {/* Profit & Margin */}
-                          <td className="px-3 py-3 text-right">
-                            <div className="font-black text-slate-900 text-xs">
-                              {new Intl.NumberFormat('vi-VN', {
-                                style: 'currency',
-                                currency: 'VND',
-                              }).format(ev.total_profit)}
+                            <div className="min-w-0">
+                              <div className="font-bold text-slate-900 text-xs truncate">
+                                {ev.product_name}
+                              </div>
+                              <div className="text-[10px] text-slate-500 truncate">
+                                {ev.category_name} • Mới {ev.days_since_created}N
+                              </div>
                             </div>
-                            <div
-                              className={`text-[10px] font-bold mt-0.5 ${
-                                ev.margin_percent >= 60
-                                  ? 'text-emerald-600'
-                                  : ev.margin_percent >= 40
-                                  ? 'text-amber-600'
-                                  : 'text-slate-500'
-                              }`}
-                            >
-                              Biên LN: {ev.margin_percent}%
-                            </div>
-                          </td>
+                          </div>
 
-                          {/* Current Tag */}
-                          <td className="px-3 py-3 text-center">
+                          <button
+                            type="button"
+                            onClick={() => handleToggleLock(ev.product_id, ev.tag_locked)}
+                            title={ev.tag_locked ? 'Đang khóa nhãn' : 'Bấm để khóa'}
+                            className={`p-2 rounded-xl border transition cursor-pointer shrink-0 ${
+                              ev.tag_locked
+                                ? 'bg-amber-100 text-amber-800 border-amber-300'
+                                : 'bg-slate-50 text-slate-400 border-slate-200 hover:text-slate-600'
+                            }`}
+                          >
+                            {ev.tag_locked ? (
+                              <Lock className="w-3.5 h-3.5 text-amber-600" />
+                            ) : (
+                              <Unlock className="w-3.5 h-3.5" />
+                            )}
+                          </button>
+                        </div>
+
+                        {/* Tag Comparison Row */}
+                        <div className="flex items-center justify-between gap-2 p-2 bg-white rounded-xl border border-slate-200/80 text-xs">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span className="text-[10px] text-slate-400 font-semibold">Hiện tại:</span>
                             {ev.current_tag !== 'none' ? (
                               <span
-                                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-extrabold border ${currentBadge.badgeClasses}`}
+                                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-extrabold border truncate ${currentBadge.badgeClasses}`}
                               >
                                 <span>{currentBadge.icon}</span>
-                                <span>{currentBadge.name}</span>
+                                <span className="truncate">{currentBadge.name}</span>
                               </span>
                             ) : (
-                              <span className="text-[11px] text-slate-400 italic">Không</span>
+                              <span className="text-[10px] text-slate-400 italic">Không có</span>
                             )}
-                          </td>
+                          </div>
 
-                          {/* Suggested Tag */}
-                          <td className="px-3 py-3 text-center">
+                          <span className="text-slate-300 font-bold shrink-0">➔</span>
+
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span className="text-[10px] text-indigo-500 font-semibold">Đề xuất:</span>
                             {ev.suggested_tag !== 'none' ? (
                               <span
-                                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-extrabold border shadow-2xs ${suggestedBadge.badgeClasses}`}
+                                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-extrabold border shadow-2xs truncate ${suggestedBadge.badgeClasses}`}
                               >
                                 <span>{suggestedBadge.icon}</span>
-                                <span>{suggestedBadge.name}</span>
+                                <span className="truncate">{suggestedBadge.name}</span>
                               </span>
                             ) : (
-                              <span className="text-[11px] text-slate-400 italic">Không</span>
+                              <span className="text-[10px] text-slate-400 italic">Gỡ nhãn</span>
                             )}
-                          </td>
+                          </div>
+                        </div>
 
-                          {/* Reason */}
-                          <td className="px-3.5 py-3">
-                            <div
-                              className={`text-[11px] font-medium leading-snug ${
-                                ev.will_change
-                                  ? 'text-amber-800 font-bold'
-                                  : ev.tag_locked
-                                  ? 'text-indigo-700 font-semibold'
-                                  : 'text-slate-600'
-                              }`}
-                            >
-                              {ev.reason}
-                            </div>
-                          </td>
+                        {/* Metrics: Sales & Margin */}
+                        <div className="flex items-center justify-between text-[11px] text-slate-600 px-1">
+                          <div>
+                            Doanh số: <strong className="text-slate-900">{ev.total_qty} ly</strong>
+                            {ev.sales_rank > 0 && (
+                              <span className="text-indigo-600 font-bold ml-1">#{ev.sales_rank}</span>
+                            )}
+                          </div>
+                          <div>
+                            Biên LN: <strong className={ev.margin_percent >= 60 ? 'text-emerald-600' : 'text-slate-900'}>{ev.margin_percent}%</strong>
+                          </div>
+                        </div>
 
-                          {/* Lock Button */}
-                          <td className="px-3 py-3 text-center">
-                            <button
-                              type="button"
-                              onClick={() => handleToggleLock(ev.product_id, ev.tag_locked)}
-                              title={
-                                ev.tag_locked
-                                  ? 'Đang khóa nhãn thủ công (bấm để mở khóa)'
-                                  : 'Bấm để khóa cố định nhãn này'
-                              }
-                              className={`p-1.5 rounded-xl border transition cursor-pointer ${
-                                ev.tag_locked
-                                  ? 'bg-amber-50 text-amber-700 border-amber-300 hover:bg-amber-100 shadow-2xs'
-                                  : 'bg-slate-50 text-slate-400 border-slate-200 hover:text-slate-600 hover:bg-slate-100'
-                              }`}
-                            >
-                              {ev.tag_locked ? (
-                                <Lock className="w-4 h-4 text-amber-600" />
-                              ) : (
-                                <Unlock className="w-4 h-4" />
-                              )}
-                            </button>
-                          </td>
+                        {/* Reason Note */}
+                        <div
+                          className={`text-[11px] px-2.5 py-1.5 rounded-xl ${
+                            ev.will_change
+                              ? 'bg-amber-100/70 text-amber-900 font-semibold'
+                              : ev.tag_locked
+                              ? 'bg-indigo-50 text-indigo-800'
+                              : 'bg-slate-50 text-slate-500'
+                          }`}
+                        >
+                          {ev.reason}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* 2. Desktop Table (hidden sm:block) */}
+                <div className="hidden sm:block border border-slate-200 rounded-2xl overflow-hidden shadow-sm bg-white">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs text-slate-700">
+                      <thead className="bg-slate-100 text-[11px] font-black text-slate-700 uppercase tracking-wider border-b border-slate-200">
+                        <tr>
+                          <th className="px-3.5 py-3">Sản Phẩm</th>
+                          <th className="px-3 py-3 text-center">Doanh Số ({config.time_window_days}N)</th>
+                          <th className="px-3 py-3 text-right">Lợi Nhuận &amp; % Biên</th>
+                          <th className="px-3 py-3 text-center">Nhãn Hiện Tại</th>
+                          <th className="px-3 py-3 text-center">Nhãn Đề Xuất</th>
+                          <th className="px-3.5 py-3">Lý Do Đánh Giá</th>
+                          <th className="px-3 py-3 text-center">Khóa Nhãn</th>
                         </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 bg-white">
+                        {filteredEvaluations.map((ev) => {
+                          const currentBadge = getTagBadgeStyle(ev.current_tag, customTags);
+                          const suggestedBadge = getTagBadgeStyle(ev.suggested_tag, customTags);
+
+                          return (
+                            <tr
+                              key={ev.product_id}
+                              className={`hover:bg-slate-50 transition ${
+                                ev.will_change ? 'bg-amber-50/60' : ''
+                              }`}
+                            >
+                              {/* Product Info */}
+                              <td className="px-3.5 py-3">
+                                <div className="flex items-center gap-2.5">
+                                  {ev.image_url ? (
+                                    <img
+                                      src={ev.image_url}
+                                      alt={ev.product_name}
+                                      className="w-9 h-9 rounded-xl object-cover border border-slate-200 shrink-0"
+                                    />
+                                  ) : (
+                                    <div className="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 text-xs font-black shrink-0 border border-slate-200">
+                                      {ev.product_name.charAt(0)}
+                                    </div>
+                                  )}
+                                  <div className="min-w-0">
+                                    <div className="font-bold text-slate-900 truncate">
+                                      {ev.product_name}
+                                    </div>
+                                    <div className="text-[11px] text-slate-500 truncate">
+                                      {ev.category_name} • Mới {ev.days_since_created} ngày
+                                    </div>
+                                  </div>
+                                </div>
+                              </td>
+
+                              {/* Sales Volume & Rank */}
+                              <td className="px-3 py-3 text-center">
+                                <div className="font-black text-slate-900 text-xs">
+                                  {ev.total_qty} ly
+                                </div>
+                                {ev.total_qty > 0 ? (
+                                  <div className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.2 rounded-full inline-block mt-0.5 border border-indigo-200/60">
+                                    Hạng #{ev.sales_rank}
+                                  </div>
+                                ) : (
+                                  <div className="text-[10px] text-slate-400">Chưa bán</div>
+                                )}
+                              </td>
+
+                              {/* Profit & Margin */}
+                              <td className="px-3 py-3 text-right">
+                                <div className="font-black text-slate-900 text-xs">
+                                  {new Intl.NumberFormat('vi-VN', {
+                                    style: 'currency',
+                                    currency: 'VND',
+                                  }).format(ev.total_profit)}
+                                </div>
+                                <div
+                                  className={`text-[10px] font-bold mt-0.5 ${
+                                    ev.margin_percent >= 60
+                                      ? 'text-emerald-600'
+                                      : ev.margin_percent >= 40
+                                      ? 'text-amber-600'
+                                      : 'text-slate-500'
+                                  }`}
+                                >
+                                  Biên LN: {ev.margin_percent}%
+                                </div>
+                              </td>
+
+                              {/* Current Tag */}
+                              <td className="px-3 py-3 text-center">
+                                {ev.current_tag !== 'none' ? (
+                                  <span
+                                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-extrabold border ${currentBadge.badgeClasses}`}
+                                  >
+                                    <span>{currentBadge.icon}</span>
+                                    <span>{currentBadge.name}</span>
+                                  </span>
+                                ) : (
+                                  <span className="text-[11px] text-slate-400 italic">Không</span>
+                                )}
+                              </td>
+
+                              {/* Suggested Tag */}
+                              <td className="px-3 py-3 text-center">
+                                {ev.suggested_tag !== 'none' ? (
+                                  <span
+                                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-extrabold border shadow-2xs ${suggestedBadge.badgeClasses}`}
+                                  >
+                                    <span>{suggestedBadge.icon}</span>
+                                    <span>{suggestedBadge.name}</span>
+                                  </span>
+                                ) : (
+                                  <span className="text-[11px] text-slate-400 italic">Không</span>
+                                )}
+                              </td>
+
+                              {/* Reason */}
+                              <td className="px-3.5 py-3">
+                                <div
+                                  className={`text-[11px] font-medium leading-snug ${
+                                    ev.will_change
+                                      ? 'text-amber-800 font-bold'
+                                      : ev.tag_locked
+                                      ? 'text-indigo-700 font-semibold'
+                                      : 'text-slate-600'
+                                  }`}
+                                >
+                                  {ev.reason}
+                                </div>
+                              </td>
+
+                              {/* Lock Button */}
+                              <td className="px-3 py-3 text-center">
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleLock(ev.product_id, ev.tag_locked)}
+                                  title={
+                                    ev.tag_locked
+                                      ? 'Đang khóa nhãn thủ công (bấm để mở khóa)'
+                                      : 'Bấm để khóa cố định nhãn này'
+                                  }
+                                  className={`p-1.5 rounded-xl border transition cursor-pointer ${
+                                    ev.tag_locked
+                                      ? 'bg-amber-50 text-amber-700 border-amber-300 hover:bg-amber-100 shadow-2xs'
+                                      : 'bg-slate-50 text-slate-400 border-slate-200 hover:text-slate-600 hover:bg-slate-100'
+                                  }`}
+                                >
+                                  {ev.tag_locked ? (
+                                    <Lock className="w-4 h-4 text-amber-600" />
+                                  ) : (
+                                    <Unlock className="w-4 h-4" />
+                                  )}
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
 
         {/* Footer Actions */}
-        <div className="px-5 py-3.5 border-t border-slate-200 bg-slate-50 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
-          <div className="text-xs text-slate-600 flex items-center gap-1.5">
+        <div className="p-3.5 sm:px-5 sm:py-3.5 border-t border-slate-200 bg-slate-50 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
+          <div className="text-xs text-slate-600 flex items-center gap-1.5 text-center sm:text-left">
             <AlertCircle className="w-4 h-4 text-indigo-600 shrink-0" />
-            <span>Món có biểu tượng 🔒 Khóa sẽ không bao giờ bị ghi đè tự động.</span>
+            <span>Món có biểu tượng 🔒 Khóa sẽ không bị ghi đè tự động.</span>
           </div>
 
-          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+          <div className="grid grid-cols-2 gap-2 w-full sm:w-auto sm:flex sm:items-center">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-200 bg-slate-100 rounded-xl transition cursor-pointer border border-slate-200"
+              className="px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-200 bg-slate-100 rounded-xl transition cursor-pointer border border-slate-200 text-center justify-center flex items-center"
             >
               Đóng
             </button>
@@ -806,13 +933,13 @@ export default function AutoTaggingModal({
               type="button"
               onClick={handleApplyChanges}
               disabled={applying || (previewResult?.changed_products_count || 0) === 0}
-              className="flex items-center gap-1.5 px-5 py-2 text-xs font-bold bg-gradient-to-r from-amber-500 to-indigo-600 text-white hover:from-amber-600 hover:to-indigo-700 rounded-xl shadow-md shadow-indigo-500/20 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center justify-center gap-1.5 px-4 sm:px-5 py-2.5 text-xs font-bold bg-gradient-to-r from-amber-500 to-indigo-600 text-white hover:from-amber-600 hover:to-indigo-700 rounded-xl shadow-md shadow-indigo-500/20 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed text-center"
             >
               <Sparkles className={`w-4 h-4 ${applying ? 'animate-spin' : ''}`} />
-              <span>
+              <span className="truncate">
                 {applying
                   ? 'Đang áp dụng...'
-                  : `⚡ Áp Dụng Thay Đổi (${previewResult?.changed_products_count || 0} món)`}
+                  : `Áp Dụng (${previewResult?.changed_products_count || 0})`}
               </span>
             </button>
           </div>

@@ -1116,8 +1116,8 @@ export default function TransactionsPage() {
 
             {/* Popup Filter Modal (For Ledger) */}
             {isLedgerFilterModalOpen && (
-              <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-                <div className="bg-white rounded-3xl max-w-xl w-full p-5 sm:p-6 shadow-2xl space-y-4 max-h-[85vh] flex flex-col animate-in zoom-in-95 duration-150">
+              <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-150">
+                <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-xl w-full p-4 sm:p-6 shadow-2xl space-y-4 max-h-[92dvh] sm:max-h-[85vh] flex flex-col animate-in slide-in-from-bottom-6 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200 pb-safe sm:pb-6 border border-slate-100">
                   {/* Modal Header */}
                   <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                     <div className="flex items-center gap-2">
@@ -1132,7 +1132,7 @@ export default function TransactionsPage() {
                     <button
                       type="button"
                       onClick={() => setIsLedgerFilterModalOpen(false)}
-                      className="p-1.5 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition cursor-pointer"
+                      className="p-1.5 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 transition cursor-pointer"
                     >
                       <X className="w-5 h-5" />
                     </button>
@@ -1314,7 +1314,7 @@ export default function TransactionsPage() {
                   </div>
 
                   {/* Modal Footer */}
-                  <div className="flex items-center justify-between border-t border-slate-100 pt-3">
+                  <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:justify-between border-t border-slate-100 pt-3">
                     <button
                       type="button"
                       onClick={() => {
@@ -1322,16 +1322,16 @@ export default function TransactionsPage() {
                         setSelectedType('all');
                         setSelectedCategory('all');
                       }}
-                      className="text-xs font-bold text-slate-500 hover:text-rose-600 transition cursor-pointer px-3 py-2"
+                      className="text-xs font-bold text-slate-500 hover:text-rose-600 transition cursor-pointer px-3 py-2.5 rounded-xl border border-slate-200 sm:border-transparent text-center justify-center flex items-center"
                     >
                       Đặt lại bộ lọc
                     </button>
                     <button
                       type="button"
                       onClick={() => setIsLedgerFilterModalOpen(false)}
-                      className="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-extrabold px-5 py-2.5 rounded-xl shadow-xs transition active:scale-95 cursor-pointer"
+                      className="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-extrabold px-5 py-2.5 rounded-xl shadow-xs transition active:scale-95 cursor-pointer text-center justify-center flex items-center"
                     >
-                      Áp dụng ({filteredTransactions.length} giao dịch)
+                      Áp dụng ({filteredTransactions.length})
                     </button>
                   </div>
                 </div>
@@ -1860,8 +1860,8 @@ export default function TransactionsPage() {
 
             {/* Popup Filter Modal (For Orders) */}
             {isOrderFilterModalOpen && (
-              <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-                <div className="bg-white rounded-3xl max-w-lg w-full p-5 sm:p-6 shadow-2xl space-y-4 max-h-[85vh] flex flex-col animate-in zoom-in-95 duration-150">
+              <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-150">
+                <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-lg w-full p-4 sm:p-6 shadow-2xl space-y-4 max-h-[92dvh] sm:max-h-[85vh] flex flex-col animate-in slide-in-from-bottom-6 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200 pb-safe sm:pb-6 border border-slate-100">
                   {/* Modal Header */}
                   <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                     <div className="flex items-center gap-2">
@@ -1876,7 +1876,7 @@ export default function TransactionsPage() {
                     <button
                       type="button"
                       onClick={() => setIsOrderFilterModalOpen(false)}
-                      className="p-1.5 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition cursor-pointer"
+                      className="p-1.5 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 transition cursor-pointer"
                     >
                       <X className="w-5 h-5" />
                     </button>
@@ -1932,20 +1932,20 @@ export default function TransactionsPage() {
                   </div>
 
                   {/* Modal Footer */}
-                  <div className="flex items-center justify-between border-t border-slate-100 pt-3">
+                  <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:justify-between border-t border-slate-100 pt-3">
                     <button
                       type="button"
                       onClick={() => setOrderStatusFilter('all')}
-                      className="text-xs font-bold text-slate-500 hover:text-rose-600 transition cursor-pointer px-3 py-2"
+                      className="text-xs font-bold text-slate-500 hover:text-rose-600 transition cursor-pointer px-3 py-2.5 rounded-xl border border-slate-200 sm:border-transparent text-center justify-center flex items-center"
                     >
                       Đặt lại
                     </button>
                     <button
                       type="button"
                       onClick={() => setIsOrderFilterModalOpen(false)}
-                      className="bg-amber-700 hover:bg-amber-800 text-white text-xs font-extrabold px-5 py-2.5 rounded-xl shadow-xs transition active:scale-95 cursor-pointer"
+                      className="bg-amber-700 hover:bg-amber-800 text-white text-xs font-extrabold px-5 py-2.5 rounded-xl shadow-xs transition active:scale-95 cursor-pointer text-center justify-center flex items-center"
                     >
-                      Áp dụng ({filteredOrders.length} đơn)
+                      Áp dụng ({filteredOrders.length})
                     </button>
                   </div>
                 </div>
@@ -2305,18 +2305,18 @@ export default function TransactionsPage() {
 
       {/* Cancel Order Modal */}
       {cancellingOrder && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-in zoom-in-95 duration-150">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl space-y-4 animate-in slide-in-from-bottom-6 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200 pb-safe sm:pb-6 border border-slate-100">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center space-x-2 text-rose-600">
                 <AlertTriangle className="w-5 h-5" />
-                <h3 className="text-base font-bold text-slate-900">
+                <h3 className="text-base font-bold text-slate-900 truncate">
                   {t('tx.cancel_order_modal_title')} #{cancellingOrder.order_code}
                 </h3>
               </div>
               <button
                 onClick={() => setCancellingOrder(null)}
-                className="p-1 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100"
+                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 transition cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -2369,18 +2369,18 @@ export default function TransactionsPage() {
               </label>
 
               {/* Actions */}
-              <div className="flex justify-end space-x-2 pt-2 border-t border-slate-100">
+              <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end sm:space-x-2 pt-2 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setCancellingOrder(null)}
-                  className="px-4 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl"
+                  className="w-full sm:w-auto px-4 py-2.5 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition cursor-pointer text-center justify-center flex items-center"
                 >
                   {t('common.cancel')}
                 </button>
                 <button
                   type="submit"
                   disabled={cancelLoading || !cancelReason.trim()}
-                  className="px-5 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow-sm transition disabled:opacity-50 flex items-center gap-1.5"
+                  className="w-full sm:w-auto px-5 py-2.5 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow-xs transition disabled:opacity-50 flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   <Ban className="w-3.5 h-3.5" />
                   {cancelLoading ? t('common.loading') : t('tx.confirm_cancel_btn')}
@@ -2392,17 +2392,17 @@ export default function TransactionsPage() {
       )}
       {/* Delete Transaction Confirmation Modal */}
       {deletingTransaction && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl border border-slate-100 space-y-4">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 max-w-md w-full shadow-2xl border border-slate-100 space-y-4 animate-in slide-in-from-bottom-6 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200 pb-safe sm:pb-6">
             <div className="flex items-center space-x-3 text-rose-600">
-              <div className="p-3 bg-rose-50 rounded-2xl">
+              <div className="p-3 bg-rose-50 rounded-2xl shrink-0">
                 <AlertTriangle className="w-6 h-6" />
               </div>
-              <div>
-                <h3 className="text-base font-bold text-slate-900">
+              <div className="min-w-0">
+                <h3 className="text-base font-bold text-slate-900 truncate">
                   {t('tx.confirm_delete_tx_title') || 'Xác nhận xóa giao dịch'}
                 </h3>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-slate-500 truncate">
                   {t('tx.confirm_delete_tx_subtitle') || 'Hành động này sẽ tự động điều chỉnh hoàn trả số dư vào quỹ liên quan.'}
                 </p>
               </div>
@@ -2431,11 +2431,11 @@ export default function TransactionsPage() {
               </div>
             </div>
 
-            <div className="flex justify-end space-x-2 pt-2 border-t border-slate-100">
+            <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end sm:space-x-2 pt-2 border-t border-slate-100">
               <button
                 type="button"
                 onClick={() => setDeletingTransaction(null)}
-                className="px-4 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl"
+                className="w-full sm:w-auto px-4 py-2.5 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition cursor-pointer text-center justify-center flex items-center"
               >
                 {t('common.cancel') || 'Hủy'}
               </button>
@@ -2443,7 +2443,7 @@ export default function TransactionsPage() {
                 type="button"
                 disabled={deleteLoading}
                 onClick={handleConfirmDeleteTransaction}
-                className="px-5 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow-sm transition disabled:opacity-50 flex items-center gap-1.5"
+                className="w-full sm:w-auto px-5 py-2.5 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow-xs transition disabled:opacity-50 flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 {deleteLoading ? (t('common.loading') || 'Đang xử lý...') : (t('common.delete') || 'Xóa giao dịch')}
@@ -2466,26 +2466,27 @@ export default function TransactionsPage() {
 
       {/* Reconcile Dialog Modal */}
       {selectedFundForReconcile && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-md w-full p-4 sm:p-6 shadow-2xl space-y-4 animate-in zoom-in-95 duration-200 pb-safe border border-slate-100">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div className="flex items-center space-x-2 text-indigo-600">
-                <Scale className="w-5 h-5" />
-                <h2 className="font-bold text-base text-slate-900">
+              <div className="flex items-center gap-2 text-indigo-600 min-w-0 pr-2">
+                <Scale className="w-5 h-5 shrink-0" />
+                <h2 className="font-extrabold text-sm sm:text-base text-slate-900 truncate">
                   {t('funds.reconcile_fund_title', { name: selectedFundForReconcile.name })}
                 </h2>
               </div>
               <button
+                type="button"
                 onClick={() => setSelectedFundForReconcile(null)}
-                className="p-1 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100"
+                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 transition cursor-pointer shrink-0"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleSaveReconciliation} className="space-y-4 text-xs">
+            <form onSubmit={handleSaveReconciliation} className="space-y-3.5 sm:space-y-4 text-xs">
               {/* Theoretical Balance Card */}
-              <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 flex justify-between items-center">
+              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 flex justify-between items-center">
                 <span className="text-slate-500 font-semibold">{t('funds.theoretical_balance_label')}</span>
                 <span className="font-bold text-slate-900 text-sm">
                   {formatCurrency(selectedFundForReconcile.current_balance, settings)}
@@ -2505,7 +2506,7 @@ export default function TransactionsPage() {
                     const raw = e.target.value.replace(/\D/g, '');
                     setActualBalanceInput(raw === '' ? 0 : parseInt(raw, 10));
                   }}
-                  className="w-full p-3 border border-slate-200 rounded-xl text-base font-extrabold text-indigo-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full p-2.5 sm:p-3 border border-slate-200 rounded-xl text-base font-extrabold text-indigo-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
 
@@ -2514,22 +2515,22 @@ export default function TransactionsPage() {
                 const variance = actualBalanceInput - selectedFundForReconcile.current_balance;
                 if (variance === 0) {
                   return (
-                    <div className="p-3 bg-emerald-50 text-emerald-800 rounded-xl border border-emerald-200 flex items-center gap-2 font-medium">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                    <div className="p-2.5 sm:p-3 bg-emerald-50 text-emerald-800 rounded-xl border border-emerald-200 flex items-center gap-2 font-medium text-xs">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
                       <span>{t('funds.variance_none')}</span>
                     </div>
                   );
                 } else if (variance > 0) {
                   return (
-                    <div className="p-3 bg-amber-50 text-amber-900 rounded-xl border border-amber-200 flex items-center gap-2 font-medium">
-                      <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                    <div className="p-2.5 sm:p-3 bg-amber-50 text-amber-900 rounded-xl border border-amber-200 flex items-center gap-2 font-medium text-xs">
+                      <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
                       <span>{t('funds.variance_surplus', { amount: formatCurrency(variance, settings) })}</span>
                     </div>
                   );
                 } else {
                   return (
-                    <div className="p-3 bg-rose-50 text-rose-900 rounded-xl border border-rose-200 flex items-center gap-2 font-medium">
-                      <AlertTriangle className="w-4 h-4 text-rose-600 flex-shrink-0" />
+                    <div className="p-2.5 sm:p-3 bg-rose-50 text-rose-900 rounded-xl border border-rose-200 flex items-center gap-2 font-medium text-xs">
+                      <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
                       <span>{t('funds.variance_deficit', { amount: formatCurrency(Math.abs(variance), settings) })}</span>
                     </div>
                   );
@@ -2548,29 +2549,30 @@ export default function TransactionsPage() {
               </div>
 
               {/* Email report option after reconciliation */}
-              <label className="flex items-center gap-2.5 cursor-pointer bg-emerald-50 border border-emerald-200 rounded-xl p-3">
+              <label className="flex items-center gap-2.5 cursor-pointer bg-emerald-50 border border-emerald-200 rounded-xl p-2.5 sm:p-3">
                 <input
                   type="checkbox"
                   checked={sendEmailAfterReconcile}
                   onChange={(e) => setSendEmailAfterReconcile(e.target.checked)}
-                  className="w-4 h-4 accent-emerald-600 rounded"
+                  className="w-4 h-4 accent-emerald-600 rounded cursor-pointer"
                 />
-                <Mail className="w-4 h-4 text-emerald-600" />
+                <Mail className="w-4 h-4 text-emerald-600 shrink-0" />
                 <span className="text-xs font-semibold text-emerald-800">{t('email_report.funds_prompt_label')}</span>
               </label>
 
-              <div className="flex justify-end space-x-2 pt-2 border-t border-slate-100">
+              {/* Modal Buttons (Balanced on mobile) */}
+              <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end sm:space-x-2 pt-2 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setSelectedFundForReconcile(null)}
-                  className="px-4 py-2.5 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl"
+                  className="w-full px-4 py-2.5 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition cursor-pointer text-center justify-center flex items-center"
                 >
                   {t('common.cancel')}
                 </button>
                 <button
                   type="submit"
                   disabled={reconciling}
-                  className="px-5 py-2.5 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 rounded-xl shadow-sm flex items-center gap-1.5"
+                  className="w-full px-5 py-2.5 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition cursor-pointer text-center"
                 >
                   {reconciling && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
                   <span>{t('funds.submit_reconcile')}</span>

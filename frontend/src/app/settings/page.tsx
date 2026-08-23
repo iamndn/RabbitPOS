@@ -1791,15 +1791,15 @@ export default function SettingsPage() {
 
         {/* Restore Confirmation Modal */}
         {showRestoreModal && backupPreview && (
-          <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-            <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl space-y-5 animate-in zoom-in-95">
+          <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-150">
+            <div className="bg-white rounded-t-3xl sm:rounded-3xl p-5 sm:p-8 max-w-md w-full shadow-2xl space-y-4 sm:space-y-5 animate-in slide-in-from-bottom-6 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200 pb-safe sm:pb-8 border border-slate-100">
               <div className="flex items-center gap-3 text-amber-600">
-                <div className="p-3 bg-amber-50 rounded-2xl border border-amber-200">
+                <div className="p-3 bg-amber-50 rounded-2xl border border-amber-200 shrink-0">
                   <AlertTriangle className="w-6 h-6" />
                 </div>
-                <div>
-                  <h3 className="font-bold text-slate-900 text-base">{t('settings.restore_confirm_title')}</h3>
-                  <p className="text-slate-500 text-xs">File: {backupFile?.name}</p>
+                <div className="min-w-0">
+                  <h3 className="font-bold text-slate-900 text-sm sm:text-base truncate">{t('settings.restore_confirm_title')}</h3>
+                  <p className="text-slate-500 text-xs truncate">File: {backupFile?.name}</p>
                 </div>
               </div>
 
@@ -1823,11 +1823,11 @@ export default function SettingsPage() {
                 </div>
               )}
 
-              <div className="flex items-center gap-3 pt-2">
+              <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:gap-3 pt-2 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setShowRestoreModal(false)}
-                  className="flex-1 py-2.5 px-4 rounded-xl border border-slate-200 text-slate-700 font-semibold text-xs hover:bg-slate-50 transition"
+                  className="w-full sm:flex-1 py-2.5 px-4 rounded-xl border border-slate-200 text-slate-700 font-semibold text-xs hover:bg-slate-50 transition cursor-pointer text-center justify-center flex items-center"
                 >
                   {t('common.cancel')}
                 </button>
@@ -1835,7 +1835,7 @@ export default function SettingsPage() {
                   type="button"
                   onClick={handleExecuteRestore}
                   disabled={restoringBackup}
-                  className="flex-1 py-2.5 px-4 rounded-xl bg-amber-600 hover:bg-amber-700 disabled:bg-slate-300 text-white font-bold text-xs shadow-xs transition flex items-center justify-center gap-1.5"
+                  className="w-full sm:flex-1 py-2.5 px-4 rounded-xl bg-amber-600 hover:bg-amber-700 disabled:bg-slate-300 text-white font-bold text-xs shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer text-center"
                 >
                   {restoringBackup ? <RefreshCw className="w-4 h-4 animate-spin" /> : <UploadCloud className="w-4 h-4" />}
                   <span>{t('settings.restore_btn')}</span>

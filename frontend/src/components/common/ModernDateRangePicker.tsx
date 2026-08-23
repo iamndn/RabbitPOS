@@ -178,14 +178,19 @@ export default function ModernDateRangePicker({
         <>
           {/* Mobile backdrop for clean tap-outside and guaranteed focus */}
           <div
-            className="fixed inset-0 z-40 bg-slate-900/20 backdrop-blur-xs sm:hidden animate-in fade-in-0 duration-150"
+            className="fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-xs sm:hidden animate-in fade-in-0 duration-150"
             onClick={() => setIsOpen(false)}
           />
           <div
-            className={`fixed inset-x-3 sm:inset-x-auto top-1/2 -translate-y-1/2 sm:translate-y-0 sm:top-auto z-50 max-w-[340px] sm:max-w-none w-auto sm:w-84 sm:absolute ${
+            className={`fixed inset-x-0 bottom-0 sm:bottom-auto sm:top-auto sm:translate-y-0 z-50 w-full sm:max-w-none sm:w-84 sm:absolute ${
               align === 'right' ? 'sm:right-0 sm:left-auto' : 'sm:left-0 sm:right-auto'
-            } mt-2 mx-auto sm:mx-0 bg-white rounded-2xl shadow-2xl border border-slate-200/90 p-4 animate-in fade-in zoom-in-95 duration-150 text-slate-800`}
+            } mt-0 sm:mt-2 mx-0 sm:mx-0 bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl border border-slate-200/90 p-4 sm:p-4 pb-safe sm:pb-4 animate-in slide-in-from-bottom-6 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200 text-slate-800`}
           >
+            {/* Mobile Drag Indicator */}
+            <div className="flex justify-center sm:hidden pt-0.5 pb-2">
+              <div className="w-12 h-1 bg-slate-200 rounded-full" />
+            </div>
+
             {/* Header */}
             <div className="flex items-center justify-between pb-2.5 mb-2.5 border-b border-slate-100">
               <span className="font-extrabold text-slate-900 text-xs flex items-center gap-1.5">

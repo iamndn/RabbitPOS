@@ -202,26 +202,26 @@ export default function TransactionCategoryModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl max-w-2xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-150">
+    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-150">
+      <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-2xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[92dvh] sm:max-h-[90vh] animate-in slide-in-from-bottom-6 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200 pb-safe sm:pb-0 border border-slate-100">
         {/* Header */}
-        <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
-              <Tag className="w-5 h-5" />
+        <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 shrink-0">
+          <div className="flex items-center gap-2.5 sm:space-x-3 min-w-0 pr-2">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shrink-0 shadow-2xs">
+              <Tag className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div>
-              <h2 className="text-base font-bold text-slate-900">
+            <div className="min-w-0">
+              <h2 className="text-sm sm:text-base font-bold text-slate-900 truncate">
                 {t('tx_cat.modal_title') || 'Danh mục Thu / Chi'}
               </h2>
-              <p className="text-xs text-slate-500">
-                {t('tx_cat.modal_subtitle') || 'Tạo, chỉnh sửa và quản lý các danh mục phân loại thu chi tài chính.'}
+              <p className="text-[11px] sm:text-xs text-slate-500 truncate">
+                {t('tx_cat.modal_subtitle') || 'Tạo, chỉnh sửa và quản lý các danh mục phân loại thu chi.'}
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer"
+            className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer shrink-0"
           >
             <X className="w-5 h-5" />
           </button>
@@ -445,11 +445,11 @@ export default function TransactionCategoryModal({
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-slate-100 bg-slate-50/50 flex justify-end">
+        <div className="p-4 border-t border-slate-100 bg-slate-50/50 flex justify-end shrink-0">
           <button
             type="button"
             onClick={onClose}
-            className="px-5 py-2 text-xs font-bold text-slate-700 bg-slate-200/80 hover:bg-slate-300 rounded-xl transition"
+            className="w-full sm:w-auto px-5 py-2.5 text-xs font-bold text-slate-700 bg-slate-200/80 hover:bg-slate-300 rounded-xl transition cursor-pointer text-center justify-center flex items-center"
           >
             {t('common.close') || 'Đóng'}
           </button>
@@ -458,17 +458,17 @@ export default function TransactionCategoryModal({
 
       {/* Delete Confirmation Modal */}
       {deletingCategory && (
-        <div className="fixed inset-0 z-60 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl space-y-4 animate-in zoom-in-95 duration-150">
+        <div className="fixed inset-0 z-60 bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-sm w-full p-5 sm:p-6 shadow-2xl space-y-4 animate-in slide-in-from-bottom-6 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200 pb-safe sm:pb-6 border border-slate-100">
             <div className="flex items-center space-x-3 text-rose-600">
-              <div className="p-3 bg-rose-50 rounded-2xl border border-rose-100">
+              <div className="p-3 bg-rose-50 rounded-2xl border border-rose-100 shrink-0">
                 <Trash2 className="w-6 h-6" />
               </div>
-              <div>
-                <h3 className="text-sm font-bold text-slate-900">
+              <div className="min-w-0">
+                <h3 className="text-sm font-bold text-slate-900 truncate">
                   {t('tx_cat.confirm_delete_title') || 'Xác nhận xóa danh mục'}
                 </h3>
-                <p className="text-xs text-slate-500">{deletingCategory.name}</p>
+                <p className="text-xs text-slate-500 truncate">{deletingCategory.name}</p>
               </div>
             </div>
 
@@ -477,12 +477,12 @@ export default function TransactionCategoryModal({
                 'Bạn có chắc chắn muốn xóa danh mục này? Các giao dịch lịch sử đã ghi nhận vẫn sẽ được giữ nguyên tên.'}
             </p>
 
-            <div className="flex justify-end space-x-2 pt-2 border-t border-slate-100">
+            <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end sm:space-x-2 pt-2 border-t border-slate-100">
               <button
                 type="button"
                 disabled={deleteSubmitting}
                 onClick={() => setDeletingCategory(null)}
-                className="px-4 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl"
+                className="w-full sm:w-auto px-4 py-2.5 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition cursor-pointer text-center justify-center flex items-center"
               >
                 {t('common.cancel') || 'Hủy'}
               </button>
@@ -490,7 +490,7 @@ export default function TransactionCategoryModal({
                 type="button"
                 disabled={deleteSubmitting}
                 onClick={handleDelete}
-                className="px-4 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 disabled:opacity-50 rounded-xl shadow-sm"
+                className="w-full sm:w-auto px-4 py-2.5 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 disabled:opacity-50 rounded-xl shadow-xs transition cursor-pointer text-center justify-center flex items-center"
               >
                 {deleteSubmitting ? 'Đang xóa...' : t('common.delete') || 'Xóa danh mục'}
               </button>

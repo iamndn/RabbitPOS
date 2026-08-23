@@ -176,13 +176,15 @@ export default function ConfirmModal({
           </div>
 
           {/* Action Buttons */}
-          <div className="mt-6 flex flex-col-reverse sm:flex-row items-center justify-end gap-2 sm:gap-3 pt-4 border-t border-slate-100">
+          <div className={`mt-6 pt-4 border-t border-slate-100 ${
+            options.isAlert ? 'flex justify-end' : 'grid grid-cols-2 gap-2 sm:flex sm:justify-end sm:gap-3'
+          }`}>
             {!options.isAlert && (
               <button
                 ref={cancelBtnRef}
                 type="button"
                 onClick={onCancel}
-                className="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-slate-200 text-xs sm:text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-300 transition active:scale-98"
+                className="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-slate-200 text-xs sm:text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-300 transition active:scale-98 text-center justify-center flex items-center"
               >
                 {defaultCancelText()}
               </button>
@@ -191,7 +193,7 @@ export default function ConfirmModal({
               ref={confirmBtnRef}
               type="button"
               onClick={onConfirm}
-              className={`w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold focus:outline-none focus:ring-2 focus:ring-offset-2 transition ${getConfirmBtnStyle()}`}
+              className={`w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold focus:outline-none focus:ring-2 focus:ring-offset-2 transition text-center justify-center flex items-center ${getConfirmBtnStyle()}`}
             >
               {defaultConfirmText()}
             </button>
