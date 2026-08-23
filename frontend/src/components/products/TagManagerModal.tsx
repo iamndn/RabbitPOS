@@ -306,7 +306,7 @@ export default function TagManagerModal({
                 <label className="text-xs font-bold text-slate-700 block mb-1">Mã nhãn (Slug)</label>
                 <input
                   type="text"
-                  placeholder="signature_quan"
+                  placeholder="vd: mon_dac_biet, best_seller..."
                   value={tagId}
                   disabled={!!editingTag}
                   onChange={(e) => setTagId(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '_'))}

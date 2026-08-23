@@ -25,6 +25,7 @@ import {
   Unlock,
   Zap,
   Gift,
+  Filter,
 } from 'lucide-react';
 import AppShell from '@/components/AppShell';
 import { fetchApi, getImageUrl, uploadImage } from '@/lib/api';
@@ -95,6 +96,7 @@ export default function ProductsPage() {
   const [settings, setSettings] = useState<SettingsMap | null>(null);
 
   // Popup Modal States
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState<boolean>(false);
   const [isProductModalOpen, setIsProductModalOpen] = useState<boolean>(false);
   const [isCategoryManagerOpen, setIsCategoryManagerOpen] = useState<boolean>(false);
   const [isToppingManagerOpen, setIsToppingManagerOpen] = useState<boolean>(false);
@@ -467,116 +469,354 @@ export default function ProductsPage() {
               {t('products.subtitle')}
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 w-full sm:w-auto">
             <button
               onClick={() => setIsTagModalOpen(true)}
-              className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold px-3.5 py-2.5 rounded-xl border border-indigo-200 flex items-center gap-1.5 transition cursor-pointer shadow-2xs"
+              className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold px-3.5 py-2.5 rounded-xl border border-indigo-200 flex items-center justify-center gap-1.5 transition cursor-pointer shadow-2xs w-full sm:w-auto"
             >
-              <Tag className="w-4 h-4 text-indigo-600" />
-              <span>Quản lý Nhãn</span>
+              <Tag className="w-4 h-4 text-indigo-600 shrink-0" />
+              <span className="truncate">Quản lý Nhãn</span>
             </button>
             <button
               onClick={() => setIsCategoryManagerOpen(true)}
-              className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold px-3.5 py-2.5 rounded-xl border border-emerald-200 flex items-center gap-1.5 transition cursor-pointer shadow-2xs"
+              className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold px-3.5 py-2.5 rounded-xl border border-emerald-200 flex items-center justify-center gap-1.5 transition cursor-pointer shadow-2xs w-full sm:w-auto"
             >
-              <FolderOpen className="w-4 h-4 text-emerald-600" />
-              <span>Quản lý Danh mục</span>
+              <FolderOpen className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span className="truncate">Quản lý Danh mục</span>
             </button>
             <button
               onClick={() => setIsToppingManagerOpen(true)}
-              className="bg-violet-50 hover:bg-violet-100 text-violet-700 text-xs font-bold px-3.5 py-2.5 rounded-xl border border-violet-200 flex items-center gap-1.5 transition cursor-pointer shadow-2xs"
+              className="bg-violet-50 hover:bg-violet-100 text-violet-700 text-xs font-bold px-3.5 py-2.5 rounded-xl border border-violet-200 flex items-center justify-center gap-1.5 transition cursor-pointer shadow-2xs w-full sm:w-auto"
             >
-              <Layers className="w-4 h-4 text-violet-600" />
-              <span>Quản lý Topping</span>
+              <Layers className="w-4 h-4 text-violet-600 shrink-0" />
+              <span className="truncate">Quản lý Topping</span>
             </button>
             <button
               onClick={() => setIsPromotionsModalOpen(true)}
-              className="bg-amber-50 hover:bg-amber-100 text-amber-800 text-xs font-bold px-3.5 py-2.5 rounded-xl border border-amber-200 flex items-center gap-1.5 transition cursor-pointer shadow-2xs"
+              className="bg-amber-50 hover:bg-amber-100 text-amber-800 text-xs font-bold px-3.5 py-2.5 rounded-xl border border-amber-200 flex items-center justify-center gap-1.5 transition cursor-pointer shadow-2xs w-full sm:w-auto"
             >
-              <Gift className="w-4 h-4 text-amber-600" />
-              <span>Quản lý Khuyến mãi</span>
+              <Gift className="w-4 h-4 text-amber-600 shrink-0" />
+              <span className="truncate">Khuyến mãi</span>
             </button>
             <button
               onClick={openCreateModal}
-              className="bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white text-xs font-bold px-4 py-2.5 rounded-xl flex items-center gap-1.5 shadow-sm transition cursor-pointer"
+              className="col-span-2 sm:col-span-1 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white text-xs font-bold px-4 py-2.5 rounded-xl flex items-center justify-center gap-1.5 shadow-sm transition cursor-pointer w-full sm:w-auto"
             >
-              <Plus className="w-4 h-4" /> {t('products.add_product')}
+              <Plus className="w-4 h-4 shrink-0" /> <span className="truncate">{t('products.add_product')}</span>
             </button>
           </div>
         </div>
 
-        {/* Filter Controls Bar */}
-        <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center justify-between">
-          <div className="flex flex-col sm:flex-row gap-2 flex-1 min-w-0">
-            <div className="relative flex-1 min-w-0 w-full">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-              <input
-                type="text"
-                placeholder={t('products.search_placeholder')}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="app-input pl-9 pr-4"
-              />
-            </div>
-
-            {/* Tag Filter */}
-            <div className="w-full sm:w-52">
-              <ModernSelect
-                value={selectedTag}
-                onChange={(val) => setSelectedTag(String(val))}
-                options={[
-                  { value: 'all', label: t('products.filter_all_tags') || 'Tất cả nhãn' },
-                  ...allAvailableTags.map((tg) => ({
-                    value: tg.id,
-                    label: `${tg.icon} ${tg.name}`,
-                    badge: `${tg.icon} ${tg.name}`,
-                    badgeColor: (tg.color || 'emerald') as any,
-                  })),
-                  { value: 'none', label: 'Không gắn nhãn' },
-                ]}
-              />
-            </div>
-
-            {/* Status Filter */}
-            <div className="w-full sm:w-40">
-              <ModernSelect
-                value={selectedStatus}
-                onChange={(val) => setSelectedStatus(String(val))}
-                options={[
-                  { value: 'all', label: t('products.filter_all_status') || 'Tất cả trạng thái' },
-                  { value: 'active', label: t('products.status_selling') || 'Đang bán', badge: 'Bật', badgeColor: 'emerald' },
-                  { value: 'inactive', label: t('products.status_hidden') || 'Tạm ẩn', badge: 'Ẩn', badgeColor: 'slate' },
-                ]}
-              />
-            </div>
-          </div>
-
-          <div className="flex overflow-x-auto space-x-1.5 pb-1 scrollbar-none no-scrollbar">
-            <button
-              onClick={() => setSelectedCategory(null)}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-lg whitespace-nowrap transition cursor-pointer ${
-                selectedCategory === null
-                  ? 'bg-slate-800 text-white shadow-xs'
-                  : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
-              }`}
-            >
-              {t('common.all')} ({safeProducts.length})
-            </button>
-            {safeCategories.map((cat) => (
+        {/* Products Search Bar & Filter Button */}
+        <div className="flex items-center gap-2 w-full">
+          <div className="relative flex-1 min-w-0">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+            <input
+              type="text"
+              placeholder={t('products.search_placeholder') || 'Tìm sản phẩm theo tên, mô tả...'}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="app-input pl-9 pr-14 py-2.5 text-xs"
+            />
+            {searchQuery ? (
               <button
-                key={cat.id}
-                onClick={() => setSelectedCategory(cat.id)}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-lg whitespace-nowrap transition cursor-pointer ${
-                  selectedCategory === cat.id
-                    ? 'bg-slate-800 text-white shadow-xs'
-                    : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
-                }`}
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2.5 top-2.5 p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition cursor-pointer"
+                title="Xóa tìm kiếm"
               >
-                {cat.name} ({safeProducts.filter((p) => p.category_id === cat.id).length})
+                <X className="w-3.5 h-3.5" />
               </button>
-            ))}
+            ) : (
+              <span className="absolute right-3 top-3 text-[10px] font-bold text-slate-400 pointer-events-none">
+                {filteredProducts.length} món
+              </span>
+            )}
           </div>
+
+          {/* Button Mở Popup Filter ngay bên phải ô tìm kiếm */}
+          <button
+            type="button"
+            onClick={() => setIsFilterModalOpen(true)}
+            className={`px-3.5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer shadow-2xs ${
+              selectedCategory !== null || selectedTag !== 'all' || selectedStatus !== 'all'
+                ? 'bg-indigo-700 text-white shadow-sm ring-2 ring-indigo-500/30 font-extrabold'
+                : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+            }`}
+          >
+            <Filter className="w-4 h-4" />
+            <span>Bộ lọc</span>
+            {(selectedCategory !== null || selectedTag !== 'all' || selectedStatus !== 'all') && (
+              <span className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse" />
+            )}
+          </button>
         </div>
+
+        {/* Active Filter Chips (if any filter is selected) */}
+        {(selectedCategory !== null || selectedTag !== 'all' || selectedStatus !== 'all') && (
+          <div className="flex flex-wrap items-center gap-1.5 text-xs pt-0.5">
+            <span className="text-slate-400 font-semibold text-[11px]">Đang lọc:</span>
+            {selectedCategory !== null && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-lg font-bold">
+                <span>Danh mục: {safeCategories.find((c) => c.id === selectedCategory)?.name || 'Đã chọn'}</span>
+                <button type="button" onClick={() => setSelectedCategory(null)} className="hover:text-emerald-950">
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            )}
+            {selectedTag !== 'all' && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-indigo-50 text-indigo-800 border border-indigo-200 rounded-lg font-bold">
+                <span>
+                  Nhãn: {selectedTag === 'none' ? 'Không gắn nhãn' : allAvailableTags.find((t) => t.id === selectedTag)?.name || selectedTag}
+                </span>
+                <button type="button" onClick={() => setSelectedTag('all')} className="hover:text-indigo-950">
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            )}
+            {selectedStatus !== 'all' && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 text-slate-800 border border-slate-200 rounded-lg font-bold">
+                <span>Trạng thái: {selectedStatus === 'active' ? 'Đang bán' : 'Tạm ẩn'}</span>
+                <button type="button" onClick={() => setSelectedStatus('all')} className="hover:text-slate-950">
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedCategory(null);
+                setSelectedTag('all');
+                setSelectedStatus('all');
+              }}
+              className="text-rose-600 hover:text-rose-700 font-bold text-[11px] ml-1 underline cursor-pointer"
+            >
+              Xóa tất cả
+            </button>
+          </div>
+        )}
+
+        {/* Popup Filter Modal */}
+        {isFilterModalOpen && (
+          <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+            <div className="bg-white rounded-3xl max-w-xl w-full p-5 sm:p-6 shadow-2xl space-y-4 max-h-[85vh] flex flex-col animate-in zoom-in-95 duration-150">
+              {/* Modal Header */}
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 bg-indigo-50 text-indigo-700 rounded-xl">
+                    <Filter className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-extrabold text-base text-slate-900">Bộ Lọc Sản Phẩm</h3>
+                    <p className="text-xs text-slate-400">Tùy chọn danh mục, nhãn và trạng thái hiển thị</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsFilterModalOpen(false)}
+                  className="p-1.5 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Modal Scrollable Content */}
+              <div className="flex-1 overflow-y-auto space-y-4 pr-1 text-xs">
+                {/* Section 1: Danh Mục (Wrap) */}
+                <div>
+                  <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-2">
+                    📂 Danh Mục Sản Phẩm ({safeCategories.length})
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedCategory(null)}
+                      className={`px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs ${
+                        selectedCategory === null
+                          ? 'bg-emerald-800 text-white shadow-sm font-black ring-2 ring-emerald-600/30'
+                          : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+                      }`}
+                    >
+                      <span>{t('common.all')}</span>
+                      <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                        selectedCategory === null ? 'bg-emerald-700 text-white' : 'bg-slate-100 text-slate-600'
+                      }`}>
+                        {safeProducts.length}
+                      </span>
+                    </button>
+                    {safeCategories.map((cat) => {
+                      const count = safeProducts.filter((p) => p.category_id === cat.id).length;
+                      const isSelected = selectedCategory === cat.id;
+                      const catImg = getImageUrl(cat.image_url);
+                      return (
+                        <button
+                          key={cat.id}
+                          type="button"
+                          onClick={() => setSelectedCategory(isSelected ? null : cat.id)}
+                          className={`px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs ${
+                            isSelected
+                              ? 'bg-emerald-800 text-white shadow-sm font-black ring-2 ring-emerald-600/30'
+                              : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+                          }`}
+                        >
+                          {catImg && <img src={catImg} alt="" className="w-3.5 h-3.5 rounded object-cover shrink-0" />}
+                          <span>{cat.name}</span>
+                          <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                            isSelected ? 'bg-emerald-700 text-white' : 'bg-slate-100 text-slate-600'
+                          }`}>
+                            {count}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Divider Ngăn Cách */}
+                <hr className="border-slate-100" />
+
+                {/* Section 2: Nhãn Sản Phẩm (Wrap) */}
+                <div>
+                  <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-2">
+                    🏷️ Nhãn Sản Phẩm ({allAvailableTags.length})
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedTag('all')}
+                      className={`px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs ${
+                        selectedTag === 'all'
+                          ? 'bg-slate-900 text-white font-extrabold shadow-sm ring-1 ring-slate-700'
+                          : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+                      }`}
+                    >
+                      <span>{t('products.filter_all_tags') || 'Tất cả nhãn'}</span>
+                      <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                        selectedTag === 'all' ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-600'
+                      }`}>
+                        {safeProducts.filter((p) => selectedCategory === null || p.category_id === selectedCategory).length}
+                      </span>
+                    </button>
+                    {allAvailableTags.map((tg) => {
+                      const count = safeProducts.filter(
+                        (p) => p.tag === tg.id && (selectedCategory === null || p.category_id === selectedCategory)
+                      ).length;
+                      const isSelected = selectedTag === tg.id;
+                      return (
+                        <button
+                          key={tg.id}
+                          type="button"
+                          onClick={() => setSelectedTag(isSelected ? 'all' : tg.id)}
+                          className={`px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs ${
+                            isSelected
+                              ? 'bg-slate-900 text-white font-extrabold shadow-sm ring-1 ring-slate-700'
+                              : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+                          }`}
+                        >
+                          <span>{tg.icon}</span>
+                          <span>{tg.name}</span>
+                          <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                            isSelected ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-600'
+                          }`}>
+                            {count}
+                          </span>
+                        </button>
+                      );
+                    })}
+                    <button
+                      type="button"
+                      onClick={() => setSelectedTag(selectedTag === 'none' ? 'all' : 'none')}
+                      className={`px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs ${
+                        selectedTag === 'none'
+                          ? 'bg-slate-900 text-white font-extrabold shadow-sm ring-1 ring-slate-700'
+                          : 'bg-white text-slate-500 hover:bg-slate-50 border border-slate-200'
+                      }`}
+                    >
+                      <span>Không gắn nhãn</span>
+                      <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                        selectedTag === 'none' ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-600'
+                      }`}>
+                        {safeProducts.filter((p) => (!p.tag || p.tag === 'none') && (selectedCategory === null || p.category_id === selectedCategory)).length}
+                      </span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Divider Ngăn Cách */}
+                <hr className="border-slate-100" />
+
+                {/* Section 3: Trạng Thái (Wrap) */}
+                <div>
+                  <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-2">
+                    ⚡ Trạng Thái Kinh Doanh
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedStatus('all')}
+                      className={`px-3.5 py-2 rounded-xl font-bold transition whitespace-nowrap cursor-pointer shadow-2xs ${
+                        selectedStatus === 'all'
+                          ? 'bg-white text-slate-900 border-2 border-slate-800 shadow-xs'
+                          : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
+                      }`}
+                    >
+                      <span>{t('products.filter_all_status') || 'Tất cả trạng thái'}</span>
+                      <span className="ml-1 text-[10px] opacity-75">({safeProducts.length})</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedStatus('active')}
+                      className={`px-3.5 py-2 rounded-xl font-bold transition whitespace-nowrap cursor-pointer flex items-center gap-1 shadow-2xs ${
+                        selectedStatus === 'active'
+                          ? 'bg-emerald-600 text-white shadow-xs'
+                          : 'bg-white text-emerald-700 hover:bg-emerald-50 border border-emerald-200'
+                      }`}
+                    >
+                      <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                      <span>{t('products.status_selling') || 'Đang bán'}</span>
+                      <span className="text-[10px] opacity-85">({safeProducts.filter((p) => p.is_active !== false).length})</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedStatus('inactive')}
+                      className={`px-3.5 py-2 rounded-xl font-bold transition whitespace-nowrap cursor-pointer flex items-center gap-1 shadow-2xs ${
+                        selectedStatus === 'inactive'
+                          ? 'bg-slate-700 text-white shadow-xs'
+                          : 'bg-white text-slate-500 hover:bg-slate-50 border border-slate-200'
+                      }`}
+                    >
+                      <span className="w-2 h-2 rounded-full bg-slate-400" />
+                      <span>{t('products.status_hidden') || 'Tạm ẩn'}</span>
+                      <span className="text-[10px] opacity-85">({safeProducts.filter((p) => p.is_active === false).length})</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="flex items-center justify-between border-t border-slate-100 pt-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedCategory(null);
+                    setSelectedTag('all');
+                    setSelectedStatus('all');
+                  }}
+                  className="text-xs font-bold text-slate-500 hover:text-rose-600 transition cursor-pointer px-3 py-2"
+                >
+                  Đặt lại bộ lọc
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsFilterModalOpen(false)}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-extrabold px-5 py-2.5 rounded-xl shadow-xs transition active:scale-95 cursor-pointer"
+                >
+                  Áp dụng ({filteredProducts.length} món)
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Products Table & Mobile Cards */}
         <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">

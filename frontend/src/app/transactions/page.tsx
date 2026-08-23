@@ -34,6 +34,7 @@ import {
   History,
   Mail,
   RefreshCw,
+  Search,
 } from 'lucide-react';
 import AppShell from '@/components/AppShell';
 import TransactionCategoryModal from '@/components/transactions/TransactionCategoryModal';
@@ -166,17 +167,22 @@ export default function TransactionsPage() {
   };
 
   // Filters for Transactions
+  // Filters for Transactions
+  const [txSearchQuery, setTxSearchQuery] = useState<string>('');
+  const [debouncedTxSearch, setDebouncedTxSearch] = useState<string>('');
   const [selectedFundId, setSelectedFundId] = useState<number | null>(null);
   const [selectedType, setSelectedType] = useState<string>('all');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [period, setPeriod] = useState<DatePeriod>('month');
   const [customFrom, setCustomFrom] = useState<string>(() => computeDateRange('month').from);
   const [customTo, setCustomTo] = useState<string>(() => computeDateRange('month').to);
+  const [isLedgerFilterModalOpen, setIsLedgerFilterModalOpen] = useState<boolean>(false);
 
   // Filters for Orders
   const [orderSearchQuery, setOrderSearchQuery] = useState<string>('');
   const [debouncedOrderSearch, setDebouncedOrderSearch] = useState<string>('');
   const [orderStatusFilter, setOrderStatusFilter] = useState<string>('all');
+  const [isOrderFilterModalOpen, setIsOrderFilterModalOpen] = useState<boolean>(false);
 
   // Pagination States (25 items/page)
   const PAGE_SIZE = 25;
@@ -217,6 +223,15 @@ export default function TransactionsPage() {
       router.replace(`/transactions?${params.toString()}`, { scroll: false });
     }
   };
+
+  // Debounce tx search
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedTxSearch(txSearchQuery);
+      setTxPage(1);
+    }, 250);
+    return () => clearTimeout(handler);
+  }, [txSearchQuery]);
 
   // Debounce order search
   useEffect(() => {
@@ -679,13 +694,33 @@ export default function TransactionsPage() {
     }
   };
 
+  const getOrderItemName = (item: OrderItemApi) => {
+    if (item.variant?.product?.name) {
+      return item.variant.product.name;
+    }
+    const matched = products.find(
+      (p) =>
+        p.variants?.some((v) => v.id === item.product_variant_id) ||
+        (item.variant?.product_id && p.id === item.variant.product_id)
+    );
+    if (matched?.name) {
+      return matched.name;
+    }
+    return item.variant?.variant_name || 'Sản phẩm';
+  };
+
   const filteredTransactions = safeTransactions.filter((tx) => {
     const matchesFund = selectedFundId ? tx.fund_id === selectedFundId : true;
     const matchesType = selectedType !== 'all' ? tx.transaction_type === selectedType : true;
     const matchesCat = selectedCategory !== 'all' ? tx.category === selectedCategory : true;
     const txDate = toLocalDateStr(tx.created_at);
     const matchesDate = (!customFrom || txDate >= customFrom) && (!customTo || txDate <= customTo);
-    return matchesFund && matchesType && matchesCat && matchesDate;
+    const matchesSearch =
+      debouncedTxSearch.trim() === '' ||
+      tx.description.toLowerCase().includes(debouncedTxSearch.toLowerCase()) ||
+      (tx.cashier_name || '').toLowerCase().includes(debouncedTxSearch.toLowerCase()) ||
+      (tx.reference_order?.order_code || '').toLowerCase().includes(debouncedTxSearch.toLowerCase());
+    return matchesFund && matchesType && matchesCat && matchesDate && matchesSearch;
   });
 
   const totalTxPages = Math.max(1, Math.ceil(filteredTransactions.length / PAGE_SIZE));
@@ -729,63 +764,67 @@ export default function TransactionsPage() {
               {t('tx.subtitle') || 'Sổ thu chi dòng tiền và lịch sử đơn hàng'}
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 w-full sm:w-auto">
             {activeTab === 'ledger' && (
               <>
-                <ModernDateRangePicker
-                  period={period}
-                  customFrom={customFrom}
-                  customTo={customTo}
-                  onChange={({ period: newP, from, to }) => {
-                    setPeriod(newP);
-                    setCustomFrom(from);
-                    setCustomTo(to);
-                  }}
-                  align="right"
-                />
+                <div className="col-span-2 sm:col-span-1 w-full sm:w-auto">
+                  <ModernDateRangePicker
+                    period={period}
+                    customFrom={customFrom}
+                    customTo={customTo}
+                    onChange={({ period: newP, from, to }) => {
+                      setPeriod(newP);
+                      setCustomFrom(from);
+                      setCustomTo(to);
+                    }}
+                    align="right"
+                  />
+                </div>
                 <button
                   type="button"
                   onClick={() => setIsCategoryModalOpen(true)}
-                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-3 py-2 rounded-xl border border-slate-200 flex items-center gap-1.5 transition active:scale-95 cursor-pointer"
+                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-3 py-2 rounded-xl border border-slate-200 flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer w-full sm:w-auto"
                 >
-                  <Tag className="w-3.5 h-3.5 text-indigo-600" /> {t('tx_cat.btn_manage_categories') || 'Danh mục'}
+                  <Tag className="w-3.5 h-3.5 text-indigo-600 shrink-0" /> <span className="truncate">{t('tx_cat.btn_manage_categories') || 'Danh mục'}</span>
                 </button>
                 <button
                   type="button"
                   onClick={handleExportCsv}
-                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-3 py-2 rounded-xl border border-slate-200 flex items-center gap-1.5 transition active:scale-95 cursor-pointer"
+                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-3 py-2 rounded-xl border border-slate-200 flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer w-full sm:w-auto"
                 >
-                  <Download className="w-3.5 h-3.5 text-slate-500" /> {t('common.export_csv')}
+                  <Download className="w-3.5 h-3.5 text-slate-500 shrink-0" /> <span className="truncate">{t('common.export_csv')}</span>
                 </button>
                 <button
                   type="button"
                   onClick={handleOpenCreateModal}
-                  className="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-black px-3.5 py-2 rounded-xl flex items-center gap-1.5 shadow-xs transition active:scale-95 cursor-pointer"
+                  className="col-span-2 sm:col-span-1 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-black px-3.5 py-2 rounded-xl flex items-center justify-center gap-1.5 shadow-xs transition active:scale-95 cursor-pointer w-full sm:w-auto"
                 >
-                  <Plus className="w-3.5 h-3.5" /> {t('tx.add_expense')}
+                  <Plus className="w-3.5 h-3.5 shrink-0" /> <span className="truncate">{t('tx.add_expense')}</span>
                 </button>
               </>
             )}
 
             {activeTab === 'orders' && (
               <>
-                <ModernDateRangePicker
-                  period={period}
-                  customFrom={customFrom}
-                  customTo={customTo}
-                  onChange={({ period: newP, from, to }) => {
-                    setPeriod(newP);
-                    setCustomFrom(from);
-                    setCustomTo(to);
-                  }}
-                  align="right"
-                />
+                <div className="col-span-2 sm:col-span-1 w-full sm:w-auto">
+                  <ModernDateRangePicker
+                    period={period}
+                    customFrom={customFrom}
+                    customTo={customTo}
+                    onChange={({ period: newP, from, to }) => {
+                      setPeriod(newP);
+                      setCustomFrom(from);
+                      setCustomTo(to);
+                    }}
+                    align="right"
+                  />
+                </div>
                 <button
                   type="button"
                   onClick={handleExportCsv}
-                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-3 py-2 rounded-xl border border-slate-200 flex items-center gap-1.5 transition active:scale-95 cursor-pointer"
+                  className="col-span-2 sm:col-span-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-3 py-2 rounded-xl border border-slate-200 flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer w-full sm:w-auto"
                 >
-                  <Download className="w-3.5 h-3.5 text-slate-500" /> {t('common.export_csv')}
+                  <Download className="w-3.5 h-3.5 text-slate-500 shrink-0" /> <span className="truncate">{t('common.export_csv')}</span>
                 </button>
               </>
             )}
@@ -985,78 +1024,319 @@ export default function TransactionsPage() {
               )}
             </div>
 
-            {/* Filters Bar */}
-            <div className="flex flex-col sm:flex-row gap-3 items-center justify-between bg-white p-3 rounded-2xl border border-slate-200 shadow-sm">
-              <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-                <Filter className="w-4 h-4 text-slate-400 shrink-0" />
-                <div className="flex-1 min-w-[130px] sm:w-44 sm:flex-initial">
-                  <ModernSelect
-                    size="sm"
-                    value={selectedFundId ?? ''}
-                    placeholder={t('tx.filter_all_funds')}
-                    clearable={true}
-                    onChange={(val) => {
-                      setSelectedFundId(val ? Number(val) : null);
-                      setTxPage(1);
-                    }}
-                    options={[
-                      { value: '', label: t('tx.filter_all_funds') || 'Tất cả nguồn tiền' },
-                      ...safeFunds.map((f) => ({
-                        value: f.id,
-                        label: f.name,
-                        subLabel: f.fund_type,
-                        icon: <Wallet className="w-3.5 h-3.5 text-indigo-500" />,
-                      })),
-                    ]}
-                  />
-                </div>
+            {/* 1. Ledger Search Bar & Filter Button */}
+            <div className="flex items-center gap-2 w-full">
+              <div className="relative flex-1 min-w-0">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                <input
+                  type="text"
+                  placeholder={t('tx.search_placeholder') || 'Tìm kiếm giao dịch theo mô tả, thu ngân, mã đơn...'}
+                  value={txSearchQuery}
+                  onChange={(e) => setTxSearchQuery(e.target.value)}
+                  className="app-input pl-9 pr-14 py-2.5 text-xs"
+                />
+                {txSearchQuery ? (
+                  <button
+                    type="button"
+                    onClick={() => setTxSearchQuery('')}
+                    className="absolute right-2.5 top-2.5 p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition cursor-pointer"
+                    title="Xóa tìm kiếm"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                ) : (
+                  <span className="absolute right-3 top-3 text-[10px] font-bold text-slate-400 pointer-events-none">
+                    {filteredTransactions.length} giao dịch
+                  </span>
+                )}
+              </div>
 
-                <div className="flex-1 min-w-[110px] sm:w-36 sm:flex-initial">
-                  <ModernSelect
-                    size="sm"
-                    value={selectedType}
-                    onChange={(val) => {
-                      setSelectedType(String(val));
-                      setTxPage(1);
-                    }}
-                    options={[
-                      { value: 'all', label: t('tx.filter_all_types') || 'Tất cả loại' },
-                      { value: 'inflow', label: t('tx.type_inflow') || 'Khoản thu (+)', badge: '+', badgeColor: 'emerald' },
-                      { value: 'outflow', label: t('tx.type_outflow') || 'Khoản chi (-)', badge: '-', badgeColor: 'rose' },
-                    ]}
-                  />
-                </div>
+              {/* Button Mở Popup Filter */}
+              <button
+                type="button"
+                onClick={() => setIsLedgerFilterModalOpen(true)}
+                className={`px-3.5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer shadow-2xs ${
+                  selectedFundId !== null || selectedType !== 'all' || selectedCategory !== 'all'
+                    ? 'bg-emerald-800 text-white shadow-sm ring-2 ring-emerald-600/30 font-extrabold'
+                    : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+                }`}
+              >
+                <Filter className="w-4 h-4" />
+                <span>Bộ lọc</span>
+                {(selectedFundId !== null || selectedType !== 'all' || selectedCategory !== 'all') && (
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                )}
+              </button>
+            </div>
 
-                <div className="w-full sm:w-48 sm:flex-initial">
-                  <ModernSelect
-                    size="sm"
-                    searchable={true}
-                    searchPlaceholder="Tìm danh mục..."
-                    value={selectedCategory}
-                    onChange={(val) => {
-                      setSelectedCategory(String(val));
-                      setTxPage(1);
-                    }}
-                    options={[
-                      { value: 'all', label: t('tx.filter_all_categories') || 'Tất cả danh mục' },
-                      ...(txCategories.length > 0
-                        ? txCategories.map((c) => ({
-                          value: c.code || c.name,
-                          label: c.name,
-                          badge: c.type === 'inflow' ? 'Thu' : c.type === 'outflow' ? 'Chi' : 'Thu/Chi',
-                          badgeColor: (c.type === 'inflow' ? 'emerald' : c.type === 'outflow' ? 'rose' : 'indigo') as any,
-                        }))
-                        : [
-                          { value: 'sale', label: t('tx.cat_sale') || 'Doanh thu bán hàng' },
-                          { value: 'ingredient_purchase', label: t('tx.cat_ingredient') || 'Mua nguyên liệu' },
-                          { value: 'utility_bill', label: t('tx.cat_utility') || 'Chi phí vận hành' },
-                          { value: 'reconciliation_variance', label: t('tx.cat_reconciliation') || 'Chênh lệch đối soát' },
-                        ]),
-                    ]}
-                  />
+            {/* Active Filter Chips */}
+            {(selectedFundId !== null || selectedType !== 'all' || selectedCategory !== 'all') && (
+              <div className="flex flex-wrap items-center gap-1.5 text-xs pt-0.5">
+                <span className="text-slate-400 font-semibold text-[11px]">Đang lọc:</span>
+                {selectedFundId !== null && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-indigo-50 text-indigo-800 border border-indigo-200 rounded-lg font-bold">
+                    <span>Nguồn: {safeFunds.find((f) => f.id === selectedFundId)?.name || selectedFundId}</span>
+                    <button type="button" onClick={() => setSelectedFundId(null)} className="hover:text-indigo-950">
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                )}
+                {selectedType !== 'all' && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-lg font-bold">
+                    <span>Loại: {selectedType === 'inflow' ? 'Khoản thu (+)' : 'Khoản chi (-)'}</span>
+                    <button type="button" onClick={() => setSelectedType('all')} className="hover:text-emerald-950">
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                )}
+                {selectedCategory !== 'all' && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 text-slate-800 border border-slate-200 rounded-lg font-bold">
+                    <span>
+                      Danh mục:{' '}
+                      {txCategories.find((c) => (c.code || c.name) === selectedCategory)?.name || selectedCategory}
+                    </span>
+                    <button type="button" onClick={() => setSelectedCategory('all')} className="hover:text-slate-950">
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedFundId(null);
+                    setSelectedType('all');
+                    setSelectedCategory('all');
+                  }}
+                  className="text-rose-600 hover:text-rose-700 font-bold text-[11px] ml-1 underline cursor-pointer"
+                >
+                  Xóa tất cả
+                </button>
+              </div>
+            )}
+
+            {/* Popup Filter Modal (For Ledger) */}
+            {isLedgerFilterModalOpen && (
+              <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+                <div className="bg-white rounded-3xl max-w-xl w-full p-5 sm:p-6 shadow-2xl space-y-4 max-h-[85vh] flex flex-col animate-in zoom-in-95 duration-150">
+                  {/* Modal Header */}
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="p-2 bg-emerald-50 text-emerald-700 rounded-xl">
+                        <Filter className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h3 className="font-extrabold text-base text-slate-900">Bộ Lọc Sổ Thu Chi</h3>
+                        <p className="text-xs text-slate-400">Chọn nguồn tiền, loại giao dịch và danh mục</p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsLedgerFilterModalOpen(false)}
+                      className="p-1.5 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition cursor-pointer"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  {/* Modal Scrollable Content */}
+                  <div className="flex-1 overflow-y-auto space-y-4 pr-1 text-xs">
+                    {/* Section 1: Nguồn Tiền / Tài Khoản */}
+                    <div>
+                      <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-2">
+                        🏛️ Nguồn Tiền / Tài Khoản
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedFundId(null)}
+                          className={`px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs ${
+                            selectedFundId === null
+                              ? 'bg-indigo-700 text-white shadow-sm font-black ring-2 ring-indigo-500/30'
+                              : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+                          }`}
+                        >
+                          <span>Tất cả nguồn tiền</span>
+                          <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                            selectedFundId === null ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600'
+                          }`}>
+                            {safeTransactions.length}
+                          </span>
+                        </button>
+                        {safeFunds.map((f) => {
+                          const count = safeTransactions.filter((tx) => tx.fund_id === f.id).length;
+                          const isSelected = selectedFundId === f.id;
+                          return (
+                            <button
+                              key={f.id}
+                              type="button"
+                              onClick={() => setSelectedFundId(isSelected ? null : f.id)}
+                              className={`px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs ${
+                                isSelected
+                                  ? 'bg-indigo-700 text-white shadow-sm font-black ring-2 ring-indigo-500/30'
+                                  : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+                              }`}
+                            >
+                              <Wallet className="w-3.5 h-3.5 text-indigo-500" />
+                              <span>{f.name}</span>
+                              <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                                isSelected ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600'
+                              }`}>
+                                {count}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Divider */}
+                    <hr className="border-slate-100" />
+
+                    {/* Section 2: Loại Giao Dịch */}
+                    <div>
+                      <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-2">
+                        ⚡ Loại Giao Dịch
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedType('all')}
+                          className={`px-3.5 py-2 rounded-xl font-bold transition whitespace-nowrap cursor-pointer shadow-2xs ${
+                            selectedType === 'all'
+                              ? 'bg-white text-slate-900 border-2 border-slate-800 shadow-xs'
+                              : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
+                          }`}
+                        >
+                          <span>{t('tx.filter_all_types') || 'Tất cả loại'}</span>
+                          <span className="ml-1 text-[10px] opacity-75">({safeTransactions.length})</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedType('inflow')}
+                          className={`px-3.5 py-2 rounded-xl font-bold transition whitespace-nowrap cursor-pointer flex items-center gap-1 shadow-2xs ${
+                            selectedType === 'inflow'
+                              ? 'bg-emerald-600 text-white shadow-xs'
+                              : 'bg-white text-emerald-700 hover:bg-emerald-50 border border-emerald-200'
+                          }`}
+                        >
+                          <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                          <span>{t('tx.type_inflow') || 'Khoản thu (+)'}</span>
+                          <span className="text-[10px] opacity-85">({safeTransactions.filter((tx) => tx.transaction_type === 'inflow').length})</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedType('outflow')}
+                          className={`px-3.5 py-2 rounded-xl font-bold transition whitespace-nowrap cursor-pointer flex items-center gap-1 shadow-2xs ${
+                            selectedType === 'outflow'
+                              ? 'bg-rose-600 text-white shadow-xs'
+                              : 'bg-white text-rose-700 hover:bg-rose-50 border border-rose-200'
+                          }`}
+                        >
+                          <span className="w-2 h-2 rounded-full bg-rose-400" />
+                          <span>{t('tx.type_outflow') || 'Khoản chi (-)'}</span>
+                          <span className="text-[10px] opacity-85">({safeTransactions.filter((tx) => tx.transaction_type === 'outflow').length})</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Divider */}
+                    <hr className="border-slate-100" />
+
+                    {/* Section 3: Danh Mục Thu Chi */}
+                    <div>
+                      <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-2">
+                        📂 Danh Mục Thu Chi
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedCategory('all')}
+                          className={`px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs ${
+                            selectedCategory === 'all'
+                              ? 'bg-slate-900 text-white font-extrabold shadow-sm ring-1 ring-slate-700'
+                              : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+                          }`}
+                        >
+                          <span>{t('tx.filter_all_categories') || 'Tất cả danh mục'}</span>
+                          <span
+                            className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                              selectedCategory === 'all' ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-600'
+                            }`}
+                          >
+                            {safeTransactions.filter((tx) => selectedType === 'all' || tx.transaction_type === selectedType).length}
+                          </span>
+                        </button>
+                        {(txCategories.length > 0
+                          ? txCategories
+                          : [
+                              { id: 1, name: t('tx.cat_sale') || 'Doanh thu bán hàng', code: 'sale', type: 'inflow' as const },
+                              { id: 2, name: t('tx.cat_ingredient') || 'Mua nguyên liệu', code: 'ingredient_purchase', type: 'outflow' as const },
+                              { id: 3, name: t('tx.cat_utility') || 'Chi phí vận hành', code: 'utility_bill', type: 'outflow' as const },
+                              { id: 4, name: t('tx.cat_reconciliation') || 'Chênh lệch đối soát', code: 'reconciliation_variance', type: 'both' as const },
+                            ]
+                        )
+                          .filter((c) => selectedType === 'all' || c.type === selectedType || c.type === 'both')
+                          .map((cat) => {
+                            const catCode = cat.code || cat.name;
+                            const count = safeTransactions.filter(
+                              (tx) => tx.category === catCode && (selectedType === 'all' || tx.transaction_type === selectedType)
+                            ).length;
+                            const isSelected = selectedCategory === catCode;
+                            return (
+                              <button
+                                key={cat.id}
+                                type="button"
+                                onClick={() => setSelectedCategory(isSelected ? 'all' : catCode)}
+                                className={`px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs ${
+                                  isSelected
+                                    ? 'bg-slate-900 text-white font-extrabold shadow-sm ring-1 ring-slate-700'
+                                    : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+                                }`}
+                              >
+                                <span
+                                  className={`w-1.5 h-1.5 rounded-full ${
+                                    cat.type === 'inflow' ? 'bg-emerald-500' : cat.type === 'outflow' ? 'bg-rose-500' : 'bg-indigo-500'
+                                  }`}
+                                />
+                                <span>{cat.name}</span>
+                                <span
+                                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                                    isSelected ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-600'
+                                  }`}
+                                >
+                                  {count}
+                                </span>
+                              </button>
+                            );
+                          })}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Modal Footer */}
+                  <div className="flex items-center justify-between border-t border-slate-100 pt-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedFundId(null);
+                        setSelectedType('all');
+                        setSelectedCategory('all');
+                      }}
+                      className="text-xs font-bold text-slate-500 hover:text-rose-600 transition cursor-pointer px-3 py-2"
+                    >
+                      Đặt lại bộ lọc
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsLedgerFilterModalOpen(false)}
+                      className="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-extrabold px-5 py-2.5 rounded-xl shadow-xs transition active:scale-95 cursor-pointer"
+                    >
+                      Áp dụng ({filteredTransactions.length} giao dịch)
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
 
             {/* Transaction History Table */}
             <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
@@ -1513,35 +1793,164 @@ export default function TransactionsPage() {
         {/* ── TAB 3: POS ORDERS & CANCELLATION LIFECYCLE ───────────────── */}
         {activeTab === 'orders' && (
           <div className="space-y-4">
-            {/* Orders Search & Filter */}
-            <div className="flex flex-col sm:flex-row gap-3 items-center justify-between bg-white p-3 rounded-2xl border border-slate-200 shadow-sm">
-              <div className="relative w-full sm:w-80">
-                <Filter className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+            {/* Orders Search & Filter Bar */}
+            <div className="flex items-center gap-2 w-full">
+              <div className="relative flex-1 min-w-0">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
                 <input
                   type="text"
-                  placeholder={t('tx.search_orders_placeholder')}
+                  placeholder={t('tx.search_orders_placeholder') || 'Tìm kiếm mã đơn, thu ngân...'}
                   value={orderSearchQuery}
                   onChange={(e) => setOrderSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                  className="app-input pl-9 pr-14 py-2.5 text-xs"
                 />
+                {orderSearchQuery ? (
+                  <button
+                    type="button"
+                    onClick={() => setOrderSearchQuery('')}
+                    className="absolute right-2.5 top-2.5 p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition cursor-pointer"
+                    title="Xóa tìm kiếm"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                ) : (
+                  <span className="absolute right-3 top-3 text-[10px] font-bold text-slate-400 pointer-events-none">
+                    {filteredOrders.length} đơn hàng
+                  </span>
+                )}
               </div>
 
-              <div className="w-full sm:w-44">
-                <ModernSelect
-                  size="sm"
-                  value={orderStatusFilter}
-                  onChange={(val) => {
-                    setOrderStatusFilter(String(val));
-                    setOrderPage(1);
-                  }}
-                  options={[
-                    { value: 'all', label: t('tx.filter_all_order_status') || 'Tất cả trạng thái' },
-                    { value: 'completed', label: t('tx.order_status_completed') || 'Hoàn thành', badge: 'Completed', badgeColor: 'emerald' },
-                    { value: 'cancelled', label: t('tx.order_status_cancelled') || 'Đã hủy', badge: 'Cancelled', badgeColor: 'rose' },
-                  ]}
-                />
-              </div>
+              {/* Button Mở Popup Filter */}
+              <button
+                type="button"
+                onClick={() => setIsOrderFilterModalOpen(true)}
+                className={`px-3.5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer shadow-2xs ${
+                  orderStatusFilter !== 'all'
+                    ? 'bg-amber-700 text-white shadow-sm ring-2 ring-amber-500/30 font-extrabold'
+                    : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+                }`}
+              >
+                <Filter className="w-4 h-4" />
+                <span>Bộ lọc</span>
+                {orderStatusFilter !== 'all' && (
+                  <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                )}
+              </button>
             </div>
+
+            {/* Active Filter Chips */}
+            {orderStatusFilter !== 'all' && (
+              <div className="flex flex-wrap items-center gap-1.5 text-xs pt-0.5">
+                <span className="text-slate-400 font-semibold text-[11px]">Đang lọc:</span>
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-50 text-amber-900 border border-amber-200 rounded-lg font-bold">
+                  <span>Trạng thái: {orderStatusFilter === 'completed' ? 'Hoàn thành' : 'Đã hủy'}</span>
+                  <button type="button" onClick={() => setOrderStatusFilter('all')} className="hover:text-amber-950">
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setOrderStatusFilter('all')}
+                  className="text-rose-600 hover:text-rose-700 font-bold text-[11px] ml-1 underline cursor-pointer"
+                >
+                  Xóa bộ lọc
+                </button>
+              </div>
+            )}
+
+            {/* Popup Filter Modal (For Orders) */}
+            {isOrderFilterModalOpen && (
+              <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+                <div className="bg-white rounded-3xl max-w-lg w-full p-5 sm:p-6 shadow-2xl space-y-4 max-h-[85vh] flex flex-col animate-in zoom-in-95 duration-150">
+                  {/* Modal Header */}
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="p-2 bg-amber-50 text-amber-700 rounded-xl">
+                        <Filter className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h3 className="font-extrabold text-base text-slate-900">Bộ Lọc Đơn Hàng</h3>
+                        <p className="text-xs text-slate-400">Chọn trạng thái xử lý đơn hàng</p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsOrderFilterModalOpen(false)}
+                      className="p-1.5 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition cursor-pointer"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  {/* Modal Content */}
+                  <div className="flex-1 overflow-y-auto space-y-4 pr-1 text-xs">
+                    <div>
+                      <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-2">
+                        ⚡ Trạng Thái Đơn Hàng
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setOrderStatusFilter('all')}
+                          className={`px-3.5 py-2 rounded-xl font-bold transition whitespace-nowrap cursor-pointer shadow-2xs ${
+                            orderStatusFilter === 'all'
+                              ? 'bg-white text-slate-900 border-2 border-slate-800 shadow-xs'
+                              : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
+                          }`}
+                        >
+                          <span>{t('tx.filter_all_order_status') || 'Tất cả trạng thái'}</span>
+                          <span className="ml-1 text-[10px] opacity-75">({safeOrders.length})</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setOrderStatusFilter('completed')}
+                          className={`px-3.5 py-2 rounded-xl font-bold transition whitespace-nowrap cursor-pointer flex items-center gap-1 shadow-2xs ${
+                            orderStatusFilter === 'completed'
+                              ? 'bg-emerald-600 text-white shadow-xs'
+                              : 'bg-white text-emerald-700 hover:bg-emerald-50 border border-emerald-200'
+                          }`}
+                        >
+                          <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                          <span>{t('tx.order_status_completed') || 'Hoàn thành'}</span>
+                          <span className="text-[10px] opacity-85">({safeOrders.filter((o) => o.status === 'completed').length})</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setOrderStatusFilter('cancelled')}
+                          className={`px-3.5 py-2 rounded-xl font-bold transition whitespace-nowrap cursor-pointer flex items-center gap-1 shadow-2xs ${
+                            orderStatusFilter === 'cancelled'
+                              ? 'bg-rose-600 text-white shadow-xs'
+                              : 'bg-white text-rose-700 hover:bg-rose-50 border border-rose-200'
+                          }`}
+                        >
+                          <span className="w-2 h-2 rounded-full bg-rose-400" />
+                          <span>{t('tx.order_status_cancelled') || 'Đã hủy'}</span>
+                          <span className="text-[10px] opacity-85">({safeOrders.filter((o) => o.status === 'cancelled').length})</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Modal Footer */}
+                  <div className="flex items-center justify-between border-t border-slate-100 pt-3">
+                    <button
+                      type="button"
+                      onClick={() => setOrderStatusFilter('all')}
+                      className="text-xs font-bold text-slate-500 hover:text-rose-600 transition cursor-pointer px-3 py-2"
+                    >
+                      Đặt lại
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsOrderFilterModalOpen(false)}
+                      className="bg-amber-700 hover:bg-amber-800 text-white text-xs font-extrabold px-5 py-2.5 rounded-xl shadow-xs transition active:scale-95 cursor-pointer"
+                    >
+                      Áp dụng ({filteredOrders.length} đơn)
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Orders Table */}
             <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
@@ -1641,7 +2050,7 @@ export default function TransactionsPage() {
                                 </div>
                               </td>
                             </tr>
-                            {/* Expanded Order Items Row */}
+                              {/* Expanded Order Items Row */}
                             {isExpanded && (
                               <tr className="bg-slate-50/70">
                                 <td colSpan={8} className="p-4 border-t border-slate-100">
@@ -1662,19 +2071,21 @@ export default function TransactionsPage() {
                                           key={item.id}
                                           className="bg-white p-2.5 rounded-xl border border-slate-200 text-xs space-y-1 shadow-2xs"
                                         >
-                                          <div className="flex justify-between items-start">
-                                            <span className="font-bold text-slate-800">
-                                              {item.variant?.product?.name || item.variant?.variant_name || 'Sản phẩm'}
-                                            </span>
-                                            <span className="font-semibold text-slate-900">
+                                          <div className="flex justify-between items-start gap-1">
+                                            <div className="min-w-0 flex-1">
+                                              <span className="font-bold text-slate-800 block">
+                                                {getOrderItemName(item)}
+                                              </span>
+                                              {item.variant?.variant_name && item.variant.variant_name !== 'Default' && item.variant.variant_name !== getOrderItemName(item) && (
+                                                <div className="text-[11px] text-slate-500 font-medium mt-0.5">
+                                                  Size/Loại: {item.variant.variant_name}
+                                                </div>
+                                              )}
+                                            </div>
+                                            <span className="font-semibold text-slate-900 shrink-0">
                                               x{item.quantity}
                                             </span>
                                           </div>
-                                          {item.variant?.variant_name && item.variant?.variant_name !== 'Default' && (
-                                            <div className="text-[11px] text-slate-400 font-medium">
-                                              Size/Loại: {item.variant.variant_name}
-                                            </div>
-                                          )}
                                           {item.selected_toppings && item.selected_toppings !== '[]' && (
                                             <div className="text-[10px] text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded-md inline-block">
                                               + {item.selected_toppings}
@@ -1767,12 +2178,12 @@ export default function TransactionsPage() {
                             <div className="space-y-1.5 bg-slate-50 p-2 rounded-xl">
                               {items.map((item) => (
                                 <div key={item.id} className="flex justify-between items-start text-xs">
-                                  <div>
+                                  <div className="min-w-0 flex-1 pr-2">
                                     <span className="font-bold text-slate-800">
-                                      {item.variant?.product?.name || item.variant?.variant_name}
+                                      {getOrderItemName(item)}
                                     </span>
-                                    {item.variant?.variant_name && item.variant?.variant_name !== 'Default' && (
-                                      <span className="text-[10px] text-slate-400 ml-1">
+                                    {item.variant?.variant_name && item.variant?.variant_name !== 'Default' && item.variant.variant_name !== getOrderItemName(item) && (
+                                      <span className="text-[10px] text-slate-500 font-medium ml-1">
                                         ({item.variant.variant_name})
                                       </span>
                                     )}

@@ -29,7 +29,7 @@ func (h *OrderHandler) ListOrders(c *gin.Context) {
 	query := h.db.Model(&models.Order{}).
 		Preload("Fund").
 		Preload("Promotion").
-		Preload("Items.Variant")
+		Preload("Items.Variant.Product")
 
 	if fundIDStr := c.Query("fund_id"); fundIDStr != "" {
 		if fundID, err := strconv.ParseUint(fundIDStr, 10, 32); err == nil {
@@ -98,7 +98,7 @@ func (h *OrderHandler) GetOrderByID(c *gin.Context) {
 	}
 
 	var order models.Order
-	if err := h.db.Preload("Fund").Preload("Promotion").Preload("Items.Variant").First(&order, id).Error; err != nil {
+	if err := h.db.Preload("Fund").Preload("Promotion").Preload("Items.Variant.Product").First(&order, id).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			models.SendError(c, http.StatusNotFound, "Order not found")
 			return
@@ -277,7 +277,7 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 	}
 
 	// Load order relations for response
-	h.db.Preload("Fund").Preload("Promotion").Preload("Items.Variant").First(&order, order.ID)
+	h.db.Preload("Fund").Preload("Promotion").Preload("Items.Variant.Product").First(&order, order.ID)
 
 	// Trigger non-blocking real-time Google Sheets sync if enabled
 	if h.sheetsSyncSvc != nil {
@@ -381,7 +381,7 @@ func (h *OrderHandler) CancelOrder(c *gin.Context) {
 		h.fundCache.Invalidate("funds:list")
 	}
 
-	h.db.Preload("Fund").Preload("Promotion").Preload("Items.Variant").First(&order, order.ID)
+	h.db.Preload("Fund").Preload("Promotion").Preload("Items.Variant.Product").First(&order, order.ID)
 
 	// Trigger non-blocking real-time Google Sheets sync if enabled
 	if h.sheetsSyncSvc != nil {

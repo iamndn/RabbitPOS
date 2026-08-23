@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import dynamic from 'next/dynamic';
-import { ShoppingBag, Coffee, RefreshCw, CheckCircle2, AlertCircle, Plus, Search, Check, Tag, X, Sparkles, SlidersHorizontal } from 'lucide-react';
+import { ShoppingBag, Coffee, RefreshCw, CheckCircle2, AlertCircle, Plus, Search, Check, Tag, X, Sparkles, SlidersHorizontal, Filter } from 'lucide-react';
 import AppShell from '@/components/AppShell';
 import type { CartItem, Product } from '@/components/pos/VariantSelectorModal';
 import CartDrawer from '@/components/pos/CartDrawer';
@@ -267,6 +267,9 @@ export default function PosPage() {
   // Receipt Modal State
   const [completedOrder, setCompletedOrder] = useState<CompletedOrderData | null>(null);
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState<boolean>(false);
+
+  // Filter Modal State
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState<boolean>(false);
 
   // 250ms Debounced search
   useEffect(() => {
@@ -668,88 +671,238 @@ export default function PosPage() {
           </div>
         )}
 
-        {/* Category Tabs & Search Bar */}
-        <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-3 items-stretch sm:items-center justify-between w-full">
-          <CategoryTabs
-            categories={safeCategories}
-            activeCategoryId={activeCategoryId}
-            totalProductsCount={safeProducts.filter((p) => p.is_active !== false).length}
-            products={safeProducts}
-            onSelectCategory={handleSelectCategory}
-            allLabel={t('pos.all_items')}
-          />
-
-          <div className="relative w-full sm:w-72 shrink-0">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+        {/* POS Search Bar & Filter Button */}
+        <div className="flex items-center gap-2 w-full">
+          <div className="relative flex-1 min-w-0">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
             <input
               type="text"
               placeholder={t('pos.search_placeholder') || 'Tìm món nhanh theo tên, mô tả...'}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="app-input pl-9 pr-14"
+              className="app-input pl-9 pr-14 py-2.5 text-xs"
             />
             {searchQuery ? (
               <button
                 type="button"
                 onClick={() => setSearchQuery('')}
-                className="absolute right-2 top-2 p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition cursor-pointer"
+                className="absolute right-2.5 top-2.5 p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition cursor-pointer"
                 title="Xóa tìm kiếm"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
             ) : (
-              <span className="absolute right-2.5 top-2.5 text-[10px] font-bold text-slate-400 pointer-events-none">
+              <span className="absolute right-3 top-3 text-[10px] font-bold text-slate-400 pointer-events-none">
                 {filteredProducts.length} món
               </span>
             )}
           </div>
-        </div>
 
-        {/* Quick Tag Highlights Filter */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none no-scrollbar text-xs w-full">
+          {/* Button Mở Popup Filter ngay bên phải ô tìm kiếm */}
           <button
-            onClick={() => setActiveTag(null)}
-            className={`px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition cursor-pointer shrink-0 shadow-2xs flex items-center gap-1.5 ${
-              activeTag === null
-                ? 'bg-slate-900 text-white font-extrabold shadow-sm ring-1 ring-slate-700'
+            type="button"
+            onClick={() => setIsFilterModalOpen(true)}
+            className={`px-3.5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer shadow-2xs ${
+              activeCategoryId !== null || activeTag !== null
+                ? 'bg-emerald-800 text-white shadow-sm ring-2 ring-emerald-600/30 font-extrabold'
                 : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
             }`}
           >
-            <span>{t('common.all')}</span>
-            <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-              activeTag === null ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-600'
-            }`}>
-              {safeProducts.filter((p) => p.is_active !== false && (activeCategoryId === null || p.category_id === activeCategoryId)).length}
-            </span>
+            <Filter className="w-4 h-4" />
+            <span>Bộ lọc</span>
+            {(activeCategoryId !== null || activeTag !== null) && (
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            )}
           </button>
-          {allAvailableTags.map((tg) => {
-            const count = safeProducts.filter(
-              (p) => p.is_active !== false && p.tag === tg.id && (activeCategoryId === null || p.category_id === activeCategoryId)
-            ).length;
-            const isSelected = activeTag === tg.id;
-            return (
-              <button
-                key={tg.id}
-                onClick={() => setActiveTag(isSelected ? null : tg.id)}
-                className={`px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition cursor-pointer flex items-center gap-1.5 shrink-0 shadow-2xs ${
-                  isSelected
-                    ? 'bg-emerald-700 text-white font-extrabold shadow-sm ring-2 ring-emerald-500/30'
-                    : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
-                }`}
-              >
-                <span>{tg.icon}</span>
-                <span>{tg.name}</span>
-                {count > 0 && (
-                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                    isSelected ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600'
-                  }`}>
-                    {count}
-                  </span>
-                )}
-              </button>
-            );
-          })}
         </div>
+
+        {/* Active Filter Chips (if any filter is selected) */}
+        {(activeCategoryId !== null || activeTag !== null) && (
+          <div className="flex flex-wrap items-center gap-1.5 text-xs pt-0.5">
+            <span className="text-slate-400 font-semibold text-[11px]">Đang lọc:</span>
+            {activeCategoryId !== null && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-lg font-bold">
+                <span>Danh mục: {safeCategories.find((c) => c.id === activeCategoryId)?.name || 'Đã chọn'}</span>
+                <button type="button" onClick={() => setActiveCategoryId(null)} className="hover:text-emerald-950">
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            )}
+            {activeTag !== null && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-indigo-50 text-indigo-800 border border-indigo-200 rounded-lg font-bold">
+                <span>Nhãn: {allAvailableTags.find((t) => t.id === activeTag)?.name || activeTag}</span>
+                <button type="button" onClick={() => setActiveTag(null)} className="hover:text-indigo-950">
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                setActiveCategoryId(null);
+                setActiveTag(null);
+              }}
+              className="text-rose-600 hover:text-rose-700 font-bold text-[11px] ml-1 underline cursor-pointer"
+            >
+              Xóa tất cả
+            </button>
+          </div>
+        )}
+
+        {/* Popup Filter Modal */}
+        {isFilterModalOpen && (
+          <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+            <div className="bg-white rounded-3xl max-w-xl w-full p-5 sm:p-6 shadow-2xl space-y-4 max-h-[85vh] flex flex-col animate-in zoom-in-95 duration-150">
+              {/* Modal Header */}
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 bg-emerald-50 text-emerald-700 rounded-xl">
+                    <Filter className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-extrabold text-base text-slate-900">Bộ Lọc Thực Đơn POS</h3>
+                    <p className="text-xs text-slate-400">Chọn danh mục và nhãn để lọc món nhanh</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsFilterModalOpen(false)}
+                  className="p-1.5 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Modal Scrollable Content */}
+              <div className="flex-1 overflow-y-auto space-y-4 pr-1 text-xs">
+                {/* Section 1: Danh Mục (Wrap) */}
+                <div>
+                  <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-2">
+                    📂 Danh Mục Món ({safeCategories.length})
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setActiveCategoryId(null)}
+                      className={`px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs ${
+                        activeCategoryId === null
+                          ? 'bg-emerald-800 text-white shadow-sm font-black ring-2 ring-emerald-600/30'
+                          : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+                      }`}
+                    >
+                      <span>{t('pos.all_items')}</span>
+                      <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                        activeCategoryId === null ? 'bg-emerald-700 text-white' : 'bg-slate-100 text-slate-600'
+                      }`}>
+                        {safeProducts.filter((p) => p.is_active !== false).length}
+                      </span>
+                    </button>
+                    {safeCategories.map((cat) => {
+                      const count = safeProducts.filter((p) => p.is_active !== false && p.category_id === cat.id).length;
+                      const isSelected = activeCategoryId === cat.id;
+                      const catImg = getImageUrl(cat.image_url);
+                      return (
+                        <button
+                          key={cat.id}
+                          type="button"
+                          onClick={() => setActiveCategoryId(isSelected ? null : cat.id)}
+                          className={`px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs ${
+                            isSelected
+                              ? 'bg-emerald-800 text-white shadow-sm font-black ring-2 ring-emerald-600/30'
+                              : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+                          }`}
+                        >
+                          {catImg && <img src={catImg} alt="" className="w-3.5 h-3.5 rounded object-cover shrink-0" />}
+                          <span>{cat.name}</span>
+                          <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                            isSelected ? 'bg-emerald-700 text-white' : 'bg-slate-100 text-slate-600'
+                          }`}>
+                            {count}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Divider Ngăn Cách */}
+                <hr className="border-slate-100" />
+
+                {/* Section 2: Nhãn Sản Phẩm (Wrap) */}
+                <div>
+                  <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-2">
+                    🏷️ Nhãn Sản Phẩm ({allAvailableTags.length})
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setActiveTag(null)}
+                      className={`px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs ${
+                        activeTag === null
+                          ? 'bg-slate-900 text-white font-extrabold shadow-sm ring-1 ring-slate-700'
+                          : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+                      }`}
+                    >
+                      <span>{t('common.all')}</span>
+                      <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                        activeTag === null ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-600'
+                      }`}>
+                        {safeProducts.filter((p) => p.is_active !== false && (activeCategoryId === null || p.category_id === activeCategoryId)).length}
+                      </span>
+                    </button>
+                    {allAvailableTags.map((tg) => {
+                      const count = safeProducts.filter(
+                        (p) => p.is_active !== false && p.tag === tg.id && (activeCategoryId === null || p.category_id === activeCategoryId)
+                      ).length;
+                      const isSelected = activeTag === tg.id;
+                      return (
+                        <button
+                          key={tg.id}
+                          type="button"
+                          onClick={() => setActiveTag(isSelected ? null : tg.id)}
+                          className={`px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs ${
+                            isSelected
+                              ? 'bg-emerald-700 text-white font-extrabold shadow-sm ring-2 ring-emerald-500/30'
+                              : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+                          }`}
+                        >
+                          <span>{tg.icon}</span>
+                          <span>{tg.name}</span>
+                          <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                            isSelected ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600'
+                          }`}>
+                            {count}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="flex items-center justify-between border-t border-slate-100 pt-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveCategoryId(null);
+                    setActiveTag(null);
+                  }}
+                  className="text-xs font-bold text-slate-500 hover:text-rose-600 transition cursor-pointer px-3 py-2"
+                >
+                  Đặt lại bộ lọc
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsFilterModalOpen(false)}
+                  className="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-extrabold px-5 py-2.5 rounded-xl shadow-xs transition active:scale-95 cursor-pointer"
+                >
+                  Áp dụng ({filteredProducts.length} món)
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Product Card Grid */}
         {loading ? (

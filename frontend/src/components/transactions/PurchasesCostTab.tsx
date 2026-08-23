@@ -22,6 +22,7 @@ import {
   PlusCircle,
   DollarSign,
   Percent,
+  Filter,
 } from 'lucide-react';
 import ModernSelect, { ModernSelectOption } from '@/components/common/ModernSelect';
 import { fetchApi, getImageUrl } from '@/lib/api';
@@ -76,6 +77,9 @@ export default function PurchasesCostTab({
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [ingSearchQuery, setIngSearchQuery] = useState<string>('');
   const [ingCategoryFilter, setIngCategoryFilter] = useState<string>('all');
+
+  // Filter Modal State
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState<boolean>(false);
 
   // Expanded Recipe Details Card/Row
   const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
@@ -610,23 +614,23 @@ export default function PurchasesCostTab({
           </div>
 
           {/* Action Buttons */}
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-row items-center justify-between sm:justify-end gap-2 w-full sm:w-auto">
             {activeSubTab === 'ingredients' ? (
               <button
                 type="button"
                 onClick={handleOpenAddIngredient}
-                className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition active:scale-95 cursor-pointer"
+                className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition active:scale-95 cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>+ Thêm Nguyên Liệu</span>
               </button>
             ) : (
               /* Pricing Basis Toggle */
-              <div className="inline-flex items-center bg-slate-100 p-0.5 rounded-xl text-[11px] font-bold text-slate-600">
+              <div className="flex-1 sm:flex-initial grid grid-cols-2 bg-slate-100 p-0.5 rounded-xl text-[11px] font-bold text-slate-600">
                 <button
                   type="button"
                   onClick={() => setPricingBasis('latest')}
-                  className={`px-2.5 py-1.5 rounded-lg transition cursor-pointer ${
+                  className={`px-2.5 py-1.5 rounded-lg transition cursor-pointer text-center ${
                     pricingBasis === 'latest'
                       ? 'bg-emerald-700 text-white shadow-xs'
                       : 'hover:text-slate-900'
@@ -637,7 +641,7 @@ export default function PurchasesCostTab({
                 <button
                   type="button"
                   onClick={() => setPricingBasis('average')}
-                  className={`px-2.5 py-1.5 rounded-lg transition cursor-pointer ${
+                  className={`px-2.5 py-1.5 rounded-lg transition cursor-pointer text-center ${
                     pricingBasis === 'average'
                       ? 'bg-emerald-700 text-white shadow-xs'
                       : 'hover:text-slate-900'
@@ -652,9 +656,9 @@ export default function PurchasesCostTab({
               <button
                 type="button"
                 onClick={onOpenExpenseModal}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-extrabold text-white bg-emerald-700 hover:bg-emerald-800 rounded-xl shadow-xs transition active:scale-95 cursor-pointer"
+                className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3.5 py-2 text-xs font-extrabold text-white bg-emerald-700 hover:bg-emerald-800 rounded-xl shadow-xs transition active:scale-95 cursor-pointer whitespace-nowrap"
               >
-                <ShoppingBag className="w-3.5 h-3.5" />
+                <ShoppingBag className="w-3.5 h-3.5 shrink-0" />
                 <span>+ Ghi Nhận Mua Hàng</span>
               </button>
             )}
@@ -662,89 +666,428 @@ export default function PurchasesCostTab({
         </div>
 
         {/* Filter & Search Bar */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-1 border-t border-slate-100">
+        <div className="space-y-2 pt-1 border-t border-slate-100">
           {activeSubTab === 'cost-estimator' ? (
             <>
-              <div className="relative flex-1 min-w-0">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  placeholder="Tìm món, trà, size, topping..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="app-input pl-9"
-                />
+              {/* Cost Estimator Search & Filter Button */}
+              <div className="flex items-center gap-2 w-full">
+                <div className="relative flex-1 min-w-0">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                  <input
+                    type="text"
+                    placeholder="Tìm món, trà, size, topping..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="app-input pl-9 pr-14 py-2.5 text-xs"
+                  />
+                  {searchQuery ? (
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery('')}
+                      className="absolute right-2.5 top-2.5 p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition cursor-pointer"
+                      title="Xóa tìm kiếm"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  ) : (
+                    <span className="absolute right-3 top-3 text-[10px] font-bold text-slate-400 pointer-events-none">
+                      {filteredCostItems.length} món
+                    </span>
+                  )}
+                </div>
+
+                {/* Filter Button */}
+                <button
+                  type="button"
+                  onClick={() => setIsFilterModalOpen(true)}
+                  className={`px-3.5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer shadow-2xs ${
+                    selectedCategory !== 'all' || pricingBasis !== 'latest'
+                      ? 'bg-emerald-800 text-white shadow-sm ring-2 ring-emerald-600/30 font-extrabold'
+                      : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+                  }`}
+                >
+                  <Filter className="w-4 h-4" />
+                  <span>Bộ lọc</span>
+                  {(selectedCategory !== 'all' || pricingBasis !== 'latest') && (
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  )}
+                </button>
               </div>
-              <div className="w-full sm:w-60 shrink-0">
-                <ModernSelect
-                  options={categoryOptions}
-                  value={selectedCategory}
-                  onChange={(v) => setSelectedCategory(v || 'all')}
-                  placeholder="Chọn phân loại..."
-                />
-              </div>
+
+              {/* Active Filter Chips */}
+              {(selectedCategory !== 'all' || pricingBasis !== 'latest') && (
+                <div className="flex flex-wrap items-center gap-1.5 text-xs pt-0.5">
+                  <span className="text-slate-400 font-semibold text-[11px]">Đang lọc:</span>
+                  {pricingBasis !== 'latest' && (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-50 text-amber-900 border border-amber-200 rounded-lg font-bold">
+                      <span>Cơ sở giá: Giá nhập bình quân</span>
+                      <button type="button" onClick={() => setPricingBasis('latest')} className="hover:text-amber-950">
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  )}
+                  {selectedCategory !== 'all' && (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-lg font-bold">
+                      <span>Danh mục: {selectedCategory}</span>
+                      <button type="button" onClick={() => setSelectedCategory('all')} className="hover:text-emerald-950">
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedCategory('all');
+                      setPricingBasis('latest');
+                    }}
+                    className="text-rose-600 hover:text-rose-700 font-bold text-[11px] ml-1 underline cursor-pointer"
+                  >
+                    Xóa tất cả
+                  </button>
+                </div>
+              )}
             </>
           ) : (
             <>
-              <div className="relative flex-1 min-w-0">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  placeholder="Tìm nguyên liệu, hoa quả, bao bì..."
-                  value={ingSearchQuery}
-                  onChange={(e) => setIngSearchQuery(e.target.value)}
-                  className="app-input pl-9"
-                />
-              </div>
-              <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5">
+              {/* Ingredients Search & Filter Button */}
+              <div className="flex items-center gap-2 w-full">
+                <div className="relative flex-1 min-w-0">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                  <input
+                    type="text"
+                    placeholder="Tìm nguyên liệu, hoa quả, bao bì..."
+                    value={ingSearchQuery}
+                    onChange={(e) => setIngSearchQuery(e.target.value)}
+                    className="app-input pl-9 pr-14 py-2.5 text-xs"
+                  />
+                  {ingSearchQuery ? (
+                    <button
+                      type="button"
+                      onClick={() => setIngSearchQuery('')}
+                      className="absolute right-2.5 top-2.5 p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition cursor-pointer"
+                      title="Xóa tìm kiếm"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  ) : (
+                    <span className="absolute right-3 top-3 text-[10px] font-bold text-slate-400 pointer-events-none">
+                      {filteredIngredients.length} nguyên liệu
+                    </span>
+                  )}
+                </div>
+
+                {/* Filter Button */}
                 <button
                   type="button"
-                  onClick={() => setIngCategoryFilter('all')}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer whitespace-nowrap ${
-                    ingCategoryFilter === 'all'
-                      ? 'bg-emerald-700 text-white shadow-xs'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  onClick={() => setIsFilterModalOpen(true)}
+                  className={`px-3.5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer shadow-2xs ${
+                    ingCategoryFilter !== 'all'
+                      ? 'bg-emerald-800 text-white shadow-sm ring-2 ring-emerald-600/30 font-extrabold'
+                      : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
                   }`}
                 >
-                  Tất cả ({ingredients.length})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIngCategoryFilter('fruit')}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer whitespace-nowrap ${
-                    ingCategoryFilter === 'fruit'
-                      ? 'bg-emerald-700 text-white shadow-xs'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                  }`}
-                >
-                  Hoa quả tươi
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIngCategoryFilter('ingredient')}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer whitespace-nowrap ${
-                    ingCategoryFilter === 'ingredient'
-                      ? 'bg-emerald-700 text-white shadow-xs'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                  }`}
-                >
-                  Nguyên liệu & Sữa
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIngCategoryFilter('packaging')}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer whitespace-nowrap ${
-                    ingCategoryFilter === 'packaging'
-                      ? 'bg-emerald-700 text-white shadow-xs'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                  }`}
-                >
-                  Bao bì & Ly
+                  <Filter className="w-4 h-4" />
+                  <span>Bộ lọc</span>
+                  {ingCategoryFilter !== 'all' && (
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  )}
                 </button>
               </div>
+
+              {/* Active Filter Chips */}
+              {ingCategoryFilter !== 'all' && (
+                <div className="flex flex-wrap items-center gap-1.5 text-xs pt-0.5">
+                  <span className="text-slate-400 font-semibold text-[11px]">Đang lọc:</span>
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-lg font-bold">
+                    <span>
+                      Nhóm:{' '}
+                      {ingCategoryFilter === 'fruit'
+                        ? '🍊 Hoa quả tươi'
+                        : ingCategoryFilter === 'ingredient'
+                        ? '🥛 Nguyên liệu & Sữa'
+                        : '📦 Bao bì & Ly'}
+                    </span>
+                    <button type="button" onClick={() => setIngCategoryFilter('all')} className="hover:text-emerald-950">
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setIngCategoryFilter('all')}
+                    className="text-rose-600 hover:text-rose-700 font-bold text-[11px] ml-1 underline cursor-pointer"
+                  >
+                    Xóa bộ lọc
+                  </button>
+                </div>
+              )}
             </>
           )}
         </div>
+
+        {/* ── POPUP FILTER MODAL (FOR COST ESTIMATOR) ────────────────── */}
+        {isFilterModalOpen && activeSubTab === 'cost-estimator' && (
+          <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+            <div className="bg-white rounded-3xl max-w-xl w-full p-5 sm:p-6 shadow-2xl space-y-4 max-h-[85vh] flex flex-col animate-in zoom-in-95 duration-150">
+              {/* Modal Header */}
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 bg-emerald-50 text-emerald-700 rounded-xl">
+                    <Filter className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-extrabold text-base text-slate-900">Bộ Lọc Bảng Tính Giá Vốn</h3>
+                    <p className="text-xs text-slate-400">Chọn cơ sở tính giá và danh mục sản phẩm</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsFilterModalOpen(false)}
+                  className="p-1.5 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Modal Scrollable Content */}
+              <div className="flex-1 overflow-y-auto space-y-4 pr-1 text-xs">
+                {/* Section 1: Pricing Basis */}
+                <div>
+                  <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-2">
+                    ⚖️ Cơ Sở Tính Giá Vốn
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setPricingBasis('latest')}
+                      className={`px-3.5 py-2 rounded-xl font-bold transition whitespace-nowrap cursor-pointer shadow-2xs ${
+                        pricingBasis === 'latest'
+                          ? 'bg-emerald-800 text-white shadow-sm font-black ring-2 ring-emerald-600/30'
+                          : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+                      }`}
+                    >
+                      <span>Giá nhập gần nhất (Mặc định)</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPricingBasis('average')}
+                      className={`px-3.5 py-2 rounded-xl font-bold transition whitespace-nowrap cursor-pointer shadow-2xs ${
+                        pricingBasis === 'average'
+                          ? 'bg-emerald-800 text-white shadow-sm font-black ring-2 ring-emerald-600/30'
+                          : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+                      }`}
+                    >
+                      <span>Giá nhập bình quân</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Divider */}
+                <hr className="border-slate-100" />
+
+                {/* Section 2: Categories (Wrap) */}
+                <div>
+                  <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-2">
+                    📂 Danh Mục Món Ăn & Topping ({categoriesList.length})
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedCategory('all')}
+                      className={`px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs ${
+                        selectedCategory === 'all'
+                          ? 'bg-emerald-800 text-white shadow-sm font-black ring-2 ring-emerald-600/30'
+                          : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+                      }`}
+                    >
+                      <span>Tất cả danh mục</span>
+                      <span
+                        className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                          selectedCategory === 'all' ? 'bg-emerald-700 text-white' : 'bg-slate-100 text-slate-600'
+                        }`}
+                      >
+                        {costItems.length}
+                      </span>
+                    </button>
+                    {categoriesList.map((cat) => {
+                      const count = costItems.filter((i) => i.category_name === cat).length;
+                      const isSelected = selectedCategory === cat;
+                      return (
+                        <button
+                          key={cat}
+                          type="button"
+                          onClick={() => setSelectedCategory(isSelected ? 'all' : cat)}
+                          className={`px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs ${
+                            isSelected
+                              ? 'bg-emerald-800 text-white shadow-sm font-black ring-2 ring-emerald-600/30'
+                              : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+                          }`}
+                        >
+                          <span>{cat}</span>
+                          <span
+                            className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                              isSelected ? 'bg-emerald-700 text-white' : 'bg-slate-100 text-slate-600'
+                            }`}
+                          >
+                            {count}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="flex items-center justify-between border-t border-slate-100 pt-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedCategory('all');
+                    setPricingBasis('latest');
+                  }}
+                  className="text-xs font-bold text-slate-500 hover:text-rose-600 transition cursor-pointer px-3 py-2"
+                >
+                  Đặt lại bộ lọc
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsFilterModalOpen(false)}
+                  className="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-extrabold px-5 py-2.5 rounded-xl shadow-xs transition active:scale-95 cursor-pointer"
+                >
+                  Áp dụng ({filteredCostItems.length} món)
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── POPUP FILTER MODAL (FOR INGREDIENTS) ────────────────────── */}
+        {isFilterModalOpen && activeSubTab === 'ingredients' && (
+          <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+            <div className="bg-white rounded-3xl max-w-xl w-full p-5 sm:p-6 shadow-2xl space-y-4 max-h-[85vh] flex flex-col animate-in zoom-in-95 duration-150">
+              {/* Modal Header */}
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 bg-emerald-50 text-emerald-700 rounded-xl">
+                    <Filter className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-extrabold text-base text-slate-900">Bộ Lọc Danh Mục Nguyên Liệu</h3>
+                    <p className="text-xs text-slate-400">Chọn nhóm phân loại nguyên vật liệu cần xem</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsFilterModalOpen(false)}
+                  className="p-1.5 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Modal Scrollable Content */}
+              <div className="flex-1 overflow-y-auto space-y-4 pr-1 text-xs">
+                <div>
+                  <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-2">
+                    📦 Phân Nhóm Nguyên Liệu
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setIngCategoryFilter('all')}
+                      className={`px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs ${
+                        ingCategoryFilter === 'all'
+                          ? 'bg-emerald-800 text-white shadow-sm font-black ring-2 ring-emerald-600/30'
+                          : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+                      }`}
+                    >
+                      <span>Tất cả</span>
+                      <span
+                        className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                          ingCategoryFilter === 'all' ? 'bg-emerald-700 text-white' : 'bg-slate-100 text-slate-600'
+                        }`}
+                      >
+                        {ingredients.length}
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIngCategoryFilter('fruit')}
+                      className={`px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs ${
+                        ingCategoryFilter === 'fruit'
+                          ? 'bg-emerald-800 text-white shadow-sm font-black ring-2 ring-emerald-600/30'
+                          : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+                      }`}
+                    >
+                      <span>🍊 Hoa quả tươi</span>
+                      <span
+                        className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                          ingCategoryFilter === 'fruit' ? 'bg-emerald-700 text-white' : 'bg-slate-100 text-slate-600'
+                        }`}
+                      >
+                        {ingredients.filter((i) => i.category === 'fruit').length}
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIngCategoryFilter('ingredient')}
+                      className={`px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs ${
+                        ingCategoryFilter === 'ingredient'
+                          ? 'bg-emerald-800 text-white shadow-sm font-black ring-2 ring-emerald-600/30'
+                          : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+                      }`}
+                    >
+                      <span>🥛 Nguyên liệu & Sữa</span>
+                      <span
+                        className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                          ingCategoryFilter === 'ingredient' ? 'bg-emerald-700 text-white' : 'bg-slate-100 text-slate-600'
+                        }`}
+                      >
+                        {ingredients.filter((i) => i.category === 'ingredient').length}
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIngCategoryFilter('packaging')}
+                      className={`px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs ${
+                        ingCategoryFilter === 'packaging'
+                          ? 'bg-emerald-800 text-white shadow-sm font-black ring-2 ring-emerald-600/30'
+                          : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+                      }`}
+                    >
+                      <span>📦 Bao bì & Ly</span>
+                      <span
+                        className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                          ingCategoryFilter === 'packaging' ? 'bg-emerald-700 text-white' : 'bg-slate-100 text-slate-600'
+                        }`}
+                      >
+                        {ingredients.filter((i) => i.category === 'packaging').length}
+                      </span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="flex items-center justify-between border-t border-slate-100 pt-3">
+                <button
+                  type="button"
+                  onClick={() => setIngCategoryFilter('all')}
+                  className="text-xs font-bold text-slate-500 hover:text-rose-600 transition cursor-pointer px-3 py-2"
+                >
+                  Đặt lại bộ lọc
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsFilterModalOpen(false)}
+                  className="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-extrabold px-5 py-2.5 rounded-xl shadow-xs transition active:scale-95 cursor-pointer"
+                >
+                  Áp dụng ({filteredIngredients.length} nguyên liệu)
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ── VIEW 1: RECIPE COST ESTIMATOR & MENU SYNC ────────────────────────── */}
