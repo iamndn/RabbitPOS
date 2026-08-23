@@ -65,6 +65,8 @@ type UpdateTransactionRequest struct {
 	Description     string              `json:"description"`
 	// CreatedAt is an optional custom transaction timestamp
 	CreatedAt *time.Time `json:"created_at"`
+	// PurchaseItems is an optional list of itemized ingredient/packaging purchases
+	PurchaseItems *[]PurchaseItemInput `json:"purchase_items,omitempty"`
 }
 
 type ReconcileFundRequest struct {

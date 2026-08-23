@@ -239,25 +239,7 @@ func (h *TransactionHandler) CreateTransaction(c *gin.Context) {
 					return err
 				}
 
-				// Recalculate weighted average purchase price for this ingredient
-				type CostSummary struct {
-					TotalCost float64 `gorm:"column:total_cost"`
-					TotalQty  float64 `gorm:"column:total_qty"`
-				}
-				var summary CostSummary
-				tx.Model(&models.PurchaseItem{}).
-					Select("COALESCE(SUM(subtotal), 0) AS total_cost, COALESCE(SUM(quantity), 0) AS total_qty").
-					Where("ingredient_id = ?", ingredient.ID).
-					Scan(&summary)
-
-				if summary.TotalQty > 0 {
-					ingredient.AveragePurchasePrice = math.Round((summary.TotalCost/summary.TotalQty)*100) / 100
-				} else {
-					ingredient.AveragePurchasePrice = item.UnitPrice
-				}
-				ingredient.LatestPurchasePrice = item.UnitPrice
-				ingredient.UpdatedAt = txTime
-				if err := tx.Save(&ingredient).Error; err != nil {
+				if err := recalculateIngredientPrices(tx, ingredient.ID); err != nil {
 					return err
 				}
 			}
@@ -283,6 +265,49 @@ func (h *TransactionHandler) CreateTransaction(c *gin.Context) {
 	}
 
 	models.SendSuccess(c, http.StatusCreated, transaction, "Transaction logged successfully")
+}
+
+// recalculateIngredientPrices computes weighted average and latest purchase price from all purchase items for an ingredient
+func recalculateIngredientPrices(tx *gorm.DB, ingredientID uint) error {
+	if ingredientID == 0 {
+		return nil
+	}
+	type CostSummary struct {
+		TotalCost float64 `gorm:"column:total_cost"`
+		TotalQty  float64 `gorm:"column:total_qty"`
+	}
+	var summary CostSummary
+	if err := tx.Model(&models.PurchaseItem{}).
+		Select("COALESCE(SUM(subtotal), 0) AS total_cost, COALESCE(SUM(quantity), 0) AS total_qty").
+		Where("ingredient_id = ?", ingredientID).
+		Scan(&summary).Error; err != nil {
+		return err
+	}
+
+	var latestItem models.PurchaseItem
+	hasLatest := tx.Where("ingredient_id = ?", ingredientID).
+		Order("created_at DESC, id DESC").
+		Limit(1).
+		Find(&latestItem).RowsAffected > 0
+
+	var ingredient models.Ingredient
+	if err := tx.First(&ingredient, ingredientID).Error; err != nil {
+		return err
+	}
+
+	if summary.TotalQty > 0 {
+		ingredient.AveragePurchasePrice = math.Round((summary.TotalCost/summary.TotalQty)*100) / 100
+	} else {
+		ingredient.AveragePurchasePrice = 0
+	}
+
+	if hasLatest {
+		ingredient.LatestPurchasePrice = latestItem.UnitPrice
+	} else {
+		ingredient.LatestPurchasePrice = 0
+	}
+
+	return tx.Save(&ingredient).Error
 }
 
 // UpdateTransaction updates an existing manual transaction and adjusts fund balances accordingly
@@ -371,6 +396,107 @@ func (h *TransactionHandler) UpdateTransaction(c *gin.Context) {
 			return err
 		}
 
+		// 4. Update itemized purchase items if provided
+		if req.PurchaseItems != nil {
+			// Find existing purchase items and record their ingredient IDs to recalculate later
+			var oldItems []models.PurchaseItem
+			if err := tx.Where("transaction_id = ?", existingTx.ID).Find(&oldItems).Error; err != nil {
+				return err
+			}
+			affectedIngredientIDs := make(map[uint]bool)
+			for _, oi := range oldItems {
+				affectedIngredientIDs[oi.IngredientID] = true
+			}
+
+			// Remove old purchase items for this transaction
+			if err := tx.Where("transaction_id = ?", existingTx.ID).Delete(&models.PurchaseItem{}).Error; err != nil {
+				return err
+			}
+
+			// Insert new purchase items
+			for _, item := range *req.PurchaseItems {
+				ingName := strings.TrimSpace(item.IngredientName)
+				if ingName == "" && (item.IngredientID == nil || *item.IngredientID == 0) {
+					continue
+				}
+
+				var ingredient models.Ingredient
+				var findErr error
+
+				if item.IngredientID != nil && *item.IngredientID > 0 {
+					findErr = tx.First(&ingredient, *item.IngredientID).Error
+				} else {
+					findErr = tx.Where("LOWER(name) = LOWER(?)", ingName).First(&ingredient).Error
+				}
+
+				unit := strings.TrimSpace(item.Unit)
+				if unit == "" {
+					unit = "kg"
+				}
+				category := strings.TrimSpace(item.Category)
+				if category == "" {
+					category = "fruit"
+				}
+
+				if errors.Is(findErr, gorm.ErrRecordNotFound) {
+					// Create new ingredient
+					ingredient = models.Ingredient{
+						Name:                 ingName,
+						Category:             category,
+						Unit:                 unit,
+						LatestPurchasePrice:  item.UnitPrice,
+						AveragePurchasePrice: item.UnitPrice,
+						YieldRate:            1.0000,
+						CreatedAt:            existingTx.CreatedAt,
+						UpdatedAt:            existingTx.CreatedAt,
+					}
+					if err := tx.Create(&ingredient).Error; err != nil {
+						return err
+					}
+				} else if findErr == nil {
+					// Update existing ingredient latest price and unit if unset
+					ingredient.LatestPurchasePrice = item.UnitPrice
+					if ingredient.Unit == "" {
+						ingredient.Unit = unit
+					}
+					if item.Category != "" && (ingredient.Category == "" || ingredient.Category == "fruit") {
+						ingredient.Category = category
+					}
+					ingredient.UpdatedAt = existingTx.CreatedAt
+					if err := tx.Save(&ingredient).Error; err != nil {
+						return err
+					}
+				} else {
+					return findErr
+				}
+
+				affectedIngredientIDs[ingredient.ID] = true
+
+				subtotal := math.Round(item.Quantity*item.UnitPrice*100) / 100
+				purchaseItem := models.PurchaseItem{
+					TransactionID: existingTx.ID,
+					IngredientID:  ingredient.ID,
+					Quantity:      item.Quantity,
+					UnitPrice:     item.UnitPrice,
+					Subtotal:      subtotal,
+					CreatedAt:     existingTx.CreatedAt,
+				}
+				if err := tx.Create(&purchaseItem).Error; err != nil {
+					return err
+				}
+			}
+
+			// Recalculate prices for all affected ingredients
+			for ingID := range affectedIngredientIDs {
+				if err := recalculateIngredientPrices(tx, ingID); err != nil {
+					return err
+				}
+			}
+		} else {
+			// If purchase items not provided but transaction timestamp changed, sync purchase items timestamp
+			tx.Model(&models.PurchaseItem{}).Where("transaction_id = ?", existingTx.ID).Update("created_at", existingTx.CreatedAt)
+		}
+
 		return nil
 	})
 
@@ -383,7 +509,7 @@ func (h *TransactionHandler) UpdateTransaction(c *gin.Context) {
 		h.fundCache.Invalidate("funds:list")
 	}
 
-	h.db.Preload("Fund").First(&existingTx, existingTx.ID)
+	h.db.Preload("Fund").Preload("PurchaseItems.Ingredient").First(&existingTx, existingTx.ID)
 	models.SendSuccess(c, http.StatusOK, existingTx, "Transaction updated successfully")
 }
 
@@ -430,9 +556,29 @@ func (h *TransactionHandler) DeleteTransaction(c *gin.Context) {
 			}
 		}
 
-		// 2. Delete the transaction record
+		// 2. Track affected ingredients from purchase items
+		var oldItems []models.PurchaseItem
+		if err := tx.Where("transaction_id = ?", existingTx.ID).Find(&oldItems).Error; err != nil {
+			return err
+		}
+		affectedIngredientIDs := make(map[uint]bool)
+		for _, oi := range oldItems {
+			affectedIngredientIDs[oi.IngredientID] = true
+		}
+
+		// 3. Delete purchase items and transaction record
+		if err := tx.Where("transaction_id = ?", existingTx.ID).Delete(&models.PurchaseItem{}).Error; err != nil {
+			return err
+		}
 		if err := tx.Delete(&existingTx).Error; err != nil {
 			return err
+		}
+
+		// 4. Recalculate prices for affected ingredients
+		for ingID := range affectedIngredientIDs {
+			if err := recalculateIngredientPrices(tx, ingID); err != nil {
+				return err
+			}
 		}
 
 		return nil

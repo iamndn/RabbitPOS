@@ -2298,6 +2298,7 @@ export default function TransactionsPage() {
                 amount: editingTransaction.amount,
                 description: editingTransaction.description,
                 created_at: editingTransaction.created_at,
+                purchase_items: editingTransaction.purchase_items,
               }
             : null
         }

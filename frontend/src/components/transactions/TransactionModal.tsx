@@ -53,6 +53,7 @@ interface TransactionModalProps {
     amount: number;
     description: string;
     created_at?: string | null;
+    purchase_items?: PurchaseLineItem[] | any[];
   } | null;
 }
 
@@ -114,7 +115,40 @@ export default function TransactionModal({
       setModalAmount(initialData.amount || 0);
       setModalDescription(initialData.description || '');
       setModalCreatedAt(initialData.created_at || null);
-      setIsPurchaseLogging(false);
+
+      const hasExistingItems = Array.isArray(initialData.purchase_items) && initialData.purchase_items.length > 0;
+      const isPurchaseCat =
+        initialData.category === 'ingredient_purchase' ||
+        initialData.category.toLowerCase().includes('nguyên liệu') ||
+        initialData.category.toLowerCase().includes('hàng hóa') ||
+        initialData.category.toLowerCase().includes('purchase');
+
+      if (hasExistingItems) {
+        setIsPurchaseLogging(true);
+        setPurchaseItems(
+          initialData.purchase_items!.map((pi: any) => ({
+            id: pi.id,
+            ingredient_id: pi.ingredient_id || pi.ingredient?.id,
+            ingredient_name: pi.ingredient?.name || pi.ingredient_name || '',
+            category: (pi.category || pi.ingredient?.category || 'fruit') as string,
+            quantity: Number(pi.quantity) || 1,
+            unit: pi.unit || pi.ingredient?.unit || 'kg',
+            unit_price: Number(pi.unit_price) || 0,
+            subtotal: Number(pi.subtotal) || (Number(pi.quantity) * Number(pi.unit_price)) || 0,
+            is_custom_new: !(pi.ingredient_id || pi.ingredient?.id),
+          }))
+        );
+      } else if (isPurchaseCat && initialData.transaction_type === 'outflow') {
+        setIsPurchaseLogging(true);
+        setPurchaseItems([
+          { ingredient_name: '', category: 'fruit', quantity: 1, unit: 'kg', unit_price: 0, subtotal: 0, is_custom_new: false },
+        ]);
+      } else {
+        setIsPurchaseLogging(false);
+        setPurchaseItems([
+          { ingredient_name: '', category: 'fruit', quantity: 1, unit: 'kg', unit_price: 0, subtotal: 0, is_custom_new: false },
+        ]);
+      }
     } else {
       setModalType('outflow');
       setModalFundId(funds[0]?.id || 0);
@@ -133,8 +167,11 @@ export default function TransactionModal({
   // Auto calculate sum of purchase items and set modalAmount
   useEffect(() => {
     if (isPurchaseLogging && modalType === 'outflow') {
-      const sum = purchaseItems.reduce((acc, item) => acc + (Number(item.subtotal) || 0), 0);
-      setModalAmount(sum);
+      const validItems = purchaseItems.filter((i) => i.ingredient_name.trim() !== '' || (i.ingredient_id && i.ingredient_id > 0));
+      if (validItems.length > 0) {
+        const sum = purchaseItems.reduce((acc, item) => acc + (Number(item.subtotal) || 0), 0);
+        setModalAmount(sum);
+      }
     }
   }, [purchaseItems, isPurchaseLogging, modalType]);
 
@@ -264,6 +301,24 @@ export default function TransactionModal({
           created_at: modalCreatedAt ? new Date(modalCreatedAt).toISOString() : undefined,
         };
 
+        if (modalType === 'outflow') {
+          if (isPurchaseLogging) {
+            const validItems = purchaseItems
+              .filter((p) => p.ingredient_name.trim() !== '' && p.quantity > 0)
+              .map((p) => ({
+                ingredient_name: p.ingredient_name.trim(),
+                ingredient_id: p.ingredient_id,
+                category: p.category,
+                quantity: Number(p.quantity),
+                unit_price: Number(p.unit_price),
+                unit: p.unit.trim() || 'kg',
+              }));
+            payload.purchase_items = validItems;
+          } else {
+            payload.purchase_items = [];
+          }
+        }
+
         const res = await fetchApi(`/transactions/${initialData.id}`, {
           method: 'PUT',
           body: JSON.stringify(payload),
@@ -348,35 +403,32 @@ export default function TransactionModal({
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-y-auto animate-in fade-in duration-150">
-      <div
-        className={`bg-white rounded-t-3xl sm:rounded-3xl w-full shadow-2xl space-y-4 my-0 sm:my-auto transition-all animate-in zoom-in-95 duration-150 border border-slate-100 max-h-[92dvh] sm:max-h-[90vh] overflow-y-auto pb-safe ${
-          isPurchaseLogging && modalType === 'outflow' ? 'max-w-3xl' : 'max-w-md'
-        }`}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between px-4 sm:px-6 pt-4 sm:pt-5 pb-3 border-b border-slate-100 shrink-0">
-          <div className="flex items-center gap-2.5 sm:space-x-2 min-w-0 pr-2">
+      <div className={`bg-white rounded-t-3xl sm:rounded-3xl w-full shadow-2xl space-y-4 max-h-[92dvh] sm:max-h-[90vh] flex flex-col animate-in slide-in-from-bottom-6 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200 pb-safe sm:pb-6 border border-slate-100 ${
+        isPurchaseLogging && modalType === 'outflow' ? 'max-w-xl sm:max-w-3xl' : 'max-w-xl'
+      }`}>
+        <div className="px-4 sm:px-6 pt-4 sm:pt-6 flex items-center justify-between border-b border-slate-100 pb-3">
+          <div className="flex items-center space-x-2">
             <div
-              className={`w-9 h-9 rounded-2xl flex items-center justify-center font-bold shrink-0 ${
-                modalType === 'outflow'
-                  ? 'bg-rose-50 text-rose-600 border border-rose-100'
-                  : 'bg-emerald-50 text-emerald-600 border border-emerald-100'
+              className={`w-9 h-9 rounded-2xl flex items-center justify-center ${
+                modalType === 'outflow' ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'
               }`}
             >
-              {modalType === 'outflow' ? '↓' : '↑'}
+              <ShoppingBag className="w-5 h-5" />
             </div>
-            <div className="min-w-0">
-              <h3 className="text-sm sm:text-base font-extrabold text-slate-900 truncate">
+            <div>
+              <h3 className="text-base sm:text-lg font-bold text-slate-900 leading-tight">
                 {isEditing
-                  ? t('tx.edit_transaction_title') || 'Chỉnh Sửa Giao Dịch'
+                  ? t('tx.edit_transaction') || 'Chỉnh sửa giao dịch'
                   : modalType === 'outflow'
-                  ? t('tx.add_expense_title') || 'Tạo Khoản Chi Mới'
-                  : t('tx.add_inflow_title') || 'Tạo Khoản Thu Mới'}
+                  ? t('tx.create_expense') || 'Ghi nhận Khoản Chi'
+                  : t('tx.create_income') || 'Ghi nhận Khoản Thu'}
               </h3>
-              <p className="text-[11px] sm:text-xs text-slate-400 truncate">
-                {modalType === 'outflow'
-                  ? 'Ghi nhận chi phí, nhập nguyên liệu & xuất quỹ'
-                  : 'Ghi nhận nguồn thu thủ công & nạp quỹ'}
+              <p className="text-[11px] text-slate-400">
+                {isEditing
+                  ? `Mã giao dịch: #${initialData?.id}`
+                  : modalType === 'outflow'
+                  ? 'Ghi chép tiền chi mua hàng hoặc chi phí vận hành'
+                  : 'Ghi chép thu tiền ngoài đơn hàng bán'}
               </p>
             </div>
           </div>
@@ -458,14 +510,25 @@ export default function TransactionModal({
               </label>
               <ModernSelect
                 value={modalCategory}
-                onChange={(val) => setModalCategory(String(val))}
+                onChange={(val) => {
+                  const catVal = String(val);
+                  setModalCategory(catVal);
+                  const isPurchaseCat =
+                    catVal === 'ingredient_purchase' ||
+                    catVal.toLowerCase().includes('nguyên liệu') ||
+                    catVal.toLowerCase().includes('hàng hóa') ||
+                    catVal.toLowerCase().includes('purchase');
+                  if (isPurchaseCat && modalType === 'outflow') {
+                    setIsPurchaseLogging(true);
+                  }
+                }}
                 options={categoryOptions}
               />
             </div>
           </div>
 
-          {/* Integrated Itemized Purchases Toggle (Only for Outflows when creating) */}
-          {modalType === 'outflow' && !isEditing && (
+          {/* Integrated Itemized Purchases Toggle (Available for Outflows in both Create & Edit mode) */}
+          {modalType === 'outflow' && (
             <div className="bg-emerald-50/70 border border-emerald-200/80 rounded-2xl p-3.5 space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
