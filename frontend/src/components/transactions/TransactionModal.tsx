@@ -403,10 +403,10 @@ export default function TransactionModal({
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-y-auto animate-in fade-in duration-150">
-      <div className={`bg-white rounded-t-3xl sm:rounded-3xl w-full shadow-2xl space-y-4 max-h-[92dvh] sm:max-h-[90vh] flex flex-col animate-in slide-in-from-bottom-6 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200 pb-safe sm:pb-6 border border-slate-100 ${
+      <div className={`bg-white rounded-t-3xl sm:rounded-3xl w-full shadow-2xl space-y-0 max-h-[92dvh] sm:max-h-[90vh] flex flex-col animate-in slide-in-from-bottom-6 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200 pb-safe sm:pb-0 border border-slate-100 ${
         isPurchaseLogging && modalType === 'outflow' ? 'max-w-xl sm:max-w-3xl' : 'max-w-xl'
       }`}>
-        <div className="px-4 sm:px-6 pt-4 sm:pt-6 flex items-center justify-between border-b border-slate-100 pb-3">
+        <div className="px-4 sm:px-6 pt-4 sm:pt-5 pb-3 flex items-center justify-between border-b border-slate-100 shrink-0">
           <div className="flex items-center space-x-2">
             <div
               className={`w-9 h-9 rounded-2xl flex items-center justify-center ${
@@ -418,10 +418,10 @@ export default function TransactionModal({
             <div>
               <h3 className="text-base sm:text-lg font-bold text-slate-900 leading-tight">
                 {isEditing
-                  ? t('tx.edit_transaction') || 'Chỉnh sửa giao dịch'
+                  ? t('tx.edit_transaction_title') || 'Chỉnh Sửa Giao Dịch'
                   : modalType === 'outflow'
-                  ? t('tx.create_expense') || 'Ghi nhận Khoản Chi'
-                  : t('tx.create_income') || 'Ghi nhận Khoản Thu'}
+                  ? t('tx.add_expense_title') || 'Tạo Khoản Chi Mới'
+                  : t('tx.add_inflow_title') || 'Tạo Khoản Thu Mới'}
               </h3>
               <p className="text-[11px] text-slate-400">
                 {isEditing
@@ -442,12 +442,13 @@ export default function TransactionModal({
         </div>
 
         {errorMessage && (
-          <div className="mx-4 sm:mx-6 p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold rounded-xl">
+          <div className="mx-4 sm:mx-6 mt-3 p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold rounded-xl shrink-0">
             {errorMessage}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="px-4 sm:px-6 pb-4 sm:pb-6 space-y-3.5 sm:space-y-4 text-xs">
+        <form onSubmit={handleSubmit} className="flex-1 flex flex-col min-h-0 overflow-hidden text-xs">
+          <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 space-y-3.5 sm:space-y-4">
           {/* Type Selector (Only when creating) */}
           {!isEditing && (
             <div className="flex bg-slate-100 p-1 rounded-2xl">
@@ -1023,9 +1024,10 @@ export default function TransactionModal({
               className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
             />
           </div>
+          </div>
 
-          {/* Actions */}
-          <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end sm:space-x-2 pt-3 border-t border-slate-100">
+          {/* Actions Footer - Pinned */}
+          <div className="shrink-0 px-4 sm:px-6 py-3 border-t border-slate-100 bg-slate-50/70 sm:bg-white rounded-b-3xl grid grid-cols-2 gap-2 sm:flex sm:justify-end sm:space-x-2">
             <button
               type="button"
               disabled={isSubmitting}
