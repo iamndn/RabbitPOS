@@ -279,27 +279,29 @@ export default function PromotionsModal({ isOpen, onClose, settings: initialSett
       <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-4xl w-full p-4 sm:p-6 shadow-2xl space-y-4 max-h-[92dvh] sm:max-h-[90vh] overflow-y-auto pb-safe">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-          <div className="flex items-center space-x-2.5">
-            <div className="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-700">
-              <Gift className="w-5 h-5" />
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 pr-2">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-700 shrink-0 shadow-2xs">
+              <Gift className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div>
-              <h2 className="text-base sm:text-lg font-black text-slate-900 flex items-center gap-2">
-                <span>{t('promotions.title') || 'Chương Trình Khuyến Mãi & Giảm Giá'}</span>
-                <span className="text-xs font-bold px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded-full border border-indigo-100">
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <h2 className="text-sm sm:text-base font-extrabold text-slate-900 truncate">
+                  {t('promotions.title') || 'Chương Trình Khuyến Mãi'}
+                </h2>
+                <span className="text-[11px] font-bold px-2 py-0.2 bg-indigo-50 text-indigo-700 rounded-full border border-indigo-100">
                   {promotions.length}
                 </span>
-              </h2>
-              <p className="text-xs text-slate-500">
+              </div>
+              <p className="text-[11px] sm:text-xs text-slate-500 truncate">
                 {t('promotions.subtitle') || 'Quản lý mã giảm giá, chiết khấu hóa đơn và quà tặng kèm'}
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 shrink-0">
             <button
               type="button"
               onClick={openCreateForm}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs px-3.5 py-2 rounded-xl flex items-center gap-1.5 shadow-xs transition active:scale-95 cursor-pointer"
+              className="bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-extrabold text-xs px-2.5 sm:px-3.5 py-2 rounded-xl flex items-center gap-1 shadow-xs transition cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               <span>{t('promotions.create_btn') || '+ Thêm KM'}</span>
@@ -307,7 +309,7 @@ export default function PromotionsModal({ isOpen, onClose, settings: initialSett
             <button
               type="button"
               onClick={onClose}
-              className="p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition cursor-pointer"
+              className="p-2 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 transition cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
@@ -452,13 +454,13 @@ export default function PromotionsModal({ isOpen, onClose, settings: initialSett
             <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-lg w-full p-4 sm:p-6 shadow-2xl space-y-4 max-h-[92dvh] sm:max-h-[90vh] overflow-y-auto pb-safe">
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <h3 className="font-extrabold text-slate-900 text-sm sm:text-base flex items-center gap-2">
-                  <Sparkles className="w-5 h-5 text-indigo-600" />
+                  <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-600" />
                   <span>{editingPromo ? 'Chỉnh Sửa Khuyến Mãi' : 'Thêm Khuyến Mãi Mới'}</span>
                 </h3>
                 <button
                   type="button"
                   onClick={() => setIsFormOpen(false)}
-                  className="p-1.5 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition"
+                  className="p-1.5 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 transition cursor-pointer"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -481,11 +483,11 @@ export default function PromotionsModal({ isOpen, onClose, settings: initialSett
                 {/* Promo Type */}
                 <div>
                   <label className="app-label">Hình thức khuyến mãi *</label>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
                     <button
                       type="button"
                       onClick={() => setFormType('discount_amount')}
-                      className={`p-2.5 rounded-xl border text-center font-bold transition flex flex-col items-center gap-1 cursor-pointer ${
+                      className={`p-2 sm:p-2.5 rounded-xl border text-center font-bold transition flex flex-col items-center gap-1 cursor-pointer text-[11px] sm:text-xs ${
                         formType === 'discount_amount'
                           ? 'border-emerald-600 bg-emerald-50 text-emerald-700 ring-2 ring-emerald-500/20'
                           : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
@@ -497,7 +499,7 @@ export default function PromotionsModal({ isOpen, onClose, settings: initialSett
                     <button
                       type="button"
                       onClick={() => setFormType('discount_percent')}
-                      className={`p-2.5 rounded-xl border text-center font-bold transition flex flex-col items-center gap-1 cursor-pointer ${
+                      className={`p-2 sm:p-2.5 rounded-xl border text-center font-bold transition flex flex-col items-center gap-1 cursor-pointer text-[11px] sm:text-xs ${
                         formType === 'discount_percent'
                           ? 'border-indigo-600 bg-indigo-50 text-indigo-700 ring-2 ring-indigo-500/20'
                           : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
@@ -509,7 +511,7 @@ export default function PromotionsModal({ isOpen, onClose, settings: initialSett
                     <button
                       type="button"
                       onClick={() => setFormType('gift_item')}
-                      className={`p-2.5 rounded-xl border text-center font-bold transition flex flex-col items-center gap-1 cursor-pointer ${
+                      className={`p-2 sm:p-2.5 rounded-xl border text-center font-bold transition flex flex-col items-center gap-1 cursor-pointer text-[11px] sm:text-xs ${
                         formType === 'gift_item'
                           ? 'border-amber-600 bg-amber-50 text-amber-700 ring-2 ring-amber-500/20'
                           : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
@@ -565,7 +567,7 @@ export default function PromotionsModal({ isOpen, onClose, settings: initialSett
                 )}
 
                 {/* Eligibility Conditions */}
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
                   <div>
                     <label className="app-label">Đơn tối thiểu (đ)</label>
                     <input
@@ -598,7 +600,7 @@ export default function PromotionsModal({ isOpen, onClose, settings: initialSett
                 </div>
 
                 {/* Usage Limit & Is Active Switch */}
-                <div className="grid grid-cols-2 gap-3 items-center">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3 items-center">
                   <div>
                     <label className="app-label">Giới hạn số lượt</label>
                     <input
@@ -614,7 +616,7 @@ export default function PromotionsModal({ isOpen, onClose, settings: initialSett
                     />
                   </div>
 
-                  <div className="flex items-center justify-between p-2.5 bg-slate-50 rounded-xl border border-slate-200 mt-4">
+                  <div className="flex items-center justify-between p-2.5 bg-slate-50 rounded-xl border border-slate-200 sm:mt-4">
                     <span className="font-bold text-slate-800 text-xs">Kích hoạt ngay</span>
                     <input
                       type="checkbox"
@@ -625,18 +627,18 @@ export default function PromotionsModal({ isOpen, onClose, settings: initialSett
                   </div>
                 </div>
 
-                {/* Form Buttons */}
-                <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                {/* Form Buttons (Balanced on mobile) */}
+                <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:justify-end pt-2 border-t border-slate-100">
                   <button
                     type="button"
                     onClick={() => setIsFormOpen(false)}
-                    className="px-4 py-2 text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl font-bold text-xs transition cursor-pointer"
+                    className="px-4 py-2.5 text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl font-bold text-xs transition cursor-pointer text-center justify-center flex items-center"
                   >
                     {t('common.cancel') || 'Hủy'}
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs shadow-xs transition active:scale-95 cursor-pointer"
+                    className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs shadow-xs transition active:scale-95 cursor-pointer text-center justify-center flex items-center"
                   >
                     {t('common.save') || 'Lưu khuyến mãi'}
                   </button>

@@ -181,35 +181,35 @@ export default function TagManagerModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-150">
-      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[92vh] flex flex-col overflow-hidden border border-slate-100 animate-in zoom-in-95 duration-150">
+    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-150">
+      <div className="bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl w-full max-w-2xl max-h-[92dvh] sm:max-h-[90vh] flex flex-col overflow-hidden border border-slate-100 animate-in zoom-in-95 duration-150 pb-safe">
         {/* Header */}
         <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-100 shrink-0 bg-slate-50/50">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold shadow-2xs">
-              <Tag className="w-5 h-5" />
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 pr-2">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold shadow-2xs shrink-0">
+              <Tag className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="font-extrabold text-slate-900 text-base">Quản Lý Nhãn Sản Phẩm (Tags)</h3>
-                <span className="bg-indigo-100 text-indigo-700 text-xs px-2 py-0.5 rounded-full font-black">
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <h3 className="font-extrabold text-slate-900 text-sm sm:text-base truncate">Quản Lý Nhãn (Tags)</h3>
+                <span className="bg-indigo-100 text-indigo-700 text-[11px] px-2 py-0.2 rounded-full font-black">
                   {DEFAULT_SYSTEM_TAGS.length + tags.length}
                 </span>
               </div>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Tạo và tùy biến các huy hiệu gắn lên món ăn (Bán chạy, Món mới, Signature, Khuyến mãi...)
+              <p className="text-[11px] sm:text-xs text-slate-500 truncate">
+                Tạo và tùy biến các huy hiệu gắn lên món ăn
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 shrink-0">
             {onOpenAutoTagging && (
               <button
                 type="button"
                 onClick={onOpenAutoTagging}
-                className="bg-gradient-to-r from-amber-500/15 via-indigo-500/15 to-amber-500/15 hover:from-amber-500/25 hover:to-indigo-500/25 text-indigo-950 text-xs font-black px-3.5 py-2 rounded-xl border border-indigo-200/90 flex items-center gap-1.5 transition cursor-pointer shadow-2xs"
+                className="bg-gradient-to-r from-amber-500/15 via-indigo-500/15 to-amber-500/15 hover:from-amber-500/25 hover:to-indigo-500/25 text-indigo-950 text-xs font-black px-2.5 sm:px-3.5 py-2 rounded-xl border border-indigo-200/90 flex items-center gap-1 transition cursor-pointer shadow-2xs"
                 title="Tự động phân hạng & gán nhãn Best Seller, Món mới, Lợi nhuận cao"
               >
-                <Sparkles className="w-4 h-4 text-amber-500" />
+                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
                 <span className="hidden sm:inline">⚡ Tự Động Gán Nhãn</span>
                 <span className="sm:hidden">⚡ Auto-Tag</span>
               </button>
@@ -224,27 +224,27 @@ export default function TagManagerModal({
         </div>
 
         {/* Content Body */}
-        <div className="p-4 sm:p-6 overflow-y-auto space-y-5 flex-1">
+        <div className="p-4 sm:p-6 overflow-y-auto space-y-4 sm:space-y-5 flex-1">
           {/* Auto-tagging Quick Feature Banner */}
           {onOpenAutoTagging && (
-            <div className="bg-gradient-to-r from-amber-50 via-indigo-50/60 to-purple-50 p-3.5 rounded-2xl border border-indigo-100 flex items-center justify-between gap-3 shadow-2xs">
+            <div className="bg-gradient-to-r from-amber-50 via-indigo-50/60 to-purple-50 p-3 sm:p-3.5 rounded-2xl border border-indigo-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 sm:gap-3 shadow-2xs">
               <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center font-black shrink-0 shadow-xs">
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center font-black shrink-0 shadow-xs text-xs">
                   ⚡
                 </div>
                 <div className="min-w-0">
                   <div className="text-xs font-bold text-slate-900 truncate">
-                    Bộ Động Cơ Tự Động Gán Nhãn (Auto-Tagging Engine)
+                    Bộ Động Cơ Tự Động Gán Nhãn (Auto-Tag)
                   </div>
-                  <div className="text-[11px] text-slate-500 truncate">
-                    Tự động tính Best Seller, Món mới, Biên lợi nhuận cao từ doanh số thực tế
+                  <div className="text-[10px] sm:text-[11px] text-slate-500 truncate">
+                    Tự động tính Best Seller, Món mới, Biên lợi nhuận cao
                   </div>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={onOpenAutoTagging}
-                className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white text-xs font-bold rounded-xl transition cursor-pointer shrink-0 shadow-2xs"
+                className="w-full sm:w-auto px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white text-xs font-bold rounded-xl transition cursor-pointer shrink-0 shadow-2xs text-center justify-center flex items-center"
               >
                 Cấu hình &amp; Chạy
               </button>
@@ -252,17 +252,17 @@ export default function TagManagerModal({
           )}
 
           {/* Tag Editor Form */}
-          <form onSubmit={handleSaveForm} className="bg-slate-50/80 p-4 sm:p-5 rounded-2xl border border-slate-200/80 space-y-4">
+          <form onSubmit={handleSaveForm} className="bg-slate-50/80 p-3.5 sm:p-5 rounded-2xl border border-slate-200/80 space-y-3.5 sm:space-y-4">
             <div className="flex items-center justify-between">
               <h4 className="text-xs font-black uppercase text-slate-700 flex items-center gap-1.5">
                 <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
-                {editingTag ? `Sửa nhãn: ${editingTag.name}` : 'Thêm nhãn sản phẩm mới'}
+                <span>{editingTag ? `Sửa nhãn: ${editingTag.name}` : 'Thêm nhãn sản phẩm mới'}</span>
               </h4>
               {editingTag && (
                 <button
                   type="button"
                   onClick={resetForm}
-                  className="text-xs font-bold text-slate-500 hover:text-slate-800 underline cursor-pointer"
+                  className="text-xs font-bold text-rose-600 hover:text-rose-700 underline cursor-pointer"
                 >
                   Hủy sửa
                 </button>
@@ -359,46 +359,58 @@ export default function TagManagerModal({
               </div>
             </div>
 
-            {/* Live Preview */}
-            <div className="flex items-center justify-between p-3 bg-white rounded-xl border border-slate-200/80">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold text-slate-400">Xem trước hiển thị:</span>
+            {/* Live Preview & Submit Action */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-3 sm:p-3.5 bg-white rounded-2xl border border-slate-200/80 shadow-2xs">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="text-xs font-semibold text-slate-400 shrink-0">Xem trước:</span>
                 <span
-                  className={`text-xs uppercase font-extrabold px-2.5 py-1 rounded-lg border inline-flex items-center gap-1.5 ${
+                  className={`text-xs uppercase font-extrabold px-2.5 py-1 rounded-lg border inline-flex items-center gap-1.5 truncate ${
                     TAG_COLORS.find((c) => c.id === tagColor)?.bg
                   } ${TAG_COLORS.find((c) => c.id === tagColor)?.text} ${
                     TAG_COLORS.find((c) => c.id === tagColor)?.border
                   }`}
                 >
                   <span>{tagIcon}</span>
-                  <span>{tagName.trim() || 'Tên nhãn mẫu'}</span>
+                  <span className="truncate">{tagName.trim() || 'Tên nhãn mẫu'}</span>
                 </span>
               </div>
-              <button
-                type="submit"
-                disabled={saving}
-                className="bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-sm transition flex items-center gap-1.5 cursor-pointer disabled:opacity-60"
-              >
-                {saving ? (
-                  <>
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin" /> Đang lưu...
-                  </>
-                ) : editingTag ? (
-                  <>
-                    <Check className="w-3.5 h-3.5" /> Lưu cập nhật
-                  </>
-                ) : (
-                  <>
-                    <Plus className="w-3.5 h-3.5" /> Thêm nhãn này
-                  </>
+
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                {editingTag && (
+                  <button
+                    type="button"
+                    onClick={resetForm}
+                    className="flex-1 sm:flex-initial px-4 py-2 text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition cursor-pointer text-center justify-center flex items-center"
+                  >
+                    Hủy
+                  </button>
                 )}
-              </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="flex-1 sm:flex-initial bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-60"
+                >
+                  {saving ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" /> <span>Đang lưu...</span>
+                    </>
+                  ) : editingTag ? (
+                    <>
+                      <Check className="w-3.5 h-3.5" /> <span>Lưu cập nhật</span>
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="w-3.5 h-3.5" /> <span>Thêm nhãn này</span>
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </form>
 
           {/* Tags List */}
           <div>
-            <h4 className="text-xs font-black uppercase text-slate-500 mb-3 flex items-center justify-between">
+            <h4 className="text-xs font-black uppercase text-slate-500 mb-2.5 flex items-center justify-between">
               <span>Danh sách nhãn đang hoạt động</span>
               <span className="text-[11px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">
                 {DEFAULT_SYSTEM_TAGS.length + tags.length} nhãn
@@ -407,7 +419,7 @@ export default function TagManagerModal({
 
             {/* System Default Tags */}
             <div className="mb-4 space-y-2">
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
                 Nhãn hệ thống mặc định:
               </span>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -417,15 +429,15 @@ export default function TagManagerModal({
                   return (
                     <div
                       key={st.id}
-                      className="p-3 bg-slate-50 rounded-2xl border border-slate-200/70 flex items-center justify-between"
+                      className="p-2.5 sm:p-3 bg-slate-50 rounded-2xl border border-slate-200/70 flex items-center justify-between gap-2"
                     >
                       <div className="flex items-center gap-2 min-w-0">
-                        <span className={`text-xs font-bold px-2 py-0.5 rounded-lg border ${style.badgeClasses}`}>
+                        <span className={`text-xs font-bold px-2 py-0.5 rounded-lg border shrink-0 ${style.badgeClasses}`}>
                           {st.icon} {st.name}
                         </span>
                         <span className="text-[10px] text-slate-400 font-mono font-medium truncate">({st.id})</span>
                       </div>
-                      <span className="text-[10px] font-bold text-slate-500 bg-white border border-slate-200 px-2 py-0.5 rounded-md">
+                      <span className="text-[10px] font-bold text-slate-500 bg-white border border-slate-200 px-2 py-0.5 rounded-md shrink-0">
                         {count} món
                       </span>
                     </div>
@@ -436,11 +448,11 @@ export default function TagManagerModal({
 
             {/* Custom User Tags */}
             <div className="space-y-2">
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
                 Nhãn tự tạo (Tùy chỉnh):
               </span>
               {tags.length === 0 ? (
-                <div className="p-6 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-slate-400 text-xs font-semibold">
+                <div className="p-5 sm:p-6 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-slate-400 text-xs font-semibold">
                   Chưa có nhãn tự tạo nào. Sử dụng biểu mẫu phía trên để thêm nhãn mới cho menu của bạn!
                 </div>
               ) : (
@@ -451,22 +463,22 @@ export default function TagManagerModal({
                     return (
                       <div
                         key={ct.id}
-                        className="p-3 bg-white rounded-2xl border border-slate-200 shadow-2xs flex items-center justify-between group hover:border-indigo-200 transition"
+                        className="p-2.5 sm:p-3 bg-white rounded-2xl border border-slate-200 shadow-2xs flex items-center justify-between gap-2 group hover:border-indigo-200 transition"
                       >
                         <div className="flex items-center gap-2 min-w-0">
-                          <span className={`text-xs font-bold px-2 py-0.5 rounded-lg border ${style.badgeClasses}`}>
+                          <span className={`text-xs font-bold px-2 py-0.5 rounded-lg border shrink-0 ${style.badgeClasses}`}>
                             {ct.icon} {ct.name}
                           </span>
                           <span className="text-[10px] text-slate-400 font-mono font-medium truncate">({ct.id})</span>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1.5 shrink-0">
                           <span className="text-[10px] font-bold text-slate-500 bg-slate-50 border border-slate-200 px-2 py-0.5 rounded-md">
                             {count} món
                           </span>
                           <button
                             type="button"
                             onClick={() => handleStartEdit(ct)}
-                            className="p-1 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition cursor-pointer"
+                            className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition cursor-pointer"
                             title="Sửa nhãn"
                           >
                             <Edit2 className="w-3.5 h-3.5" />
@@ -474,7 +486,7 @@ export default function TagManagerModal({
                           <button
                             type="button"
                             onClick={() => handleDeleteTag(ct)}
-                            className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"
+                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"
                             title="Xóa nhãn"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -490,11 +502,11 @@ export default function TagManagerModal({
         </div>
 
         {/* Footer */}
-        <div className="p-4 sm:p-5 border-t border-slate-100 flex justify-end shrink-0 bg-slate-50/50">
+        <div className="p-3.5 sm:p-5 border-t border-slate-100 flex justify-end shrink-0 bg-slate-50/50">
           <button
             type="button"
             onClick={onClose}
-            className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-sm transition cursor-pointer"
+            className="w-full sm:w-auto px-5 py-2.5 bg-slate-900 hover:bg-slate-800 active:scale-95 text-white font-bold text-xs rounded-xl shadow-sm transition cursor-pointer text-center justify-center flex items-center"
           >
             Đóng trình quản lý
           </button>

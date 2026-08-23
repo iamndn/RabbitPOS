@@ -201,39 +201,39 @@ export default function ToppingManagerModal({
   });
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-150">
-      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-3xl max-h-[92vh] flex flex-col overflow-hidden border border-slate-100 animate-in zoom-in-95 duration-150">
+    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-150">
+      <div className="bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl w-full max-w-3xl max-h-[92dvh] sm:max-h-[90vh] flex flex-col overflow-hidden border border-slate-100 animate-in zoom-in-95 duration-150 pb-safe">
         {/* Header */}
         <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-100 shrink-0 bg-slate-50/50">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-violet-50 text-violet-600 flex items-center justify-center font-bold shadow-2xs">
-              <Layers className="w-5 h-5" />
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 pr-2">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-violet-50 text-violet-600 flex items-center justify-center font-bold shadow-2xs shrink-0">
+              <Layers className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="font-extrabold text-slate-900 text-base">Quản Lý Topping &amp; Món Thêm</h3>
-                <span className="bg-violet-100 text-violet-700 text-xs px-2 py-0.5 rounded-full font-black">
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <h3 className="font-extrabold text-slate-900 text-sm sm:text-base truncate">Quản Lý Topping &amp; Món Thêm</h3>
+                <span className="bg-violet-100 text-violet-700 text-[11px] px-2 py-0.2 rounded-full font-black">
                   {toppings.length}
                 </span>
               </div>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Các món topping kèm theo (Trân châu, Thạch, Pudding, Kem cheese...)
+              <p className="text-[11px] sm:text-xs text-slate-500 truncate">
+                Các món topping kèm theo (Trân châu, Thạch, Pudding...)
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition cursor-pointer"
+            className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition cursor-pointer shrink-0"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Content Body */}
-        <div className="p-4 sm:p-6 overflow-y-auto space-y-5 flex-1">
+        <div className="p-4 sm:p-6 overflow-y-auto space-y-4 sm:space-y-5 flex-1">
           {/* Action Row: Search + Category Filter + Add Button */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-2 flex-1">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 sm:gap-3">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 flex-1">
               <div className="relative flex-1">
                 <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input
@@ -241,7 +241,7 @@ export default function ToppingManagerModal({
                   placeholder="Tìm tên topping..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-8 py-2 text-xs bg-white text-slate-900 placeholder:text-slate-400 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500 shadow-2xs"
+                  className="app-input pl-9 pr-8 py-2 text-xs"
                 />
                 {searchQuery && (
                   <button
@@ -254,7 +254,7 @@ export default function ToppingManagerModal({
                 )}
               </div>
 
-              <div className="w-40 sm:w-48 shrink-0">
+              <div className="w-full sm:w-48 shrink-0">
                 <ModernSelect
                   value={selectedCatFilter}
                   onChange={(val) => setSelectedCatFilter(val as string)}
@@ -271,7 +271,7 @@ export default function ToppingManagerModal({
               <button
                 type="button"
                 onClick={handleStartCreate}
-                className="flex items-center justify-center gap-1.5 px-4 py-2 bg-violet-600 hover:bg-violet-700 active:scale-95 text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer shrink-0"
+                className="flex items-center justify-center gap-1.5 px-4 py-2 bg-violet-600 hover:bg-violet-700 active:scale-95 text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer shrink-0 w-full sm:w-auto"
               >
                 <Plus className="w-4 h-4" />
                 <span>Thêm Topping</span>
@@ -283,17 +283,17 @@ export default function ToppingManagerModal({
           {showForm && (
             <form
               onSubmit={handleSaveForm}
-              className="bg-violet-50/40 p-4 sm:p-5 rounded-2xl border border-violet-200/80 space-y-4 animate-fade-in"
+              className="bg-violet-50/40 p-3.5 sm:p-5 rounded-2xl border border-violet-200/80 space-y-3.5 sm:space-y-4 animate-fade-in"
             >
               <div className="flex items-center justify-between">
                 <h4 className="text-xs font-black uppercase text-violet-800 flex items-center gap-1.5">
                   <Layers className="w-4 h-4 text-violet-600" />
-                  {editingTopping ? `Sửa topping: ${editingTopping.name}` : 'Thêm topping mới'}
+                  <span>{editingTopping ? `Sửa topping: ${editingTopping.name}` : 'Thêm topping mới'}</span>
                 </h4>
                 <button
                   type="button"
                   onClick={resetForm}
-                  className="text-xs font-bold text-slate-500 hover:text-slate-800 underline cursor-pointer"
+                  className="text-xs font-bold text-rose-600 hover:text-rose-700 underline cursor-pointer"
                 >
                   Đóng form
                 </button>
@@ -306,7 +306,7 @@ export default function ToppingManagerModal({
                 </div>
               )}
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3">
                 <div className="sm:col-span-3">
                   <label className="text-xs font-bold text-slate-700 block mb-1">
                     Tên topping <span className="text-rose-500">*</span>
@@ -400,19 +400,19 @@ export default function ToppingManagerModal({
                 </button>
               </div>
 
-              {/* Form Buttons */}
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-violet-200/60">
+              {/* Form Buttons (Balanced on mobile) */}
+              <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:justify-end pt-2 border-t border-violet-200/60">
                 <button
                   type="button"
                   onClick={resetForm}
-                  className="px-3.5 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-200/60 rounded-xl transition cursor-pointer"
+                  className="px-3.5 py-2 text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition cursor-pointer text-center justify-center flex items-center"
                 >
                   Hủy
                 </button>
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-4 py-1.5 text-xs font-bold text-white bg-violet-600 hover:bg-violet-700 rounded-xl shadow-xs transition cursor-pointer disabled:opacity-50"
+                  className="px-4 py-2 text-xs font-bold text-white bg-violet-600 hover:bg-violet-700 rounded-xl shadow-xs transition cursor-pointer disabled:opacity-50 text-center justify-center flex items-center"
                 >
                   {saving ? 'Đang lưu...' : editingTopping ? 'Lưu Thay Đổi' : 'Tạo Topping'}
                 </button>
@@ -420,133 +420,230 @@ export default function ToppingManagerModal({
             </form>
           )}
 
-          {/* Toppings Table / List */}
-          <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-2xs bg-white">
-            <table className="w-full text-left text-xs text-slate-700">
-              <thead className="bg-slate-50 text-[11px] font-black text-slate-700 uppercase tracking-wider border-b border-slate-200">
-                <tr>
-                  <th className="px-4 py-3">Tên Topping</th>
-                  <th className="px-3 py-3 text-right">Giá Bán</th>
-                  <th className="px-3 py-3 text-right">Giá Vốn</th>
-                  <th className="px-3 py-3 text-center">Nhóm Áp Dụng</th>
-                  <th className="px-3 py-3 text-center">Trạng Thái</th>
-                  <th className="px-3.5 py-3 text-right">Thao Tác</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 bg-white">
-                {filteredToppings.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="text-center py-10 text-slate-400">
-                      <Layers className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                      <p className="text-xs text-slate-500 font-semibold">
-                        {searchQuery ? 'Không tìm thấy topping phù hợp' : 'Chưa có topping nào'}
-                      </p>
-                    </td>
-                  </tr>
-                ) : (
-                  filteredToppings.map((tp) => {
+          {/* Toppings Table / List Container */}
+          <div className="space-y-2">
+            <h4 className="text-xs font-black uppercase text-slate-500 tracking-wider">
+              Danh sách topping ({filteredToppings.length})
+            </h4>
+
+            {filteredToppings.length === 0 ? (
+              <div className="text-center py-10 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                <Layers className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                <p className="text-xs text-slate-500 font-semibold">
+                  {searchQuery ? 'Không tìm thấy topping phù hợp' : 'Chưa có topping nào'}
+                </p>
+              </div>
+            ) : (
+              <>
+                {/* 1. Mobile Cards View (sm:hidden) */}
+                <div className="block sm:hidden space-y-2.5">
+                  {filteredToppings.map((tp) => {
                     const linkedCat = categories.find((c) => c.id === tp.category_id);
                     const isEditing = editingTopping?.id === tp.id;
 
                     return (
-                      <tr
+                      <div
                         key={tp.id}
-                        className={`hover:bg-slate-50 transition ${
-                          isEditing ? 'bg-violet-50/70' : ''
+                        className={`p-3 rounded-2xl border transition-all space-y-2.5 ${
+                          isEditing
+                            ? 'bg-violet-50 border-violet-300 ring-2 ring-violet-500/20'
+                            : 'bg-white border-slate-200 shadow-2xs'
                         }`}
                       >
-                        <td className="px-4 py-3 font-bold text-slate-900">
-                          <div className="flex items-center gap-2">
+                        {/* Top: Name + Active Toggle */}
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 min-w-0">
                             <span
-                              className={`w-2 h-2 rounded-full shrink-0 ${
+                              className={`w-2.5 h-2.5 rounded-full shrink-0 ${
                                 tp.is_active ? 'bg-emerald-500 ring-2 ring-emerald-100' : 'bg-slate-300'
                               }`}
                             />
-                            <span className={tp.is_active ? 'text-slate-900' : 'text-slate-400 line-through'}>
+                            <span className={`font-bold text-xs truncate ${tp.is_active ? 'text-slate-900' : 'text-slate-400 line-through'}`}>
                               {tp.name}
                             </span>
                           </div>
-                        </td>
 
-                        <td className="px-3 py-3 text-right font-black text-violet-700">
-                          {formatPrice(tp.price)}
-                        </td>
-
-                        <td className="px-3 py-3 text-right font-medium text-slate-500">
-                          {formatPrice(tp.cogs || 0)}
-                        </td>
-
-                        <td className="px-3 py-3 text-center">
-                          {linkedCat ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
-                              <FolderOpen className="w-3 h-3 text-slate-400" />
-                              {linkedCat.name}
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
-                              Toàn cục
-                            </span>
-                          )}
-                        </td>
-
-                        <td className="px-3 py-3 text-center">
                           <button
                             type="button"
                             onClick={() => handleToggleStatus(tp)}
-                            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-extrabold transition cursor-pointer ${
+                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold transition cursor-pointer shrink-0 ${
                               tp.is_active
-                                ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 shadow-2xs'
-                                : 'bg-slate-100 text-slate-500 hover:bg-slate-200 border border-slate-200'
+                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-2xs'
+                                : 'bg-slate-100 text-slate-500 border border-slate-200'
                             }`}
-                            title={tp.is_active ? 'Bấm để Tắt' : 'Bấm để Bật'}
                           >
-                            <span
-                              className={`w-1.5 h-1.5 rounded-full ${
-                                tp.is_active ? 'bg-emerald-500' : 'bg-slate-400'
-                              }`}
-                            />
-                            <span>{tp.is_active ? 'Đang bán' : 'Tạm hết'}</span>
+                            <span>{tp.is_active ? '● Đang bán' : '○ Tạm hết'}</span>
                           </button>
-                        </td>
+                        </div>
 
-                        <td className="px-3.5 py-3 text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            <button
-                              type="button"
-                              onClick={() => handleStartEdit(tp)}
-                              className="p-1.5 rounded-xl text-slate-400 hover:text-violet-700 hover:bg-violet-50 transition cursor-pointer"
-                              title="Sửa topping"
-                            >
-                              <Edit2 className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleDelete(tp)}
-                              className="p-1.5 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
-                              title="Xóa topping"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
+                        {/* Mid Info: Prices + Scope */}
+                        <div className="flex items-center justify-between bg-slate-50 p-2 rounded-xl text-xs">
+                          <div className="flex items-center gap-2">
+                            <span className="font-black text-violet-700 text-xs">
+                              {formatPrice(tp.price)}
+                            </span>
+                            <span className="text-[10px] text-slate-400">
+                              (Vốn: {formatPrice(tp.cogs || 0)})
+                            </span>
                           </div>
-                        </td>
-                      </tr>
+
+                          <div>
+                            {linkedCat ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold bg-white text-slate-700 border border-slate-200">
+                                <FolderOpen className="w-3 h-3 text-slate-400" />
+                                {linkedCat.name}
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                                Toàn cục
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Bottom Actions */}
+                        <div className="flex items-center justify-end gap-2 pt-1 border-t border-slate-100">
+                          <button
+                            type="button"
+                            onClick={() => handleStartEdit(tp)}
+                            className="px-3 py-1 text-xs font-bold text-violet-700 bg-violet-50 hover:bg-violet-100 rounded-lg transition flex items-center gap-1 cursor-pointer"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                            <span>Sửa</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(tp)}
+                            className="px-3 py-1 text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg transition flex items-center gap-1 cursor-pointer"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            <span>Xóa</span>
+                          </button>
+                        </div>
+                      </div>
                     );
-                  })
-                )}
-              </tbody>
-            </table>
+                  })}
+                </div>
+
+                {/* 2. Desktop Table View (hidden sm:block) */}
+                <div className="hidden sm:block border border-slate-200 rounded-2xl overflow-hidden shadow-2xs bg-white">
+                  <table className="w-full text-left text-xs text-slate-700">
+                    <thead className="bg-slate-50 text-[11px] font-black text-slate-700 uppercase tracking-wider border-b border-slate-200">
+                      <tr>
+                        <th className="px-4 py-3">Tên Topping</th>
+                        <th className="px-3 py-3 text-right">Giá Bán</th>
+                        <th className="px-3 py-3 text-right">Giá Vốn</th>
+                        <th className="px-3 py-3 text-center">Nhóm Áp Dụng</th>
+                        <th className="px-3 py-3 text-center">Trạng Thái</th>
+                        <th className="px-3.5 py-3 text-right">Thao Tác</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 bg-white">
+                      {filteredToppings.map((tp) => {
+                        const linkedCat = categories.find((c) => c.id === tp.category_id);
+                        const isEditing = editingTopping?.id === tp.id;
+
+                        return (
+                          <tr
+                            key={tp.id}
+                            className={`hover:bg-slate-50 transition ${
+                              isEditing ? 'bg-violet-50/70' : ''
+                            }`}
+                          >
+                            <td className="px-4 py-3 font-bold text-slate-900">
+                              <div className="flex items-center gap-2">
+                                <span
+                                  className={`w-2 h-2 rounded-full shrink-0 ${
+                                    tp.is_active ? 'bg-emerald-500 ring-2 ring-emerald-100' : 'bg-slate-300'
+                                  }`}
+                                />
+                                <span className={tp.is_active ? 'text-slate-900' : 'text-slate-400 line-through'}>
+                                  {tp.name}
+                                </span>
+                              </div>
+                            </td>
+
+                            <td className="px-3 py-3 text-right font-black text-violet-700">
+                              {formatPrice(tp.price)}
+                            </td>
+
+                            <td className="px-3 py-3 text-right font-medium text-slate-500">
+                              {formatPrice(tp.cogs || 0)}
+                            </td>
+
+                            <td className="px-3 py-3 text-center">
+                              {linkedCat ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                                  <FolderOpen className="w-3 h-3 text-slate-400" />
+                                  {linkedCat.name}
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                                  Toàn cục
+                                </span>
+                              )}
+                            </td>
+
+                            <td className="px-3 py-3 text-center">
+                              <button
+                                type="button"
+                                onClick={() => handleToggleStatus(tp)}
+                                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-extrabold transition cursor-pointer ${
+                                  tp.is_active
+                                    ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 shadow-2xs'
+                                    : 'bg-slate-100 text-slate-500 hover:bg-slate-200 border border-slate-200'
+                                }`}
+                                title={tp.is_active ? 'Bấm để Tắt' : 'Bấm để Bật'}
+                              >
+                                <span
+                                  className={`w-1.5 h-1.5 rounded-full ${
+                                    tp.is_active ? 'bg-emerald-500' : 'bg-slate-400'
+                                  }`}
+                                />
+                                <span>{tp.is_active ? 'Đang bán' : 'Tạm hết'}</span>
+                              </button>
+                            </td>
+
+                            <td className="px-3.5 py-3 text-right">
+                              <div className="flex items-center justify-end gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => handleStartEdit(tp)}
+                                  className="p-1.5 rounded-xl text-slate-400 hover:text-violet-700 hover:bg-violet-50 transition cursor-pointer"
+                                  title="Sửa topping"
+                                >
+                                  <Edit2 className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDelete(tp)}
+                                  className="p-1.5 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
+                                  title="Xóa topping"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
           </div>
         </div>
 
         {/* Footer */}
-        <div className="px-5 py-3.5 border-t border-slate-100 bg-slate-50 flex items-center justify-between shrink-0">
-          <span className="text-xs text-slate-500">
+        <div className="p-3.5 sm:px-5 sm:py-3.5 border-t border-slate-100 bg-slate-50 flex flex-col sm:flex-row items-center justify-between gap-2.5 shrink-0">
+          <span className="text-xs text-slate-500 text-center sm:text-left">
             Tổng cộng: <strong>{toppings.length}</strong> loại topping
           </span>
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-200 bg-white border border-slate-200 rounded-xl transition cursor-pointer"
+            className="w-full sm:w-auto px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-200 bg-white border border-slate-200 rounded-xl transition cursor-pointer text-center justify-center flex items-center"
           >
             Đóng
           </button>

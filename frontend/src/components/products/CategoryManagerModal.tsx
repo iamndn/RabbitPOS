@@ -178,38 +178,38 @@ export default function CategoryManagerModal({
   );
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-150">
-      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[92vh] flex flex-col overflow-hidden border border-slate-100 animate-in zoom-in-95 duration-150">
+    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-150">
+      <div className="bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl w-full max-w-2xl max-h-[92dvh] sm:max-h-[90vh] flex flex-col overflow-hidden border border-slate-100 animate-in zoom-in-95 duration-150 pb-safe">
         {/* Header */}
         <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-100 shrink-0 bg-slate-50/50">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold shadow-2xs">
-              <FolderOpen className="w-5 h-5" />
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 pr-2">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold shadow-2xs shrink-0">
+              <FolderOpen className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="font-extrabold text-slate-900 text-base">Quản Lý Danh Mục Món</h3>
-                <span className="bg-emerald-100 text-emerald-700 text-xs px-2 py-0.5 rounded-full font-black">
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <h3 className="font-extrabold text-slate-900 text-sm sm:text-base truncate">Quản Lý Danh Mục Món</h3>
+                <span className="bg-emerald-100 text-emerald-700 text-[11px] px-2 py-0.2 rounded-full font-black">
                   {categories.length}
                 </span>
               </div>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Phân loại thực đơn theo nhóm (Cà phê, Trà sữa, Bánh ngọt, Đồ ăn vặt...)
+              <p className="text-[11px] sm:text-xs text-slate-500 truncate">
+                Phân loại thực đơn theo nhóm món
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition cursor-pointer"
+            className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition cursor-pointer shrink-0"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Content Body */}
-        <div className="p-4 sm:p-6 overflow-y-auto space-y-5 flex-1">
+        <div className="p-4 sm:p-6 overflow-y-auto space-y-4 sm:space-y-5 flex-1">
           {/* Top action toolbar: Search + Add button */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 sm:gap-3">
             <div className="relative flex-1">
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
@@ -234,7 +234,7 @@ export default function CategoryManagerModal({
               <button
                 type="button"
                 onClick={handleStartCreate}
-                className="flex items-center justify-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer shrink-0"
+                className="flex items-center justify-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer shrink-0 w-full sm:w-auto"
               >
                 <Plus className="w-4 h-4" />
                 <span>Thêm Danh Mục</span>
@@ -246,17 +246,17 @@ export default function CategoryManagerModal({
           {showForm && (
             <form
               onSubmit={handleSaveForm}
-              className="bg-emerald-50/40 p-4 sm:p-5 rounded-2xl border border-emerald-200/80 space-y-4 animate-fade-in"
+              className="bg-emerald-50/40 p-3.5 sm:p-5 rounded-2xl border border-emerald-200/80 space-y-3.5 sm:space-y-4 animate-fade-in"
             >
               <div className="flex items-center justify-between">
                 <h4 className="text-xs font-black uppercase text-emerald-800 flex items-center gap-1.5">
                   <FolderOpen className="w-4 h-4 text-emerald-600" />
-                  {editingCategory ? `Sửa danh mục: ${editingCategory.name}` : 'Thêm danh mục mới'}
+                  <span>{editingCategory ? `Sửa danh mục: ${editingCategory.name}` : 'Thêm danh mục mới'}</span>
                 </h4>
                 <button
                   type="button"
                   onClick={resetForm}
-                  className="text-xs font-bold text-slate-500 hover:text-slate-800 underline cursor-pointer"
+                  className="text-xs font-bold text-rose-600 hover:text-rose-700 underline cursor-pointer"
                 >
                   Đóng form
                 </button>
@@ -269,7 +269,7 @@ export default function CategoryManagerModal({
                 </div>
               )}
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3">
                 <div className="sm:col-span-2">
                   <label className="text-xs font-bold text-slate-700 block mb-1">
                     Tên danh mục <span className="text-rose-500">*</span>
@@ -324,10 +324,10 @@ export default function CategoryManagerModal({
                       </div>
                     )}
                   </div>
-                  <div className="flex-1 space-y-1.5">
+                  <div className="flex-1 space-y-1.5 min-w-0">
                     <div className="flex items-center gap-2">
                       <label className="cursor-pointer bg-white hover:bg-slate-100 text-slate-700 text-xs font-bold px-3 py-1.5 rounded-xl border border-slate-300 inline-flex items-center gap-1.5 transition shadow-2xs">
-                        <Upload className="w-3.5 h-3.5 text-emerald-600" /> Tải ảnh lên
+                        <Upload className="w-3.5 h-3.5 text-emerald-600" /> <span>Tải ảnh lên</span>
                         <input
                           type="file"
                           accept="image/*"
@@ -339,7 +339,7 @@ export default function CategoryManagerModal({
                         <button
                           type="button"
                           onClick={() => setImageUrl('')}
-                          className="text-[11px] font-semibold text-rose-600 hover:underline"
+                          className="text-[11px] font-semibold text-rose-600 hover:underline cursor-pointer"
                         >
                           Xóa ảnh
                         </button>
@@ -356,19 +356,19 @@ export default function CategoryManagerModal({
                 </div>
               </div>
 
-              {/* Form Buttons */}
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-emerald-200/60">
+              {/* Form Buttons (Balanced on mobile) */}
+              <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:justify-end pt-2 border-t border-emerald-200/60">
                 <button
                   type="button"
                   onClick={resetForm}
-                  className="px-3.5 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-200/60 rounded-xl transition cursor-pointer"
+                  className="px-3.5 py-2 text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition cursor-pointer text-center justify-center flex items-center"
                 >
                   Hủy
                 </button>
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-4 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-xs transition cursor-pointer disabled:opacity-50"
+                  className="px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-xs transition cursor-pointer disabled:opacity-50 text-center justify-center flex items-center"
                 >
                   {saving ? 'Đang lưu...' : editingCategory ? 'Lưu Thay Đổi' : 'Tạo Danh Mục'}
                 </button>
@@ -398,14 +398,14 @@ export default function CategoryManagerModal({
                   return (
                     <div
                       key={cat.id}
-                      className={`flex items-center justify-between p-3 rounded-2xl border transition-all ${
+                      className={`flex items-center justify-between p-2.5 sm:p-3 rounded-2xl border transition-all gap-2 ${
                         isEditing
                           ? 'bg-emerald-50 border-emerald-300 ring-2 ring-emerald-500/20'
                           : 'bg-white hover:bg-slate-50 border-slate-200 shadow-2xs'
                       }`}
                     >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center overflow-hidden shrink-0">
+                      <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                        <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center overflow-hidden shrink-0">
                           {getImageUrl(cat.image_url) ? (
                             <img
                               src={getImageUrl(cat.image_url)!}
@@ -413,7 +413,7 @@ export default function CategoryManagerModal({
                               className="w-full h-full object-cover"
                             />
                           ) : (
-                            <FolderOpen className="w-5 h-5 text-emerald-600" />
+                            <FolderOpen className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600" />
                           )}
                         </div>
 
@@ -421,11 +421,11 @@ export default function CategoryManagerModal({
                           <div className="font-bold text-slate-900 text-xs truncate">
                             {cat.name}
                           </div>
-                          <div className="text-[11px] text-slate-500 flex items-center gap-2 mt-0.5">
+                          <div className="text-[11px] text-slate-500 flex items-center gap-1.5 mt-0.5 flex-wrap">
                             <span className="bg-slate-100 text-slate-600 px-1.5 py-0.2 rounded font-semibold text-[10px]">
-                              Thứ tự: #{cat.display_order}
+                              #{cat.display_order}
                             </span>
-                            <span className="text-emerald-700 font-bold flex items-center gap-0.5">
+                            <span className="text-emerald-700 font-bold flex items-center gap-0.5 text-[10px]">
                               <Package className="w-3 h-3" />
                               {itemCount} món
                             </span>
@@ -460,14 +460,14 @@ export default function CategoryManagerModal({
         </div>
 
         {/* Footer */}
-        <div className="px-5 py-3.5 border-t border-slate-100 bg-slate-50 flex items-center justify-between shrink-0">
-          <span className="text-xs text-slate-500">
-            Tổng cộng: <strong>{categories.length}</strong> danh mục thực đơn
+        <div className="p-3.5 sm:px-5 sm:py-3.5 border-t border-slate-100 bg-slate-50 flex flex-col sm:flex-row items-center justify-between gap-2.5 shrink-0">
+          <span className="text-xs text-slate-500 text-center sm:text-left">
+            Tổng cộng: <strong>{categories.length}</strong> danh mục
           </span>
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-200 bg-white border border-slate-200 rounded-xl transition cursor-pointer"
+            className="w-full sm:w-auto px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-200 bg-white border border-slate-200 rounded-xl transition cursor-pointer text-center justify-center flex items-center"
           >
             Đóng
           </button>
