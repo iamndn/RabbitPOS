@@ -39,6 +39,7 @@ export default function CategoryManagerModal({
   const { t } = useTranslation();
   const { confirm, showAlert } = useConfirm();
 
+  const [localCategories, setLocalCategories] = useState<Category[]>(categories);
   const [searchQuery, setSearchQuery] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
@@ -52,6 +53,10 @@ export default function CategoryManagerModal({
   const [uploadingImg, setUploadingImg] = useState(false);
   const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+
+  React.useEffect(() => {
+    setLocalCategories(categories);
+  }, [categories]);
 
   if (!isOpen) return null;
 
@@ -68,7 +73,7 @@ export default function CategoryManagerModal({
     setEditingCategory(null);
     setName('');
     setImageUrl('');
-    setDisplayOrder(categories.length > 0 ? Math.max(...categories.map((c) => c.display_order || 0)) + 1 : 1);
+    setDisplayOrder(localCategories.length > 0 ? Math.max(...localCategories.map((c) => c.display_order || 0)) + 1 : 1);
     setErrorMsg('');
     setShowForm(true);
   };
@@ -201,13 +206,32 @@ export default function CategoryManagerModal({
       handleDragEnd();
       return;
     }
-    const currentList = [...filteredCategories];
-    const [moved] = currentList.splice(draggedIndex, 1);
-    currentList.splice(targetIndex, 0, moved);
+
+    const currentFiltered = [...filteredCategories];
+    const [moved] = currentFiltered.splice(draggedIndex, 1);
+    currentFiltered.splice(targetIndex, 0, moved);
+
+    let newFullList: Category[];
+    if (searchQuery.trim()) {
+      const movedId = moved.id;
+      const targetId = filteredCategories[targetIndex]?.id;
+      const full = [...localCategories];
+      const fromIdx = full.findIndex((c) => c.id === movedId);
+      if (fromIdx >= 0) {
+        const [fullMoved] = full.splice(fromIdx, 1);
+        const toIdx = full.findIndex((c) => c.id === targetId);
+        full.splice(toIdx >= 0 ? toIdx : full.length, 0, fullMoved);
+      }
+      newFullList = full;
+    } else {
+      newFullList = currentFiltered;
+    }
+
+    setLocalCategories(newFullList);
     handleDragEnd();
 
     try {
-      const orderedIds = currentList.map((c) => c.id);
+      const orderedIds = newFullList.map((c) => c.id);
       await fetchApi('/categories/reorder', {
         method: 'PUT',
         body: JSON.stringify({ ordered_ids: orderedIds }),
@@ -218,7 +242,7 @@ export default function CategoryManagerModal({
     }
   };
 
-  const filteredCategories = categories.filter((cat) =>
+  const filteredCategories = localCategories.filter((cat) =>
     cat.name.toLowerCase().includes(searchQuery.toLowerCase().trim())
   );
 

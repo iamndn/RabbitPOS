@@ -649,7 +649,7 @@ export default function PosPage() {
   const safeCartItems = useMemo(() => (Array.isArray(cartItems) ? cartItems : []), [cartItems]);
 
   const allAvailableTags = useMemo(() => {
-    return [...DEFAULT_SYSTEM_TAGS, ...customTags];
+    return customTags && customTags.length > 0 ? customTags : DEFAULT_SYSTEM_TAGS;
   }, [customTags]);
 
   // Memoized Filtered & Sorted Products

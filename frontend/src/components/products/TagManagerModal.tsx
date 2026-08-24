@@ -16,9 +16,7 @@ export interface CustomTag {
 export const DEFAULT_SYSTEM_TAGS: CustomTag[] = [
   { id: 'best_seller', name: 'Bán chạy', color: 'rose', icon: '🔥', is_system: true },
   { id: 'featured', name: 'Nổi bật', color: 'amber', icon: '⭐', is_system: true },
-  { id: 'new', name: 'Món mới', color: 'emerald', icon: '✨', is_system: true },
   { id: 'signature', name: 'Signature quán', color: 'indigo', icon: '👑', is_system: true },
-  { id: 'coming_soon', name: 'Sắp ra mắt', color: 'sky', icon: '⏳', is_system: true },
   { id: 'suspended', name: 'Tạm ngưng', color: 'slate', icon: '⛔', is_system: true },
 ];
 
@@ -37,8 +35,8 @@ export const TAG_COLORS: { id: string; name: string; bg: string; text: string; b
 export const TAG_ICONS = ['🏷️', '🔥', '⭐', '✨', '👑', '🍹', '☕', '🥤', '🌿', '🍨', '🍰', '🍕', '🎯', '⚡', '💎', '🏆', '❤️', '👍'];
 
 export function getTagBadgeStyle(tagId: string, customTags: CustomTag[] = []) {
-  const allTags = [...DEFAULT_SYSTEM_TAGS, ...customTags];
-  const found = allTags.find((t) => t.id === tagId);
+  const allTags = customTags && customTags.length > 0 ? customTags : DEFAULT_SYSTEM_TAGS;
+  const found = allTags.find((t) => t.id === tagId) || DEFAULT_SYSTEM_TAGS.find((t) => t.id === tagId);
   const colorId = found ? found.color : 'emerald';
   const colorDef = TAG_COLORS.find((c) => c.id === colorId) || TAG_COLORS[0];
   return {
@@ -70,7 +68,19 @@ export default function TagManagerModal({
   const { t } = useTranslation();
   const { confirm, showAlert } = useConfirm();
 
-  const [tags, setTags] = useState<CustomTag[]>(customTags);
+  // Initialize tags: if customTags is provided, filter out removed 'new' and 'coming_soon' tags
+  const getInitialTags = (rawList: CustomTag[]) => {
+    const cleaned = (rawList || []).filter((t) => t.id !== 'new' && t.id !== 'coming_soon');
+    if (cleaned.length === 0) {
+      return [...DEFAULT_SYSTEM_TAGS];
+    }
+    // Ensure standard system tags exist if not present
+    const existingIds = new Set(cleaned.map((t) => t.id));
+    const missingDefaults = DEFAULT_SYSTEM_TAGS.filter((dt) => !existingIds.has(dt.id));
+    return [...cleaned, ...missingDefaults];
+  };
+
+  const [tags, setTags] = useState<CustomTag[]>(() => getInitialTags(customTags));
   const [editingTag, setEditingTag] = useState<CustomTag | null>(null);
   const [tagName, setTagName] = useState<string>('');
   const [tagId, setTagId] = useState<string>('');
@@ -82,7 +92,7 @@ export default function TagManagerModal({
   const [dragOverTagIndex, setDragOverTagIndex] = useState<number | null>(null);
 
   React.useEffect(() => {
-    setTags(customTags);
+    setTags(getInitialTags(customTags));
   }, [customTags]);
 
   if (!isOpen) return null;
@@ -121,6 +131,29 @@ export default function TagManagerModal({
       await onSaveTags(reordered);
     } catch (err) {
       console.error('Failed to save reordered tags', err);
+    }
+  };
+
+  const handleResetToDefaults = async () => {
+    const isConfirmed = await confirm({
+      title: 'Khôi phục nhãn mặc định',
+      message: 'Bạn có chắc chắn muốn đặt lại danh sách nhãn về các nhãn mặc định hệ thống?',
+      type: 'warning',
+      confirmText: 'Khôi phục',
+      cancelText: 'Hủy',
+    });
+    if (!isConfirmed) return;
+
+    const defaultList = [...DEFAULT_SYSTEM_TAGS];
+    setSaving(true);
+    try {
+      await onSaveTags(defaultList);
+      setTags(defaultList);
+      resetForm();
+    } catch (err: any) {
+      showAlert('Lỗi', 'Không thể khôi phục: ' + err.message, 'danger');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -449,114 +482,90 @@ export default function TagManagerModal({
 
           {/* Tags List */}
           <div>
-            <h4 className="text-xs font-black uppercase text-slate-500 mb-2.5 flex items-center justify-between">
-              <span>Danh sách nhãn đang hoạt động</span>
-              <span className="text-[11px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">
-                {DEFAULT_SYSTEM_TAGS.length + tags.length} nhãn
-              </span>
-            </h4>
+            <div className="flex items-center justify-between mb-2.5">
+              <h4 className="text-xs font-black uppercase text-slate-700 flex items-center gap-1.5">
+                <Tag className="w-3.5 h-3.5 text-indigo-600" />
+                <span>Danh sách nhãn ({tags.length} nhãn)</span>
+              </h4>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleResetToDefaults}
+                  className="text-[11px] font-bold text-slate-500 hover:text-indigo-600 transition flex items-center gap-1 cursor-pointer bg-slate-100 hover:bg-slate-200 px-2 py-1 rounded-lg"
+                  title="Khôi phục về danh sách nhãn mặc định"
+                >
+                  <RefreshCw className="w-3 h-3" />
+                  <span>Khôi phục mặc định</span>
+                </button>
+              </div>
+            </div>
 
-            {/* System Default Tags */}
-            <div className="mb-4 space-y-2">
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                Nhãn hệ thống mặc định:
-              </span>
+            <p className="text-[11px] text-slate-400 mb-2">
+              💡 Kéo thả biểu tượng <span className="font-mono font-bold">⋮⋮</span> để sắp xếp thứ tự hiển thị của tất cả các nhãn (kể cả nhãn mặc định)
+            </p>
+
+            {/* Unified Drag-and-Drop Tags List */}
+            {tags.length === 0 ? (
+              <div className="p-5 sm:p-6 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-slate-400 text-xs font-semibold">
+                Chưa có nhãn nào. Hãy nhấn "Khôi phục mặc định" hoặc thêm nhãn mới từ biểu mẫu phía trên!
+              </div>
+            ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {DEFAULT_SYSTEM_TAGS.map((st) => {
-                  const style = getTagBadgeStyle(st.id);
-                  const count = productCountsByTag[st.id] || 0;
+                {tags.map((ct, idx) => {
+                  const style = getTagBadgeStyle(ct.id, tags);
+                  const count = productCountsByTag[ct.id] || 0;
+                  const isDragging = draggedTagIndex === idx;
+                  const isDragOver = dragOverTagIndex === idx && draggedTagIndex !== idx;
+
                   return (
                     <div
-                      key={st.id}
-                      className="p-2.5 sm:p-3 bg-slate-50 rounded-2xl border border-slate-200/70 flex items-center justify-between gap-2"
+                      key={ct.id}
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, idx)}
+                      onDragOver={(e) => handleDragOver(e, idx)}
+                      onDragEnd={handleDragEnd}
+                      onDrop={(e) => handleDropTag(e, idx)}
+                      className={`p-2.5 sm:p-3 bg-white rounded-2xl border shadow-2xs flex items-center justify-between gap-2 group transition cursor-move select-none ${
+                        isDragging
+                          ? 'opacity-40 scale-95 border-dashed border-indigo-400 bg-indigo-50/30'
+                          : isDragOver
+                          ? 'border-indigo-500 ring-2 ring-indigo-500/20 bg-indigo-50/20'
+                          : 'border-slate-200 hover:border-indigo-200'
+                      }`}
                     >
-                      <div className="flex items-center gap-2 min-w-0">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <GripVertical className="w-4 h-4 text-slate-300 group-hover:text-slate-500 shrink-0 cursor-grab active:cursor-grabbing" />
                         <span className={`text-xs font-bold px-2 py-0.5 rounded-lg border shrink-0 ${style.badgeClasses}`}>
-                          {st.icon} {st.name}
+                          {ct.icon} {ct.name}
                         </span>
-                        <span className="text-[10px] text-slate-400 font-mono font-medium truncate">({st.id})</span>
+                        <span className="text-[10px] text-slate-400 font-mono font-medium truncate">({ct.id})</span>
                       </div>
-                      <span className="text-[10px] font-bold text-slate-500 bg-white border border-slate-200 px-2 py-0.5 rounded-md shrink-0">
-                        {count} món
-                      </span>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span className="text-[10px] font-bold text-slate-500 bg-slate-50 border border-slate-200 px-2 py-0.5 rounded-md">
+                          {count} món
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleStartEdit(ct)}
+                          className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition cursor-pointer"
+                          title="Sửa nhãn"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteTag(ct)}
+                          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"
+                          title="Xóa nhãn"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </div>
                   );
                 })}
               </div>
-            </div>
-
-            {/* Custom User Tags */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-                  Nhãn tự tạo (Tùy chỉnh):
-                </span>
-                <span className="text-[10px] text-slate-400 font-medium">
-                  💡 Kéo thả biểu tượng ⋮⋮ để sắp xếp thứ tự
-                </span>
-              </div>
-              {tags.length === 0 ? (
-                <div className="p-5 sm:p-6 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-slate-400 text-xs font-semibold">
-                  Chưa có nhãn tự tạo nào. Sử dụng biểu mẫu phía trên để thêm nhãn mới cho menu của bạn!
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {tags.map((ct, idx) => {
-                    const style = getTagBadgeStyle(ct.id, tags);
-                    const count = productCountsByTag[ct.id] || 0;
-                    const isDragging = draggedTagIndex === idx;
-                    const isDragOver = dragOverTagIndex === idx && draggedTagIndex !== idx;
-
-                    return (
-                      <div
-                        key={ct.id}
-                        draggable
-                        onDragStart={(e) => handleDragStart(e, idx)}
-                        onDragOver={(e) => handleDragOver(e, idx)}
-                        onDragEnd={handleDragEnd}
-                        onDrop={(e) => handleDropTag(e, idx)}
-                        className={`p-2.5 sm:p-3 bg-white rounded-2xl border shadow-2xs flex items-center justify-between gap-2 group transition cursor-move select-none ${
-                          isDragging
-                            ? 'opacity-40 scale-95 border-dashed border-indigo-400 bg-indigo-50/30'
-                            : isDragOver
-                            ? 'border-indigo-500 ring-2 ring-indigo-500/20 bg-indigo-50/20'
-                            : 'border-slate-200 hover:border-indigo-200'
-                        }`}
-                      >
-                        <div className="flex items-center gap-1.5 min-w-0">
-                          <GripVertical className="w-4 h-4 text-slate-300 group-hover:text-slate-500 shrink-0 cursor-grab active:cursor-grabbing" />
-                          <span className={`text-xs font-bold px-2 py-0.5 rounded-lg border shrink-0 ${style.badgeClasses}`}>
-                            {ct.icon} {ct.name}
-                          </span>
-                          <span className="text-[10px] text-slate-400 font-mono font-medium truncate">({ct.id})</span>
-                        </div>
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          <span className="text-[10px] font-bold text-slate-500 bg-slate-50 border border-slate-200 px-2 py-0.5 rounded-md">
-                            {count} món
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => handleStartEdit(ct)}
-                            className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition cursor-pointer"
-                            title="Sửa nhãn"
-                          >
-                            <Edit2 className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteTag(ct)}
-                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"
-                            title="Xóa nhãn"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
+            )}
           </div>
         </div>
 

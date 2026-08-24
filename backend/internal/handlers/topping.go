@@ -46,7 +46,7 @@ func (h *ToppingHandler) ListToppings(c *gin.Context) {
 		query = query.Where("category_id IS NULL OR category_id = ?", catID)
 	}
 
-	if err := query.Order("display_order asc, name asc").Find(&toppings).Error; err != nil {
+	if err := query.Order("display_order asc, id asc").Find(&toppings).Error; err != nil {
 		models.SendInternalErrorLogged(c, "Failed to retrieve toppings", err)
 		return
 	}
@@ -69,7 +69,7 @@ func (h *ToppingHandler) ListAllToppings(c *gin.Context) {
 	}
 
 	toppings := make([]models.Topping, 0)
-	if err := h.db.Order("display_order asc, name asc").Find(&toppings).Error; err != nil {
+	if err := h.db.Order("display_order asc, id asc").Find(&toppings).Error; err != nil {
 		models.SendInternalErrorLogged(c, "Failed to retrieve toppings", err)
 		return
 	}

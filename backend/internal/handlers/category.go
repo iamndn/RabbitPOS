@@ -32,7 +32,7 @@ func (h *CategoryHandler) ListCategories(c *gin.Context) {
 	}
 
 	categories := make([]models.Category, 0)
-	if err := h.db.Order("display_order asc, name asc").Find(&categories).Error; err != nil {
+	if err := h.db.Order("display_order asc, id asc").Find(&categories).Error; err != nil {
 		models.SendInternalErrorLogged(c, "Failed to retrieve categories", err)
 		return
 	}

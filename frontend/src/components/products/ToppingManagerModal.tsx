@@ -40,6 +40,7 @@ export default function ToppingManagerModal({
   const { t } = useTranslation();
   const { confirm, showAlert } = useConfirm();
 
+  const [localToppings, setLocalToppings] = useState<Topping[]>(toppings);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCatFilter, setSelectedCatFilter] = useState<string>('all');
   const [showForm, setShowForm] = useState(false);
@@ -55,6 +56,10 @@ export default function ToppingManagerModal({
   const [toppingIsActive, setToppingIsActive] = useState<boolean>(true);
   const [saving, setSaving] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string>('');
+
+  React.useEffect(() => {
+    setLocalToppings(toppings);
+  }, [toppings]);
 
   if (!isOpen) return null;
 
@@ -216,13 +221,33 @@ export default function ToppingManagerModal({
       handleDragEnd();
       return;
     }
-    const currentList = [...filteredToppings];
-    const [moved] = currentList.splice(draggedIndex, 1);
-    currentList.splice(targetIndex, 0, moved);
+
+    const currentFiltered = [...filteredToppings];
+    const [moved] = currentFiltered.splice(draggedIndex, 1);
+    currentFiltered.splice(targetIndex, 0, moved);
+
+    let newFullList: Topping[];
+    const isFiltered = searchQuery.trim() !== '' || selectedCatFilter !== 'all';
+    if (isFiltered) {
+      const movedId = moved.id;
+      const targetId = filteredToppings[targetIndex]?.id;
+      const full = [...localToppings];
+      const fromIdx = full.findIndex((t) => t.id === movedId);
+      if (fromIdx >= 0) {
+        const [fullMoved] = full.splice(fromIdx, 1);
+        const toIdx = full.findIndex((t) => t.id === targetId);
+        full.splice(toIdx >= 0 ? toIdx : full.length, 0, fullMoved);
+      }
+      newFullList = full;
+    } else {
+      newFullList = currentFiltered;
+    }
+
+    setLocalToppings(newFullList);
     handleDragEnd();
 
     try {
-      const orderedIds = currentList.map((t) => t.id);
+      const orderedIds = newFullList.map((t) => t.id);
       await fetchApi('/toppings/reorder', {
         method: 'PUT',
         body: JSON.stringify({ ordered_ids: orderedIds }),
@@ -233,7 +258,7 @@ export default function ToppingManagerModal({
     }
   };
 
-  const filteredToppings = toppings.filter((tp) => {
+  const filteredToppings = localToppings.filter((tp) => {
     const matchesSearch = tp.name.toLowerCase().includes(searchQuery.toLowerCase().trim());
     if (!matchesSearch) return false;
 

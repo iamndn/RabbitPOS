@@ -35,6 +35,7 @@ export default function TransactionCategoryModal({
   const { t } = useTranslation();
   const { showAlert } = useConfirm();
 
+  const [localCategories, setLocalCategories] = useState<TransactionCategory[]>(categories);
   const [activeFilter, setActiveFilter] = useState<'all' | 'outflow' | 'inflow'>('all');
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [editingCategory, setEditingCategory] = useState<TransactionCategory | null>(null);
@@ -59,9 +60,13 @@ export default function TransactionCategoryModal({
   const [deletingCategory, setDeletingCategory] = useState<TransactionCategory | null>(null);
   const [deleteSubmitting, setDeleteSubmitting] = useState<boolean>(false);
 
+  React.useEffect(() => {
+    setLocalCategories(categories);
+  }, [categories]);
+
   if (!isOpen) return null;
 
-  const filteredCategories = categories.filter((cat) => {
+  const filteredCategories = localCategories.filter((cat) => {
     if (activeFilter === 'all') return true;
     return cat.type === activeFilter || cat.type === 'both';
   });
@@ -180,13 +185,32 @@ export default function TransactionCategoryModal({
       handleDragEnd();
       return;
     }
-    const currentList = [...filteredCategories];
-    const [moved] = currentList.splice(draggedIndex, 1);
-    currentList.splice(targetIndex, 0, moved);
+
+    const currentFiltered = [...filteredCategories];
+    const [moved] = currentFiltered.splice(draggedIndex, 1);
+    currentFiltered.splice(targetIndex, 0, moved);
+
+    let newFullList: TransactionCategory[];
+    if (activeFilter !== 'all') {
+      const movedId = moved.id;
+      const targetId = filteredCategories[targetIndex]?.id;
+      const full = [...localCategories];
+      const fromIdx = full.findIndex((c) => c.id === movedId);
+      if (fromIdx >= 0) {
+        const [fullMoved] = full.splice(fromIdx, 1);
+        const toIdx = full.findIndex((c) => c.id === targetId);
+        full.splice(toIdx >= 0 ? toIdx : full.length, 0, fullMoved);
+      }
+      newFullList = full;
+    } else {
+      newFullList = currentFiltered;
+    }
+
+    setLocalCategories(newFullList);
     handleDragEnd();
 
     try {
-      const orderedIds = currentList.map((c) => c.id);
+      const orderedIds = newFullList.map((c) => c.id);
       await fetchApi('/transaction-categories/reorder', {
         method: 'PUT',
         body: JSON.stringify({ ordered_ids: orderedIds }),

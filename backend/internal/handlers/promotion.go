@@ -44,7 +44,7 @@ func (h *PromotionHandler) GetActivePromotions(c *gin.Context) {
 func (h *PromotionHandler) ListPromotions(c *gin.Context) {
 	var promotions []models.Promotion
 
-	if err := h.db.Preload("GiftVariant").Order("display_order asc, created_at desc").Find(&promotions).Error; err != nil {
+	if err := h.db.Preload("GiftVariant").Order("display_order asc, id asc").Find(&promotions).Error; err != nil {
 		models.SendInternalError(c, "Failed to retrieve promotions: "+err.Error())
 		return
 	}

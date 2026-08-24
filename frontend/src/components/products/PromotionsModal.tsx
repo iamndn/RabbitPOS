@@ -87,6 +87,10 @@ export default function PromotionsModal({ isOpen, onClose, settings: initialSett
   const [formUsageLimit, setFormUsageLimit] = useState<number>(0);
   const [formIsActive, setFormIsActive] = useState<boolean>(true);
 
+  // Drag & drop sorting
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+
   const loadData = async () => {
     setLoading(true);
 
@@ -253,10 +257,6 @@ export default function PromotionsModal({ isOpen, onClose, settings: initialSett
     }
   };
 
-  // Filtered list
-  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
-  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
-
   const handleDragStart = (e: React.DragEvent, index: number) => {
     setDraggedIndex(index);
     e.dataTransfer.effectAllowed = 'move';
@@ -282,13 +282,32 @@ export default function PromotionsModal({ isOpen, onClose, settings: initialSett
       handleDragEnd();
       return;
     }
-    const currentList = [...filteredPromos];
-    const [moved] = currentList.splice(draggedIndex, 1);
-    currentList.splice(targetIndex, 0, moved);
+    const currentFiltered = [...filteredPromos];
+    const [moved] = currentFiltered.splice(draggedIndex, 1);
+    currentFiltered.splice(targetIndex, 0, moved);
+
+    let newFullList: Promotion[];
+    const isFiltered = searchQuery.trim() !== '' || typeFilter !== 'all';
+    if (isFiltered) {
+      const movedId = moved.id;
+      const targetId = filteredPromos[targetIndex]?.id;
+      const full = [...promotions];
+      const fromIdx = full.findIndex((p) => p.id === movedId);
+      if (fromIdx >= 0) {
+        const [fullMoved] = full.splice(fromIdx, 1);
+        const toIdx = full.findIndex((p) => p.id === targetId);
+        full.splice(toIdx >= 0 ? toIdx : full.length, 0, fullMoved);
+      }
+      newFullList = full;
+    } else {
+      newFullList = currentFiltered;
+    }
+
+    setPromotions(newFullList);
     handleDragEnd();
 
     try {
-      const orderedIds = currentList.map((p) => p.id);
+      const orderedIds = newFullList.map((p) => p.id);
       await fetchApi('/promotions/reorder', {
         method: 'PUT',
         body: JSON.stringify({ ordered_ids: orderedIds }),

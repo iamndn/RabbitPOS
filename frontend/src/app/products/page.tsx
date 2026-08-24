@@ -428,7 +428,7 @@ export default function ProductsPage() {
   }, [safeProducts]);
 
   const allAvailableTags = useMemo(() => {
-    return [...DEFAULT_SYSTEM_TAGS, ...customTags];
+    return customTags && customTags.length > 0 ? customTags : DEFAULT_SYSTEM_TAGS;
   }, [customTags]);
 
   const totalVariantsCount = useMemo(() => {

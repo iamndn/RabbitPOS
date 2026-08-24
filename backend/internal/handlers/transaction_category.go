@@ -29,7 +29,7 @@ func (h *TransactionCategoryHandler) ListCategories(c *gin.Context) {
 	}
 
 	categories := make([]models.TransactionCategoryItem, 0)
-	if err := query.Order("display_order asc, is_default desc, is_system desc, id asc").Find(&categories).Error; err != nil {
+	if err := query.Order("display_order asc, id asc").Find(&categories).Error; err != nil {
 		models.SendInternalError(c, "Failed to retrieve transaction categories: "+err.Error())
 		return
 	}
