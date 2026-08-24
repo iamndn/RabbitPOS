@@ -37,6 +37,7 @@ type Promotion struct {
 	EndDate              *time.Time      `gorm:"index"                                    json:"end_date,omitempty"`
 	UsageLimit           int             `gorm:"not null;default:0"                       json:"usage_limit"`
 	UsageCount           int             `gorm:"not null;default:0"                       json:"usage_count"`
+	DisplayOrder         int             `gorm:"default:0;index"                          json:"display_order"`
 	IsActive             bool            `gorm:"not null;default:true;index"              json:"is_active"`
 	CreatedAt            time.Time       `json:"created_at"`
 	UpdatedAt            time.Time       `json:"updated_at"`
@@ -82,6 +83,7 @@ type CreatePromotionRequest struct {
 	StartDate            *time.Time `json:"start_date"`
 	EndDate              *time.Time `json:"end_date"`
 	UsageLimit           int        `json:"usage_limit"            binding:"gte=0"`
+	DisplayOrder         int        `json:"display_order"`
 	IsActive             *bool      `json:"is_active"`
 }
 
@@ -97,5 +99,6 @@ type UpdatePromotionRequest struct {
 	StartDate            *time.Time  `json:"start_date"`
 	EndDate              *time.Time  `json:"end_date"`
 	UsageLimit           *int        `json:"usage_limit"            binding:"omitempty,gte=0"`
+	DisplayOrder         *int        `json:"display_order"`
 	IsActive             *bool       `json:"is_active"`
 }

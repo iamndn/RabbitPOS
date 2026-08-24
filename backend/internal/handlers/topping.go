@@ -46,7 +46,7 @@ func (h *ToppingHandler) ListToppings(c *gin.Context) {
 		query = query.Where("category_id IS NULL OR category_id = ?", catID)
 	}
 
-	if err := query.Order("name asc").Find(&toppings).Error; err != nil {
+	if err := query.Order("display_order asc, name asc").Find(&toppings).Error; err != nil {
 		models.SendInternalErrorLogged(c, "Failed to retrieve toppings", err)
 		return
 	}
@@ -69,7 +69,7 @@ func (h *ToppingHandler) ListAllToppings(c *gin.Context) {
 	}
 
 	toppings := make([]models.Topping, 0)
-	if err := h.db.Order("name asc").Find(&toppings).Error; err != nil {
+	if err := h.db.Order("display_order asc, name asc").Find(&toppings).Error; err != nil {
 		models.SendInternalErrorLogged(c, "Failed to retrieve toppings", err)
 		return
 	}
@@ -95,11 +95,12 @@ func (h *ToppingHandler) CreateTopping(c *gin.Context) {
 	}
 
 	topping := models.Topping{
-		Name:       req.Name,
-		Price:      req.Price,
-		COGS:       req.COGS,
-		CategoryID: req.CategoryID,
-		IsActive:   isActive,
+		Name:         req.Name,
+		Price:        req.Price,
+		COGS:         req.COGS,
+		CategoryID:   req.CategoryID,
+		DisplayOrder: req.DisplayOrder,
+		IsActive:     isActive,
 	}
 
 	if err := h.db.Create(&topping).Error; err != nil {
@@ -145,6 +146,9 @@ func (h *ToppingHandler) UpdateTopping(c *gin.Context) {
 	topping.Price = req.Price
 	topping.COGS = req.COGS
 	topping.CategoryID = req.CategoryID
+	if req.DisplayOrder != nil {
+		topping.DisplayOrder = *req.DisplayOrder
+	}
 	if req.IsActive != nil {
 		topping.IsActive = *req.IsActive
 	}
@@ -180,4 +184,35 @@ func (h *ToppingHandler) DeleteTopping(c *gin.Context) {
 	}
 
 	models.SendSuccess(c, http.StatusOK, nil, "Topping deleted successfully")
+}
+
+// ReorderToppings updates the display_order of multiple toppings based on the provided ordered IDs
+func (h *ToppingHandler) ReorderToppings(c *gin.Context) {
+	var req struct {
+		OrderedIDs []uint `json:"ordered_ids" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		models.SendError(c, http.StatusBadRequest, "Invalid request payload: ordered_ids required")
+		return
+	}
+
+	err := h.db.Transaction(func(tx *gorm.DB) error {
+		for idx, id := range req.OrderedIDs {
+			if err := tx.Model(&models.Topping{}).Where("id = ?", id).Update("display_order", idx+1).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+
+	if err != nil {
+		models.SendInternalErrorLogged(c, "Failed to reorder toppings", err)
+		return
+	}
+
+	if h.cache != nil {
+		h.cache.InvalidatePrefix("toppings:")
+	}
+
+	models.SendSuccess(c, http.StatusOK, gin.H{"count": len(req.OrderedIDs)}, "Toppings reordered successfully")
 }

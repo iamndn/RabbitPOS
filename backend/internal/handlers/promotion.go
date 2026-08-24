@@ -29,7 +29,7 @@ func (h *PromotionHandler) GetActivePromotions(c *gin.Context) {
 		Where("end_date IS NULL OR end_date >= ?", now).
 		Where("usage_limit = 0 OR usage_count < usage_limit").
 		Preload("GiftVariant").
-		Order("created_at desc").
+		Order("display_order asc, created_at desc").
 		Find(&promotions).Error
 
 	if err != nil {
@@ -44,7 +44,7 @@ func (h *PromotionHandler) GetActivePromotions(c *gin.Context) {
 func (h *PromotionHandler) ListPromotions(c *gin.Context) {
 	var promotions []models.Promotion
 
-	if err := h.db.Preload("GiftVariant").Order("created_at desc").Find(&promotions).Error; err != nil {
+	if err := h.db.Preload("GiftVariant").Order("display_order asc, created_at desc").Find(&promotions).Error; err != nil {
 		models.SendInternalError(c, "Failed to retrieve promotions: "+err.Error())
 		return
 	}
@@ -90,6 +90,7 @@ func (h *PromotionHandler) CreatePromotion(c *gin.Context) {
 		EndDate:              req.EndDate,
 		UsageLimit:           req.UsageLimit,
 		UsageCount:           0,
+		DisplayOrder:         req.DisplayOrder,
 		IsActive:             isActive,
 	}
 
@@ -166,6 +167,9 @@ func (h *PromotionHandler) UpdatePromotion(c *gin.Context) {
 	if req.UsageLimit != nil {
 		updates["usage_limit"] = *req.UsageLimit
 	}
+	if req.DisplayOrder != nil {
+		updates["display_order"] = *req.DisplayOrder
+	}
 	if req.IsActive != nil {
 		updates["is_active"] = *req.IsActive
 	}
@@ -216,4 +220,31 @@ func (h *PromotionHandler) DeletePromotion(c *gin.Context) {
 
 	tx.Commit()
 	models.SendSuccess(c, http.StatusOK, nil, "Promotion deleted successfully")
+}
+
+// ReorderPromotions updates the display_order of multiple promotions based on the provided ordered IDs
+func (h *PromotionHandler) ReorderPromotions(c *gin.Context) {
+	var req struct {
+		OrderedIDs []uint `json:"ordered_ids" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		models.SendError(c, http.StatusBadRequest, "Invalid request payload: ordered_ids required")
+		return
+	}
+
+	err := h.db.Transaction(func(tx *gorm.DB) error {
+		for idx, id := range req.OrderedIDs {
+			if err := tx.Model(&models.Promotion{}).Where("id = ?", id).Update("display_order", idx+1).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+
+	if err != nil {
+		models.SendInternalError(c, "Failed to reorder promotions: "+err.Error())
+		return
+	}
+
+	models.SendSuccess(c, http.StatusOK, gin.H{"count": len(req.OrderedIDs)}, "Promotions reordered successfully")
 }

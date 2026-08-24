@@ -42,8 +42,40 @@ func (h *TransactionHandler) ListTransactions(c *gin.Context) {
 		query = query.Where("transaction_type = ?", txType)
 	}
 
-	if category := c.Query("category"); category != "" {
-		query = query.Where("category = ?", category)
+	if category := strings.TrimSpace(c.Query("category")); category != "" && category != "all" {
+		categoryAliases := map[string][]string{
+			"sale":                    {"sale", "Doanh thu bán hàng POS", "Doanh thu bán hàng", "Bán hàng"},
+			"Doanh thu bán hàng POS": {"sale", "Doanh thu bán hàng POS", "Doanh thu bán hàng", "Bán hàng"},
+			"Doanh thu bán hàng":     {"sale", "Doanh thu bán hàng POS", "Doanh thu bán hàng", "Bán hàng"},
+			"ingredient_purchase":     {"ingredient_purchase", "Mua nguyên liệu", "Mua nguyên vật liệu", "Nguyên liệu"},
+			"Mua nguyên liệu":         {"ingredient_purchase", "Mua nguyên liệu", "Mua nguyên vật liệu", "Nguyên liệu"},
+			"utility_bill":            {"utility_bill", "Chi phí vận hành", "Vận hành"},
+			"Chi phí vận hành":        {"utility_bill", "Chi phí vận hành", "Vận hành"},
+			"reconciliation_variance": {"reconciliation_variance", "Chênh lệch đối soát", "Chênh lệch đối soát két"},
+			"Chênh lệch đối soát két": {"reconciliation_variance", "Chênh lệch đối soát", "Chênh lệch đối soát két"},
+			"Chênh lệch đối soát":     {"reconciliation_variance", "Chênh lệch đối soát", "Chênh lệch đối soát két"},
+			"other":                   {"other", "Chi phí khác", "Thu khác", "Khác"},
+			"Chi phí khác":            {"other", "Chi phí khác", "Thu khác", "Khác"},
+			"Khác":                    {"other", "Chi phí khác", "Thu khác", "Khác"},
+		}
+
+		if aliases, found := categoryAliases[category]; found {
+			query = query.Where("category IN ?", aliases)
+		} else {
+			var catItem models.TransactionCategoryItem
+			if err := h.db.Where("code = ? OR name = ?", category, category).First(&catItem).Error; err == nil {
+				names := []string{category}
+				if catItem.Code != "" {
+					names = append(names, catItem.Code)
+				}
+				if catItem.Name != "" {
+					names = append(names, catItem.Name)
+				}
+				query = query.Where("category IN ?", names)
+			} else {
+				query = query.Where("category = ?", category)
+			}
+		}
 	}
 
 	pageStr := c.Query("page")
@@ -635,31 +667,72 @@ func (h *TransactionHandler) GetCategoryBreakdown(c *gin.Context) {
 		totalCount += rc.Count
 	}
 
-	categoryLabels := map[string]string{
-		"ingredient_purchase":     "Mua nguyên liệu (Sữa, Cà phê, Đá)",
-		"utility_bill":            "Chi phí vận hành (Điện, Nước, Net)",
-		"sale":                    "Doanh thu bán hàng POS",
-		"reconciliation_variance": "Chênh lệch đối soát két",
-		"other":                   "Chi phí khác",
+	canonicalMap := map[string]struct {
+		Label string
+		Code  string
+	}{
+		"sale":                    {Label: "Doanh thu bán hàng POS", Code: "sale"},
+		"doanh thu bán hàng pos": {Label: "Doanh thu bán hàng POS", Code: "sale"},
+		"doanh thu bán hàng":     {Label: "Doanh thu bán hàng POS", Code: "sale"},
+		"ingredient_purchase":     {Label: "Mua nguyên liệu (Sữa, Cà phê, Đá)", Code: "ingredient_purchase"},
+		"mua nguyên liệu":         {Label: "Mua nguyên liệu (Sữa, Cà phê, Đá)", Code: "ingredient_purchase"},
+		"utility_bill":            {Label: "Chi phí vận hành (Điện, Nước, Net)", Code: "utility_bill"},
+		"chi phí vận hành":        {Label: "Chi phí vận hành (Điện, Nước, Net)", Code: "utility_bill"},
+		"reconciliation_variance": {Label: "Chênh lệch đối soát két", Code: "reconciliation_variance"},
+		"chênh lệch đối soát két": {Label: "Chênh lệch đối soát két", Code: "reconciliation_variance"},
+		"chênh lệch đối soát":     {Label: "Chênh lệch đối soát két", Code: "reconciliation_variance"},
+		"other":                   {Label: "Chi phí khác", Code: "other"},
+		"chi phí khác":            {Label: "Chi phí khác", Code: "other"},
+	}
+
+	type MergedItem struct {
+		Category string
+		Label    string
+		Amount   float64
+		Count    int64
+	}
+
+	mergedMap := make(map[string]*MergedItem)
+	orderedKeys := make([]string, 0)
+
+	for _, rc := range rawCategories {
+		normKey := strings.ToLower(strings.TrimSpace(rc.Category))
+		code := rc.Category
+		label := strings.ReplaceAll(rc.Category, "_", " ")
+
+		if canon, exists := canonicalMap[normKey]; exists {
+			code = canon.Code
+			label = canon.Label
+		}
+
+		if item, exists := mergedMap[code]; exists {
+			item.Amount += rc.TotalAmount
+			item.Count += rc.Count
+		} else {
+			mergedMap[code] = &MergedItem{
+				Category: code,
+				Label:    label,
+				Amount:   rc.TotalAmount,
+				Count:    rc.Count,
+			}
+			orderedKeys = append(orderedKeys, code)
+		}
 	}
 
 	categories := make([]models.CategoryBreakdownItem, 0)
-	for _, rc := range rawCategories {
+	for _, key := range orderedKeys {
+		item := mergedMap[key]
 		var pct float64 = 0
 		if totalAmount > 0 {
-			pct = math.Round((rc.TotalAmount/totalAmount)*1000) / 10
-		}
-		label, ok := categoryLabels[rc.Category]
-		if !ok {
-			label = strings.ReplaceAll(rc.Category, "_", " ")
+			pct = math.Round((item.Amount/totalAmount)*1000) / 10
 		}
 
 		categories = append(categories, models.CategoryBreakdownItem{
-			Category:      rc.Category,
-			CategoryLabel: label,
-			TotalAmount:   rc.TotalAmount,
+			Category:      item.Category,
+			CategoryLabel: item.Label,
+			TotalAmount:   item.Amount,
 			Percentage:    pct,
-			Count:         rc.Count,
+			Count:         item.Count,
 		})
 	}
 

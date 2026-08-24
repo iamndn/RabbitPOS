@@ -8,15 +8,16 @@ import (
 // Topping represents an add-on item available for drinks
 // If CategoryID is nil, the topping is considered global (available for all products)
 type Topping struct {
-	ID         uint      `gorm:"primaryKey"                          json:"id"`
-	Name       string    `gorm:"type:varchar(100);not null"          json:"name"`
-	Price      float64   `gorm:"type:numeric(15,2);not null;default:0" json:"price"`
-	COGS       float64   `gorm:"type:numeric(15,2);not null;default:0" json:"cogs"`
-	CategoryID *uint     `gorm:"index"                               json:"category_id"`
-	Category   *Category `gorm:"foreignKey:CategoryID"               json:"category,omitempty"`
-	IsActive   bool      `gorm:"not null;default:true"               json:"is_active"`
-	CreatedAt  time.Time `json:"created_at"`
-	UpdatedAt  time.Time `json:"updated_at"`
+	ID           uint      `gorm:"primaryKey"                          json:"id"`
+	Name         string    `gorm:"type:varchar(100);not null"          json:"name"`
+	Price        float64   `gorm:"type:numeric(15,2);not null;default:0" json:"price"`
+	COGS         float64   `gorm:"type:numeric(15,2);not null;default:0" json:"cogs"`
+	CategoryID   *uint     `gorm:"index"                               json:"category_id"`
+	Category     *Category `gorm:"foreignKey:CategoryID"               json:"category,omitempty"`
+	DisplayOrder int       `gorm:"default:0;index"                     json:"display_order"`
+	IsActive     bool      `gorm:"not null;default:true"               json:"is_active"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
 }
 
 // ToppingSnapshot is the denormalized record stored in order_items.selected_toppings JSONB
@@ -54,17 +55,19 @@ func UnmarshalToppingSnapshots(raw string) ([]ToppingSnapshot, error) {
 // --- DTOs ---
 
 type CreateToppingRequest struct {
-	Name       string  `json:"name"        binding:"required,min=1,max=100"`
-	Price      float64 `json:"price"       binding:"gte=0"`
-	COGS       float64 `json:"cogs"`
-	CategoryID *uint   `json:"category_id"`
-	IsActive   *bool   `json:"is_active"`
+	Name         string  `json:"name"          binding:"required,min=1,max=100"`
+	Price        float64 `json:"price"         binding:"gte=0"`
+	COGS         float64 `json:"cogs"`
+	CategoryID   *uint   `json:"category_id"`
+	DisplayOrder int     `json:"display_order"`
+	IsActive     *bool   `json:"is_active"`
 }
 
 type UpdateToppingRequest struct {
-	Name       string  `json:"name"        binding:"omitempty,min=1,max=100"`
-	Price      float64 `json:"price"       binding:"gte=0"`
-	COGS       float64 `json:"cogs"`
-	CategoryID *uint   `json:"category_id"`
-	IsActive   *bool   `json:"is_active"`
+	Name         string  `json:"name"          binding:"omitempty,min=1,max=100"`
+	Price        float64 `json:"price"         binding:"gte=0"`
+	COGS         float64 `json:"cogs"`
+	CategoryID   *uint   `json:"category_id"`
+	DisplayOrder *int    `json:"display_order"`
+	IsActive     *bool   `json:"is_active"`
 }

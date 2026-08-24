@@ -125,6 +125,7 @@ func SetupRouter(cfg *config.Config, db *gorm.DB, emailSvc *services.EmailServic
 
 				// Catalog Management Mutations
 				adminOnly.POST("/categories", categoryHandler.CreateCategory)
+				adminOnly.PUT("/categories/reorder", categoryHandler.ReorderCategories)
 				adminOnly.PUT("/categories/:id", categoryHandler.UpdateCategory)
 				adminOnly.DELETE("/categories/:id", categoryHandler.DeleteCategory)
 
@@ -145,17 +146,20 @@ func SetupRouter(cfg *config.Config, db *gorm.DB, emailSvc *services.EmailServic
 
 				// Topping Management (admin only writes)
 				adminOnly.POST("/toppings", toppingHandler.CreateTopping)
+				adminOnly.PUT("/toppings/reorder", toppingHandler.ReorderToppings)
 				adminOnly.PUT("/toppings/:id", toppingHandler.UpdateTopping)
 				adminOnly.DELETE("/toppings/:id", toppingHandler.DeleteTopping)
 
 				// Promotion Management (admin only CRUD)
 				adminOnly.GET("/promotions", promotionHandler.ListPromotions)
 				adminOnly.POST("/promotions", promotionHandler.CreatePromotion)
+				adminOnly.PUT("/promotions/reorder", promotionHandler.ReorderPromotions)
 				adminOnly.PUT("/promotions/:id", promotionHandler.UpdatePromotion)
 				adminOnly.DELETE("/promotions/:id", promotionHandler.DeletePromotion)
 
 				// Transaction Category Management (admin only mutations)
 				adminOnly.POST("/transaction-categories", txCategoryHandler.CreateCategory)
+				adminOnly.PUT("/transaction-categories/reorder", txCategoryHandler.ReorderCategories)
 				adminOnly.PUT("/transaction-categories/:id", txCategoryHandler.UpdateCategory)
 				adminOnly.POST("/transaction-categories/:id/set-default", txCategoryHandler.SetDefaultCategory)
 				adminOnly.DELETE("/transaction-categories/:id", txCategoryHandler.DeleteCategory)

@@ -29,7 +29,7 @@ func (h *TransactionCategoryHandler) ListCategories(c *gin.Context) {
 	}
 
 	categories := make([]models.TransactionCategoryItem, 0)
-	if err := query.Order("is_default desc, is_system desc, id asc").Find(&categories).Error; err != nil {
+	if err := query.Order("display_order asc, is_default desc, is_system desc, id asc").Find(&categories).Error; err != nil {
 		models.SendInternalError(c, "Failed to retrieve transaction categories: "+err.Error())
 		return
 	}
@@ -73,11 +73,12 @@ func (h *TransactionCategoryHandler) CreateCategory(c *gin.Context) {
 	}
 
 	category := models.TransactionCategoryItem{
-		Name:      trimmedName,
-		Type:      req.Type,
-		Code:      req.Code,
-		IsDefault: isDefault,
-		IsSystem:  false,
+		Name:         trimmedName,
+		Type:         req.Type,
+		Code:         req.Code,
+		DisplayOrder: req.DisplayOrder,
+		IsDefault:    isDefault,
+		IsSystem:     false,
 	}
 
 	if err := h.db.Create(&category).Error; err != nil {
@@ -133,6 +134,9 @@ func (h *TransactionCategoryHandler) UpdateCategory(c *gin.Context) {
 
 	category.Name = trimmedName
 	category.Type = req.Type
+	if req.DisplayOrder != nil {
+		category.DisplayOrder = *req.DisplayOrder
+	}
 
 	if req.IsDefault != nil {
 		if *req.IsDefault {
@@ -216,4 +220,31 @@ func (h *TransactionCategoryHandler) DeleteCategory(c *gin.Context) {
 	}
 
 	models.SendSuccess(c, http.StatusOK, gin.H{"id": id}, "Transaction category deleted successfully")
+}
+
+// ReorderCategories updates the display_order of multiple transaction categories based on the provided ordered IDs
+func (h *TransactionCategoryHandler) ReorderCategories(c *gin.Context) {
+	var req struct {
+		OrderedIDs []uint `json:"ordered_ids" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		models.SendError(c, http.StatusBadRequest, "Invalid request payload: ordered_ids required")
+		return
+	}
+
+	err := h.db.Transaction(func(tx *gorm.DB) error {
+		for idx, id := range req.OrderedIDs {
+			if err := tx.Model(&models.TransactionCategoryItem{}).Where("id = ?", id).Update("display_order", idx+1).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+
+	if err != nil {
+		models.SendInternalError(c, "Failed to reorder transaction categories: "+err.Error())
+		return
+	}
+
+	models.SendSuccess(c, http.StatusOK, gin.H{"count": len(req.OrderedIDs)}, "Transaction categories reordered successfully")
 }

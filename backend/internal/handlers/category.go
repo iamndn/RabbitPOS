@@ -156,3 +156,34 @@ func (h *CategoryHandler) DeleteCategory(c *gin.Context) {
 
 	models.SendSuccess(c, http.StatusOK, nil, "Category deleted successfully")
 }
+
+// ReorderCategories updates the display_order of multiple categories based on the provided ordered IDs
+func (h *CategoryHandler) ReorderCategories(c *gin.Context) {
+	var req struct {
+		OrderedIDs []uint `json:"ordered_ids" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		models.SendError(c, http.StatusBadRequest, "Invalid request payload: ordered_ids required")
+		return
+	}
+
+	err := h.db.Transaction(func(tx *gorm.DB) error {
+		for idx, id := range req.OrderedIDs {
+			if err := tx.Model(&models.Category{}).Where("id = ?", id).Update("display_order", idx+1).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+
+	if err != nil {
+		models.SendInternalErrorLogged(c, "Failed to reorder categories", err)
+		return
+	}
+
+	if h.cache != nil {
+		h.cache.Invalidate(categoriesCacheKey)
+	}
+
+	models.SendSuccess(c, http.StatusOK, gin.H{"count": len(req.OrderedIDs)}, "Categories reordered successfully")
+}
