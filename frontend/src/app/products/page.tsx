@@ -93,7 +93,41 @@ export default function ProductsPage() {
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const [selectedTag, setSelectedTag] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
+  const [isFilterInitialized, setIsFilterInitialized] = useState<boolean>(false);
   const [settings, setSettings] = useState<SettingsMap | null>(null);
+
+  // Restore saved filters on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = sessionStorage.getItem('rabbitpos_filter_products');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed.selectedCategory !== undefined) setSelectedCategory(parsed.selectedCategory);
+          if (parsed.selectedTag !== undefined) setSelectedTag(parsed.selectedTag);
+          if (parsed.selectedStatus !== undefined) setSelectedStatus(parsed.selectedStatus);
+        }
+      } catch {}
+      setIsFilterInitialized(true);
+    }
+  }, []);
+
+  // Save filters to sessionStorage when changed
+  useEffect(() => {
+    if (!isFilterInitialized) return;
+    if (typeof window !== 'undefined') {
+      try {
+        sessionStorage.setItem(
+          'rabbitpos_filter_products',
+          JSON.stringify({
+            selectedCategory,
+            selectedTag,
+            selectedStatus,
+          })
+        );
+      } catch {}
+    }
+  }, [isFilterInitialized, selectedCategory, selectedTag, selectedStatus]);
 
   // Popup Modal States
   const [isFilterModalOpen, setIsFilterModalOpen] = useState<boolean>(false);

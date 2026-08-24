@@ -51,10 +51,46 @@ export default function DashboardPage() {
   // Active View Tab: 'revenue' | 'profit'
   const [activeTab, setActiveTab] = useState<'revenue' | 'profit'>('revenue');
 
-  // Timeframe Filter
+  // Timeframe Filter (Persistent across navigation and refreshes)
   const [period, setPeriod] = useState<DatePeriod>('today');
   const [customFrom, setCustomFrom] = useState<string>(() => getLocalDateStr());
   const [customTo, setCustomTo] = useState<string>(() => getLocalDateStr());
+  const [isFilterInitialized, setIsFilterInitialized] = useState<boolean>(false);
+
+  // Restore saved dashboard filters on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = sessionStorage.getItem('rabbitpos_filter_dashboard');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed.period !== undefined) setPeriod(parsed.period);
+          if (parsed.customFrom !== undefined) setCustomFrom(parsed.customFrom);
+          if (parsed.customTo !== undefined) setCustomTo(parsed.customTo);
+          if (parsed.activeTab !== undefined) setActiveTab(parsed.activeTab);
+        }
+      } catch {}
+      setIsFilterInitialized(true);
+    }
+  }, []);
+
+  // Save dashboard filters to sessionStorage when changed
+  useEffect(() => {
+    if (!isFilterInitialized) return;
+    if (typeof window !== 'undefined') {
+      try {
+        sessionStorage.setItem(
+          'rabbitpos_filter_dashboard',
+          JSON.stringify({
+            period,
+            customFrom,
+            customTo,
+            activeTab,
+          })
+        );
+      } catch {}
+    }
+  }, [isFilterInitialized, period, customFrom, customTo, activeTab]);
 
   // Analytics Data States
   const [revenueData, setRevenueData] = useState<RevenueAnalyticsResponse | null>(null);

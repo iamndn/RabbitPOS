@@ -168,7 +168,7 @@ export default function TransactionsPage() {
     setTimeout(() => setReconcileToast(null), 5000);
   };
 
-  // Filters for Transactions
+  // Filters for Transactions (Persistent across navigation and refreshes)
   const [txSearchQuery, setTxSearchQuery] = useState<string>('');
   const [debouncedTxSearch, setDebouncedTxSearch] = useState<string>('');
   const [selectedFundId, setSelectedFundId] = useState<number | null>(null);
@@ -189,8 +189,29 @@ export default function TransactionsPage() {
   const PAGE_SIZE = 25;
   const [txPage, setTxPage] = useState<number>(1);
   const [orderPage, setOrderPage] = useState<number>(1);
+  const [isFilterInitialized, setIsFilterInitialized] = useState<boolean>(false);
 
-  // Read URL query params on mount (?tab=ledger|orders|funds)
+  // 1. Restore saved filters on mount (unless overridden by URL query params)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = sessionStorage.getItem('rabbitpos_filter_transactions');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed.selectedType !== undefined) setSelectedType(parsed.selectedType);
+          if (parsed.selectedCategory !== undefined) setSelectedCategory(parsed.selectedCategory);
+          if (parsed.period !== undefined) setPeriod(parsed.period);
+          if (parsed.customFrom !== undefined) setCustomFrom(parsed.customFrom);
+          if (parsed.customTo !== undefined) setCustomTo(parsed.customTo);
+          if (parsed.orderStatusFilter !== undefined) setOrderStatusFilter(parsed.orderStatusFilter);
+          if (parsed.selectedFundId !== undefined) setSelectedFundId(parsed.selectedFundId);
+        }
+      } catch {}
+      setIsFilterInitialized(true);
+    }
+  }, []);
+
+  // 2. Read URL query params on mount (?tab=ledger|orders|funds)
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
@@ -214,6 +235,35 @@ export default function TransactionsPage() {
       }
     }
   }, [router]);
+
+  // 3. Persist applied filters to sessionStorage whenever changed
+  useEffect(() => {
+    if (!isFilterInitialized) return;
+    if (typeof window !== 'undefined') {
+      try {
+        sessionStorage.setItem(
+          'rabbitpos_filter_transactions',
+          JSON.stringify({
+            selectedFundId,
+            selectedType,
+            selectedCategory,
+            period,
+            customFrom,
+            customTo,
+            orderStatusFilter,
+          })
+        );
+      } catch {}
+    }
+  }, [isFilterInitialized, selectedFundId, selectedType, selectedCategory, period, customFrom, customTo, orderStatusFilter]);
+
+  // 4. Synchronize Funds Management date filters with the unified top filter
+  useEffect(() => {
+    setFundsPeriod(period);
+    setFundsCustomFrom(customFrom);
+    setFundsCustomTo(customTo);
+    setSelectedMonth(customFrom ? customFrom.slice(0, 7) : getLocalMonthStr());
+  }, [period, customFrom, customTo]);
 
   const handleTabChange = (newTab: TransactionTab) => {
     setActiveTab(newTab);
@@ -2209,14 +2259,13 @@ export default function TransactionsPage() {
                 <div className="flex items-center space-x-2">
                   <span className="text-xs font-semibold text-slate-600">{t('funds.select_month')}:</span>
                   <ModernDateRangePicker
-                    period={fundsPeriod}
-                    customFrom={fundsCustomFrom}
-                    customTo={fundsCustomTo}
+                    period={period}
+                    customFrom={customFrom}
+                    customTo={customTo}
                     onChange={({ period: newP, from, to }) => {
-                      setFundsPeriod(newP);
-                      setFundsCustomFrom(from);
-                      setFundsCustomTo(to);
-                      setSelectedMonth(from.slice(0, 7));
+                      setPeriod(newP);
+                      setCustomFrom(from);
+                      setCustomTo(to);
                     }}
                     align="right"
                   />
