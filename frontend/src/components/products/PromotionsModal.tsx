@@ -91,6 +91,38 @@ export default function PromotionsModal({ isOpen, onClose, settings: initialSett
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
+  // Memoized Filtered Promotions
+  const filteredPromos = React.useMemo(() => {
+    const list = Array.isArray(promotions) ? promotions : [];
+    return list.filter((p) => {
+      const matchesSearch = (p.name || '').toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesType = typeFilter === 'all' || p.promo_type === typeFilter;
+      return matchesSearch && matchesType;
+    });
+  }, [promotions, searchQuery, typeFilter]);
+
+  // Memoized Product Variants for Gift Selector
+  const allVariants = React.useMemo(() => {
+    const list: { id: number; productName: string; variantName: string; price: number }[] = [];
+    if (Array.isArray(products)) {
+      products.forEach((p) => {
+        if (p && Array.isArray(p.variants)) {
+          p.variants.forEach((v) => {
+            if (v) {
+              list.push({
+                id: v.id,
+                productName: p.name || '',
+                variantName: v.variant_name || '',
+                price: v.retail_price || 0,
+              });
+            }
+          });
+        }
+      });
+    }
+    return list;
+  }, [products]);
+
   const loadData = async () => {
     setLoading(true);
 
@@ -155,43 +187,46 @@ export default function PromotionsModal({ isOpen, onClose, settings: initialSett
 
   const openEditForm = (promo: Promotion) => {
     setEditingPromo(promo);
-    setFormName(promo.name);
-    setFormType(promo.promo_type);
-    setFormValue(promo.discount_value);
-    setFormMinOrderAmount(promo.min_order_amount);
-    setFormMinQuantity(promo.min_quantity);
-    setFormScope(promo.scope);
+    setFormName(promo.name || '');
+    setFormType(promo.promo_type || 'discount_amount');
+    setFormValue(promo.discount_value || 0);
+    setFormMinOrderAmount(promo.min_order_amount || 0);
+    setFormMinQuantity(promo.min_quantity || 0);
+    setFormScope(promo.scope || 'all');
 
-    let parsedIds: number[] = [];
+    let parsedTargetIds: number[] = [];
     try {
       if (promo.target_ids) {
-        parsedIds = JSON.parse(promo.target_ids);
+        parsedTargetIds = JSON.parse(promo.target_ids);
       }
     } catch {
-      parsedIds = [];
+      parsedTargetIds = [];
     }
-    setFormTargetIds(parsedIds);
-    setFormGiftVariantId(promo.gift_product_variant_id || null);
+    setFormTargetIds(parsedTargetIds);
 
-    setFormStartDate(promo.start_date ? promo.start_date.substring(0, 16) : '');
-    setFormEndDate(promo.end_date ? promo.end_date.substring(0, 16) : '');
-    setFormUsageLimit(promo.usage_limit);
-    setFormIsActive(promo.is_active);
+    setFormGiftVariantId(promo.gift_product_variant_id || null);
+    setFormStartDate(promo.start_date ? promo.start_date.split('T')[0] : '');
+    setFormEndDate(promo.end_date ? promo.end_date.split('T')[0] : '');
+    setFormUsageLimit(promo.usage_limit || 0);
+    setFormIsActive(promo.is_active !== undefined ? promo.is_active : true);
     setIsFormOpen(true);
   };
 
   const handleSavePromotion = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formName) return;
+    if (!formName.trim()) {
+      showAlert(t('common.error') || 'Lỗi', 'Vui lòng nhập tên chương trình khuyến mãi', 'warning');
+      return;
+    }
 
     const payload = {
-      name: formName,
+      name: formName.trim(),
       promo_type: formType,
-      discount_value: Number(formValue) || 0,
+      discount_value: formType === 'gift_item' ? 0 : Number(formValue) || 0,
       min_order_amount: Number(formMinOrderAmount) || 0,
       min_quantity: Number(formMinQuantity) || 0,
       scope: formScope,
-      target_ids: formTargetIds,
+      target_ids: JSON.stringify(formTargetIds),
       gift_product_variant_id: formType === 'gift_item' ? formGiftVariantId : null,
       start_date: formStartDate ? new Date(formStartDate).toISOString() : null,
       end_date: formEndDate ? new Date(formEndDate).toISOString() : null,
@@ -205,8 +240,8 @@ export default function PromotionsModal({ isOpen, onClose, settings: initialSett
         body: JSON.stringify(payload),
       });
       if (res.status === 'success') {
-        await loadData();
         setIsFormOpen(false);
+        loadData();
       } else {
         showAlert(t('common.error') || 'Lỗi', res.message || 'Failed to update promotion', 'danger');
       }
@@ -216,8 +251,8 @@ export default function PromotionsModal({ isOpen, onClose, settings: initialSett
         body: JSON.stringify(payload),
       });
       if (res.status === 'success') {
-        await loadData();
         setIsFormOpen(false);
+        loadData();
       } else {
         showAlert(t('common.error') || 'Lỗi', res.message || 'Failed to create promotion', 'danger');
       }
@@ -226,10 +261,9 @@ export default function PromotionsModal({ isOpen, onClose, settings: initialSett
 
   const handleDeletePromotion = async (id: number) => {
     const isConfirmed = await confirm({
-      title: t('promotions.confirm_delete') || 'Xóa chương trình khuyến mãi?',
-      message: 'Chương trình này sẽ bị xóa và không thể áp dụng cho các đơn hàng tiếp theo.',
+      title: t('promotions.confirm_delete_title') || 'Xóa chương trình khuyến mãi',
+      message: t('promotions.confirm_delete_msg') || 'Bạn có chắc muốn xóa khuyến mãi này không? Thao tác này không thể hoàn tác.',
       type: 'danger',
-      confirmText: t('common.delete') || 'Xóa khuyến mãi',
     });
     if (!isConfirmed) return;
 
@@ -242,12 +276,21 @@ export default function PromotionsModal({ isOpen, onClose, settings: initialSett
   };
 
   const handleToggleActive = async (promo: Promotion) => {
+    let targetIds: number[] = [];
+    try {
+      if (promo.target_ids) {
+        targetIds = JSON.parse(promo.target_ids);
+      }
+    } catch {
+      targetIds = [];
+    }
+
     const res = await fetchApi<Promotion>(`/promotions/${promo.id}`, {
       method: 'PUT',
       body: JSON.stringify({
         ...promo,
         is_active: !promo.is_active,
-        target_ids: promo.target_ids ? JSON.parse(promo.target_ids) : [],
+        target_ids: targetIds,
       }),
     });
     if (res.status === 'success') {
@@ -317,27 +360,6 @@ export default function PromotionsModal({ isOpen, onClose, settings: initialSett
       console.error('Failed to reorder promotions', err);
     }
   };
-
-  const filteredPromos = promotions.filter((p) => {
-    const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesType = typeFilter === 'all' || p.promo_type === typeFilter;
-    return matchesSearch && matchesType;
-  });
-
-  // Extract all variants for gift selector
-  const allVariants: { id: number; productName: string; variantName: string; price: number }[] = [];
-  products.forEach((p) => {
-    if (p.variants && Array.isArray(p.variants)) {
-      p.variants.forEach((v) => {
-        allVariants.push({
-          id: v.id,
-          productName: p.name,
-          variantName: v.variant_name,
-          price: v.retail_price,
-        });
-      });
-    }
-  });
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-150">

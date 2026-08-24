@@ -381,31 +381,15 @@ export default function PosPage() {
   useEffect(() => {
     loadData();
 
-    // 1. Restore Cart & Adjustments from LocalStorage
+    // 1. Restore Draft Cart Items from LocalStorage (Do not persist one-off discounts/fees across orders)
     try {
       const savedCart = localStorage.getItem('rabbitpos_active_cart');
       if (savedCart) {
         const parsed = JSON.parse(savedCart);
-        if (parsed.cartItems && Array.isArray(parsed.cartItems)) {
+        if (parsed.cartItems && Array.isArray(parsed.cartItems) && parsed.cartItems.length > 0) {
           setCartItems(parsed.cartItems);
-        }
-        if (typeof parsed.orderNote === 'string') {
-          setOrderNote(parsed.orderNote);
-        }
-        if (typeof parsed.discountAmount === 'number') {
-          setDiscountAmount(parsed.discountAmount);
-        }
-        if (parsed.selectedPromotion) {
-          setSelectedPromotion(parsed.selectedPromotion);
-        }
-        if (typeof parsed.shippingFee === 'number') {
-          setShippingFee(parsed.shippingFee);
-        }
-        if (typeof parsed.platformFeeDiscount === 'number') {
-          setPlatformFeeDiscount(parsed.platformFeeDiscount);
-        }
-        if (typeof parsed.surcharge === 'number') {
-          setSurcharge(parsed.surcharge);
+        } else {
+          localStorage.removeItem('rabbitpos_active_cart');
         }
       }
     } catch (e) {
@@ -413,37 +397,32 @@ export default function PosPage() {
     }
   }, [loadData]);
 
-  // 2. Persist Active Cart to LocalStorage
+  // 2. Persist Active Cart to LocalStorage (Only draft items; auto-reset fees & discounts when empty)
   useEffect(() => {
     try {
-      if (
-        cartItems.length > 0 ||
-        orderNote.trim() !== '' ||
-        discountAmount > 0 ||
-        selectedPromotion ||
-        shippingFee > 0 ||
-        platformFeeDiscount > 0 ||
-        surcharge > 0
-      ) {
+      if (cartItems.length > 0) {
         localStorage.setItem(
           'rabbitpos_active_cart',
           JSON.stringify({
             cartItems,
-            orderNote,
-            discountAmount,
-            selectedPromotion,
-            shippingFee,
-            platformFeeDiscount,
-            surcharge,
           })
         );
       } else {
         localStorage.removeItem('rabbitpos_active_cart');
+        // Reset all adjustments, fees, and discounts for each fresh order
+        setDiscountAmount(0);
+        setSelectedPromotion(null);
+        setPromotionDiscount(0);
+        setShippingFee(0);
+        setPlatformFeeDiscount(0);
+        setSurcharge(0);
+        setOrderNote('');
+        setOrderCreatedAt(null);
       }
     } catch (e) {
       console.error('Failed to save cart to localStorage', e);
     }
-  }, [cartItems, orderNote, discountAmount, selectedPromotion, shippingFee, platformFeeDiscount, surcharge]);
+  }, [cartItems]);
 
   // 3. Dynamic Promotion Discount Evaluation
   useEffect(() => {
