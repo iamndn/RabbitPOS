@@ -14,7 +14,7 @@ const (
 type TransactionCategory string
 
 const (
-	CategorySale                   TransactionCategory = "sale"
+	CategorySale                   TransactionCategory = "Doanh thu bán hàng POS"
 	CategoryIngredientPurchase     TransactionCategory = "ingredient_purchase"
 	CategoryUtilityBill            TransactionCategory = "utility_bill"
 	CategoryReconciliationVariance TransactionCategory = "reconciliation_variance"

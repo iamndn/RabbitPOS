@@ -51,7 +51,7 @@ export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState<'revenue' | 'profit'>('revenue');
 
   // Timeframe Filter
-  const [period, setPeriod] = useState<'today' | 'yesterday' | 'week' | 'month' | 'year' | 'custom'>('today');
+  const [period, setPeriod] = useState<DatePeriod>('today');
   const [customFrom, setCustomFrom] = useState<string>(() => getLocalDateStr());
   const [customTo, setCustomTo] = useState<string>(() => getLocalDateStr());
 
@@ -106,7 +106,7 @@ export default function DashboardPage() {
     setLoading(true);
 
     let queryParams = `?period=${period}`;
-    if (period === 'custom') {
+    if (period === 'custom' || period === 'day') {
       queryParams += `&from=${customFrom}&to=${customTo}`;
     }
 

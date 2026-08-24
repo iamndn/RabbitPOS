@@ -92,7 +92,7 @@ export default function ProductSalesPerformanceSection({
     setLoading(true);
     try {
       let qs = `?period=${period}`;
-      if (period === 'custom') {
+      if (period === 'custom' || period === 'day') {
         qs += `&from=${customFrom}&to=${customTo}`;
       }
       if (categoryFilter) {

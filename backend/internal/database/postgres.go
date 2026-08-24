@@ -432,7 +432,7 @@ func seedTransactionCategories(db *gorm.DB) {
 		{Name: "Mua nguyên liệu", Type: "outflow", Code: "ingredient_purchase", IsDefault: true, IsSystem: false},
 		{Name: "Chi phí vận hành", Type: "outflow", Code: "utility_bill", IsDefault: false, IsSystem: false},
 		{Name: "Chi phí khác", Type: "outflow", Code: "other", IsDefault: false, IsSystem: false},
-		{Name: "Doanh thu bán hàng", Type: "inflow", Code: "sale", IsDefault: true, IsSystem: false},
+		{Name: "Doanh thu bán hàng POS", Type: "inflow", Code: "sale", IsDefault: true, IsSystem: false},
 		{Name: "Thu nhập khác", Type: "inflow", Code: "other", IsDefault: false, IsSystem: false},
 		{Name: "Chênh lệch đối soát", Type: "both", Code: "reconciliation_variance", IsDefault: false, IsSystem: false},
 	}
