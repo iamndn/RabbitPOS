@@ -49,6 +49,7 @@ interface PurchasesCostTabProps {
   funds?: Fund[];
   txCategories?: TransactionCategory[];
   onDataChanged?: () => void;
+  refreshTrigger?: number;
 }
 
 export default function PurchasesCostTab({
@@ -57,6 +58,7 @@ export default function PurchasesCostTab({
   funds = [],
   txCategories = [],
   onDataChanged,
+  refreshTrigger = 0,
 }: PurchasesCostTabProps) {
   const { t } = useTranslation();
 
@@ -140,7 +142,7 @@ export default function PurchasesCostTab({
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [refreshTrigger]);
 
   // Update local settings if prop updates
   useEffect(() => {
