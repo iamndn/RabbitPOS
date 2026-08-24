@@ -32,6 +32,7 @@ import {
 import AppShell from '@/components/AppShell';
 import AllProductsRankingModal from '@/components/dashboard/AllProductsRankingModal';
 import ProductSalesPerformanceSection from '@/components/dashboard/ProductSalesPerformanceSection';
+import EmailReportModal from '@/components/common/EmailReportModal';
 import ModernDateRangePicker, { DatePeriod, computeDateRange, getLocalDateStr } from '@/components/common/ModernDateRangePicker';
 import { fetchApi } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
@@ -68,35 +69,7 @@ export default function DashboardPage() {
   // Email Report Modal state
   const [showEmailModal, setShowEmailModal] = useState<boolean>(false);
   const [emailDate, setEmailDate] = useState<string>(() => getLocalDateStr());
-  const [emailSending, setEmailSending] = useState<boolean>(false);
   const [emailToast, setEmailToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
-
-  const EMAIL_RECIPIENTS = [
-    'nhanhdn.jfw@gmail.com',
-    'candynhung754@gmail.com',
-    '150498tranquangdat@gmail.com',
-  ];
-
-  const handleSendEmailReport = async () => {
-    setEmailSending(true);
-    try {
-      const res = await fetchApi<any>('/analytics/send-daily-report-email', {
-        method: 'POST',
-        body: JSON.stringify({ date: emailDate }),
-      });
-      if (res.status === 'success') {
-        setEmailToast({ type: 'success', message: t('email_report.success') });
-        setShowEmailModal(false);
-      } else {
-        setEmailToast({ type: 'error', message: res.message || t('email_report.error') });
-      }
-    } catch {
-      setEmailToast({ type: 'error', message: t('email_report.error') });
-    } finally {
-      setEmailSending(false);
-      setTimeout(() => setEmailToast(null), 5000);
-    }
-  };
 
   // Hover Tooltip States for SVG Charts
   const [hoveredRevenueIndex, setHoveredRevenueIndex] = useState<number | null>(null);
@@ -212,82 +185,17 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Email Report Confirmation Modal */}
-        {showEmailModal && (
-          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-150">
-            <div className="bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl w-full max-w-md max-h-[92dvh] sm:max-h-[92vh] flex flex-col overflow-hidden border border-slate-100 animate-in zoom-in-95 duration-150 pb-safe">
-              {/* Modal Header */}
-              <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-100 shrink-0 bg-slate-50/50">
-                <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 pr-2">
-                  <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-emerald-100 flex items-center justify-center shrink-0 shadow-2xs">
-                    <Mail className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600" />
-                  </div>
-                  <div className="min-w-0">
-                    <h3 className="font-extrabold text-slate-900 text-sm sm:text-base truncate">{t('email_report.modal_title')}</h3>
-                    <p className="text-[11px] sm:text-xs text-slate-500 truncate">{t('email_report.modal_subtitle')}</p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setShowEmailModal(false)}
-                  className="p-2 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 transition cursor-pointer shrink-0"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              {/* Modal Body */}
-              <div className="p-4 sm:p-5 space-y-4 overflow-y-auto">
-                {/* Date Picker */}
-                <div className="min-w-0">
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">{t('email_report.date_label')}</label>
-                  <input
-                    type="date"
-                    value={emailDate}
-                    onChange={(e) => setEmailDate(e.target.value)}
-                    className="w-full text-xs font-bold border border-slate-200 rounded-xl px-3 py-2.5 bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-400 min-h-[42px] box-border"
-                  />
-                </div>
-
-                {/* Recipients */}
-                <div className="min-w-0">
-                  <label className="block text-xs font-bold text-slate-700 mb-2">{t('email_report.recipients_label')}</label>
-                  <div className="flex flex-wrap gap-1.5">
-                    {EMAIL_RECIPIENTS.map((email) => (
-                      <span key={email} className="text-[11px] bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full px-2.5 py-1 font-semibold break-all">
-                        {email}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Modal Footer (Balanced on mobile) */}
-              <div className="grid grid-cols-2 gap-2.5 p-4 sm:p-5 border-t border-slate-100 bg-slate-50/50 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setShowEmailModal(false)}
-                  className="w-full text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 py-2.5 rounded-xl transition cursor-pointer text-center justify-center flex items-center"
-                  disabled={emailSending}
-                >
-                  {t('email_report.cancel')}
-                </button>
-                <button
-                  type="button"
-                  onClick={handleSendEmailReport}
-                  disabled={emailSending}
-                  className="w-full text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 py-2.5 rounded-xl transition flex items-center justify-center gap-1.5 disabled:opacity-60 cursor-pointer shadow-xs text-center"
-                >
-                  {emailSending ? (
-                    <><RefreshCw className="w-4 h-4 animate-spin" /><span>{t('email_report.sending')}</span></>
-                  ) : (
-                    <><Send className="w-4 h-4" /><span>{t('email_report.confirm')}</span></>
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        {/* Email Report Modal */}
+        <EmailReportModal
+          isOpen={showEmailModal}
+          onClose={() => setShowEmailModal(false)}
+          initialDate={emailDate}
+          settings={settings}
+          onSuccess={(msg) => {
+            setEmailToast({ type: 'success', message: msg });
+            setTimeout(() => setEmailToast(null), 5000);
+          }}
+        />
 
         {/* Toast Notification */}
         {emailToast && (

@@ -239,29 +239,31 @@ func (s *SheetsSyncService) EnsureSheetsLayout(ctx context.Context, srv *sheets.
 		{
 			Title: SheetTabOrderHistory,
 			Headers: []interface{}{
-				"Mã Đơn Hàng", "Ngày Giờ", "Thu Ngân", "Phương Thức Thanh Toán", "Trạng Thái",
-				"Chi Tiết Món & Topping", "Ghi Chú", "Tổng Tiền Món (VNĐ)", "Giảm Giá",
-				"Chiết Khấu Sàn", "Phí Vận Chuyển", "Phụ Thu", "Thực Thu (VNĐ)",
+				"Mã Đơn Hàng", "Ngày Giờ Tạo", "Thu Ngân", "Tài Khoản Quỹ", "Trạng Thái",
+				"Tổng Số Món", "Chi Tiết Món & Topping", "Chương Trình Khuyến Mãi", "Ghi Chú",
+				"Tổng Tiền Món (VNĐ)", "Giảm Giá Trực Tiếp (VNĐ)", "Chiết Khấu KM (VNĐ)",
+				"Chiết Khấu Sàn (VNĐ)", "Phí Vận Chuyển (VNĐ)", "Phụ Thu (VNĐ)", "Thực Thu (VNĐ)",
 			},
 		},
 		{
 			Title: SheetTabCashLedger,
 			Headers: []interface{}{
-				"Ngày Giờ", "Loại Giao Dịch", "Quỹ Tiền", "Danh Mục", "Số Tiền (VNĐ)", "Ghi Chú", "Thu Ngân Thực Hiện",
+				"Mã Phiếu", "Ngày Giờ Giao Dịch", "Loại Thu / Chi", "Tài Khoản Quỹ", "Danh Mục Khoản Thu Chi",
+				"Số Tiền (VNĐ)", "Mã Đơn Hàng Đối Ứng", "Nội Dung / Diễn Giải", "Người Thực Hiện",
 			},
 		},
 		{
 			Title: SheetTabFundAudit,
 			Headers: []interface{}{
 				"Tên Quỹ", "Loại Quỹ", "Số Dư Đầu Kỳ", "Tổng Thu Vào", "Tổng Chi Ra",
-				"Số Dư Cuối Kỳ (Tháng Này)", "Số Dư Kỳ Trước", "Tăng Trưởng (%)",
+				"Số Dư Cuối Kỳ Thực Tế", "Số Dư Cuối Kỳ Trước", "Tăng Trưởng (%)",
 			},
 		},
 		{
 			Title: SheetTabMenuCOGS,
 			Headers: []interface{}{
-				"Tên Món", "Danh Mục", "Biến Thể / Size", "Giá Vốn COGS (VNĐ)", "Giá Bán Lẻ (VNĐ)",
-				"Biên LN Gộp (%)", "Trạng Thái Bán",
+				"Loại Mặt Hàng", "Tên Món / Topping", "Danh Mục", "Biến Thể / Size",
+				"Giá Vốn COGS (VNĐ)", "Giá Bán Lẻ (VNĐ)", "Lợi Nhuận Gộp (VNĐ)", "Biên LN Gộp (%)", "Trạng Thái Bán",
 			},
 		},
 	}
@@ -433,16 +435,18 @@ func (s *SheetsSyncService) AppendOrderRow(order models.Order) {
 	}
 
 	// Load order relations if missing
-	if order.Fund == nil || len(order.Items) == 0 {
+	if order.Fund == nil || len(order.Items) == 0 || (order.PromotionID != nil && order.Promotion == nil) {
 		var fullOrder models.Order
 		if err := s.db.Preload("Fund").Preload("Promotion").Preload("Items.Variant.Product").First(&fullOrder, order.ID).Error; err == nil {
 			order = fullOrder
 		}
 	}
 
-	// Format item and topping detail string
+	// Format item and topping detail string & calculate total item quantity
 	var itemSummaries []string
+	var totalItemCount int = 0
 	for _, it := range order.Items {
+		totalItemCount += it.Quantity
 		variantName := "Món"
 		if it.Variant != nil {
 			if it.Variant.Product != nil && it.Variant.Product.Name != "" {
@@ -478,7 +482,7 @@ func (s *SheetsSyncService) AppendOrderRow(order models.Order) {
 
 	itemsDetail := strings.Join(itemSummaries, "; ")
 
-	fundName := "Khác"
+	fundName := "Tiền mặt"
 	if order.Fund != nil {
 		fundName = order.Fund.Name
 	}
@@ -489,6 +493,11 @@ func (s *SheetsSyncService) AppendOrderRow(order models.Order) {
 		if order.CancelReason != "" {
 			statusStr += fmt.Sprintf(" (%s)", order.CancelReason)
 		}
+	}
+
+	promoName := "-"
+	if order.Promotion != nil && order.Promotion.Name != "" {
+		promoName = order.Promotion.Name
 	}
 
 	noteStr := ""
@@ -507,17 +516,20 @@ func (s *SheetsSyncService) AppendOrderRow(order models.Order) {
 		cashierStr,
 		fundName,
 		statusStr,
+		totalItemCount,
 		itemsDetail,
+		promoName,
 		noteStr,
 		order.Subtotal,
-		order.DiscountAmount + order.PromotionDiscount,
+		order.DiscountAmount,
+		order.PromotionDiscount,
 		order.PlatformFeeDiscount,
 		order.ShippingFee,
 		order.Surcharge,
 		order.TotalAmount,
 	}
 
-	rangeName := fmt.Sprintf("'%s'!A:M", SheetTabOrderHistory)
+	rangeName := fmt.Sprintf("'%s'!A:P", SheetTabOrderHistory)
 	valueRange := &sheets.ValueRange{
 		Values: [][]interface{}{row},
 	}
@@ -555,11 +567,11 @@ func (s *SheetsSyncService) AppendTransactionRow(tx models.Transaction) {
 		return
 	}
 
-	// Load fund if missing
-	if tx.Fund == nil && tx.FundID > 0 {
-		var fund models.Fund
-		if err := s.db.First(&fund, tx.FundID).Error; err == nil {
-			tx.Fund = &fund
+	// Load fund & reference order if missing
+	if (tx.Fund == nil && tx.FundID > 0) || (tx.ReferenceOrderID != nil && tx.ReferenceOrder == nil) {
+		var fullTx models.Transaction
+		if err := s.db.Preload("Fund").Preload("ReferenceOrder").First(&fullTx, tx.ID).Error; err == nil {
+			tx = fullTx
 		}
 	}
 
@@ -573,16 +585,30 @@ func (s *SheetsSyncService) AppendTransactionRow(tx models.Transaction) {
 		typeStr = "Thu tiền (Inflow)"
 	}
 
-	categoryLabels := map[string]string{
+	// Query categories from database for dynamic matching
+	var txCatItems []models.TransactionCategoryItem
+	s.db.Find(&txCatItems)
+	catLabels := map[string]string{
 		"sale":                    "Doanh thu bán hàng POS",
 		"ingredient_purchase":     "Mua nguyên vật liệu",
 		"utility_bill":            "Chi phí vận hành / Hóa đơn",
 		"reconciliation_variance": "Chênh lệch đối soát két",
 		"other":                   "Chi phí khác",
 	}
-	categoryStr, ok := categoryLabels[string(tx.Category)]
+	for _, item := range txCatItems {
+		catLabels[item.Code] = item.Name
+		catLabels[item.Name] = item.Name
+	}
+
+	catRaw := string(tx.Category)
+	catStr, ok := catLabels[catRaw]
 	if !ok {
-		categoryStr = string(tx.Category)
+		catStr = catRaw
+	}
+
+	refOrderCode := ""
+	if tx.ReferenceOrder != nil {
+		refOrderCode = tx.ReferenceOrder.OrderCode
 	}
 
 	cashierStr := tx.CashierName
@@ -591,16 +617,18 @@ func (s *SheetsSyncService) AppendTransactionRow(tx models.Transaction) {
 	}
 
 	row := []interface{}{
+		fmt.Sprintf("#TX%d", tx.ID),
 		tx.CreatedAt.Format("2006-01-02 15:04:05"),
 		typeStr,
 		fundName,
-		categoryStr,
+		catStr,
 		tx.Amount,
+		refOrderCode,
 		tx.Description,
 		cashierStr,
 	}
 
-	rangeName := fmt.Sprintf("'%s'!A:G", SheetTabCashLedger)
+	rangeName := fmt.Sprintf("'%s'!A:I", SheetTabCashLedger)
 	valueRange := &sheets.ValueRange{
 		Values: [][]interface{}{row},
 	}
@@ -648,13 +676,13 @@ func (s *SheetsSyncService) SyncAllToGoogleSheets() error {
 
 	// 2. Query All Operational Data
 	var orders []models.Order
-	if err := s.db.Preload("Fund").Preload("Items.Variant.Product").Order("created_at desc").Find(&orders).Error; err != nil {
+	if err := s.db.Preload("Fund").Preload("Promotion").Preload("Items.Variant.Product").Order("created_at desc").Find(&orders).Error; err != nil {
 		s.updateSyncStatus("error", "Lỗi truy vấn đơn hàng: "+err.Error())
 		return err
 	}
 
 	var transactions []models.Transaction
-	if err := s.db.Preload("Fund").Order("created_at desc").Find(&transactions).Error; err != nil {
+	if err := s.db.Preload("Fund").Preload("ReferenceOrder").Order("created_at desc").Find(&transactions).Error; err != nil {
 		s.updateSyncStatus("error", "Lỗi truy vấn giao dịch: "+err.Error())
 		return err
 	}
@@ -665,28 +693,57 @@ func (s *SheetsSyncService) SyncAllToGoogleSheets() error {
 		return err
 	}
 
+	var toppings []models.Topping
+	if err := s.db.Preload("Category").Order("display_order asc, id asc").Find(&toppings).Error; err != nil {
+		s.updateSyncStatus("error", "Lỗi truy vấn toppings: "+err.Error())
+		return err
+	}
+
 	var funds []models.Fund
 	if err := s.db.Order("id asc").Find(&funds).Error; err != nil {
 		s.updateSyncStatus("error", "Lỗi truy vấn quỹ: "+err.Error())
 		return err
 	}
 
+	var txCategories []models.TransactionCategoryItem
+	s.db.Order("display_order asc, id asc").Find(&txCategories)
+	catLabels := map[string]string{
+		"sale":                    "Doanh thu bán hàng POS",
+		"ingredient_purchase":     "Mua nguyên vật liệu",
+		"utility_bill":            "Chi phí vận hành / Hóa đơn",
+		"reconciliation_variance": "Chênh lệch đối soát két",
+		"other":                   "Chi phí khác",
+	}
+	for _, c := range txCategories {
+		catLabels[c.Code] = c.Name
+		catLabels[c.Name] = c.Name
+	}
+
 	// 3. Compute Executive Financial Aggregates (Current Month)
 	now := time.Now()
 	firstOfMonth := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
 
-	var grossSales, totalDiscounts, totalShipping, totalSurcharges, netRevenue float64
-	var completedOrderCount int64
+	var grossSales, totalDirectDiscounts, totalPromoDiscounts, totalPlatformDiscounts, totalShipping, totalSurcharges, netRevenue float64
+	var completedOrderCount, cancelledOrderCount int64
+	var totalItemsSold int64
 
 	for _, o := range orders {
 		if o.CreatedAt.After(firstOfMonth) || o.CreatedAt.Equal(firstOfMonth) {
 			if o.Status == models.OrderStatusCompleted {
 				completedOrderCount++
 				grossSales += o.Subtotal
-				totalDiscounts += (o.DiscountAmount + o.PromotionDiscount + o.PlatformFeeDiscount)
+				totalDirectDiscounts += o.DiscountAmount
+				totalPromoDiscounts += o.PromotionDiscount
+				totalPlatformDiscounts += o.PlatformFeeDiscount
 				totalShipping += o.ShippingFee
 				totalSurcharges += o.Surcharge
 				netRevenue += o.TotalAmount
+
+				for _, it := range o.Items {
+					totalItemsSold += int64(it.Quantity)
+				}
+			} else if o.Status == models.OrderStatusCancelled {
+				cancelledOrderCount++
 			}
 		}
 	}
@@ -696,7 +753,7 @@ func (s *SheetsSyncService) SyncAllToGoogleSheets() error {
 		aov = netRevenue / float64(completedOrderCount)
 	}
 
-	// Query COGS for completed orders this month
+	// Query COGS for completed orders this month (Product variant COGS + Toppings COGS)
 	var totalCogs float64
 	s.db.Raw(`
 		SELECT COALESCE(SUM(pv.cogs_price * oi.quantity), 0)
@@ -740,33 +797,40 @@ func (s *SheetsSyncService) SyncAllToGoogleSheets() error {
 	// Tab 1: 📊 Báo Cáo Tổng Hợp
 	summaryValues := [][]interface{}{
 		{"Chỉ Số Tài Chính / Hoạt Động", "Giá Trị Kỳ Này (Tháng Này)", "Ghi Chú / Phân Tích"},
-		{"Doanh thu thuần (Net Revenue)", netRevenue, "Doanh thu thực nhận sau giảm giá + phụ thu"},
-		{"Tổng giá bán món (Gross Sales)", grossSales, "Tổng tiền món nguyên giá trước chiết khấu"},
-		{"Tổng chiết khấu & giảm giá", totalDiscounts, "Bao gồm giảm trực tiếp, khuyến mãi & sàn"},
-		{"Tổng phí vận chuyển", totalShipping, "Thu từ khách hàng"},
-		{"Tổng phụ thu dịch vụ", totalSurcharges, "Phụ thu ngày lễ / dịch vụ"},
-		{"Tổng số đơn hoàn thành", completedOrderCount, "Đơn hàng trong tháng"},
+		{"Doanh thu thuần (Net Revenue)", netRevenue, "Doanh thu thực nhận sau giảm giá + phụ thu + phí ship"},
+		{"Tổng tiền món niêm yết (Gross Sales)", grossSales, "Tổng tiền món nguyên giá trước chiết khấu"},
+		{"Giảm giá trực tiếp tại quầy", totalDirectDiscounts, "Chiết khấu thủ công tại POS"},
+		{"Chiết khấu khuyến mãi", totalPromoDiscounts, "Giảm giá từ các chương trình khuyến mãi tự động"},
+		{"Chiết khấu sàn / đối tác", totalPlatformDiscounts, "Chiết khấu trên GrabFood, ShopeeFood..."},
+		{"Tổng phí vận chuyển thu của khách", totalShipping, "Thu từ khách hàng"},
+		{"Tổng phụ thu dịch vụ", totalSurcharges, "Phụ thu ngày lễ / sự kiện / dịch vụ thêm"},
+		{"Tổng số đơn hoàn thành", completedOrderCount, "Số đơn bán thành công trong tháng"},
+		{"Tổng số đơn đã hủy", cancelledOrderCount, "Số đơn bị hủy trong tháng"},
+		{"Tổng số lượng món bán ra", totalItemsSold, "Tổng số lượng ly / món được phục vụ"},
 		{"Giá trị đơn hàng trung bình (AOV)", aov, "VNĐ / Đơn"},
-		{"Giá vốn hàng bán (COGS)", totalCogs, "Chi phí nguyên vật liệu món đã bán"},
+		{"Giá vốn hàng bán (COGS)", totalCogs, "Chi phí nguyên vật liệu món đã xuất bán"},
 		{"Lợi nhuận gộp (Gross Profit)", grossProfit, fmt.Sprintf("Biên LN gộp: %.1f%%", grossMarginPct)},
-		{"Chi phí vận hành (OPEX)", operatingExpenses, "Mặt bằng, điện nước, nhân sự, chi phí khác"},
-		{"Thu nhập khác", otherInflow, "Thu hồi, thanh lý tài sản"},
+		{"Chi phí vận hành (OPEX)", operatingExpenses, "Mặt bằng, điện nước, nhân sự, nguyên liệu phát sinh..."},
+		{"Thu nhập khác", otherInflow, "Thu hồi, thanh lý, hoàn tiền..."},
 		{"Lợi nhuận ròng (Net Profit)", netProfit, fmt.Sprintf("Biên LN ròng: %.1f%%", netMarginPct)},
-		{"Tổng số dư các quỹ tiền", totalFundBalance, fmt.Sprintf("Tổng cộng từ %d quỹ tiền", len(funds))},
+		{"Tổng số dư các quỹ tiền", totalFundBalance, fmt.Sprintf("Tổng cộng từ %d tài khoản quỹ", len(funds))},
 		{"Thời gian cập nhật", now.Format("2006-01-02 15:04:05"), "Đồng bộ tự động từ RabbitPOS"},
 	}
 
 	// Tab 2: 🧾 Lịch Sử Đơn Hàng
 	orderValues := [][]interface{}{
 		{
-			"Mã Đơn Hàng", "Ngày Giờ", "Thu Ngân", "Phương Thức Thanh Toán", "Trạng Thái",
-			"Chi Tiết Món & Topping", "Ghi Chú", "Tổng Tiền Món (VNĐ)", "Giảm Giá",
-			"Chiết Khấu Sàn", "Phí Vận Chuyển", "Phụ Thu", "Thực Thu (VNĐ)",
+			"Mã Đơn Hàng", "Ngày Giờ Tạo", "Thu Ngân", "Tài Khoản Quỹ", "Trạng Thái",
+			"Tổng Số Món", "Chi Tiết Món & Topping", "Chương Trình Khuyến Mãi", "Ghi Chú",
+			"Tổng Tiền Món (VNĐ)", "Giảm Giá Trực Tiếp (VNĐ)", "Chiết Khấu KM (VNĐ)",
+			"Chiết Khấu Sàn (VNĐ)", "Phí Vận Chuyển (VNĐ)", "Phụ Thu (VNĐ)", "Thực Thu (VNĐ)",
 		},
 	}
 	for _, o := range orders {
 		var itemSummaries []string
+		var orderItemCount int = 0
 		for _, it := range o.Items {
+			orderItemCount += it.Quantity
 			variantName := "Món"
 			if it.Variant != nil {
 				if it.Variant.Product != nil && it.Variant.Product.Name != "" {
@@ -781,13 +845,13 @@ func (s *SheetsSyncService) SyncAllToGoogleSheets() error {
 			}
 			itemDesc := fmt.Sprintf("%s (x%d)", variantName, it.Quantity)
 
-			var toppings []models.ToppingSnapshot
+			var orderToppings []models.ToppingSnapshot
 			if it.SelectedToppings != "" && it.SelectedToppings != "[]" {
-				_ = json.Unmarshal([]byte(it.SelectedToppings), &toppings)
+				_ = json.Unmarshal([]byte(it.SelectedToppings), &orderToppings)
 			}
-			if len(toppings) > 0 {
+			if len(orderToppings) > 0 {
 				var topNames []string
-				for _, tp := range toppings {
+				for _, tp := range orderToppings {
 					topNames = append(topNames, tp.Name)
 				}
 				itemDesc += fmt.Sprintf(" [%s]", strings.Join(topNames, ", "))
@@ -798,7 +862,7 @@ func (s *SheetsSyncService) SyncAllToGoogleSheets() error {
 			itemSummaries = append(itemSummaries, itemDesc)
 		}
 
-		fundName := "Khác"
+		fundName := "Tiền mặt"
 		if o.Fund != nil {
 			fundName = o.Fund.Name
 		}
@@ -809,6 +873,11 @@ func (s *SheetsSyncService) SyncAllToGoogleSheets() error {
 			if o.CancelReason != "" {
 				statusStr += fmt.Sprintf(" (%s)", o.CancelReason)
 			}
+		}
+
+		promoName := "-"
+		if o.Promotion != nil && o.Promotion.Name != "" {
+			promoName = o.Promotion.Name
 		}
 
 		noteStr := ""
@@ -827,10 +896,13 @@ func (s *SheetsSyncService) SyncAllToGoogleSheets() error {
 			cashierStr,
 			fundName,
 			statusStr,
+			orderItemCount,
 			strings.Join(itemSummaries, "; "),
+			promoName,
 			noteStr,
 			o.Subtotal,
-			o.DiscountAmount + o.PromotionDiscount,
+			o.DiscountAmount,
+			o.PromotionDiscount,
 			o.PlatformFeeDiscount,
 			o.ShippingFee,
 			o.Surcharge,
@@ -840,14 +912,7 @@ func (s *SheetsSyncService) SyncAllToGoogleSheets() error {
 
 	// Tab 3: 💸 Sổ Thu Chi
 	txValues := [][]interface{}{
-		{"Ngày Giờ", "Loại Giao Dịch", "Quỹ Tiền", "Danh Mục", "Số Tiền (VNĐ)", "Ghi Chú", "Thu Ngân Thực Hiện"},
-	}
-	categoryLabels := map[string]string{
-		"sale":                    "Doanh thu bán hàng POS",
-		"ingredient_purchase":     "Mua nguyên vật liệu",
-		"utility_bill":            "Chi phí vận hành / Hóa đơn",
-		"reconciliation_variance": "Chênh lệch đối soát két",
-		"other":                   "Chi phí khác",
+		{"Mã Phiếu", "Ngày Giờ Giao Dịch", "Loại Thu / Chi", "Tài Khoản Quỹ", "Danh Mục Khoản Thu Chi", "Số Tiền (VNĐ)", "Mã Đơn Hàng Đối Ứng", "Nội Dung / Diễn Giải", "Người Thực Hiện"},
 	}
 	for _, tx := range transactions {
 		fundName := "Khác"
@@ -860,9 +925,15 @@ func (s *SheetsSyncService) SyncAllToGoogleSheets() error {
 			typeStr = "Thu tiền (Inflow)"
 		}
 
-		catStr, ok := categoryLabels[string(tx.Category)]
+		catRaw := string(tx.Category)
+		catStr, ok := catLabels[catRaw]
 		if !ok {
-			catStr = string(tx.Category)
+			catStr = catRaw
+		}
+
+		refOrderCode := ""
+		if tx.ReferenceOrder != nil {
+			refOrderCode = tx.ReferenceOrder.OrderCode
 		}
 
 		cashierStr := tx.CashierName
@@ -871,11 +942,13 @@ func (s *SheetsSyncService) SyncAllToGoogleSheets() error {
 		}
 
 		txValues = append(txValues, []interface{}{
+			fmt.Sprintf("#TX%d", tx.ID),
 			tx.CreatedAt.Format("2006-01-02 15:04:05"),
 			typeStr,
 			fundName,
 			catStr,
 			tx.Amount,
+			refOrderCode,
 			tx.Description,
 			cashierStr,
 		})
@@ -885,9 +958,10 @@ func (s *SheetsSyncService) SyncAllToGoogleSheets() error {
 	fundValues := [][]interface{}{
 		{
 			"Tên Quỹ", "Loại Quỹ", "Số Dư Đầu Kỳ", "Tổng Thu Vào", "Tổng Chi Ra",
-			"Số Dư Cuối Kỳ (Tháng Này)", "Số Dư Kỳ Trước", "Tăng Trưởng (%)",
+			"Số Dư Cuối Kỳ Thực Tế", "Số Dư Cuối Kỳ Trước", "Tăng Trưởng (%)",
 		},
 	}
+	var totalOpening, totalIn, totalOut, totalClosing, totalPrev float64
 	for _, f := range funds {
 		// Calculate inflows and outflows for this fund in the current month
 		var inAmount, outAmount float64
@@ -916,6 +990,12 @@ func (s *SheetsSyncService) SyncAllToGoogleSheets() error {
 			fundTypeLabel = "Ví điện tử"
 		}
 
+		totalOpening += openingBalance
+		totalIn += inAmount
+		totalOut += outAmount
+		totalClosing += closingBalance
+		totalPrev += openingBalance
+
 		fundValues = append(fundValues, []interface{}{
 			f.Name,
 			fundTypeLabel,
@@ -928,13 +1008,31 @@ func (s *SheetsSyncService) SyncAllToGoogleSheets() error {
 		})
 	}
 
-	// Tab 5: 🍹 Menu & Giá Vốn
+	// Add Total Summary Row for Funds
+	var totalGrowthPct float64 = 0
+	if totalOpening > 0 {
+		totalGrowthPct = math.Round(((totalClosing-totalOpening)/totalOpening)*1000) / 10
+	}
+	fundValues = append(fundValues, []interface{}{
+		"TỔNG CỘNG TẤT CẢ QUỸ",
+		"-",
+		totalOpening,
+		totalIn,
+		totalOut,
+		totalClosing,
+		totalPrev,
+		totalGrowthPct,
+	})
+
+	// Tab 5: 🍹 Menu & Giá Vốn (Products + Toppings)
 	menuValues := [][]interface{}{
 		{
-			"Tên Món", "Danh Mục", "Biến Thể / Size", "Giá Vốn COGS (VNĐ)", "Giá Bán Lẻ (VNĐ)",
-			"Biên LN Gộp (%)", "Trạng Thái Bán",
+			"Loại Mặt Hàng", "Tên Món / Topping", "Danh Mục", "Biến Thể / Size",
+			"Giá Vốn COGS (VNĐ)", "Giá Bán Lẻ (VNĐ)", "Lợi Nhuận Gộp (VNĐ)", "Biên LN Gộp (%)", "Trạng Thái Bán",
 		},
 	}
+
+	// Add Products & Variants
 	for _, p := range products {
 		catName := "Chưa phân loại"
 		if p.Category != nil {
@@ -943,8 +1041,9 @@ func (s *SheetsSyncService) SyncAllToGoogleSheets() error {
 
 		for _, v := range p.Variants {
 			var marginPct float64 = 0
+			grossProfitItem := v.RetailPrice - v.CogsPrice
 			if v.RetailPrice > 0 {
-				marginPct = math.Round(((v.RetailPrice-v.CogsPrice)/v.RetailPrice)*1000) / 10
+				marginPct = math.Round((grossProfitItem/v.RetailPrice)*1000) / 10
 			}
 
 			statusStr := "Đang bán"
@@ -953,15 +1052,48 @@ func (s *SheetsSyncService) SyncAllToGoogleSheets() error {
 			}
 
 			menuValues = append(menuValues, []interface{}{
+				"Sản phẩm",
 				p.Name,
 				catName,
 				v.VariantName,
 				v.CogsPrice,
 				v.RetailPrice,
+				grossProfitItem,
 				marginPct,
 				statusStr,
 			})
 		}
+	}
+
+	// Add Toppings
+	for _, tp := range toppings {
+		topCatName := "Topping chung"
+		if tp.Category != nil {
+			topCatName = tp.Category.Name
+		}
+
+		var topMarginPct float64 = 0
+		grossProfitTop := tp.Price - tp.COGS
+		if tp.Price > 0 {
+			topMarginPct = math.Round((grossProfitTop/tp.Price)*1000) / 10
+		}
+
+		topStatus := "Đang bán"
+		if !tp.IsActive {
+			topStatus = "Ngừng bán"
+		}
+
+		menuValues = append(menuValues, []interface{}{
+			"Topping",
+			tp.Name,
+			topCatName,
+			"-",
+			tp.COGS,
+			tp.Price,
+			grossProfitTop,
+			topMarginPct,
+			topStatus,
+		})
 	}
 
 	// 5. Clear Old Values & Batch Update
@@ -970,7 +1102,7 @@ func (s *SheetsSyncService) SyncAllToGoogleSheets() error {
 		fmt.Sprintf("'%s'!A1:Z100000", SheetTabOrderHistory),
 		fmt.Sprintf("'%s'!A1:Z100000", SheetTabCashLedger),
 		fmt.Sprintf("'%s'!A1:Z500", SheetTabFundAudit),
-		fmt.Sprintf("'%s'!A1:Z5000", SheetTabMenuCOGS),
+		fmt.Sprintf("'%s'!A1:Z10000", SheetTabMenuCOGS),
 	}
 	_, _ = srv.Spreadsheets.Values.BatchClear(cfg.SpreadsheetID, &sheets.BatchClearValuesRequest{
 		Ranges: tabsToClear,

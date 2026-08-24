@@ -39,6 +39,7 @@ import {
 import AppShell from '@/components/AppShell';
 import TransactionCategoryModal from '@/components/transactions/TransactionCategoryModal';
 import TransactionModal from '@/components/transactions/TransactionModal';
+import EmailReportModal from '@/components/common/EmailReportModal';
 import ModernDateRangePicker, { DatePeriod, computeDateRange, getLocalMonthStr, getLocalDateStr, toLocalDateStr } from '@/components/common/ModernDateRangePicker';
 import ModernSelect from '@/components/common/ModernSelect';
 import { fetchApi } from '@/lib/api';
@@ -127,16 +128,17 @@ interface OrderApi {
   created_at: string;
 }
 
-export type TransactionTab = 'ledger' | 'orders';
+export type TransactionTab = 'ledger' | 'orders' | 'funds';
 
 export default function TransactionsPage() {
   const router = useRouter();
   const { t } = useTranslation();
   const { confirm, showAlert } = useConfirm();
 
-  // Active View Tab: 'ledger' (Default) | 'orders'
+  // Active View Tab: 'ledger' (Default) | 'orders' | 'funds'
   const [activeTab, setActiveTab] = useState<TransactionTab>('ledger');
-  const [showFundsSection, setShowFundsSection] = useState<boolean>(false);
+  const [showFundsSection, setShowFundsSection] = useState<boolean>(true);
+  const [showEmailReportModal, setShowEmailReportModal] = useState<boolean>(false);
 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [orders, setOrders] = useState<OrderApi[]>([]);
@@ -167,7 +169,6 @@ export default function TransactionsPage() {
   };
 
   // Filters for Transactions
-  // Filters for Transactions
   const [txSearchQuery, setTxSearchQuery] = useState<string>('');
   const [debouncedTxSearch, setDebouncedTxSearch] = useState<string>('');
   const [selectedFundId, setSelectedFundId] = useState<number | null>(null);
@@ -189,7 +190,7 @@ export default function TransactionsPage() {
   const [txPage, setTxPage] = useState<number>(1);
   const [orderPage, setOrderPage] = useState<number>(1);
 
-  // Read URL query params on mount (?tab=ledger|orders)
+  // Read URL query params on mount (?tab=ledger|orders|funds)
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
@@ -200,8 +201,7 @@ export default function TransactionsPage() {
       } else if (tabParam === 'ledger' || tabParam === 'transactions') {
         setActiveTab('ledger');
       } else if (tabParam === 'funds') {
-        setActiveTab('ledger');
-        setShowFundsSection(true);
+        setActiveTab('funds');
       } else if (tabParam === 'orders') {
         setActiveTab('orders');
       }
@@ -695,6 +695,13 @@ export default function TransactionsPage() {
         { header: 'Total Amount', accessor: (o) => formatCurrency(o.total_amount, settings) },
         { header: 'Notes', accessor: (o) => o.note || '' },
       ]);
+    } else if (activeTab === 'funds') {
+      exportToCsv<Fund>('rabbitpos_funds', safeFunds, [
+        { header: 'ID', accessor: (f) => f.id },
+        { header: 'Fund Name', accessor: (f) => f.name },
+        { header: 'Fund Type', accessor: (f) => f.fund_type },
+        { header: 'Current Balance', accessor: (f) => formatCurrency(f.current_balance, settings) },
+      ]);
     } else {
       exportToCsv<Transaction>('rabbitpos_transactions', filteredTransactions, [
         { header: 'ID', accessor: (tx) => tx.id },
@@ -781,6 +788,17 @@ export default function TransactionsPage() {
             </p>
           </div>
           <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 w-full sm:w-auto">
+            {/* Email Report Trigger for all tabs */}
+            <button
+              type="button"
+              onClick={() => setShowEmailReportModal(true)}
+              className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold px-3 py-2 rounded-xl border border-indigo-200 flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer shadow-2xs w-full sm:w-auto"
+              title="Gửi báo cáo tài chính qua email"
+            >
+              <Mail className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+              <span className="truncate">Email Báo Cáo</span>
+            </button>
+
             {activeTab === 'ledger' && (
               <>
                 <div className="col-span-2 sm:col-span-1 w-full sm:w-auto">
@@ -844,17 +862,29 @@ export default function TransactionsPage() {
                 </button>
               </>
             )}
+
+            {activeTab === 'funds' && (
+              <>
+                <button
+                  type="button"
+                  onClick={handleExportCsv}
+                  className="col-span-2 sm:col-span-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-3 py-2 rounded-xl border border-slate-200 flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer w-full sm:w-auto"
+                >
+                  <Download className="w-3.5 h-3.5 text-slate-500 shrink-0" /> <span className="truncate">{t('common.export_csv')}</span>
+                </button>
+              </>
+            )}
           </div>
         </div>
 
-        {/* Sticky Tab Navigation Bar: 2 Tabs (Ledger, Orders) */}
+        {/* Sticky Tab Navigation Bar: 3 Tabs (Ledger, Orders, Funds) */}
         <div className="sticky top-14 z-30 bg-slate-50/95 backdrop-blur-xs pt-1 pb-2 border-b border-slate-200/80">
           <div className="flex space-x-1 sm:space-x-2 bg-slate-200/70 p-1 rounded-2xl overflow-x-auto no-scrollbar">
             {/* TAB 1: Financial Ledger */}
             <button
               type="button"
               onClick={() => handleTabChange('ledger')}
-              className={`flex-1 min-w-[140px] py-2 px-3 text-xs sm:text-sm font-bold rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
+              className={`flex-1 min-w-[130px] py-2 px-3 text-xs sm:text-sm font-bold rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
                 activeTab === 'ledger'
                   ? 'bg-white text-emerald-900 shadow-sm font-extrabold'
                   : 'text-slate-600 hover:text-slate-900'
@@ -871,9 +901,9 @@ export default function TransactionsPage() {
             <button
               type="button"
               onClick={() => handleTabChange('orders')}
-              className={`flex-1 min-w-[140px] py-2 px-3 text-xs sm:text-sm font-bold rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
+              className={`flex-1 min-w-[130px] py-2 px-3 text-xs sm:text-sm font-bold rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
                 activeTab === 'orders'
-                  ? 'bg-white text-emerald-900 shadow-sm font-extrabold'
+                  ? 'bg-white text-amber-900 shadow-sm font-extrabold'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
@@ -881,6 +911,23 @@ export default function TransactionsPage() {
               <span>{t('tx.tab_orders') || '🧾 Lịch sử đơn hàng'}</span>
               <span className="bg-amber-50 text-amber-700 text-[10px] sm:text-xs px-1.5 py-0.2 rounded-full font-bold">
                 {safeOrders.length}
+              </span>
+            </button>
+
+            {/* TAB 3: Funds Management & Audit */}
+            <button
+              type="button"
+              onClick={() => handleTabChange('funds')}
+              className={`flex-1 min-w-[130px] py-2 px-3 text-xs sm:text-sm font-bold rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
+                activeTab === 'funds'
+                  ? 'bg-white text-emerald-900 shadow-sm font-extrabold'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Wallet className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>{t('tx.tab_funds') || '💳 Quản lý quỹ'}</span>
+              <span className="bg-emerald-50 text-emerald-700 text-[10px] sm:text-xs px-1.5 py-0.2 rounded-full font-bold">
+                {safeFunds.length}
               </span>
             </button>
           </div>
@@ -1563,230 +1610,6 @@ export default function TransactionsPage() {
                 </div>
               )}
             </div>
-
-            {/* Fund Management & Reconciliation Section Inside Ledger */}
-            <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
-                <div>
-                  <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
-                    <Wallet className="w-4 h-4 text-emerald-700" />
-                    <span>Quản Lý Tài Khoản Quỹ & Đối Soát Định Kỳ</span>
-                  </h3>
-                  <p className="text-xs text-slate-500">Xem số dư thực tế, đối soát lệch quỹ và bảng cân đối đầu/cuối kỳ</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setShowFundsSection(!showFundsSection)}
-                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-3 py-1.5 rounded-xl border border-slate-200 flex items-center gap-1.5 transition active:scale-95 cursor-pointer self-start sm:self-auto"
-                >
-                  {showFundsSection ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-                  <span>{showFundsSection ? 'Thu gọn' : 'Mở rộng đối soát quỹ'}</span>
-                </button>
-              </div>
-
-              {showFundsSection && (
-                <div className="space-y-6 pt-2">
-                  {/* Funds Real-Time Balance Cards */}
-                  {loading ? (
-                    <div className="flex justify-center py-8">
-                      <RefreshCw className="w-6 h-6 text-indigo-600 animate-spin" />
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {(Array.isArray(funds) ? funds : []).map((fund) => {
-                        const isBank = fund.fund_type === 'bank';
-
-                        return (
-                          <div
-                            key={fund.id}
-                            className="bg-slate-50/50 p-4 rounded-2xl border border-slate-200 shadow-2xs flex flex-col justify-between space-y-3 hover:border-indigo-200 transition"
-                          >
-                            <div className="flex items-start justify-between">
-                              <div className="flex items-center space-x-3">
-                                <div className={`p-2.5 rounded-xl ${isBank ? 'bg-blue-50 text-blue-600' : 'bg-emerald-50 text-emerald-600'}`}>
-                                  {isBank ? <Building2 className="w-5 h-5" /> : <Wallet className="w-5 h-5" />}
-                                </div>
-                                <div>
-                                  <h4 className="font-bold text-slate-900 text-sm">{fund.name}</h4>
-                                  <span className="text-[11px] font-semibold text-slate-400 capitalize">
-                                    {t('funds.fund_type_label', { type: fund.fund_type })}
-                                  </span>
-                                </div>
-                              </div>
-
-                              <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
-                                <CheckCircle2 className="w-3 h-3" /> {t('funds.active_badge')}
-                              </span>
-                            </div>
-
-                            {/* Balance Display */}
-                            <div className="bg-white p-3 rounded-xl border border-slate-100 flex items-center justify-between">
-                              <div>
-                                <span className="text-[11px] text-slate-500 font-medium">{t('funds.theoretical_balance')}</span>
-                                <div className="text-xl font-black text-slate-900 mt-0.5">
-                                  {formatCurrency(fund.current_balance, settings)}
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* Action Buttons */}
-                            <div className="flex items-center space-x-2 pt-2 border-t border-slate-200/60">
-                              <button
-                                onClick={() => openReconcileModal(fund)}
-                                className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 shadow-2xs transition cursor-pointer"
-                              >
-                                <Scale className="w-3.5 h-3.5" /> {t('funds.reconcile_count')}
-                              </button>
-                              <button
-                                onClick={() => {
-                                  setSelectedFundId(fund.id);
-                                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                                }}
-                                className="bg-white hover:bg-slate-100 text-slate-700 text-xs font-semibold py-2 px-3 rounded-xl border border-slate-200 flex items-center gap-1 transition cursor-pointer"
-                              >
-                                <History className="w-3.5 h-3.5" /> {t('funds.history')}
-                              </button>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-
-                  {/* ── PERIODIC BALANCE SUMMARY ─── */}
-                  <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs space-y-3">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
-                      <div>
-                        <h4 className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-                          <Coins className="w-4 h-4 text-indigo-600" />
-                          {t('funds.period_summary_title')}
-                        </h4>
-                        <p className="text-[11px] text-slate-500">{t('funds.period_summary_subtitle')}</p>
-                      </div>
-
-                      <div className="flex items-center space-x-2">
-                        <span className="text-xs font-semibold text-slate-600">{t('funds.select_month')}:</span>
-                        <ModernDateRangePicker
-                          period={fundsPeriod}
-                          customFrom={fundsCustomFrom}
-                          customTo={fundsCustomTo}
-                          onChange={({ period: newP, from, to }) => {
-                            setFundsPeriod(newP);
-                            setFundsCustomFrom(from);
-                            setFundsCustomTo(to);
-                            setSelectedMonth(from.slice(0, 7));
-                          }}
-                          align="right"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Table & Cards */}
-                    <div className="hidden md:block overflow-x-auto">
-                      <table className="w-full text-left text-xs">
-                        <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold uppercase text-[11px]">
-                          <tr>
-                            <th className="py-2.5 px-3">{t('funds.fund_name')}</th>
-                            <th className="py-2.5 px-3 text-right">{t('funds.opening_balance')}</th>
-                            <th className="py-2.5 px-3 text-right text-emerald-600">(+) {t('funds.period_inflow')}</th>
-                            <th className="py-2.5 px-3 text-right text-rose-600">(-) {t('funds.period_outflow')}</th>
-                            <th className="py-2.5 px-3 text-right">{t('funds.closing_balance')}</th>
-                            <th className="py-2.5 px-3 text-right">{t('funds.prev_closing_balance')}</th>
-                            <th className="py-2.5 px-3 text-right">{t('funds.growth_rate')}</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100">
-                          {summaryLoading ? (
-                            <tr>
-                              <td colSpan={7} className="py-6 text-center text-slate-400 text-xs">
-                                {t('common.loading')}
-                              </td>
-                            </tr>
-                          ) : periodSummary?.funds && periodSummary.funds.length > 0 ? (
-                            <>
-                              {periodSummary.funds.map((f) => (
-                                <tr key={f.fund_id} className="hover:bg-slate-50 transition">
-                                  <td className="py-2.5 px-3 font-bold text-slate-900 flex items-center gap-2">
-                                    <span
-                                      className={`w-2 h-2 rounded-full ${f.fund_type === 'bank' ? 'bg-blue-500' : 'bg-emerald-500'}`}
-                                    />
-                                    {f.fund_name}
-                                  </td>
-                                  <td className="py-2.5 px-3 text-right text-slate-600 font-medium">
-                                    {formatCurrency(f.current_month.opening_balance, settings)}
-                                  </td>
-                                  <td className="py-2.5 px-3 text-right font-semibold text-emerald-600">
-                                    +{formatCurrency(f.current_month.total_inflow, settings)}
-                                  </td>
-                                  <td className="py-2.5 px-3 text-right font-semibold text-rose-600">
-                                    -{formatCurrency(f.current_month.total_outflow, settings)}
-                                  </td>
-                                  <td className="py-2.5 px-3 text-right font-extrabold text-slate-900">
-                                    {formatCurrency(f.current_month.closing_balance, settings)}
-                                  </td>
-                                  <td className="py-2.5 px-3 text-right text-slate-400">
-                                    {formatCurrency(f.prev_month.closing_balance, settings)}
-                                  </td>
-                                  <td className="py-2.5 px-3 text-right">
-                                    <span
-                                      className={`inline-block px-2 py-0.5 rounded-full font-bold text-[10px] ${f.growth_pct >= 0
-                                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                                        : 'bg-rose-50 text-rose-700 border border-rose-200'
-                                        }`}
-                                    >
-                                      {f.growth_pct >= 0 ? '+' : ''}
-                                      {f.growth_pct.toFixed(1)}%
-                                    </span>
-                                  </td>
-                                </tr>
-                              ))}
-
-                              {periodSummary?.totals && (
-                                <tr className="bg-slate-50 font-extrabold text-slate-900 border-t-2 border-slate-200">
-                                  <td className="py-2.5 px-3 uppercase text-xs">{t('common.all')}</td>
-                                  <td className="py-2.5 px-3 text-right">
-                                    {formatCurrency(periodSummary.totals.current_month.opening_balance, settings)}
-                                  </td>
-                                  <td className="py-2.5 px-3 text-right text-emerald-600">
-                                    +{formatCurrency(periodSummary.totals.current_month.total_inflow, settings)}
-                                  </td>
-                                  <td className="py-2.5 px-3 text-right text-rose-600">
-                                    -{formatCurrency(periodSummary.totals.current_month.total_outflow, settings)}
-                                  </td>
-                                  <td className="py-2.5 px-3 text-right text-indigo-600 text-xs">
-                                    {formatCurrency(periodSummary.totals.current_month.closing_balance, settings)}
-                                  </td>
-                                  <td className="py-2.5 px-3 text-right text-slate-500">
-                                    {formatCurrency(periodSummary.totals.prev_month.closing_balance, settings)}
-                                  </td>
-                                  <td className="py-2.5 px-3 text-right">
-                                    <span
-                                      className={`inline-block px-2 py-0.5 rounded-full font-bold text-[10px] ${periodSummary.totals.growth_pct >= 0
-                                        ? 'bg-emerald-100 text-emerald-800'
-                                        : 'bg-rose-100 text-rose-800'
-                                        }`}
-                                    >
-                                      {periodSummary.totals.growth_pct >= 0 ? '+' : ''}
-                                      {periodSummary.totals.growth_pct.toFixed(1)}%
-                                    </span>
-                                  </td>
-                                </tr>
-                              )}
-                            </>
-                          ) : (
-                            <tr>
-                              <td colSpan={7} className="py-6 text-center text-slate-400 text-xs">
-                                {t('funds.no_summary_data')}
-                              </td>
-                            </tr>
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
           </div>
         )}
 
@@ -1965,7 +1788,6 @@ export default function TransactionsPage() {
                       <th className="py-3 px-4">{t('tx.fund')}</th>
                       <th className="py-3 px-4">{t('tx.items')}</th>
                       <th className="py-3 px-4">{t('common.status')}</th>
-                      <th className="py-3 px-4 text-right">{t('common.total_amount')}</th>
                       <th className="py-3 px-4 text-right">{t('common.actions')}</th>
                     </tr>
                   </thead>
@@ -1980,8 +1802,8 @@ export default function TransactionsPage() {
                       paginatedOrders.map((order) => {
                         const isCancelled = order.status === 'cancelled';
                         const isExpanded = expandedOrderId === order.id;
-                        const items = order.items || [];
-                        const itemCount = items.reduce((acc, it) => acc + (it.quantity || 0), 0);
+                        const items = Array.isArray(order.items) ? order.items : [];
+                        const itemCount = items.reduce((acc, it) => acc + (Number(it.quantity) || 1), 0);
 
                         return (
                           <React.Fragment key={order.id}>
@@ -2011,7 +1833,7 @@ export default function TransactionsPage() {
                                 {order.fund?.name || (funds.find((f) => f.id === order.fund_id)?.name ?? '—')}
                               </td>
                               <td className="py-3 px-4 font-semibold text-slate-700">
-                                {itemCount} {t('pos.items_count') || 'món'}
+                                {t('pos.items_count', { count: itemCount })}
                               </td>
                               <td className="py-3 px-4">
                                 {isCancelled ? (
@@ -2126,8 +1948,8 @@ export default function TransactionsPage() {
                   paginatedOrders.map((order) => {
                     const isCancelled = order.status === 'cancelled';
                     const isExpanded = expandedOrderId === order.id;
-                    const items = order.items || [];
-                    const itemCount = items.reduce((acc, it) => acc + (it.quantity || 0), 0);
+                    const items = Array.isArray(order.items) ? order.items : [];
+                    const itemCount = items.reduce((acc, it) => acc + (Number(it.quantity) || 1), 0);
 
                     return (
                       <div
@@ -2162,7 +1984,7 @@ export default function TransactionsPage() {
 
                         <div className="flex items-center justify-between text-xs">
                           <span className="text-slate-500 font-medium">
-                            {itemCount} món • {order.fund?.name || (funds.find((f) => f.id === order.fund_id)?.name ?? 'Tiền mặt')}
+                            {t('pos.items_count', { count: itemCount })} • {order.fund?.name || (funds.find((f) => f.id === order.fund_id)?.name ?? 'Tiền mặt')}
                           </span>
                           <span className="font-extrabold text-slate-900 text-sm">
                             {formatCurrency(order.total_amount, settings)}
@@ -2182,7 +2004,7 @@ export default function TransactionsPage() {
                                     <span className="font-bold text-slate-800">
                                       {getOrderItemName(item)}
                                     </span>
-                                    {item.variant?.variant_name && item.variant?.variant_name !== 'Default' && item.variant.variant_name !== getOrderItemName(item) && (
+                                    {item.variant?.variant_name && item.variant.variant_name !== 'Default' && item.variant.variant_name !== getOrderItemName(item) && (
                                       <span className="text-[10px] text-slate-500 font-medium ml-1">
                                         ({item.variant.variant_name})
                                       </span>
@@ -2271,6 +2093,238 @@ export default function TransactionsPage() {
                   </div>
                 </div>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* ── TAB 3: FUNDS MANAGEMENT & RECONCILIATION ─────────────────── */}
+        {activeTab === 'funds' && (
+          <div className="space-y-6">
+            {/* Funds Real-Time Balance Cards */}
+            <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+                <div>
+                  <h3 className="text-sm sm:text-base font-black text-slate-900 flex items-center gap-2">
+                    <Wallet className="w-5 h-5 text-emerald-700" />
+                    <span>Quản Lý Tài Khoản Quỹ & Đối Soát Thực Tế</span>
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Theo dõi số dư tiền mặt, ngân hàng và đối soát chênh lệch két định kỳ
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowEmailReportModal(true)}
+                    className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold px-3 py-2 rounded-xl border border-indigo-200 flex items-center gap-1.5 transition active:scale-95 cursor-pointer shadow-2xs"
+                  >
+                    <Mail className="w-3.5 h-3.5 text-indigo-600" />
+                    <span>Gửi Báo Cáo Email</span>
+                  </button>
+                </div>
+              </div>
+
+              {loading ? (
+                <div className="flex justify-center py-12">
+                  <RefreshCw className="w-7 h-7 text-indigo-600 animate-spin" />
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {(Array.isArray(funds) ? funds : []).map((fund) => {
+                    const isBank = fund.fund_type === 'bank';
+
+                    return (
+                      <div
+                        key={fund.id}
+                        className="bg-slate-50/70 p-4 rounded-2xl border border-slate-200 shadow-2xs flex flex-col justify-between space-y-3 hover:border-indigo-300 hover:bg-slate-50 transition"
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center space-x-3">
+                            <div className={`p-2.5 rounded-xl ${isBank ? 'bg-blue-50 text-blue-600 border border-blue-100' : 'bg-emerald-50 text-emerald-600 border border-emerald-100'}`}>
+                              {isBank ? <Building2 className="w-5 h-5" /> : <Wallet className="w-5 h-5" />}
+                            </div>
+                            <div>
+                              <h4 className="font-bold text-slate-900 text-sm">{fund.name}</h4>
+                              <span className="text-[11px] font-semibold text-slate-400 capitalize">
+                                {t('funds.fund_type_label', { type: fund.fund_type })}
+                              </span>
+                            </div>
+                          </div>
+
+                          <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                            <CheckCircle2 className="w-3 h-3" /> {t('funds.active_badge')}
+                          </span>
+                        </div>
+
+                        {/* Balance Display */}
+                        <div className="bg-white p-3.5 rounded-xl border border-slate-100 flex items-center justify-between shadow-2xs">
+                          <div>
+                            <span className="text-[11px] text-slate-500 font-semibold">{t('funds.theoretical_balance')}</span>
+                            <div className="text-xl font-black text-slate-900 mt-0.5">
+                              {formatCurrency(fund.current_balance, settings)}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="flex items-center space-x-2 pt-2 border-t border-slate-200/60">
+                          <button
+                            type="button"
+                            onClick={() => openReconcileModal(fund)}
+                            className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 shadow-2xs transition cursor-pointer active:scale-95"
+                          >
+                            <Scale className="w-3.5 h-3.5" /> {t('funds.reconcile_count')}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedFundId(fund.id);
+                              handleTabChange('ledger');
+                              window.scrollTo({ top: 0, behavior: 'smooth' });
+                            }}
+                            className="bg-white hover:bg-slate-100 text-slate-700 text-xs font-semibold py-2 px-3 rounded-xl border border-slate-200 flex items-center gap-1 transition cursor-pointer shadow-2xs"
+                            title="Xem các giao dịch phát sinh từ quỹ này"
+                          >
+                            <History className="w-3.5 h-3.5" /> {t('funds.history')}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* ── PERIODIC BALANCE SUMMARY ─── */}
+            <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+                <div>
+                  <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                    <Coins className="w-4 h-4 text-indigo-600" />
+                    <span>{t('funds.period_summary_title')}</span>
+                  </h4>
+                  <p className="text-xs text-slate-500">{t('funds.period_summary_subtitle')}</p>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <span className="text-xs font-semibold text-slate-600">{t('funds.select_month')}:</span>
+                  <ModernDateRangePicker
+                    period={fundsPeriod}
+                    customFrom={fundsCustomFrom}
+                    customTo={fundsCustomTo}
+                    onChange={({ period: newP, from, to }) => {
+                      setFundsPeriod(newP);
+                      setFundsCustomFrom(from);
+                      setFundsCustomTo(to);
+                      setSelectedMonth(from.slice(0, 7));
+                    }}
+                    align="right"
+                  />
+                </div>
+              </div>
+
+              {/* Table & Cards */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold uppercase text-[11px]">
+                    <tr>
+                      <th className="py-2.5 px-3">{t('funds.fund_name')}</th>
+                      <th className="py-2.5 px-3 text-right">{t('funds.opening_balance')}</th>
+                      <th className="py-2.5 px-3 text-right text-emerald-600">(+) {t('funds.period_inflow')}</th>
+                      <th className="py-2.5 px-3 text-right text-rose-600">(-) {t('funds.period_outflow')}</th>
+                      <th className="py-2.5 px-3 text-right">{t('funds.closing_balance')}</th>
+                      <th className="py-2.5 px-3 text-right">{t('funds.prev_closing_balance')}</th>
+                      <th className="py-2.5 px-3 text-right">{t('funds.growth_rate')}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {summaryLoading ? (
+                      <tr>
+                        <td colSpan={7} className="py-8 text-center text-slate-400 text-xs">
+                          {t('common.loading')}
+                        </td>
+                      </tr>
+                    ) : periodSummary?.funds && periodSummary.funds.length > 0 ? (
+                      <>
+                        {periodSummary.funds.map((f) => (
+                          <tr key={f.fund_id} className="hover:bg-slate-50 transition">
+                            <td className="py-2.5 px-3 font-bold text-slate-900 flex items-center gap-2">
+                              <span
+                                className={`w-2 h-2 rounded-full ${f.fund_type === 'bank' ? 'bg-blue-500' : 'bg-emerald-500'}`}
+                              />
+                              {f.fund_name}
+                            </td>
+                            <td className="py-2.5 px-3 text-right text-slate-600 font-medium">
+                              {formatCurrency(f.current_month.opening_balance, settings)}
+                            </td>
+                            <td className="py-2.5 px-3 text-right font-semibold text-emerald-600">
+                              +{formatCurrency(f.current_month.total_inflow, settings)}
+                            </td>
+                            <td className="py-2.5 px-3 text-right font-semibold text-rose-600">
+                              -{formatCurrency(f.current_month.total_outflow, settings)}
+                            </td>
+                            <td className="py-2.5 px-3 text-right font-extrabold text-slate-900">
+                              {formatCurrency(f.current_month.closing_balance, settings)}
+                            </td>
+                            <td className="py-2.5 px-3 text-right text-slate-400">
+                              {formatCurrency(f.prev_month.closing_balance, settings)}
+                            </td>
+                            <td className="py-2.5 px-3 text-right">
+                              <span
+                                className={`inline-block px-2 py-0.5 rounded-full font-bold text-[10px] ${f.growth_pct >= 0
+                                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                  : 'bg-rose-50 text-rose-700 border border-rose-200'
+                                  }`}
+                              >
+                                {f.growth_pct >= 0 ? '+' : ''}
+                                {f.growth_pct.toFixed(1)}%
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+
+                        {periodSummary?.totals && (
+                          <tr className="bg-slate-50 font-extrabold text-slate-900 border-t-2 border-slate-200">
+                            <td className="py-2.5 px-3 uppercase text-xs">{t('common.all')}</td>
+                            <td className="py-2.5 px-3 text-right">
+                              {formatCurrency(periodSummary.totals.current_month.opening_balance, settings)}
+                            </td>
+                            <td className="py-2.5 px-3 text-right text-emerald-600">
+                              +{formatCurrency(periodSummary.totals.current_month.total_inflow, settings)}
+                            </td>
+                            <td className="py-2.5 px-3 text-right text-rose-600">
+                              -{formatCurrency(periodSummary.totals.current_month.total_outflow, settings)}
+                            </td>
+                            <td className="py-2.5 px-3 text-right text-indigo-600 text-xs">
+                              {formatCurrency(periodSummary.totals.current_month.closing_balance, settings)}
+                            </td>
+                            <td className="py-2.5 px-3 text-right text-slate-500">
+                              {formatCurrency(periodSummary.totals.prev_month.closing_balance, settings)}
+                            </td>
+                            <td className="py-2.5 px-3 text-right">
+                              <span
+                                className={`inline-block px-2 py-0.5 rounded-full font-bold text-[10px] ${periodSummary.totals.growth_pct >= 0
+                                  ? 'bg-emerald-100 text-emerald-800'
+                                  : 'bg-rose-100 text-rose-800'
+                                  }`}
+                              >
+                                {periodSummary.totals.growth_pct >= 0 ? '+' : ''}
+                                {periodSummary.totals.growth_pct.toFixed(1)}%
+                              </span>
+                            </td>
+                          </tr>
+                        )}
+                      </>
+                    ) : (
+                      <tr>
+                        <td colSpan={7} className="py-8 text-center text-slate-400 text-xs">
+                          {t('funds.no_summary_data')}
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         )}
@@ -2591,6 +2645,13 @@ export default function TransactionsPage() {
           {reconcileToast.message}
         </div>
       )}
+
+      {/* Financial Report Email Modal */}
+      <EmailReportModal
+        isOpen={showEmailReportModal}
+        onClose={() => setShowEmailReportModal(false)}
+        initialDate={customFrom || getLocalDateStr()}
+      />
     </AppShell>
   );
 }
