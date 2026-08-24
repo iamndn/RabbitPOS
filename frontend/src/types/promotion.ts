@@ -20,6 +20,7 @@ export interface Promotion {
   end_date?: string | null;
   usage_limit: number;
   usage_count: number;
+  display_order?: number;
   is_active: boolean;
   created_at?: string;
 }

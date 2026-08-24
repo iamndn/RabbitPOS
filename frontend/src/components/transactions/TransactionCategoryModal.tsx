@@ -11,6 +11,7 @@ import {
   AlertCircle,
   FolderPlus,
   ShieldCheck,
+  GripVertical,
 } from 'lucide-react';
 import { fetchApi } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
@@ -37,6 +38,8 @@ export default function TransactionCategoryModal({
   const [activeFilter, setActiveFilter] = useState<'all' | 'outflow' | 'inflow'>('all');
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [editingCategory, setEditingCategory] = useState<TransactionCategory | null>(null);
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
   // Form State
   const [formData, setFormData] = useState<{
@@ -149,6 +152,48 @@ export default function TransactionCategoryModal({
       setErrorMessage(err.message || 'Lỗi kết nối máy chủ');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', String(index));
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (dragOverIndex !== index) {
+      setDragOverIndex(index);
+    }
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
+
+  const handleDrop = async (e: React.DragEvent, targetIndex: number) => {
+    e.preventDefault();
+    if (draggedIndex === null || draggedIndex === targetIndex) {
+      handleDragEnd();
+      return;
+    }
+    const currentList = [...filteredCategories];
+    const [moved] = currentList.splice(draggedIndex, 1);
+    currentList.splice(targetIndex, 0, moved);
+    handleDragEnd();
+
+    try {
+      const orderedIds = currentList.map((c) => c.id);
+      await fetchApi('/transaction-categories/reorder', {
+        method: 'PUT',
+        body: JSON.stringify({ ordered_ids: orderedIds }),
+      });
+      onCategoriesUpdated();
+    } catch (err) {
+      console.error('Failed to reorder transaction categories', err);
     }
   };
 
@@ -371,74 +416,103 @@ export default function TransactionCategoryModal({
             </div>
 
             {/* Categories Table / List */}
+            <div className="flex items-center justify-between text-[11px] text-slate-400 font-medium px-1">
+              <span>💡 Kéo thả biểu tượng ⋮⋮ để sắp xếp thứ tự danh mục</span>
+            </div>
             <div className="border border-slate-200/80 rounded-2xl overflow-hidden divide-y divide-slate-100 bg-white">
               {filteredCategories.length === 0 ? (
                 <div className="p-8 text-center text-xs text-slate-400">
                   {t('tx_cat.no_categories') || 'Chưa có danh mục nào trong nhóm này.'}
                 </div>
               ) : (
-                filteredCategories.map((cat) => (
-                  <div
-                    key={cat.id}
-                    className="p-3.5 flex items-center justify-between hover:bg-slate-50/60 transition group"
-                  >
-                    <div className="flex items-center space-x-3 min-w-0 pr-2">
-                      <div className="w-8 h-8 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center font-bold text-xs shrink-0">
-                        <Tag className="w-4 h-4" />
-                      </div>
-                      <div className="min-w-0">
-                        <div className="flex items-center space-x-2 flex-wrap gap-y-1">
-                          <span className="text-xs font-bold text-slate-800">{cat.name}</span>
-                          {cat.is_default && (
-                            <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-full text-[9px] font-black bg-amber-100 text-amber-800 border border-amber-300">
-                              <span>⭐ Mặc định</span>
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex items-center space-x-2 mt-0.5">
-                          {getTypeBadge(cat.type)}
-                          {cat.code && (
-                            <span className="text-[10px] text-slate-400 font-mono">
-                              #{cat.code}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
+                filteredCategories.map((cat, idx) => {
+                  const isDragging = draggedIndex === idx;
+                  const isDragOver = dragOverIndex === idx && draggedIndex !== idx;
 
-                    {/* Action Buttons */}
-                    <div className="flex items-center space-x-1 shrink-0">
-                      {!cat.is_default && (
+                  return (
+                    <div
+                      key={cat.id}
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, idx)}
+                      onDragOver={(e) => handleDragOver(e, idx)}
+                      onDragEnd={handleDragEnd}
+                      onDrop={(e) => handleDrop(e, idx)}
+                      className={`p-3.5 flex items-center justify-between transition group cursor-move select-none ${
+                        isDragging
+                          ? 'opacity-40 bg-indigo-50/40 border-dashed border-indigo-400'
+                          : isDragOver
+                          ? 'bg-indigo-50/30 ring-2 ring-indigo-500/20'
+                          : 'hover:bg-slate-50/60'
+                      }`}
+                    >
+                      <div className="flex items-center space-x-3 min-w-0 pr-2">
+                        <GripVertical className="w-4 h-4 text-slate-300 group-hover:text-slate-500 shrink-0 cursor-grab active:cursor-grabbing" />
+                        <div className="w-8 h-8 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center font-bold text-xs shrink-0">
+                          <Tag className="w-4 h-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center space-x-2 flex-wrap gap-y-1">
+                            <span className="text-xs font-bold text-slate-800">{cat.name}</span>
+                            {cat.is_default && (
+                              <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-full text-[9px] font-black bg-amber-100 text-amber-800 border border-amber-300">
+                                <span>⭐ Mặc định</span>
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center space-x-2 mt-0.5">
+                            {getTypeBadge(cat.type)}
+                            {cat.code && (
+                              <span className="text-[10px] text-slate-400 font-mono">
+                                #{cat.code}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="flex items-center space-x-1 shrink-0">
+                        {!cat.is_default && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleSetDefault(cat);
+                            }}
+                            className="px-2 py-1 text-[11px] font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg transition flex items-center gap-1 cursor-pointer"
+                            title="Đặt làm danh mục mặc định"
+                          >
+                            <span>⭐ Đặt mặc định</span>
+                          </button>
+                        )}
+
                         <button
                           type="button"
-                          onClick={() => handleSetDefault(cat)}
-                          className="px-2 py-1 text-[11px] font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg transition flex items-center gap-1 cursor-pointer"
-                          title="Đặt làm danh mục mặc định"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleStartEdit(cat);
+                          }}
+                          className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition cursor-pointer"
+                          title={t('common.edit') || 'Chỉnh sửa'}
                         >
-                          <span>⭐ Đặt mặc định</span>
+                          <Edit2 className="w-4 h-4" />
                         </button>
-                      )}
 
-                      <button
-                        type="button"
-                        onClick={() => handleStartEdit(cat)}
-                        className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition cursor-pointer"
-                        title={t('common.edit') || 'Chỉnh sửa'}
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => setDeletingCategory(cat)}
-                        className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"
-                        title={t('common.delete') || 'Xóa'}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeletingCategory(cat);
+                          }}
+                          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"
+                          title={t('common.delete') || 'Xóa'}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           </div>

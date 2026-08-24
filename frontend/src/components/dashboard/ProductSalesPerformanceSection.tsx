@@ -16,7 +16,7 @@ import {
   RefreshCw,
   Tag,
 } from 'lucide-react';
-import ModernDateRangePicker, { DatePeriod, DateRangeChangeParams, getLocalDateStr } from '@/components/common/ModernDateRangePicker';
+import { DatePeriod, getLocalDateStr } from '@/components/common/ModernDateRangePicker';
 import ModernSelect, { ModernSelectOption } from '@/components/common/ModernSelect';
 import { fetchApi } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
@@ -28,9 +28,9 @@ import {
 } from '@/types/analytics';
 
 interface ProductSalesPerformanceSectionProps {
-  initialPeriod: DatePeriod;
-  initialFrom?: string;
-  initialTo?: string;
+  period: DatePeriod;
+  customFrom?: string;
+  customTo?: string;
   settings: SettingsMap | null;
 }
 
@@ -54,16 +54,12 @@ function marginBadgeClass(margin: number): string {
 }
 
 export default function ProductSalesPerformanceSection({
-  initialPeriod,
-  initialFrom,
-  initialTo,
+  period,
+  customFrom = getLocalDateStr(),
+  customTo = getLocalDateStr(),
   settings,
 }: ProductSalesPerformanceSectionProps) {
   const { t } = useTranslation();
-
-  const [period, setPeriod] = useState<DatePeriod>(initialPeriod);
-  const [customFrom, setCustomFrom] = useState<string>(() => initialFrom ?? getLocalDateStr());
-  const [customTo, setCustomTo] = useState<string>(() => initialTo ?? getLocalDateStr());
 
   const [searchInput, setSearchInput] = useState<string>('');
   const debouncedSearch = useDebounce(searchInput, 250);
@@ -109,7 +105,7 @@ export default function ProductSalesPerformanceSection({
       } else {
         setData(null);
       }
-    } catch {
+    } catch (e) {
       setData(null);
     } finally {
       setLoading(false);
@@ -119,18 +115,6 @@ export default function ProductSalesPerformanceSection({
   useEffect(() => {
     fetchData();
   }, [fetchData]);
-
-  useEffect(() => {
-    setPeriod(initialPeriod);
-    if (initialFrom) setCustomFrom(initialFrom);
-    if (initialTo) setCustomTo(initialTo);
-  }, [initialPeriod, initialFrom, initialTo]);
-
-  const handleDateChange = ({ period: newP, from, to }: DateRangeChangeParams) => {
-    setPeriod(newP);
-    setCustomFrom(from);
-    setCustomTo(to);
-  };
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -241,13 +225,6 @@ export default function ProductSalesPerformanceSection({
 
         {/* Filter Toolbar */}
         <div className="flex flex-wrap gap-2.5 sm:gap-3 items-center p-3.5 sm:p-5 border-b border-slate-100 bg-slate-50/50">
-          <ModernDateRangePicker
-            period={period}
-            customFrom={customFrom}
-            customTo={customTo}
-            onChange={handleDateChange}
-            align="left"
-          />
           <div className="relative flex-1 min-w-[130px] sm:max-w-xs">
             <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
             <input

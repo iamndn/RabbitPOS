@@ -45,7 +45,7 @@ import { fetchApi } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
 import { useConfirm } from '@/context/ConfirmContext';
 import { exportToCsv } from '@/lib/exportCsv';
-import { formatCurrency, SettingsMap } from '@/lib/utils';
+import { formatCurrency, SettingsMap, matchTransactionCategory } from '@/lib/utils';
 import { CartItem, ProductVariant, Product } from '@/components/pos/VariantSelectorModal';
 import { CategoryBreakdownResponse, FundsPeriodSummaryResponse } from '@/types/analytics';
 import { TransactionCategory } from '@/types/transaction_category';
@@ -269,16 +269,13 @@ export default function TransactionsPage() {
   // Expanded Order Items Row
   const [expandedOrderId, setExpandedOrderId] = useState<number | null>(null);
 
-  // Breakdown States
+  // Breakdown States (Synchronized with top filter)
   const [breakdownType, setBreakdownType] = useState<'outflow' | 'inflow'>('outflow');
   const [categoryBreakdown, setCategoryBreakdown] = useState<CategoryBreakdownResponse | null>(null);
   const [inflowTotal, setInflowTotal] = useState<number>(0);
   const [outflowTotal, setOutflowTotal] = useState<number>(0);
   const [inflowCount, setInflowCount] = useState<number>(0);
   const [outflowCount, setOutflowCount] = useState<number>(0);
-  const [breakdownPeriod, setBreakdownPeriod] = useState<DatePeriod>('month');
-  const [breakdownFromDate, setBreakdownFromDate] = useState<string>(() => computeDateRange('month').from);
-  const [breakdownToDate, setBreakdownToDate] = useState<string>(() => computeDateRange('month').to);
   const [breakdownLoading, setBreakdownLoading] = useState<boolean>(false);
 
   const loadCategories = async () => {
@@ -290,15 +287,15 @@ export default function TransactionsPage() {
 
   const loadCategoryBreakdown = async (
     t: 'outflow' | 'inflow' = breakdownType,
-    p: DatePeriod = breakdownPeriod,
-    f: string = breakdownFromDate,
-    to: string = breakdownToDate
+    p: DatePeriod = period,
+    f: string = customFrom,
+    to: string = customTo
   ) => {
     setBreakdownLoading(true);
     setBreakdownType(t);
     try {
       let customQuery = '';
-      if (p === 'custom' && f && to) {
+      if ((p === 'custom' || p === 'day') && f && to) {
         customQuery = `&from=${encodeURIComponent(f)}&to=${encodeURIComponent(to)}`;
       }
 
@@ -329,6 +326,10 @@ export default function TransactionsPage() {
     }
   };
 
+  useEffect(() => {
+    loadCategoryBreakdown(breakdownType, period, customFrom, customTo);
+  }, [period, customFrom, customTo, breakdownType]);
+
   const loadData = async () => {
     setLoading(true);
 
@@ -345,13 +346,18 @@ export default function TransactionsPage() {
       }
     }
 
+    let customQuery = '';
+    if ((period === 'custom' || period === 'day') && customFrom && customTo) {
+      customQuery = `&from=${encodeURIComponent(customFrom)}&to=${encodeURIComponent(customTo)}`;
+    }
+
     const [fundRes, txRes, orderRes, prodRes, outRes, inRes, txCatRes] = await Promise.all([
       fetchApi<Fund[]>('/funds'),
       fetchApi<Transaction[]>('/transactions'),
       fetchApi<OrderApi[]>('/orders'),
       fetchApi<Product[]>('/products'),
-      fetchApi<CategoryBreakdownResponse>(`/transactions/category-breakdown?type=outflow&period=${breakdownPeriod}`),
-      fetchApi<CategoryBreakdownResponse>(`/transactions/category-breakdown?type=inflow&period=${breakdownPeriod}`),
+      fetchApi<CategoryBreakdownResponse>(`/transactions/category-breakdown?type=outflow&period=${period}${customQuery}`),
+      fetchApi<CategoryBreakdownResponse>(`/transactions/category-breakdown?type=inflow&period=${period}${customQuery}`),
       fetchApi<TransactionCategory[]>('/transaction-categories'),
     ]);
 
@@ -392,21 +398,31 @@ export default function TransactionsPage() {
   };
 
   const getCategoryName = (categoryKey: string) => {
-    const found = txCategories.find((c) => c.code === categoryKey || c.name === categoryKey);
+    if (!categoryKey) return '—';
+    const found = txCategories.find((c) => matchTransactionCategory(c.code || c.name, categoryKey, txCategories));
     if (found) return found.name;
-    switch (categoryKey) {
+    const lower = categoryKey.toLowerCase();
+    switch (lower) {
       case 'ingredient_purchase':
+      case 'mua nguyên liệu':
         return t('tx.cat_ingredient') || 'Mua nguyên liệu';
       case 'utility_bill':
+      case 'chi phí vận hành':
         return t('tx.cat_utility') || 'Chi phí vận hành';
       case 'sale':
+      case 'doanh thu bán hàng pos':
+      case 'doanh thu bán hàng':
         return t('tx.cat_sale') || 'Doanh thu bán hàng';
       case 'reconciliation_variance':
+      case 'chênh lệch đối soát':
+      case 'chênh lệch đối soát két':
         return t('tx.cat_reconciliation') || 'Chênh lệch đối soát';
       case 'other':
+      case 'khác':
+      case 'chi phí khác':
         return t('tx.cat_other') || 'Khác';
       default:
-        return categoryKey.replace('_', ' ');
+        return categoryKey.replace(/_/g, ' ');
     }
   };
 
@@ -712,7 +728,7 @@ export default function TransactionsPage() {
   const filteredTransactions = safeTransactions.filter((tx) => {
     const matchesFund = selectedFundId ? tx.fund_id === selectedFundId : true;
     const matchesType = selectedType !== 'all' ? tx.transaction_type === selectedType : true;
-    const matchesCat = selectedCategory !== 'all' ? tx.category === selectedCategory : true;
+    const matchesCat = selectedCategory !== 'all' ? matchTransactionCategory(tx.category, selectedCategory, txCategories) : true;
     const txDate = toLocalDateStr(tx.created_at);
     const matchesDate = (!customFrom || txDate >= customFrom) && (!customTo || txDate <= customTo);
     const matchesSearch =
@@ -920,26 +936,11 @@ export default function TransactionsPage() {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
-                  {/* Date Range Picker for Breakdown */}
-                  <ModernDateRangePicker
-                    period={breakdownPeriod}
-                    customFrom={breakdownFromDate}
-                    customTo={breakdownToDate}
-                    onChange={({ period, from, to }) => {
-                      setBreakdownPeriod(period);
-                      setBreakdownFromDate(from);
-                      setBreakdownToDate(to);
-                      loadCategoryBreakdown(breakdownType, period, from, to);
-                    }}
-                  />
-
                   {/* Inflow vs Outflow Type Switch (Justified on mobile) */}
                   <div className="grid grid-cols-2 sm:flex items-center space-x-1 bg-slate-100 p-1 rounded-xl text-xs w-full sm:w-auto">
                     <button
                       type="button"
-                      onClick={() => {
-                        loadCategoryBreakdown('outflow', breakdownPeriod, breakdownFromDate, breakdownToDate);
-                      }}
+                      onClick={() => setBreakdownType('outflow')}
                       className={`flex-1 px-3 py-1.5 rounded-lg font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${breakdownType === 'outflow'
                         ? 'bg-white text-rose-600 shadow-sm'
                         : 'text-slate-600 hover:text-slate-900'
@@ -950,9 +951,7 @@ export default function TransactionsPage() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => {
-                        loadCategoryBreakdown('inflow', breakdownPeriod, breakdownFromDate, breakdownToDate);
-                      }}
+                      onClick={() => setBreakdownType('inflow')}
                       className={`flex-1 px-3 py-1.5 rounded-lg font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${breakdownType === 'inflow'
                         ? 'bg-white text-emerald-600 shadow-sm'
                         : 'text-slate-600 hover:text-slate-900'
@@ -1092,8 +1091,7 @@ export default function TransactionsPage() {
                 {selectedCategory !== 'all' && (
                   <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 text-slate-800 border border-slate-200 rounded-lg font-bold">
                     <span>
-                      Danh mục:{' '}
-                      {txCategories.find((c) => (c.code || c.name) === selectedCategory)?.name || selectedCategory}
+                      Danh mục: {getCategoryName(selectedCategory)}
                     </span>
                     <button type="button" onClick={() => setSelectedCategory('all')} className="hover:text-slate-950">
                       <X className="w-3 h-3" />
@@ -1279,9 +1277,11 @@ export default function TransactionsPage() {
                           .map((cat) => {
                             const catCode = cat.code || cat.name;
                             const count = safeTransactions.filter(
-                              (tx) => tx.category === catCode && (selectedType === 'all' || tx.transaction_type === selectedType)
+                              (tx) =>
+                                matchTransactionCategory(tx.category, catCode, txCategories) &&
+                                (selectedType === 'all' || tx.transaction_type === selectedType)
                             ).length;
-                            const isSelected = selectedCategory === catCode;
+                            const isSelected = selectedCategory !== 'all' && matchTransactionCategory(selectedCategory, catCode, txCategories);
                             return (
                               <button
                                 key={cat.id}

@@ -14,6 +14,7 @@ import {
   AlertCircle,
   Package,
   Layers,
+  GripVertical,
 } from 'lucide-react';
 import { fetchApi, getImageUrl, uploadImage } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
@@ -41,6 +42,8 @@ export default function CategoryManagerModal({
   const [searchQuery, setSearchQuery] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
   // Form State
   const [name, setName] = useState('');
@@ -170,6 +173,48 @@ export default function CategoryManagerModal({
       }
     } catch (err: any) {
       showAlert('Lỗi', err.message || 'Lỗi kết nối khi xóa danh mục', 'danger');
+    }
+  };
+
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', String(index));
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (dragOverIndex !== index) {
+      setDragOverIndex(index);
+    }
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
+
+  const handleDrop = async (e: React.DragEvent, targetIndex: number) => {
+    e.preventDefault();
+    if (draggedIndex === null || draggedIndex === targetIndex) {
+      handleDragEnd();
+      return;
+    }
+    const currentList = [...filteredCategories];
+    const [moved] = currentList.splice(draggedIndex, 1);
+    currentList.splice(targetIndex, 0, moved);
+    handleDragEnd();
+
+    try {
+      const orderedIds = currentList.map((c) => c.id);
+      await fetchApi('/categories/reorder', {
+        method: 'PUT',
+        body: JSON.stringify({ ordered_ids: orderedIds }),
+      });
+      onCategoriesUpdated();
+    } catch (err) {
+      console.error('Failed to reorder categories', err);
     }
   };
 
@@ -378,9 +423,14 @@ export default function CategoryManagerModal({
 
           {/* Categories List */}
           <div className="space-y-2">
-            <h4 className="text-xs font-black uppercase text-slate-500 tracking-wider">
-              Danh sách danh mục ({filteredCategories.length})
-            </h4>
+            <div className="flex items-center justify-between">
+              <h4 className="text-xs font-black uppercase text-slate-500 tracking-wider">
+                Danh sách danh mục ({filteredCategories.length})
+              </h4>
+              <span className="text-[10px] text-slate-400 font-medium">
+                💡 Kéo thả biểu tượng ⋮⋮ để đổi thứ tự
+              </span>
+            </div>
 
             {filteredCategories.length === 0 ? (
               <div className="text-center py-10 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
@@ -391,20 +441,32 @@ export default function CategoryManagerModal({
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                {filteredCategories.map((cat) => {
+                {filteredCategories.map((cat, idx) => {
                   const itemCount = products.filter((p) => p.category_id === cat.id).length;
                   const isEditing = editingCategory?.id === cat.id;
+                  const isDragging = draggedIndex === idx;
+                  const isDragOver = dragOverIndex === idx && draggedIndex !== idx;
 
                   return (
                     <div
                       key={cat.id}
-                      className={`flex items-center justify-between p-2.5 sm:p-3 rounded-2xl border transition-all gap-2 ${
-                        isEditing
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, idx)}
+                      onDragOver={(e) => handleDragOver(e, idx)}
+                      onDragEnd={handleDragEnd}
+                      onDrop={(e) => handleDrop(e, idx)}
+                      className={`flex items-center justify-between p-2.5 sm:p-3 rounded-2xl border transition-all gap-2 cursor-move select-none ${
+                        isDragging
+                          ? 'opacity-40 scale-95 border-dashed border-emerald-400 bg-emerald-50/40'
+                          : isDragOver
+                          ? 'border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-50/20'
+                          : isEditing
                           ? 'bg-emerald-50 border-emerald-300 ring-2 ring-emerald-500/20'
                           : 'bg-white hover:bg-slate-50 border-slate-200 shadow-2xs'
                       }`}
                     >
-                      <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                      <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+                        <GripVertical className="w-4 h-4 text-slate-300 group-hover:text-slate-500 shrink-0 cursor-grab active:cursor-grabbing" />
                         <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center overflow-hidden shrink-0">
                           {getImageUrl(cat.image_url) ? (
                             <img
@@ -436,7 +498,10 @@ export default function CategoryManagerModal({
                       <div className="flex items-center gap-1 shrink-0">
                         <button
                           type="button"
-                          onClick={() => handleStartEdit(cat)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleStartEdit(cat);
+                          }}
                           className="p-1.5 rounded-xl text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 transition cursor-pointer"
                           title="Sửa danh mục"
                         >
@@ -444,7 +509,10 @@ export default function CategoryManagerModal({
                         </button>
                         <button
                           type="button"
-                          onClick={() => handleDelete(cat)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDelete(cat);
+                          }}
                           className="p-1.5 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
                           title="Xóa danh mục"
                         >

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Tag, Plus, Edit2, Trash2, X, Check, Sparkles, RefreshCw, AlertCircle } from 'lucide-react';
+import { Tag, Plus, Edit2, Trash2, X, Check, Sparkles, RefreshCw, AlertCircle, GripVertical } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
 import { useConfirm } from '@/context/ConfirmContext';
 
@@ -78,12 +78,51 @@ export default function TagManagerModal({
   const [tagIcon, setTagIcon] = useState<string>('🏷️');
   const [saving, setSaving] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string>('');
+  const [draggedTagIndex, setDraggedTagIndex] = useState<number | null>(null);
+  const [dragOverTagIndex, setDragOverTagIndex] = useState<number | null>(null);
 
   React.useEffect(() => {
     setTags(customTags);
   }, [customTags]);
 
   if (!isOpen) return null;
+
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedTagIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', String(index));
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (dragOverTagIndex !== index) {
+      setDragOverTagIndex(index);
+    }
+  };
+
+  const handleDragEnd = () => {
+    setDraggedTagIndex(null);
+    setDragOverTagIndex(null);
+  };
+
+  const handleDropTag = async (e: React.DragEvent, targetIndex: number) => {
+    e.preventDefault();
+    if (draggedTagIndex === null || draggedTagIndex === targetIndex) {
+      handleDragEnd();
+      return;
+    }
+    const reordered = [...tags];
+    const [moved] = reordered.splice(draggedTagIndex, 1);
+    reordered.splice(targetIndex, 0, moved);
+    setTags(reordered);
+    handleDragEnd();
+    try {
+      await onSaveTags(reordered);
+    } catch (err) {
+      console.error('Failed to save reordered tags', err);
+    }
+  };
 
   const resetForm = () => {
     setEditingTag(null);
@@ -448,24 +487,44 @@ export default function TagManagerModal({
 
             {/* Custom User Tags */}
             <div className="space-y-2">
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                Nhãn tự tạo (Tùy chỉnh):
-              </span>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                  Nhãn tự tạo (Tùy chỉnh):
+                </span>
+                <span className="text-[10px] text-slate-400 font-medium">
+                  💡 Kéo thả biểu tượng ⋮⋮ để sắp xếp thứ tự
+                </span>
+              </div>
               {tags.length === 0 ? (
                 <div className="p-5 sm:p-6 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-slate-400 text-xs font-semibold">
                   Chưa có nhãn tự tạo nào. Sử dụng biểu mẫu phía trên để thêm nhãn mới cho menu của bạn!
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {tags.map((ct) => {
+                  {tags.map((ct, idx) => {
                     const style = getTagBadgeStyle(ct.id, tags);
                     const count = productCountsByTag[ct.id] || 0;
+                    const isDragging = draggedTagIndex === idx;
+                    const isDragOver = dragOverTagIndex === idx && draggedTagIndex !== idx;
+
                     return (
                       <div
                         key={ct.id}
-                        className="p-2.5 sm:p-3 bg-white rounded-2xl border border-slate-200 shadow-2xs flex items-center justify-between gap-2 group hover:border-indigo-200 transition"
+                        draggable
+                        onDragStart={(e) => handleDragStart(e, idx)}
+                        onDragOver={(e) => handleDragOver(e, idx)}
+                        onDragEnd={handleDragEnd}
+                        onDrop={(e) => handleDropTag(e, idx)}
+                        className={`p-2.5 sm:p-3 bg-white rounded-2xl border shadow-2xs flex items-center justify-between gap-2 group transition cursor-move select-none ${
+                          isDragging
+                            ? 'opacity-40 scale-95 border-dashed border-indigo-400 bg-indigo-50/30'
+                            : isDragOver
+                            ? 'border-indigo-500 ring-2 ring-indigo-500/20 bg-indigo-50/20'
+                            : 'border-slate-200 hover:border-indigo-200'
+                        }`}
                       >
-                        <div className="flex items-center gap-2 min-w-0">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <GripVertical className="w-4 h-4 text-slate-300 group-hover:text-slate-500 shrink-0 cursor-grab active:cursor-grabbing" />
                           <span className={`text-xs font-bold px-2 py-0.5 rounded-lg border shrink-0 ${style.badgeClasses}`}>
                             {ct.icon} {ct.name}
                           </span>

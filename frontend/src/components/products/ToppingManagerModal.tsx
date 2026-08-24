@@ -12,6 +12,7 @@ import {
   FolderOpen,
   DollarSign,
   Check,
+  GripVertical,
 } from 'lucide-react';
 import { fetchApi } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
@@ -43,6 +44,8 @@ export default function ToppingManagerModal({
   const [selectedCatFilter, setSelectedCatFilter] = useState<string>('all');
   const [showForm, setShowForm] = useState(false);
   const [editingTopping, setEditingTopping] = useState<Topping | null>(null);
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
   // Form State
   const [toppingName, setToppingName] = useState('');
@@ -188,12 +191,54 @@ export default function ToppingManagerModal({
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val);
   };
 
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', String(index));
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (dragOverIndex !== index) {
+      setDragOverIndex(index);
+    }
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
+
+  const handleDrop = async (e: React.DragEvent, targetIndex: number) => {
+    e.preventDefault();
+    if (draggedIndex === null || draggedIndex === targetIndex) {
+      handleDragEnd();
+      return;
+    }
+    const currentList = [...filteredToppings];
+    const [moved] = currentList.splice(draggedIndex, 1);
+    currentList.splice(targetIndex, 0, moved);
+    handleDragEnd();
+
+    try {
+      const orderedIds = currentList.map((t) => t.id);
+      await fetchApi('/toppings/reorder', {
+        method: 'PUT',
+        body: JSON.stringify({ ordered_ids: orderedIds }),
+      });
+      onToppingsUpdated();
+    } catch (err) {
+      console.error('Failed to reorder toppings', err);
+    }
+  };
+
   const filteredToppings = toppings.filter((tp) => {
     const matchesSearch = tp.name.toLowerCase().includes(searchQuery.toLowerCase().trim());
     if (!matchesSearch) return false;
 
     if (selectedCatFilter === 'global') {
-      return !tp.category_id;
+      return tp.category_id === null;
     } else if (selectedCatFilter !== 'all') {
       return tp.category_id === Number(selectedCatFilter);
     }
@@ -422,9 +467,14 @@ export default function ToppingManagerModal({
 
           {/* Toppings Table / List Container */}
           <div className="space-y-2">
-            <h4 className="text-xs font-black uppercase text-slate-500 tracking-wider">
-              Danh sách topping ({filteredToppings.length})
-            </h4>
+            <div className="flex items-center justify-between">
+              <h4 className="text-xs font-black uppercase text-slate-500 tracking-wider">
+                Danh sách topping ({filteredToppings.length})
+              </h4>
+              <span className="text-[10px] text-slate-400 font-medium">
+                💡 Kéo thả biểu tượng ⋮⋮ để đổi thứ tự
+              </span>
+            </div>
 
             {filteredToppings.length === 0 ? (
               <div className="text-center py-10 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
@@ -437,15 +487,26 @@ export default function ToppingManagerModal({
               <>
                 {/* 1. Mobile Cards View (sm:hidden) */}
                 <div className="block sm:hidden space-y-2.5">
-                  {filteredToppings.map((tp) => {
+                  {filteredToppings.map((tp, idx) => {
                     const linkedCat = categories.find((c) => c.id === tp.category_id);
                     const isEditing = editingTopping?.id === tp.id;
+                    const isDragging = draggedIndex === idx;
+                    const isDragOver = dragOverIndex === idx && draggedIndex !== idx;
 
                     return (
                       <div
                         key={tp.id}
-                        className={`p-3 rounded-2xl border transition-all space-y-2.5 ${
-                          isEditing
+                        draggable
+                        onDragStart={(e) => handleDragStart(e, idx)}
+                        onDragOver={(e) => handleDragOver(e, idx)}
+                        onDragEnd={handleDragEnd}
+                        onDrop={(e) => handleDrop(e, idx)}
+                        className={`p-3 rounded-2xl border transition-all space-y-2.5 cursor-move select-none ${
+                          isDragging
+                            ? 'opacity-40 scale-95 border-dashed border-violet-400 bg-violet-50/40'
+                            : isDragOver
+                            ? 'border-violet-500 ring-2 ring-violet-500/20 bg-violet-50/20'
+                            : isEditing
                             ? 'bg-violet-50 border-violet-300 ring-2 ring-violet-500/20'
                             : 'bg-white border-slate-200 shadow-2xs'
                         }`}
@@ -453,6 +514,7 @@ export default function ToppingManagerModal({
                         {/* Top: Name + Active Toggle */}
                         <div className="flex items-center justify-between gap-2">
                           <div className="flex items-center gap-2 min-w-0">
+                            <GripVertical className="w-4 h-4 text-slate-300 group-hover:text-slate-500 shrink-0 cursor-grab active:cursor-grabbing" />
                             <span
                               className={`w-2.5 h-2.5 rounded-full shrink-0 ${
                                 tp.is_active ? 'bg-emerald-500 ring-2 ring-emerald-100' : 'bg-slate-300'
@@ -465,7 +527,10 @@ export default function ToppingManagerModal({
 
                           <button
                             type="button"
-                            onClick={() => handleToggleStatus(tp)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleToggleStatus(tp);
+                            }}
                             className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold transition cursor-pointer shrink-0 ${
                               tp.is_active
                                 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-2xs'
@@ -505,7 +570,10 @@ export default function ToppingManagerModal({
                         <div className="flex items-center justify-end gap-2 pt-1 border-t border-slate-100">
                           <button
                             type="button"
-                            onClick={() => handleStartEdit(tp)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleStartEdit(tp);
+                            }}
                             className="px-3 py-1 text-xs font-bold text-violet-700 bg-violet-50 hover:bg-violet-100 rounded-lg transition flex items-center gap-1 cursor-pointer"
                           >
                             <Edit2 className="w-3.5 h-3.5" />
@@ -513,7 +581,10 @@ export default function ToppingManagerModal({
                           </button>
                           <button
                             type="button"
-                            onClick={() => handleDelete(tp)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDelete(tp);
+                            }}
                             className="px-3 py-1 text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg transition flex items-center gap-1 cursor-pointer"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -530,7 +601,8 @@ export default function ToppingManagerModal({
                   <table className="w-full text-left text-xs text-slate-700">
                     <thead className="bg-slate-50 text-[11px] font-black text-slate-700 uppercase tracking-wider border-b border-slate-200">
                       <tr>
-                        <th className="px-4 py-3">Tên Topping</th>
+                        <th className="w-8 px-2 py-3"></th>
+                        <th className="px-3 py-3">Tên Topping</th>
                         <th className="px-3 py-3 text-right">Giá Bán</th>
                         <th className="px-3 py-3 text-right">Giá Vốn</th>
                         <th className="px-3 py-3 text-center">Nhóm Áp Dụng</th>
@@ -539,18 +611,34 @@ export default function ToppingManagerModal({
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 bg-white">
-                      {filteredToppings.map((tp) => {
+                      {filteredToppings.map((tp, idx) => {
                         const linkedCat = categories.find((c) => c.id === tp.category_id);
                         const isEditing = editingTopping?.id === tp.id;
+                        const isDragging = draggedIndex === idx;
+                        const isDragOver = dragOverIndex === idx && draggedIndex !== idx;
 
                         return (
                           <tr
                             key={tp.id}
-                            className={`hover:bg-slate-50 transition ${
-                              isEditing ? 'bg-violet-50/70' : ''
+                            draggable
+                            onDragStart={(e) => handleDragStart(e, idx)}
+                            onDragOver={(e) => handleDragOver(e, idx)}
+                            onDragEnd={handleDragEnd}
+                            onDrop={(e) => handleDrop(e, idx)}
+                            className={`hover:bg-slate-50 transition cursor-move select-none ${
+                              isDragging
+                                ? 'opacity-40 bg-violet-50/50'
+                                : isDragOver
+                                ? 'bg-violet-50/40 ring-2 ring-violet-500/20'
+                                : isEditing
+                                ? 'bg-violet-50/70'
+                                : ''
                             }`}
                           >
-                            <td className="px-4 py-3 font-bold text-slate-900">
+                            <td className="px-2 py-3 text-center">
+                              <GripVertical className="w-4 h-4 text-slate-300 hover:text-slate-500 mx-auto cursor-grab active:cursor-grabbing" />
+                            </td>
+                            <td className="px-3 py-3 font-bold text-slate-900">
                               <div className="flex items-center gap-2">
                                 <span
                                   className={`w-2 h-2 rounded-full shrink-0 ${
@@ -587,7 +675,10 @@ export default function ToppingManagerModal({
                             <td className="px-3 py-3 text-center">
                               <button
                                 type="button"
-                                onClick={() => handleToggleStatus(tp)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleToggleStatus(tp);
+                                }}
                                 className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-extrabold transition cursor-pointer ${
                                   tp.is_active
                                     ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 shadow-2xs'
@@ -608,7 +699,10 @@ export default function ToppingManagerModal({
                               <div className="flex items-center justify-end gap-1">
                                 <button
                                   type="button"
-                                  onClick={() => handleStartEdit(tp)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleStartEdit(tp);
+                                  }}
                                   className="p-1.5 rounded-xl text-slate-400 hover:text-violet-700 hover:bg-violet-50 transition cursor-pointer"
                                   title="Sửa topping"
                                 >
@@ -616,7 +710,10 @@ export default function ToppingManagerModal({
                                 </button>
                                 <button
                                   type="button"
-                                  onClick={() => handleDelete(tp)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDelete(tp);
+                                  }}
                                   className="p-1.5 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
                                   title="Xóa topping"
                                 >

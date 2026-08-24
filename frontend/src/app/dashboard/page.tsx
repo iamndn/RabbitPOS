@@ -855,9 +855,9 @@ export default function DashboardPage() {
 
             {/* Product Sales & Profit Performance Section — Lợi nhuận theo sản phẩm */}
             <ProductSalesPerformanceSection
-              initialPeriod={period}
-              initialFrom={period === 'custom' ? customFrom : undefined}
-              initialTo={period === 'custom' ? customTo : undefined}
+              period={period}
+              customFrom={customFrom}
+              customTo={customTo}
               settings={settings}
             />
 
