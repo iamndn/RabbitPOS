@@ -321,7 +321,9 @@ export default function DashboardPage() {
               {/* Net Revenue */}
               <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-slate-500">{t('dashboard.kpi_net_revenue')}</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-semibold text-slate-700">{t('dashboard.kpi_net_revenue')}</span>
+                  </div>
                   <div className="p-2.5 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100">
                     <DollarSign className="w-5 h-5" />
                   </div>
@@ -348,31 +350,39 @@ export default function DashboardPage() {
                     <span className="text-[10px] text-slate-400">{t('dashboard.vs_previous_period')}</span>
                   </div>
                 </div>
-                {/* Micro Breakdown */}
-                <div className="pt-2 border-t border-slate-100 space-y-0.5 text-[10px] text-slate-500">
-                  <div className="flex justify-between">
-                    <span>{t('dashboard.gross_sales')}:</span>
-                    <span className="font-semibold text-slate-700">
+                {/* Micro Breakdown & Exact Math */}
+                <div className="pt-2.5 border-t border-slate-100 space-y-1.5 text-[10px]">
+                  <div className="flex justify-between text-slate-600">
+                    <span>+ {t('dashboard.gross_sales')}:</span>
+                    <span className="font-semibold text-slate-800">
                       {formatCurrency(revSummary?.total_gross_sales || 0, settings)}
                     </span>
                   </div>
                   <div className="flex justify-between text-rose-600">
-                    <span>{t('dashboard.discounts')}:</span>
-                    <span>-{formatCurrency(revSummary?.total_discounts || 0, settings)}</span>
+                    <span>- {t('dashboard.discounts')}:</span>
+                    <span className="font-semibold">
+                      -{formatCurrency(revSummary?.total_discounts || 0, settings)}
+                    </span>
                   </div>
-                  <div className="flex justify-between text-cyan-600">
-                    <span>{t('dashboard.shipping_surcharges')}:</span>
-                    <span>
+                  <div className="flex justify-between text-cyan-700">
+                    <span>+ {t('dashboard.shipping_surcharges')}:</span>
+                    <span className="font-semibold">
                       +{formatCurrency((revSummary?.total_shipping_fees || 0) + (revSummary?.total_surcharges || 0), settings)}
                     </span>
                   </div>
+                  <div className="p-1.5 bg-indigo-50/70 rounded-lg text-indigo-900 text-[10px] leading-tight font-medium border border-indigo-100/80">
+                    <span className="font-bold">💡 Nguồn gốc:</span> {formatCurrency(revSummary?.total_gross_sales || 0, settings)} (món) - {formatCurrency(revSummary?.total_discounts || 0, settings)} (giảm) + {formatCurrency((revSummary?.total_shipping_fees || 0) + (revSummary?.total_surcharges || 0), settings)} (phụ thu)
+                  </div>
+                  <p className="text-[10px] text-slate-400 pt-0.5 leading-snug">
+                    {t('dashboard.net_revenue_desc')}
+                  </p>
                 </div>
               </div>
 
               {/* AOV */}
               <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-slate-500">{t('dashboard.kpi_aov')}</span>
+                  <span className="text-xs font-semibold text-slate-700">{t('dashboard.kpi_aov')}</span>
                   <div className="p-2.5 rounded-xl bg-violet-50 text-violet-600 border border-violet-100">
                     <Receipt className="w-5 h-5" />
                   </div>
@@ -399,15 +409,20 @@ export default function DashboardPage() {
                     <span className="text-[10px] text-slate-400">{t('dashboard.vs_previous_period')}</span>
                   </div>
                 </div>
-                <p className="text-[10px] text-slate-400 pt-2 border-t border-slate-100">
-                  {t('dashboard.aov_description')}
-                </p>
+                <div className="pt-2.5 border-t border-slate-100 space-y-1.5 text-[10px]">
+                  <div className="p-1.5 bg-violet-50/70 rounded-lg text-violet-900 text-[10px] leading-tight font-medium border border-violet-100/80">
+                    <span className="font-bold">💡 Nguồn gốc:</span> {formatCurrency(revSummary?.net_revenue || 0, settings)} ÷ {revSummary?.completed_order_count || 0} đơn
+                  </div>
+                  <p className="text-[10px] text-slate-400 pt-0.5 leading-snug">
+                    {t('dashboard.aov_description')}
+                  </p>
+                </div>
               </div>
 
               {/* Completed Orders */}
               <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-slate-500">{t('dashboard.kpi_completed_orders')}</span>
+                  <span className="text-xs font-semibold text-slate-700">{t('dashboard.kpi_completed_orders')}</span>
                   <div className="p-2.5 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100">
                     <ShoppingBag className="w-5 h-5" />
                   </div>
@@ -434,15 +449,20 @@ export default function DashboardPage() {
                     <span className="text-[10px] text-slate-400">{t('dashboard.vs_previous_period')}</span>
                   </div>
                 </div>
-                <p className="text-[10px] text-slate-400 pt-2 border-t border-slate-100">
-                  {t('dashboard.completed_orders_description')}
-                </p>
+                <div className="pt-2.5 border-t border-slate-100 space-y-1.5 text-[10px]">
+                  <div className="p-1.5 bg-emerald-50/70 rounded-lg text-emerald-900 text-[10px] leading-tight font-medium border border-emerald-100/80">
+                    <span className="font-bold">💡 Nguồn gốc:</span> Tổng các đơn đã thanh toán thành công tại POS
+                  </div>
+                  <p className="text-[10px] text-slate-400 pt-0.5 leading-snug">
+                    {t('dashboard.completed_orders_description')}
+                  </p>
+                </div>
               </div>
 
               {/* Total Discounts */}
               <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-slate-500">{t('dashboard.kpi_discounts')}</span>
+                  <span className="text-xs font-semibold text-slate-700">{t('dashboard.kpi_discounts')}</span>
                   <div className="p-2.5 rounded-xl bg-rose-50 text-rose-600 border border-rose-100">
                     <Percent className="w-5 h-5" />
                   </div>
@@ -461,7 +481,7 @@ export default function DashboardPage() {
                   </div>
                 </div>
                 {/* Sub Discounts */}
-                <div className="pt-2 border-t border-slate-100 space-y-0.5 text-[10px] text-slate-500">
+                <div className="pt-2.5 border-t border-slate-100 space-y-1.5 text-[10px] text-slate-500">
                   <div className="flex justify-between">
                     <span>{t('dashboard.promo_discount')}:</span>
                     <span className="font-semibold text-slate-700">
@@ -469,8 +489,19 @@ export default function DashboardPage() {
                     </span>
                   </div>
                   <div className="flex justify-between">
+                    <span>{t('dashboard.manual_discount')}:</span>
+                    <span className="font-semibold text-slate-700">
+                      -{formatCurrency(revSummary?.manual_discount || 0, settings)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
                     <span>{t('dashboard.platform_discount')}:</span>
-                    <span>-{formatCurrency(revSummary?.platform_discount || 0, settings)}</span>
+                    <span className="font-semibold text-slate-700">
+                      -{formatCurrency(revSummary?.platform_discount || 0, settings)}
+                    </span>
+                  </div>
+                  <div className="p-1.5 bg-rose-50/70 rounded-lg text-rose-900 text-[10px] leading-tight font-medium border border-rose-100/80">
+                    <span className="font-bold">💡 Nguồn gốc:</span> KM ({formatCurrency(revSummary?.promotion_discount || 0, settings)}) + Quầy ({formatCurrency(revSummary?.manual_discount || 0, settings)}) + Sàn ({formatCurrency(revSummary?.platform_discount || 0, settings)})
                   </div>
                 </div>
               </div>
@@ -677,7 +708,7 @@ export default function DashboardPage() {
               {/* Gross Profit */}
               <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-slate-500">{t('dashboard.kpi_gross_profit')}</span>
+                  <span className="text-xs font-semibold text-slate-700">{t('dashboard.kpi_gross_profit')}</span>
                   <div className="p-2.5 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100">
                     <Coins className="w-5 h-5" />
                   </div>
@@ -702,15 +733,20 @@ export default function DashboardPage() {
                     </span>
                   </div>
                 </div>
-                <p className="text-[10px] text-slate-400 pt-2 border-t border-slate-100">
-                  {t('dashboard.gross_profit_description')}
-                </p>
+                <div className="pt-2.5 border-t border-slate-100 space-y-1.5 text-[10px]">
+                  <div className="p-1.5 bg-emerald-50/70 rounded-lg text-emerald-900 text-[10px] leading-tight font-medium border border-emerald-100/80">
+                    <span className="font-bold">💡 Nguồn gốc:</span> Doanh thu ({formatCurrency(pSummary?.net_revenue || 0, settings)}) - Giá vốn COGS ({formatCurrency(pSummary?.total_cogs || 0, settings)})
+                  </div>
+                  <p className="text-[10px] text-slate-400 pt-0.5 leading-snug">
+                    {t('dashboard.gross_profit_description')}
+                  </p>
+                </div>
               </div>
 
               {/* Net Profit */}
               <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-slate-500">{t('dashboard.kpi_net_profit')}</span>
+                  <span className="text-xs font-semibold text-slate-700">{t('dashboard.kpi_net_profit')}</span>
                   <div className="p-2.5 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100">
                     <TrendingUp className="w-5 h-5" />
                   </div>
@@ -739,15 +775,20 @@ export default function DashboardPage() {
                     </span>
                   </div>
                 </div>
-                <p className="text-[10px] text-slate-400 pt-2 border-t border-slate-100">
-                  {t('dashboard.net_profit_description')}
-                </p>
+                <div className="pt-2.5 border-t border-slate-100 space-y-1.5 text-[10px]">
+                  <div className="p-1.5 bg-indigo-50/70 rounded-lg text-indigo-900 text-[10px] leading-tight font-medium border border-indigo-100/80">
+                    <span className="font-bold">💡 Nguồn gốc:</span> LN gộp ({formatCurrency(pSummary?.gross_profit || 0, settings)}) - Chi phí vận hành ({formatCurrency(pSummary?.operating_expenses || 0, settings)})
+                  </div>
+                  <p className="text-[10px] text-slate-400 pt-0.5 leading-snug">
+                    {t('dashboard.net_profit_description')}
+                  </p>
+                </div>
               </div>
 
               {/* Total COGS */}
               <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-slate-500">{t('dashboard.kpi_cogs')}</span>
+                  <span className="text-xs font-semibold text-slate-700">{t('dashboard.kpi_cogs')}</span>
                   <div className="p-2.5 rounded-xl bg-amber-50 text-amber-600 border border-amber-100">
                     <Package className="w-5 h-5" />
                   </div>
@@ -765,15 +806,20 @@ export default function DashboardPage() {
                     })}
                   </div>
                 </div>
-                <p className="text-[10px] text-slate-400 pt-2 border-t border-slate-100">
-                  {t('dashboard.cogs_description')}
-                </p>
+                <div className="pt-2.5 border-t border-slate-100 space-y-1.5 text-[10px]">
+                  <div className="p-1.5 bg-amber-50/70 rounded-lg text-amber-900 text-[10px] leading-tight font-medium border border-amber-100/80">
+                    <span className="font-bold">💡 Nguồn gốc:</span> Tổng COGS định lượng nguyên liệu các món đã bán
+                  </div>
+                  <p className="text-[10px] text-slate-400 pt-0.5 leading-snug">
+                    {t('dashboard.cogs_description')}
+                  </p>
+                </div>
               </div>
 
               {/* Operating Expenses */}
               <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-slate-500">{t('dashboard.kpi_operating_expenses')}</span>
+                  <span className="text-xs font-semibold text-slate-700">{t('dashboard.kpi_operating_expenses')}</span>
                   <div className="p-2.5 rounded-xl bg-rose-50 text-rose-600 border border-rose-100">
                     <ArrowUpRight className="w-5 h-5" />
                   </div>
@@ -791,9 +837,14 @@ export default function DashboardPage() {
                     })}
                   </div>
                 </div>
-                <p className="text-[10px] text-slate-400 pt-2 border-t border-slate-100">
-                  {t('dashboard.operating_expenses_description')}
-                </p>
+                <div className="pt-2.5 border-t border-slate-100 space-y-1.5 text-[10px]">
+                  <div className="p-1.5 bg-rose-50/70 rounded-lg text-rose-900 text-[10px] leading-tight font-medium border border-rose-100/80">
+                    <span className="font-bold">💡 Nguồn gốc:</span> Tổng các khoản tiền chi từ Sổ thu chi
+                  </div>
+                  <p className="text-[10px] text-slate-400 pt-0.5 leading-snug">
+                    {t('dashboard.operating_expenses_description')}
+                  </p>
+                </div>
               </div>
             </div>
 

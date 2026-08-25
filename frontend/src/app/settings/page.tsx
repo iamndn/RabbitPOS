@@ -35,6 +35,7 @@ import { fetchApi, uploadImage, getImageUrl, getApiBaseUrl } from '@/lib/api';
 import { SettingsMap, formatCurrency } from '@/lib/utils';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
 import ModernSelect from '@/components/common/ModernSelect';
+import ImageCropModal from '@/components/common/ImageCropModal';
 
 export default function SettingsPage() {
   const { t } = useTranslation();
@@ -46,7 +47,28 @@ export default function SettingsPage() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [logoUploading, setLogoUploading] = useState<boolean>(false);
+  const [cropFile, setCropFile] = useState<File | null>(null);
+  const [isCropModalOpen, setIsCropModalOpen] = useState<boolean>(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
+
+  const handleLogoCropComplete = async (croppedFile: File) => {
+    setLogoUploading(true);
+    setErrorMessage(null);
+    try {
+      const res = await uploadImage(croppedFile);
+      if (res.status === 'success' && res.data?.url) {
+        handleChange('store_logo_url', res.data.url);
+        setToastMessage(t('settings.logo_upload_success') || 'Tải ảnh logo thành công');
+        setTimeout(() => setToastMessage(null), 3000);
+      } else {
+        setErrorMessage(res.message || 'Tải ảnh logo thất bại');
+      }
+    } catch (err: any) {
+      setErrorMessage(err?.message || 'Tải ảnh logo thất bại');
+    } finally {
+      setLogoUploading(false);
+    }
+  };
 
   // Form State
   const [form, setForm] = useState<SettingsMap>({
@@ -676,26 +698,12 @@ export default function SettingsPage() {
                         type="file"
                         accept="image/*"
                         className="hidden"
-                        onChange={async (e) => {
+                        onChange={(e) => {
                           const file = e.target.files?.[0];
                           if (!file) return;
-                          setLogoUploading(true);
-                          setErrorMessage(null);
-                          try {
-                            const res = await uploadImage(file);
-                            if (res.status === 'success' && res.data?.url) {
-                              handleChange('store_logo_url', res.data.url);
-                              setToastMessage(t('settings.logo_upload_success') || 'Tải ảnh logo thành công');
-                              setTimeout(() => setToastMessage(null), 3000);
-                            } else {
-                              setErrorMessage(res.message || 'Tải ảnh logo thất bại');
-                            }
-                          } catch (err: any) {
-                            setErrorMessage(err?.message || 'Tải ảnh logo thất bại');
-                          } finally {
-                            setLogoUploading(false);
-                            if (logoInputRef.current) logoInputRef.current.value = '';
-                          }
+                          setCropFile(file);
+                          setIsCropModalOpen(true);
+                          if (logoInputRef.current) logoInputRef.current.value = '';
                         }}
                       />
                     </div>
@@ -1853,6 +1861,15 @@ export default function SettingsPage() {
             {smtpTestResult.message}
           </div>
         )}
+
+        {/* 1:1 Image Crop Modal */}
+        <ImageCropModal
+          isOpen={isCropModalOpen}
+          imageFile={cropFile}
+          onClose={() => setIsCropModalOpen(false)}
+          onCropComplete={handleLogoCropComplete}
+          aspectRatio={1}
+        />
       </div>
     </AppShell>
   );

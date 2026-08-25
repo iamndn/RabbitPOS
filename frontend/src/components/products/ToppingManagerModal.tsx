@@ -396,11 +396,13 @@ export default function ToppingManagerModal({
                     Giá bán (VNĐ)
                   </label>
                   <input
-                    type="number"
-                    min="0"
-                    step="500"
-                    value={toppingPrice === 0 ? '' : toppingPrice}
-                    onChange={(e) => setToppingPrice(e.target.value === '' ? 0 : Number(e.target.value))}
+                    type="text"
+                    inputMode="numeric"
+                    value={toppingPrice ? toppingPrice.toLocaleString('vi-VN') : ''}
+                    onChange={(e) => {
+                      const raw = e.target.value.replace(/\D/g, '');
+                      setToppingPrice(raw === '' ? 0 : parseInt(raw, 10));
+                    }}
                     placeholder="VD: 5000, 10000..."
                     className="w-full text-xs font-bold px-3 py-2 bg-white text-slate-900 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500 shadow-2xs"
                   />
@@ -411,11 +413,13 @@ export default function ToppingManagerModal({
                     Giá vốn (COGS)
                   </label>
                   <input
-                    type="number"
-                    min="0"
-                    step="500"
-                    value={toppingCogs === 0 ? '' : toppingCogs}
-                    onChange={(e) => setToppingCogs(e.target.value === '' ? 0 : Number(e.target.value))}
+                    type="text"
+                    inputMode="numeric"
+                    value={toppingCogs ? toppingCogs.toLocaleString('vi-VN') : ''}
+                    onChange={(e) => {
+                      const raw = e.target.value.replace(/\D/g, '');
+                      setToppingCogs(raw === '' ? 0 : parseInt(raw, 10));
+                    }}
                     placeholder="VD: 2000..."
                     className="w-full text-xs font-bold px-3 py-2 bg-white text-slate-900 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500 shadow-2xs"
                   />

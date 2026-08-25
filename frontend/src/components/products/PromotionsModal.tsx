@@ -226,7 +226,7 @@ export default function PromotionsModal({ isOpen, onClose, settings: initialSett
       min_order_amount: Number(formMinOrderAmount) || 0,
       min_quantity: Number(formMinQuantity) || 0,
       scope: formScope,
-      target_ids: JSON.stringify(formTargetIds),
+      target_ids: formTargetIds,
       gift_product_variant_id: formType === 'gift_item' ? formGiftVariantId : null,
       start_date: formStartDate ? new Date(formStartDate).toISOString() : null,
       end_date: formEndDate ? new Date(formEndDate).toISOString() : null,
@@ -276,21 +276,10 @@ export default function PromotionsModal({ isOpen, onClose, settings: initialSett
   };
 
   const handleToggleActive = async (promo: Promotion) => {
-    let targetIds: number[] = [];
-    try {
-      if (promo.target_ids) {
-        targetIds = JSON.parse(promo.target_ids);
-      }
-    } catch {
-      targetIds = [];
-    }
-
     const res = await fetchApi<Promotion>(`/promotions/${promo.id}`, {
       method: 'PUT',
       body: JSON.stringify({
-        ...promo,
         is_active: !promo.is_active,
-        target_ids: targetIds,
       }),
     });
     if (res.status === 'success') {
@@ -648,15 +637,14 @@ export default function PromotionsModal({ isOpen, onClose, settings: initialSett
                     </label>
                     <div className="relative">
                       <input
-                        type="number"
+                        type="text"
+                        inputMode="numeric"
                         required
-                        min="0"
-                        max={formType === 'discount_percent' ? 100 : undefined}
-                        step={formType === 'discount_amount' ? '1000' : '1'}
-                        value={formValue === 0 ? '' : formValue}
+                        value={formValue ? (formType === 'discount_amount' ? formValue.toLocaleString('vi-VN') : formValue) : ''}
                         onChange={(e) => {
                           const raw = e.target.value.replace(/\D/g, '');
-                          setFormValue(raw === '' ? 0 : parseInt(raw, 10));
+                          const num = raw === '' ? 0 : parseInt(raw, 10);
+                          setFormValue(formType === 'discount_percent' ? Math.min(100, num) : num);
                         }}
                         placeholder="0"
                         className="app-input pr-12 font-bold"
@@ -688,11 +676,10 @@ export default function PromotionsModal({ isOpen, onClose, settings: initialSett
                   <div>
                     <label className="app-label">Đơn tối thiểu (đ)</label>
                     <input
-                      type="number"
-                      min="0"
-                      step="1000"
+                      type="text"
+                      inputMode="numeric"
                       placeholder="0"
-                      value={formMinOrderAmount === 0 ? '' : formMinOrderAmount}
+                      value={formMinOrderAmount ? formMinOrderAmount.toLocaleString('vi-VN') : ''}
                       onChange={(e) => {
                         const raw = e.target.value.replace(/\D/g, '');
                         setFormMinOrderAmount(raw === '' ? 0 : parseInt(raw, 10));

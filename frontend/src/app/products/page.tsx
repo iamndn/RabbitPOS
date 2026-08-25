@@ -38,6 +38,7 @@ import TagManagerModal, {
   DEFAULT_SYSTEM_TAGS,
   getTagBadgeStyle,
 } from '@/components/products/TagManagerModal';
+import ImageCropModal from '@/components/common/ImageCropModal';
 import AutoTaggingModal from '@/components/products/AutoTaggingModal';
 import CategoryManagerModal from '@/components/products/CategoryManagerModal';
 import ToppingManagerModal from '@/components/products/ToppingManagerModal';
@@ -152,14 +153,22 @@ export default function ProductsPage() {
     { variant_name: 'Size M', cogs_price: 1.0, retail_price: 3.5, sku: '' },
   ]);
 
-  // Upload states
+  // Upload & Crop states
   const [uploadingProductImg, setUploadingProductImg] = useState<boolean>(false);
+  const [cropFile, setCropFile] = useState<File | null>(null);
+  const [isCropModalOpen, setIsCropModalOpen] = useState<boolean>(false);
 
-  const handleProductFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleProductFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    setCropFile(file);
+    setIsCropModalOpen(true);
+    e.target.value = ''; // Reset input so same file can be re-selected if needed
+  };
+
+  const handleProductCropComplete = async (croppedFile: File) => {
     setUploadingProductImg(true);
-    const res = await uploadImage(file);
+    const res = await uploadImage(croppedFile);
     if (res.status === 'success' && res.data?.url) {
       setFormImageUrl(res.data.url);
     } else {
@@ -1296,11 +1305,10 @@ export default function ProductsPage() {
                         />
                         <div className="flex items-center gap-2 w-full sm:w-auto">
                           <input
-                            type="number"
-                            step="1000"
-                            min="0"
+                            type="text"
+                            inputMode="numeric"
                             placeholder={t('products.retail_price_label')}
-                            value={v.retail_price}
+                            value={v.retail_price ? v.retail_price.toLocaleString('vi-VN') : ''}
                             onChange={(e) => {
                               const raw = e.target.value.replace(/\D/g, '');
                               handleVariantChange(idx, 'retail_price', raw === '' ? 0 : parseInt(raw, 10));
@@ -1308,11 +1316,10 @@ export default function ProductsPage() {
                             className="w-28 app-input font-semibold"
                           />
                           <input
-                            type="number"
-                            step="1000"
-                            min="0"
+                            type="text"
+                            inputMode="numeric"
                             placeholder={t('products.cogs_price_label')}
-                            value={v.cogs_price}
+                            value={v.cogs_price ? v.cogs_price.toLocaleString('vi-VN') : ''}
                             onChange={(e) => {
                               const raw = e.target.value.replace(/\D/g, '');
                               handleVariantChange(idx, 'cogs_price', raw === '' ? 0 : parseInt(raw, 10));
@@ -1401,6 +1408,15 @@ export default function ProductsPage() {
         isOpen={isPromotionsModalOpen}
         onClose={() => setIsPromotionsModalOpen(false)}
         settings={settings}
+      />
+
+      {/* 1:1 Image Crop Modal */}
+      <ImageCropModal
+        isOpen={isCropModalOpen}
+        imageFile={cropFile}
+        onClose={() => setIsCropModalOpen(false)}
+        onCropComplete={handleProductCropComplete}
+        aspectRatio={1}
       />
     </AppShell>
   );

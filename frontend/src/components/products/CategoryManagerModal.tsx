@@ -20,6 +20,7 @@ import { fetchApi, getImageUrl, uploadImage } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
 import { useConfirm } from '@/context/ConfirmContext';
 import { Category, Product } from '@/types/product';
+import ImageCropModal from '@/components/common/ImageCropModal';
 
 interface CategoryManagerModalProps {
   isOpen: boolean;
@@ -51,6 +52,8 @@ export default function CategoryManagerModal({
   const [imageUrl, setImageUrl] = useState('');
   const [displayOrder, setDisplayOrder] = useState<number>(0);
   const [uploadingImg, setUploadingImg] = useState(false);
+  const [cropFile, setCropFile] = useState<File | null>(null);
+  const [isCropModalOpen, setIsCropModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -87,12 +90,18 @@ export default function CategoryManagerModal({
     setShowForm(true);
   };
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    setCropFile(file);
+    setIsCropModalOpen(true);
+    e.target.value = '';
+  };
+
+  const handleCropComplete = async (croppedFile: File) => {
     setUploadingImg(true);
     try {
-      const res = await uploadImage(file);
+      const res = await uploadImage(croppedFile);
       if (res.status === 'success' && res.data?.url) {
         setImageUrl(res.data.url);
       } else {
@@ -565,6 +574,15 @@ export default function CategoryManagerModal({
           </button>
         </div>
       </div>
+
+      {/* 1:1 Image Crop Modal */}
+      <ImageCropModal
+        isOpen={isCropModalOpen}
+        imageFile={cropFile}
+        onClose={() => setIsCropModalOpen(false)}
+        onCropComplete={handleCropComplete}
+        aspectRatio={1}
+      />
     </div>
   );
 }
