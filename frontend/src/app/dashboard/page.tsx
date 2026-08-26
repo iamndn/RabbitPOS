@@ -28,6 +28,8 @@ import {
   Mail,
   X,
   Send,
+  Clock,
+  Flame,
 } from 'lucide-react';
 import AppShell from '@/components/AppShell';
 import AllProductsRankingModal from '@/components/dashboard/AllProductsRankingModal';
@@ -43,6 +45,8 @@ import {
   ProfitAnalyticsResponse,
   RevenueTimelinePoint,
   ProfitTimelinePoint,
+  HourlyDistributionResponse,
+  HourlyDistributionItem,
 } from '@/types/analytics';
 
 export default function DashboardPage() {
@@ -95,6 +99,7 @@ export default function DashboardPage() {
   // Analytics Data States
   const [revenueData, setRevenueData] = useState<RevenueAnalyticsResponse | null>(null);
   const [profitData, setProfitData] = useState<ProfitAnalyticsResponse | null>(null);
+  const [hourlyData, setHourlyData] = useState<HourlyDistributionResponse | null>(null);
   const [settings, setSettings] = useState<SettingsMap | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
@@ -110,6 +115,7 @@ export default function DashboardPage() {
   // Hover Tooltip States for SVG Charts
   const [hoveredRevenueIndex, setHoveredRevenueIndex] = useState<number | null>(null);
   const [hoveredProfitIndex, setHoveredProfitIndex] = useState<number | null>(null);
+  const [hoveredHourIndex, setHoveredHourIndex] = useState<number | null>(null);
 
   const loadData = async () => {
     setLoading(true);
@@ -119,9 +125,10 @@ export default function DashboardPage() {
       queryParams += `&from=${customFrom}&to=${customTo}`;
     }
 
-    const [revRes, profitRes, settingsRes] = await Promise.all([
+    const [revRes, profitRes, hourlyRes, settingsRes] = await Promise.all([
       fetchApi<RevenueAnalyticsResponse>(`/analytics/revenue${queryParams}`),
       fetchApi<ProfitAnalyticsResponse>(`/analytics/profit${queryParams}`),
+      fetchApi<HourlyDistributionResponse>(`/analytics/hourly-distribution${queryParams}`),
       fetchApi<any>('/settings'),
     ]);
 
@@ -142,6 +149,9 @@ export default function DashboardPage() {
     }
     if (profitRes.status === 'success' && profitRes.data) {
       setProfitData(profitRes.data);
+    }
+    if (hourlyRes.status === 'success' && hourlyRes.data) {
+      setHourlyData(hourlyRes.data);
     }
 
     setLoading(false);
@@ -645,6 +655,107 @@ export default function DashboardPage() {
                     {formatCurrency(revSummary?.net_revenue || 0, settings)}
                   </span>
                 </div>
+              </div>
+            </div>
+
+            {/* Hourly Distribution & Peak Hours Heatmap */}
+            <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+                <div>
+                  <h3 className="font-bold text-sm text-slate-900 flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-amber-600" />
+                    <span>Mật độ Đơn hàng & Doanh thu theo 24 Khung giờ</span>
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    Phân tích biểu đồ nhiệt 24 giờ để tối ưu nhân sự phục vụ vào các khung giờ cao điểm
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  {hourlyData?.peak_hour && hourlyData.peak_hour !== '—' && (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 border border-amber-200 text-amber-900 rounded-xl text-xs font-black shadow-2xs">
+                      <Flame className="w-3.5 h-3.5 text-amber-600" />
+                      <span>Giờ cao điểm: {hourlyData.peak_hour} ({hourlyData.peak_orders} đơn)</span>
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* 24-Hour Bar Chart */}
+              <div className="pt-2">
+                {hourlyData?.items && hourlyData.items.length > 0 ? (
+                  (() => {
+                    const items = hourlyData.items;
+                    const maxOrders = Math.max(...items.map((it) => it.order_count), 1);
+
+                    return (
+                      <div className="space-y-2">
+                        <div className="relative h-48 sm:h-56 w-full flex items-end justify-between gap-1 sm:gap-1.5 pt-6 pb-2 px-1 border-b border-slate-200">
+                          {items.map((it, idx) => {
+                            const heightPct = Math.max(4, (it.order_count / maxOrders) * 100);
+                            const isHovered = hoveredHourIndex === idx;
+                            const isPeak = it.order_count === hourlyData.peak_orders && it.order_count > 0;
+
+                            return (
+                              <div
+                                key={idx}
+                                onMouseEnter={() => setHoveredHourIndex(idx)}
+                                onMouseLeave={() => setHoveredHourIndex(null)}
+                                className="relative flex-1 h-full flex flex-col justify-end items-center group cursor-pointer"
+                              >
+                                {/* Tooltip */}
+                                {isHovered && (
+                                  <div className="absolute -top-20 z-30 bg-slate-900 text-white text-[10px] p-2.5 rounded-xl shadow-2xl whitespace-nowrap animate-in fade-in zoom-in-95 pointer-events-none text-left border border-slate-700">
+                                    <div className="font-extrabold text-amber-400 flex items-center gap-1">
+                                      <Clock className="w-3 h-3" />
+                                      <span>Khung giờ: {it.label}</span>
+                                    </div>
+                                    <div className="text-white font-bold mt-0.5">
+                                      {it.order_count} đơn hàng ({it.percentage}% doanh thu)
+                                    </div>
+                                    <div className="text-emerald-400 font-extrabold">
+                                      {formatCurrency(it.revenue, settings)}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Bar */}
+                                <div
+                                  style={{ height: `${heightPct}%` }}
+                                  className={`w-full max-w-[28px] rounded-t-md transition-all duration-200 ${
+                                    isHovered
+                                      ? 'bg-amber-500 ring-2 ring-amber-300'
+                                      : isPeak
+                                      ? 'bg-gradient-to-t from-amber-600 to-amber-400 shadow-sm'
+                                      : it.order_count > 0
+                                      ? 'bg-gradient-to-t from-emerald-700 to-emerald-500 hover:from-emerald-600 hover:to-emerald-400'
+                                      : 'bg-slate-100'
+                                  }`}
+                                />
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* X-axis labels (00h, 03h, 06h, 09h, 12h, 15h, 18h, 21h, 23h) */}
+                        <div className="flex justify-between text-[10px] text-slate-400 px-1 font-semibold">
+                          <span>00h</span>
+                          <span>03h</span>
+                          <span>06h</span>
+                          <span>09h</span>
+                          <span>12h</span>
+                          <span>15h</span>
+                          <span>18h</span>
+                          <span>21h</span>
+                          <span>23h</span>
+                        </div>
+                      </div>
+                    );
+                  })()
+                ) : (
+                  <div className="h-40 flex items-center justify-center text-xs text-slate-400">
+                    Chưa có dữ liệu khung giờ trong khoảng thời gian này
+                  </div>
+                )}
               </div>
             </div>
 

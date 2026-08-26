@@ -35,22 +35,108 @@ import {
   Mail,
   RefreshCw,
   Search,
+  Printer,
+  FileSpreadsheet,
 } from 'lucide-react';
 import AppShell from '@/components/AppShell';
 import TransactionCategoryModal from '@/components/transactions/TransactionCategoryModal';
 import TransactionModal from '@/components/transactions/TransactionModal';
 import EmailReportModal from '@/components/common/EmailReportModal';
+import ReceiptModal, { CompletedOrderData } from '@/components/pos/ReceiptModal';
 import ModernDateRangePicker, { DatePeriod, computeDateRange, getLocalMonthStr, getLocalDateStr, toLocalDateStr } from '@/components/common/ModernDateRangePicker';
 import ModernSelect from '@/components/common/ModernSelect';
 import { fetchApi } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
 import { useConfirm } from '@/context/ConfirmContext';
 import { exportToCsv } from '@/lib/exportCsv';
+import { exportTransactionsToExcel, exportOrdersToExcel } from '@/lib/exportExcel';
 import { formatCurrency, SettingsMap, matchTransactionCategory } from '@/lib/utils';
 import { CartItem, ProductVariant, Product } from '@/components/pos/VariantSelectorModal';
 import { CategoryBreakdownResponse, FundsPeriodSummaryResponse } from '@/types/analytics';
 import { TransactionCategory } from '@/types/transaction_category';
 import { PurchaseItem } from '@/types/purchase';
+
+function orderApiToReceiptData(order: OrderApi, products: Product[], funds: Fund[]): CompletedOrderData {
+  const fundName = order.fund?.name || funds.find((f) => f.id === order.fund_id)?.name || 'Tiền mặt';
+  const cartItems: CartItem[] = (order.items || []).map((it, idx) => {
+    let productName = it.variant?.product?.name || '';
+    if (!productName && it.variant?.product_id) {
+      const found = products.find((p) => p.id === it.variant?.product_id);
+      if (found) productName = found.name;
+    }
+    if (!productName) productName = it.variant?.variant_name || 'Món';
+
+    let selectedToppings: any[] = [];
+    try {
+      if (it.selected_toppings && typeof it.selected_toppings === 'string') {
+        selectedToppings = JSON.parse(it.selected_toppings);
+      }
+    } catch {}
+
+    const variant: ProductVariant = it.variant
+      ? {
+          id: it.variant.id,
+          product_id: it.variant.product_id,
+          variant_name: it.variant.variant_name,
+          retail_price: it.variant.retail_price,
+          cogs_price: it.variant.cogs_price ?? 0,
+          sku: it.variant.sku || '',
+        }
+      : {
+          id: it.product_variant_id,
+          product_id: 0,
+          variant_name: 'Tiêu chuẩn',
+          retail_price: it.unit_price,
+          cogs_price: 0,
+          sku: '',
+        };
+
+    const product: Product = {
+      id: it.variant?.product_id || 0,
+      name: productName,
+      description: '',
+      image_url: '',
+      tag: '',
+      is_active: true,
+      category_id: 0,
+      variants: [variant],
+    };
+
+    return {
+      id: `history-${order.id}-${idx}`,
+      product,
+      selectedVariant: variant,
+      sugarLevel: '',
+      iceLevel: '',
+      quantity: it.quantity,
+      unitPrice: it.unit_price,
+      lineTotal: it.line_total || (it.quantity * it.unit_price + (it.toppings_price || 0) * it.quantity),
+      selectedToppings: Array.isArray(selectedToppings) ? selectedToppings : [],
+      toppingsPrice: it.toppings_price || 0,
+      notes: it.notes || '',
+    };
+  });
+
+  return {
+    order_code: order.order_code,
+    created_at: order.created_at,
+    created_by: order.created_by,
+    cashier_name: order.cashier_name || order.created_by,
+    fund_name: fundName,
+    payment_method: fundName,
+    items: cartItems,
+    subtotal: order.subtotal,
+    discount: order.discount_amount,
+    discount_amount: order.discount_amount,
+    promotion_discount: order.promotion_discount,
+    shipping_fee: order.shipping_fee,
+    platform_fee_discount: order.platform_fee_discount,
+    surcharge: order.surcharge,
+    total: order.total_amount,
+    final_total: order.total_amount,
+    note: order.note || undefined,
+  };
+}
 
 const formatDateTime = (dateStr?: string) => {
   if (!dateStr) return '—';
@@ -76,7 +162,7 @@ interface Transaction {
   category: string;
   amount: number;
   reference_order_id?: number;
-  reference_order?: { order_code: string };
+  reference_order?: { id?: number; order_code: string; status?: string };
   description: string;
   created_by: string;
   cashier_name?: string;
@@ -150,9 +236,9 @@ export default function TransactionsPage() {
   // Funds Management & Audit States
   const [periodSummary, setPeriodSummary] = useState<FundsPeriodSummaryResponse | null>(null);
   const [selectedMonth, setSelectedMonth] = useState<string>(() => getLocalMonthStr());
-  const [fundsPeriod, setFundsPeriod] = useState<DatePeriod>('month');
-  const [fundsCustomFrom, setFundsCustomFrom] = useState<string>(() => computeDateRange('month').from);
-  const [fundsCustomTo, setFundsCustomTo] = useState<string>(() => computeDateRange('month').to);
+  const [fundsPeriod, setFundsPeriod] = useState<DatePeriod>('today');
+  const [fundsCustomFrom, setFundsCustomFrom] = useState<string>(() => computeDateRange('today').from);
+  const [fundsCustomTo, setFundsCustomTo] = useState<string>(() => computeDateRange('today').to);
   const [summaryLoading, setSummaryLoading] = useState<boolean>(false);
 
   // Reconciliation Modal States
@@ -168,15 +254,15 @@ export default function TransactionsPage() {
     setTimeout(() => setReconcileToast(null), 5000);
   };
 
-  // Filters for Transactions (Persistent across navigation and refreshes)
+  // Filters for Transactions (Persistent across navigation and refreshes, defaults to 'today')
   const [txSearchQuery, setTxSearchQuery] = useState<string>('');
   const [debouncedTxSearch, setDebouncedTxSearch] = useState<string>('');
   const [selectedFundId, setSelectedFundId] = useState<number | null>(null);
   const [selectedType, setSelectedType] = useState<string>('all');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [period, setPeriod] = useState<DatePeriod>('month');
-  const [customFrom, setCustomFrom] = useState<string>(() => computeDateRange('month').from);
-  const [customTo, setCustomTo] = useState<string>(() => computeDateRange('month').to);
+  const [period, setPeriod] = useState<DatePeriod>('today');
+  const [customFrom, setCustomFrom] = useState<string>(() => computeDateRange('today').from);
+  const [customTo, setCustomTo] = useState<string>(() => computeDateRange('today').to);
   const [isLedgerFilterModalOpen, setIsLedgerFilterModalOpen] = useState<boolean>(false);
 
   // Filters for Orders
@@ -184,6 +270,7 @@ export default function TransactionsPage() {
   const [debouncedOrderSearch, setDebouncedOrderSearch] = useState<string>('');
   const [orderStatusFilter, setOrderStatusFilter] = useState<string>('all');
   const [isOrderFilterModalOpen, setIsOrderFilterModalOpen] = useState<boolean>(false);
+  const [reprintOrder, setReprintOrder] = useState<OrderApi | null>(null);
 
   // Pagination States (25 items/page)
   const PAGE_SIZE = 25;
@@ -730,6 +817,24 @@ export default function TransactionsPage() {
   const safeOrders = Array.isArray(orders) ? orders : [];
   const safeFunds = Array.isArray(funds) ? funds : [];
 
+  const [exportingExcel, setExportingExcel] = useState<boolean>(false);
+
+  const handleExportExcel = async () => {
+    setExportingExcel(true);
+    try {
+      if (activeTab === 'orders') {
+        await exportOrdersToExcel(filteredOrders, settings);
+      } else {
+        await exportTransactionsToExcel(filteredTransactions, settings);
+      }
+    } catch (e) {
+      console.error(e);
+      handleExportCsv();
+    } finally {
+      setExportingExcel(false);
+    }
+  };
+
   const handleExportCsv = () => {
     if (activeTab === 'orders') {
       exportToCsv<OrderApi>('rabbitpos_orders', filteredOrders, [
@@ -813,8 +918,17 @@ export default function TransactionsPage() {
   const totalOrderPages = Math.max(1, Math.ceil(filteredOrders.length / PAGE_SIZE));
   const paginatedOrders = filteredOrders.slice((orderPage - 1) * PAGE_SIZE, orderPage * PAGE_SIZE);
 
+  // Track cancelled order IDs to exclude their initial inflows from financial totals
+  const cancelledOrderIds = new Set(safeOrders.filter((o) => o.status === 'cancelled').map((o) => o.id));
+  const isTxFromCancelledOrder = (tx: Transaction) => {
+    if (tx.reference_order?.status === 'cancelled') return true;
+    if (tx.reference_order_id && cancelledOrderIds.has(tx.reference_order_id)) return true;
+    return false;
+  };
+
+  // Exclude cancelled order inflows from totalInflow
   const totalInflow = filteredTransactions
-    .filter((tx) => tx.transaction_type === 'inflow')
+    .filter((tx) => tx.transaction_type === 'inflow' && !isTxFromCancelledOrder(tx))
     .reduce((acc, tx) => acc + (Number(tx.amount) || 0), 0);
 
   const totalOutflow = filteredTransactions
@@ -822,6 +936,24 @@ export default function TransactionsPage() {
     .reduce((acc, tx) => acc + (Number(tx.amount) || 0), 0);
 
   const netCashFlow = totalInflow - totalOutflow;
+
+  // Breakdown of inflows by fund (date range matched, excluding cancelled orders)
+  const dateMatchedInflowTxs = safeTransactions.filter((tx) => {
+    if (tx.transaction_type !== 'inflow') return false;
+    if (isTxFromCancelledOrder(tx)) return false;
+    const txDate = toLocalDateStr(tx.created_at);
+    return (!customFrom || txDate >= customFrom) && (!customTo || txDate <= customTo);
+  });
+
+  const fundInflows = safeFunds.map((fund) => {
+    const amount = dateMatchedInflowTxs
+      .filter((tx) => tx.fund_id === fund.id)
+      .reduce((acc, tx) => acc + (Number(tx.amount) || 0), 0);
+    return {
+      ...fund,
+      inflowAmount: amount,
+    };
+  });
 
   return (
     <AppShell>
@@ -873,10 +1005,13 @@ export default function TransactionsPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={handleExportCsv}
-                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-3 py-2 rounded-xl border border-slate-200 flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer w-full sm:w-auto"
+                  onClick={handleExportExcel}
+                  disabled={exportingExcel}
+                  className="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold px-3 py-2 rounded-xl border border-emerald-200 flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer w-full sm:w-auto shadow-2xs disabled:opacity-50"
+                  title="Xuất dữ liệu ra file Excel (.xlsx)"
                 >
-                  <Download className="w-3.5 h-3.5 text-slate-500 shrink-0" /> <span className="truncate">{t('common.export_csv')}</span>
+                  {exportingExcel ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600 shrink-0" />}
+                  <span className="truncate">Xuất Excel</span>
                 </button>
                 <button
                   type="button"
@@ -905,10 +1040,13 @@ export default function TransactionsPage() {
                 </div>
                 <button
                   type="button"
-                  onClick={handleExportCsv}
-                  className="col-span-2 sm:col-span-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-3 py-2 rounded-xl border border-slate-200 flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer w-full sm:w-auto"
+                  onClick={handleExportExcel}
+                  disabled={exportingExcel}
+                  className="col-span-2 sm:col-span-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold px-3 py-2 rounded-xl border border-emerald-200 flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer w-full sm:w-auto shadow-2xs disabled:opacity-50"
+                  title="Xuất dữ liệu ra file Excel (.xlsx)"
                 >
-                  <Download className="w-3.5 h-3.5 text-slate-500 shrink-0" /> <span className="truncate">{t('common.export_csv')}</span>
+                  {exportingExcel ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600 shrink-0" />}
+                  <span className="truncate">Xuất Excel</span>
                 </button>
               </>
             )}
@@ -928,7 +1066,7 @@ export default function TransactionsPage() {
         </div>
 
         {/* Sticky Tab Navigation Bar: 3 Tabs (Ledger, Orders, Funds) */}
-        <div className="sticky top-14 z-30 bg-slate-50/95 backdrop-blur-xs pt-1 pb-2 border-b border-slate-200/80">
+        <div className="sticky top-14 z-30 bg-slate-50 pt-1 pb-2 border-b border-slate-200/80">
           <div className="flex space-x-1 sm:space-x-2 bg-slate-200/70 p-1 rounded-2xl overflow-x-auto no-scrollbar">
             {/* TAB 1: Financial Ledger */}
             <button
@@ -985,7 +1123,26 @@ export default function TransactionsPage() {
 
         {/* ── TAB 2: FINANCIAL LEDGER TRANSACTIONS ──────────────────────── */}
         {activeTab === 'ledger' && (
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
+            {/* Active Fund Filter Banner if filtered by a specific fund */}
+            {selectedFundId !== null && (
+              <div className="bg-gradient-to-r from-indigo-50 to-emerald-50 border border-indigo-200/80 p-3 sm:p-3.5 rounded-2xl flex items-center justify-between gap-3 text-xs shadow-xs">
+                <div className="flex items-center gap-2 text-indigo-950 font-bold">
+                  <Wallet className="w-4 h-4 text-indigo-600 shrink-0" />
+                  <span>
+                    Đang xem giao dịch của quỹ: <span className="text-emerald-800 font-extrabold underline">{safeFunds.find((f) => f.id === selectedFundId)?.name || 'Quỹ #' + selectedFundId}</span>
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSelectedFundId(null)}
+                  className="px-3 py-1.5 bg-white hover:bg-indigo-100 text-indigo-700 font-extrabold rounded-xl border border-indigo-300 shadow-2xs transition active:scale-95 cursor-pointer shrink-0"
+                >
+                  👁️ Xem toàn bộ quỹ
+                </button>
+              </div>
+            )}
+
             {/* KPI Summary Row */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
@@ -1020,6 +1177,48 @@ export default function TransactionsPage() {
                 </div>
               </div>
             </div>
+
+            {/* Cash Flow Breakdown by Fund Bar */}
+            {fundInflows.length > 0 && (
+              <div className="bg-white p-3 sm:p-4 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs">
+                <div className="flex items-center gap-2 font-black text-slate-700 uppercase tracking-wider text-[11px]">
+                  <Coins className="w-4 h-4 text-amber-600 shrink-0" />
+                  <span>Phân rã dòng thu theo quỹ:</span>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  {fundInflows.map((fi) => {
+                    const isSelected = selectedFundId === fi.id;
+                    return (
+                      <button
+                        key={fi.id}
+                        type="button"
+                        onClick={() => setSelectedFundId(isSelected ? null : fi.id)}
+                        className={`px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition cursor-pointer shadow-2xs active:scale-95 ${
+                          isSelected
+                            ? 'bg-emerald-700 text-white shadow-xs ring-2 ring-emerald-500/30'
+                            : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200'
+                        }`}
+                        title={`Bấm để ${isSelected ? 'bỏ lọc' : 'lọc riêng'} quỹ ${fi.name}`}
+                      >
+                        <span className={isSelected ? 'text-emerald-100' : 'text-slate-500 font-semibold'}>{fi.name}:</span>
+                        <span className={isSelected ? 'text-white font-extrabold' : 'text-emerald-700 font-extrabold'}>
+                          {formatCurrency(fi.inflowAmount, settings)}
+                        </span>
+                      </button>
+                    );
+                  })}
+                  {selectedFundId !== null && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedFundId(null)}
+                      className="px-2.5 py-1.5 rounded-xl text-[11px] font-extrabold text-slate-500 hover:text-rose-600 bg-slate-100 hover:bg-slate-200 transition cursor-pointer"
+                    >
+                      ✕ Bỏ lọc ({formatCurrency(totalInflow, settings)})
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Expense / Income Category Breakdown Section */}
             <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
@@ -1838,6 +2037,7 @@ export default function TransactionsPage() {
                       <th className="py-3 px-4">{t('tx.fund')}</th>
                       <th className="py-3 px-4">{t('tx.items')}</th>
                       <th className="py-3 px-4">{t('common.status')}</th>
+                      <th className="py-3 px-4 text-right">{t('common.total_amount')}</th>
                       <th className="py-3 px-4 text-right">{t('common.actions')}</th>
                     </tr>
                   </thead>
@@ -1903,6 +2103,13 @@ export default function TransactionsPage() {
                               </td>
                               <td className="py-3 px-4 text-right" onClick={(e) => e.stopPropagation()}>
                                 <div className="flex items-center justify-end space-x-1.5">
+                                  <button
+                                    onClick={() => setReprintOrder(order)}
+                                    title="In lại hóa đơn"
+                                    className="p-1.5 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 rounded-lg transition cursor-pointer"
+                                  >
+                                    <Printer className="w-4 h-4" />
+                                  </button>
                                   <button
                                     onClick={() => handleReorder(order)}
                                     title={t('tx.reorder_tooltip') || 'Đặt lại đơn này'}
@@ -2032,6 +2239,16 @@ export default function TransactionsPage() {
                           )}
                         </div>
 
+                        {/* Thu ngân */}
+                        {(order.cashier_name || order.created_by) && (
+                          <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
+                            <span className="w-3.5 h-3.5 rounded-full bg-slate-100 flex items-center justify-center text-[9px]">👤</span>
+                            <span className="font-semibold text-slate-700">
+                              {order.cashier_name || order.created_by}
+                            </span>
+                          </div>
+                        )}
+
                         <div className="flex items-center justify-between text-xs">
                           <span className="text-slate-500 font-medium">
                             {t('pos.items_count', { count: itemCount })} • {order.fund?.name || (funds.find((f) => f.id === order.fund_id)?.name ?? 'Tiền mặt')}
@@ -2091,7 +2308,15 @@ export default function TransactionsPage() {
                             {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
                             <span>{isExpanded ? 'Thu gọn' : 'Xem chi tiết'}</span>
                           </button>
-                          <div className="flex items-center space-x-2">
+                          <div className="flex items-center space-x-1.5">
+                            <button
+                              type="button"
+                              onClick={() => setReprintOrder(order)}
+                              className="px-2.5 py-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg flex items-center gap-1 transition cursor-pointer"
+                            >
+                              <Printer className="w-3 h-3" />
+                              <span>In lại</span>
+                            </button>
                             <button
                               type="button"
                               onClick={() => handleReorder(order)}
@@ -2700,6 +2925,14 @@ export default function TransactionsPage() {
         isOpen={showEmailReportModal}
         onClose={() => setShowEmailReportModal(false)}
         initialDate={customFrom || getLocalDateStr()}
+      />
+
+      {/* Reprint Receipt Modal */}
+      <ReceiptModal
+        isOpen={!!reprintOrder}
+        onClose={() => setReprintOrder(null)}
+        order={reprintOrder ? orderApiToReceiptData(reprintOrder, products, funds) : null}
+        settings={settings}
       />
     </AppShell>
   );

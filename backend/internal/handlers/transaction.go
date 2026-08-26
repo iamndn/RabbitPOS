@@ -54,6 +54,8 @@ func (h *TransactionHandler) ListTransactions(c *gin.Context) {
 			"reconciliation_variance": {"reconciliation_variance", "Chênh lệch đối soát", "Chênh lệch đối soát két"},
 			"Chênh lệch đối soát két": {"reconciliation_variance", "Chênh lệch đối soát", "Chênh lệch đối soát két"},
 			"Chênh lệch đối soát":     {"reconciliation_variance", "Chênh lệch đối soát", "Chênh lệch đối soát két"},
+			"order_refund":            {"order_refund", "Hủy đơn / Trả hàng", "Hủy đơn", "Trả hàng", "Hoàn tiền đơn hàng"},
+			"Hủy đơn / Trả hàng":      {"order_refund", "Hủy đơn / Trả hàng", "Hủy đơn", "Trả hàng", "Hoàn tiền đơn hàng"},
 			"other":                   {"other", "Chi phí khác", "Thu khác", "Khác"},
 			"Chi phí khác":            {"other", "Chi phí khác", "Thu khác", "Khác"},
 			"Khác":                    {"other", "Chi phí khác", "Thu khác", "Khác"},
@@ -646,12 +648,15 @@ func (h *TransactionHandler) GetCategoryBreakdown(c *gin.Context) {
 	var rawCategories []CategoryRaw
 	query := `
 		SELECT 
-			category, 
-			COALESCE(SUM(amount), 0) as total_amount, 
-			COUNT(id) as count 
-		FROM transactions 
-		WHERE transaction_type = ? AND created_at BETWEEN ? AND ?
-		GROUP BY category 
+			t.category, 
+			COALESCE(SUM(t.amount), 0) as total_amount, 
+			COUNT(t.id) as count 
+		FROM transactions t
+		LEFT JOIN orders o ON t.reference_order_id = o.id
+		WHERE t.transaction_type = ? 
+		  AND t.created_at BETWEEN ? AND ?
+		  AND (t.reference_order_id IS NULL OR o.status != 'cancelled')
+		GROUP BY t.category 
 		ORDER BY total_amount DESC
 	`
 
@@ -681,6 +686,10 @@ func (h *TransactionHandler) GetCategoryBreakdown(c *gin.Context) {
 		"reconciliation_variance": {Label: "Chênh lệch đối soát két", Code: "reconciliation_variance"},
 		"chênh lệch đối soát két": {Label: "Chênh lệch đối soát két", Code: "reconciliation_variance"},
 		"chênh lệch đối soát":     {Label: "Chênh lệch đối soát két", Code: "reconciliation_variance"},
+		"order_refund":            {Label: "Hủy đơn / Trả hàng", Code: "order_refund"},
+		"hủy đơn / trả hàng":      {Label: "Hủy đơn / Trả hàng", Code: "order_refund"},
+		"hủy đơn":                 {Label: "Hủy đơn / Trả hàng", Code: "order_refund"},
+		"hoàn tiền đơn hàng":      {Label: "Hủy đơn / Trả hàng", Code: "order_refund"},
 		"other":                   {Label: "Chi phí khác", Code: "other"},
 		"chi phí khác":            {Label: "Chi phí khác", Code: "other"},
 	}

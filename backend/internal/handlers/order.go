@@ -349,7 +349,7 @@ func (h *OrderHandler) CancelOrder(c *gin.Context) {
 			refundTx := models.Transaction{
 				FundID:           order.FundID,
 				TransactionType:  models.TransactionTypeOutflow,
-				Category:         models.CategoryOther,
+				Category:         models.CategoryOrderRefund,
 				Amount:           order.TotalAmount,
 				ReferenceOrderID: &order.ID,
 				Description:      refundDesc,

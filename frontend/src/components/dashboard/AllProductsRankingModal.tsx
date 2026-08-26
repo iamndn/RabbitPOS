@@ -14,11 +14,14 @@ import {
   ChevronLeft,
   ChevronRight,
   Filter,
+  FileSpreadsheet,
+  RefreshCw,
 } from 'lucide-react';
 import { fetchApi } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
 import { formatCurrency, SettingsMap } from '@/lib/utils';
 import { exportToCsv } from '@/lib/exportCsv';
+import { exportProductsRankingToExcel } from '@/lib/exportExcel';
 import ModernSelect from '@/components/common/ModernSelect';
 
 export interface ProductRankingItem {
@@ -125,6 +128,20 @@ export default function AllProductsRankingModal({
     setLoading(false);
   };
 
+  const [exportingExcel, setExportingExcel] = useState<boolean>(false);
+
+  const handleExportExcel = async () => {
+    setExportingExcel(true);
+    try {
+      await exportProductsRankingToExcel(items, settings);
+    } catch (e) {
+      console.error(e);
+      handleExportCsv();
+    } finally {
+      setExportingExcel(false);
+    }
+  };
+
   const handleExportCsv = () => {
     exportToCsv<ProductRankingItem>('rabbitpos_product_rankings', items, [
       { header: 'Product Name', accessor: (it) => it.product_name },
@@ -203,15 +220,16 @@ export default function AllProductsRankingModal({
               )}
             </button>
 
-            {/* Export CSV Button */}
+            {/* Export Excel Button */}
             <button
               type="button"
-              onClick={handleExportCsv}
-              className="bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold px-3 py-2 rounded-xl border border-slate-200 flex items-center gap-1.5 transition active:scale-95 cursor-pointer shrink-0 shadow-2xs"
-              title="Xuất file CSV"
+              onClick={handleExportExcel}
+              disabled={exportingExcel}
+              className="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold px-3 py-2 rounded-xl border border-emerald-200 flex items-center gap-1.5 transition active:scale-95 cursor-pointer shrink-0 shadow-2xs disabled:opacity-50"
+              title="Xuất file Excel (.xlsx)"
             >
-              <Download className="w-3.5 h-3.5 text-slate-500" />
-              <span className="hidden sm:inline">{t('common.export_csv')}</span>
+              {exportingExcel ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />}
+              <span className="hidden sm:inline">Xuất Excel</span>
             </button>
           </div>
 

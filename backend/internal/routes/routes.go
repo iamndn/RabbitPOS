@@ -180,6 +180,7 @@ func SetupRouter(cfg *config.Config, db *gorm.DB, emailSvc *services.EmailServic
 				adminOnly.GET("/analytics/profit", analyticsHandler.GetProfitAnalytics)
 				adminOnly.GET("/analytics/products-ranking", analyticsHandler.GetProductsRanking)
 				adminOnly.GET("/analytics/products-sales-performance", analyticsHandler.GetProductsSalesPerformance)
+				adminOnly.GET("/analytics/hourly-distribution", analyticsHandler.GetHourlyDistribution)
 				adminOnly.GET("/analytics/dashboard", analyticsHandler.GetDashboardMetrics)
 				adminOnly.GET("/analytics/top-products", analyticsHandler.GetTopProducts)
 				adminOnly.GET("/analytics/cash-flow", analyticsHandler.GetCashFlowSummary)

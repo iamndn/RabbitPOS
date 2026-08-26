@@ -234,7 +234,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               <>
                 {/* Mobile backdrop for easy dismissal */}
                 <div
-                  className="fixed inset-0 z-50 bg-slate-900/30 backdrop-blur-xs sm:hidden animate-in fade-in-0 duration-150"
+                  className="fixed inset-0 z-50 bg-slate-900/40 sm:hidden animate-in fade-in-0 duration-150"
                   onClick={() => setIsUserMenuOpen(false)}
                 />
                 <div className="fixed sm:absolute right-3 sm:right-0 top-14 sm:top-auto sm:mt-2 w-[calc(100vw-1.5rem)] sm:w-64 max-w-xs bg-white rounded-2xl shadow-2xl border border-slate-200 py-2 z-[100] text-slate-800 animate-in fade-in zoom-in-95 duration-150 hardware-accelerated">

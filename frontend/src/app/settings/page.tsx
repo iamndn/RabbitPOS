@@ -29,6 +29,7 @@ import {
   Trash2,
   ExternalLink,
   Zap,
+  Receipt,
 } from 'lucide-react';
 import AppShell from '@/components/AppShell';
 import { fetchApi, uploadImage, getImageUrl, getApiBaseUrl } from '@/lib/api';
@@ -98,6 +99,7 @@ export default function SettingsPage() {
     google_sheets_last_synced_at: '',
     google_sheets_last_sync_status: 'idle',
     google_sheets_last_sync_error: '',
+    auto_show_receipt_after_checkout: 'true',
   });
 
   const [testingSmtp, setTestingSmtp] = useState<boolean>(false);
@@ -706,6 +708,34 @@ export default function SettingsPage() {
                           if (logoInputRef.current) logoInputRef.current.value = '';
                         }}
                       />
+                    </div>
+                  </div>
+
+                  {/* POS & Receipt Printing Settings */}
+                  <div className="md:col-span-2 pt-4 border-t border-slate-100 space-y-3">
+                    <label className="font-bold text-slate-800 text-sm flex items-center gap-2">
+                      <Receipt className="w-4 h-4 text-emerald-600" />
+                      <span>Cài đặt Bán hàng & In Hóa đơn POS</span>
+                    </label>
+
+                    <div className="p-4 bg-slate-50 border border-slate-200/80 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="space-y-1">
+                        <span className="font-bold text-slate-800 block text-xs">
+                          Tự động bật hộp thoại in hóa đơn sau khi thanh toán đơn hàng
+                        </span>
+                        <p className="text-[11px] text-slate-500">
+                          Nếu tắt, đơn hàng sẽ hoàn tất nhanh mà không tự bật cửa sổ in (bạn vẫn có thể in lại bất cứ lúc nào trong mục Lịch sử đơn hàng).
+                        </p>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                        <input
+                          type="checkbox"
+                          checked={form.auto_show_receipt_after_checkout !== 'false'}
+                          onChange={(e) => handleChange('auto_show_receipt_after_checkout', e.target.checked ? 'true' : 'false')}
+                          className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                      </label>
                     </div>
                   </div>
                 </div>

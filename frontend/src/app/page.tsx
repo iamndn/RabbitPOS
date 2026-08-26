@@ -34,6 +34,33 @@ import { useConfirm } from '@/context/ConfirmContext';
 import { formatCurrency, SettingsMap } from '@/lib/utils';
 import { CustomTag, DEFAULT_SYSTEM_TAGS, getTagBadgeStyle } from '@/components/products/TagManagerModal';
 
+// ── VIETNAMESE FUZZY SEARCH HELPER ──────────────────────────────────────────
+/**
+ * Chuẩn hoá chuỗi: bỏ dấu + lowercase + loại ký tự thừa.
+ * Ví dụ: "Lưu Ý Khách" → "luu y khach"
+ */
+const normalizeVi = (str: string): string =>
+  str
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '') // xoá dấu tổ hợp (accents)
+    .replace(/đ/g, 'd')
+    .replace(/Đ/g, 'D')
+    .toLowerCase()
+    .trim();
+
+/**
+ * Kiểm tra xem `text` có chứa tất cả các "token" (từng từ tách bởi khoảng trắng) của `query` không.
+ * Hỗ trợ:
+ *   - Không dấu: "luu" → tìm "Lưu"
+ *   - Từng phần: "lu y" → tìm "Lưu Ý Khách"
+ *   - Substring: "pho" → tìm "Phở bò"
+ */
+const fuzzyMatchVi = (text: string, query: string): boolean => {
+  const normText = normalizeVi(text);
+  const tokens = normalizeVi(query).split(/\s+/).filter(Boolean);
+  return tokens.every((token) => normText.includes(token));
+};
+
 // Dynamic lazy-loaded modals for reduced bundle size and instant page responsiveness
 const VariantSelectorModal = dynamic(() => import('@/components/pos/VariantSelectorModal'), { ssr: false });
 const CheckoutModal = dynamic(() => import('@/components/pos/CheckoutModal'), { ssr: false });
@@ -59,8 +86,8 @@ const SORT_OPTIONS: { id: ProductSortOption; label: string; icon: React.ReactNod
   { id: 'price-desc', label: 'Giá: Cao → Thấp', icon: <TrendingDown className="w-3.5 h-3.5 text-rose-500" />, desc: 'Từ giá cao nhất' },
 ];
 
-// ── MEMOIZED CATEGORY TABS ───────────────────────────────────────────────────
-interface CategoryTabsProps {
+// ── MEMOIZED CATEGORY SIDEBAR (vertical sticky column) ───────────────────────
+interface CategorySidebarProps {
   categories: Category[];
   activeCategoryId: number | null;
   totalProductsCount: number;
@@ -69,51 +96,52 @@ interface CategoryTabsProps {
   allLabel: string;
 }
 
-const CategoryTabs = React.memo(function CategoryTabs({
+const CategorySidebar = React.memo(function CategorySidebar({
   categories,
   activeCategoryId,
   totalProductsCount,
   products,
   onSelectCategory,
   allLabel,
-}: CategoryTabsProps) {
+}: CategorySidebarProps) {
   return (
-    <div className="flex overflow-x-auto space-x-2 pb-1 w-full sm:w-auto scrollbar-none no-scrollbar py-1">
+    <div className="flex flex-col gap-1 overflow-y-auto overscroll-contain pr-0.5 sm:pr-1 scrollbar-none no-scrollbar">
+      {/* Tất cả */}
       <button
         onClick={() => onSelectCategory(null)}
-        className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap shadow-xs transition active:scale-95 hardware-accelerated flex items-center gap-1.5 cursor-pointer ${
+        className={`w-full px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-xl text-[11px] sm:text-xs font-bold text-left flex items-center justify-between gap-1.5 transition active:scale-[0.97] cursor-pointer ${
           activeCategoryId === null
-            ? 'bg-emerald-800 text-white shadow-sm font-black ring-2 ring-emerald-600/30'
+            ? 'bg-emerald-700 text-white shadow-sm ring-2 ring-emerald-500/30'
             : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200/80'
         }`}
       >
-        <span>{allLabel}</span>
-        <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-          activeCategoryId === null ? 'bg-emerald-700 text-white' : 'bg-slate-100 text-slate-600'
+        <span className="truncate leading-snug">{allLabel}</span>
+        <span className={`shrink-0 text-[9px] sm:text-[10px] min-w-[1.2rem] sm:min-w-[1.3rem] text-center px-1 py-0.5 rounded-full font-bold ${
+          activeCategoryId === null ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-500'
         }`}>
           {totalProductsCount}
         </span>
       </button>
+
+      {/* Divider */}
+      {categories.length > 0 && <div className="border-t border-slate-100 my-0.5" />}
+
       {categories.map((cat) => {
         const catCount = products.filter((p) => p.is_active !== false && p.category_id === cat.id).length;
         const isSelected = activeCategoryId === cat.id;
-        const catImg = getImageUrl(cat.image_url);
         return (
           <button
             key={cat.id}
             onClick={() => onSelectCategory(cat.id)}
-            className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap shadow-xs transition active:scale-95 hardware-accelerated flex items-center gap-1.5 cursor-pointer ${
+            className={`w-full px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-xl text-[11px] sm:text-xs font-bold text-left flex items-center justify-between gap-1.5 transition active:scale-[0.97] cursor-pointer ${
               isSelected
-                ? 'bg-emerald-800 text-white shadow-sm font-black ring-2 ring-emerald-600/30'
+                ? 'bg-emerald-700 text-white shadow-sm ring-2 ring-emerald-500/30'
                 : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200/80'
             }`}
           >
-            {catImg && (
-              <img src={catImg} alt="" className="w-3.5 h-3.5 rounded object-cover shrink-0" />
-            )}
-            <span>{cat.name}</span>
-            <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-              isSelected ? 'bg-emerald-700 text-white' : 'bg-slate-100 text-slate-600'
+            <span className="flex-1 truncate leading-snug">{cat.name}</span>
+            <span className={`shrink-0 text-[9px] sm:text-[10px] min-w-[1.2rem] sm:min-w-[1.3rem] text-center px-1 py-0.5 rounded-full font-bold ${
+              isSelected ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-500'
             }`}>
               {catCount}
             </span>
@@ -604,7 +632,9 @@ export default function PosPage() {
       };
 
       setCompletedOrder(orderData);
-      setIsReceiptModalOpen(true);
+      if (settings?.auto_show_receipt_after_checkout !== 'false') {
+        setIsReceiptModalOpen(true);
+      }
       setOrderSuccessMessage(t('pos.order_success', { code: res.data.order_code }));
       setTimeout(() => setOrderSuccessMessage(null), 5000);
     } else {
@@ -643,11 +673,11 @@ export default function PosPage() {
       // 3. Tag filter
       const matchesTag = activeTag === null || p.tag === activeTag;
 
-      // 4. Search filter
+      // 4. Search filter — fuzzy, accent-insensitive (hỗ trợ không dấu & viết tắt)
       const matchesSearch =
         debouncedSearch.trim() === '' ||
-        p.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-        (p.description && p.description.toLowerCase().includes(debouncedSearch.toLowerCase()));
+        fuzzyMatchVi(p.name, debouncedSearch) ||
+        (p.description != null && fuzzyMatchVi(p.description, debouncedSearch));
 
       return matchesCategory && matchesTag && matchesSearch;
     });
@@ -709,7 +739,7 @@ export default function PosPage() {
 
   return (
     <AppShell>
-      <div className="space-y-3 sm:space-y-4 max-w-7xl mx-auto w-full max-w-full overflow-x-hidden">
+      <div className="flex flex-col gap-3 sm:gap-4 max-w-7xl mx-auto w-full max-w-full overflow-x-hidden">
         {/* Success Toast Banner */}
         {orderSuccessMessage && (
           <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold px-4 py-2.5 rounded-xl shadow-sm flex items-center justify-between animate-in fade-in duration-150">
@@ -720,16 +750,16 @@ export default function PosPage() {
           </div>
         )}
 
-        {/* POS Search Bar & Filter Button */}
+        {/* ── POS Search Bar (full-width, above 3-col panel) ── */}
         <div className="flex items-center gap-2 w-full">
           <div className="relative flex-1 min-w-0">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               placeholder={t('pos.search_placeholder') || 'Tìm món nhanh theo tên, mô tả...'}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="app-input pl-9 pr-24 py-2 text-xs placeholder:text-xs"
+              className="app-input pl-9 pr-24 py-2.5 text-xs placeholder:text-xs"
             />
             {searchQuery ? (
               <button
@@ -747,63 +777,40 @@ export default function PosPage() {
             )}
           </div>
 
-          {/* Button Mở Popup Filter ngay bên phải ô tìm kiếm */}
+          {/* Bộ lọc & Sắp xếp */}
           <button
             type="button"
             onClick={() => setIsFilterModalOpen(true)}
             className={`px-3.5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer shadow-2xs ${
-              activeCategoryId !== null || activeTag !== null || sortBy !== 'default'
+              activeTag !== null || sortBy !== 'default'
                 ? 'bg-emerald-800 text-white shadow-sm ring-2 ring-emerald-600/30 font-extrabold'
                 : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
             }`}
           >
-            <Filter className="w-4 h-4" />
-            <span>Bộ lọc & Sắp xếp</span>
-            {(activeCategoryId !== null || activeTag !== null || sortBy !== 'default') && (
+            <SlidersHorizontal className="w-4 h-4" />
+            <span className="hidden sm:inline">Sắp xếp</span>
+            {(activeTag !== null || sortBy !== 'default') && (
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
             )}
           </button>
         </div>
 
-        {/* Active Filter Chips (if any filter or sorting is selected) */}
-        {(activeCategoryId !== null || activeTag !== null || sortBy !== 'default') && (
-          <div className="flex flex-wrap items-center gap-1.5 text-xs pt-0.5">
-            <span className="text-slate-400 font-semibold text-[11px]">Đang lọc:</span>
-            {activeCategoryId !== null && (
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-lg font-bold">
-                <span>Danh mục: {safeCategories.find((c) => c.id === activeCategoryId)?.name || 'Đã chọn'}</span>
-                <button type="button" onClick={() => setActiveCategoryId(null)} className="hover:text-emerald-950 cursor-pointer">
-                  <X className="w-3 h-3" />
-                </button>
-              </span>
-            )}
+        {/* ── Active sort/tag chip row (compact) ── */}
+        {(activeTag !== null || sortBy !== 'default') && (
+          <div className="flex flex-wrap items-center gap-1.5 text-xs -mt-1">
+            <span className="text-slate-400 font-semibold text-[11px]">Đang áp dụng:</span>
             {activeTag !== null && (
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-indigo-50 text-indigo-800 border border-indigo-200 rounded-lg font-bold">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-lg font-bold">
                 <span>Nhãn: {allAvailableTags.find((t) => t.id === activeTag)?.name || activeTag}</span>
-                <button type="button" onClick={() => setActiveTag(null)} className="hover:text-indigo-950 cursor-pointer">
-                  <X className="w-3 h-3" />
-                </button>
+                <button type="button" onClick={() => setActiveTag(null)} className="hover:text-indigo-950 cursor-pointer"><X className="w-3 h-3" /></button>
               </span>
             )}
             {sortBy !== 'default' && (
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-purple-50 text-purple-800 border border-purple-200 rounded-lg font-bold">
-                <span>Sắp xếp: {SORT_OPTIONS.find((s) => s.id === sortBy)?.label}</span>
-                <button type="button" onClick={() => setSortBy('default')} className="hover:text-purple-950 cursor-pointer">
-                  <X className="w-3 h-3" />
-                </button>
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-purple-50 text-purple-700 border border-purple-200 rounded-lg font-bold">
+                <span>{SORT_OPTIONS.find((s) => s.id === sortBy)?.label}</span>
+                <button type="button" onClick={() => setSortBy('default')} className="hover:text-purple-950 cursor-pointer"><X className="w-3 h-3" /></button>
               </span>
             )}
-            <button
-              type="button"
-              onClick={() => {
-                setActiveCategoryId(null);
-                setActiveTag(null);
-                setSortBy('default');
-              }}
-              className="text-rose-600 hover:text-rose-700 font-bold text-[11px] ml-1 underline cursor-pointer"
-            >
-              Xóa tất cả
-            </button>
           </div>
         )}
 
@@ -863,61 +870,58 @@ export default function PosPage() {
                   </div>
                 </div>
 
-                {/* Divider Ngăn Cách */}
-                <hr className="border-slate-100" />
+                {/* Divider + Section 2: Danh Mục — chỉ hiện trên mobile (desktop dùng sidebar) */}
+                <div className="sm:hidden">
+                  <hr className="border-slate-100" />
 
-                {/* Section 2: Danh Mục (Wrap) */}
-                <div>
-                  <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-2">
-                    📂 Danh Mục Món ({safeCategories.length})
-                  </label>
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setActiveCategoryId(null)}
-                      className={`px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs ${
-                        activeCategoryId === null
-                          ? 'bg-emerald-800 text-white shadow-sm font-black ring-2 ring-emerald-600/30'
-                          : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
-                      }`}
-                    >
-                      <span>{t('pos.all_items')}</span>
-                      <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                        activeCategoryId === null ? 'bg-emerald-700 text-white' : 'bg-slate-100 text-slate-600'
-                      }`}>
-                        {safeProducts.filter((p) => p.is_active !== false).length}
-                      </span>
-                    </button>
-                    {safeCategories.map((cat) => {
-                      const count = safeProducts.filter((p) => p.is_active !== false && p.category_id === cat.id).length;
-                      const isSelected = activeCategoryId === cat.id;
-                      const catImg = getImageUrl(cat.image_url);
-                      return (
-                        <button
-                          key={cat.id}
-                          type="button"
-                          onClick={() => setActiveCategoryId(isSelected ? null : cat.id)}
-                          className={`px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs ${
-                            isSelected
-                              ? 'bg-emerald-800 text-white shadow-sm font-black ring-2 ring-emerald-600/30'
-                              : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
-                          }`}
-                        >
-                          {catImg && <img src={catImg} alt="" className="w-3.5 h-3.5 rounded object-cover shrink-0" />}
-                          <span>{cat.name}</span>
-                          <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                            isSelected ? 'bg-emerald-700 text-white' : 'bg-slate-100 text-slate-600'
-                          }`}>
-                            {count}
-                          </span>
-                        </button>
-                      );
-                    })}
+                  {/* Section 2: Danh Mục (Wrap) */}
+                  <div className="mt-4">
+                    <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-2">
+                      📂 Danh Mục Món ({safeCategories.length})
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setActiveCategoryId(null)}
+                        className={`px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs ${
+                          activeCategoryId === null
+                            ? 'bg-emerald-800 text-white shadow-sm font-black ring-2 ring-emerald-600/30'
+                            : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+                        }`}
+                      >
+                        <span>{t('pos.all_items')}</span>
+                        <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                          activeCategoryId === null ? 'bg-emerald-700 text-white' : 'bg-slate-100 text-slate-600'
+                        }`}>
+                          {safeProducts.filter((p) => p.is_active !== false).length}
+                        </span>
+                      </button>
+                      {safeCategories.map((cat) => {
+                        const count = safeProducts.filter((p) => p.is_active !== false && p.category_id === cat.id).length;
+                        const isSelected = activeCategoryId === cat.id;
+                        return (
+                          <button
+                            key={cat.id}
+                            type="button"
+                            onClick={() => setActiveCategoryId(isSelected ? null : cat.id)}
+                            className={`px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs ${
+                              isSelected
+                                ? 'bg-emerald-800 text-white shadow-sm font-black ring-2 ring-emerald-600/30'
+                                : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+                            }`}
+                          >
+                            <span>{cat.name}</span>
+                            <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                              isSelected ? 'bg-emerald-700 text-white' : 'bg-slate-100 text-slate-600'
+                            }`}>
+                              {count}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
-
-                {/* Divider Ngăn Cách */}
-                <hr className="border-slate-100" />
 
                 {/* Section 3: Nhãn Sản Phẩm (Wrap) */}
                 <div>
@@ -996,39 +1000,68 @@ export default function PosPage() {
           </div>
         )}
 
-        {/* Product Card Grid */}
-        {loading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-3.5">
-            {[...Array(10)].map((_, i) => (
-              <div key={i} className="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm animate-pulse space-y-2">
-                <div className="w-full h-24 sm:h-28 bg-slate-200 rounded-xl" />
-                <div className="h-3 bg-slate-200 rounded w-3/4" />
-                <div className="h-3 bg-slate-200 rounded w-1/2" />
+        {/* ── 3-Column POS Layout: [Sidebar] | [Product Grid 2 cols] — tất cả màn hình ── */}
+        <div className={`flex gap-2 sm:gap-4 items-start ${
+          cartItems.length > 0 ? 'pb-36 md:pb-20' : 'pb-20 md:pb-4'
+        }`}>
+
+          {/* ── Column 1: Category Sidebar — hiện trên mọi màn hình ── */}
+          <div className="w-[34%] sm:w-[24%] lg:w-[20%] xl:w-[18%] shrink-0">
+            <div
+              className="sticky top-2 sm:top-4 bg-white border border-slate-200/80 rounded-xl sm:rounded-2xl p-1.5 sm:p-2 shadow-sm"
+              style={{ maxHeight: 'calc(100dvh - 9rem)', overflowY: 'auto' }}
+            >
+              {/* Sidebar Header */}
+              <div className="px-1.5 sm:px-2 pb-1.5 sm:pb-2 mb-1 border-b border-slate-100">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Danh mục</span>
               </div>
-            ))}
-          </div>
-        ) : sortedAndFilteredProducts.length === 0 ? (
-          <div className="bg-white p-12 rounded-2xl border border-slate-200 text-center text-slate-500 text-xs shadow-2xs">
-            <Coffee className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-            <p className="font-semibold text-slate-600">{t('pos.no_drinks')}</p>
-            <p className="text-[11px] text-slate-400 mt-1">Thử chọn danh mục khác hoặc xóa bộ lọc tìm kiếm.</p>
-          </div>
-        ) : (
-          <div className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-3.5 ${cartItems.length > 0 ? 'pb-36 md:pb-24' : 'pb-20 md:pb-8'}`}>
-            {sortedAndFilteredProducts.map((product) => (
-              <ProductCard
-                key={product.id}
-                product={product}
-                settings={settings}
-                customTags={customTags}
-                onSelect={handleSelectProductForVariant}
-                onQuickAdd={handleQuickAdd}
-                orderBtnLabel={t('pos.order_button')}
-                t={t}
+              <CategorySidebar
+                categories={safeCategories}
+                activeCategoryId={activeCategoryId}
+                totalProductsCount={safeProducts.filter((p) => p.is_active !== false).length}
+                products={safeProducts}
+                onSelectCategory={setActiveCategoryId}
+                allLabel={t('pos.all_items') || 'Tất cả'}
               />
-            ))}
+            </div>
           </div>
-        )}
+
+          {/* ── Columns 2 & 3: Product Grid (2 columns) ── */}
+          <div className="flex-1 min-w-0">
+            {loading ? (
+              <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                {[...Array(8)].map((_, i) => (
+                  <div key={i} className="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm animate-pulse space-y-2">
+                    <div className="w-full aspect-square bg-slate-200 rounded-xl" />
+                    <div className="h-3 bg-slate-200 rounded w-3/4" />
+                    <div className="h-3 bg-slate-200 rounded w-1/2" />
+                  </div>
+                ))}
+              </div>
+            ) : sortedAndFilteredProducts.length === 0 ? (
+              <div className="bg-white p-8 sm:p-12 rounded-2xl border border-slate-200 text-center text-slate-500 text-xs shadow-2xs">
+                <Coffee className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                <p className="font-semibold text-slate-600">{t('pos.no_drinks')}</p>
+                <p className="text-[11px] text-slate-400 mt-1">Thử chọn danh mục khác hoặc xóa bộ lọc tìm kiếm.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                {sortedAndFilteredProducts.map((product) => (
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                    settings={settings}
+                    customTags={customTags}
+                    onSelect={handleSelectProductForVariant}
+                    onQuickAdd={handleQuickAdd}
+                    orderBtnLabel={t('pos.order_button')}
+                    t={t}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
 
         {/* Mobile & Bottom Sticky Quick Cart Bar - Only visible when cart has items */}
         {cartItems.length > 0 && (

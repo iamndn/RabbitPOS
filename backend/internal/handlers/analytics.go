@@ -1083,3 +1083,100 @@ func (h *AnalyticsHandler) GetProductsSalesPerformance(c *gin.Context) {
 
 	models.SendSuccess(c, http.StatusOK, resp, "Product sales performance retrieved successfully")
 }
+
+// HourlyDistributionItem holds metrics for one hour of the day (0..23)
+type HourlyDistributionItem struct {
+	Hour        int     `json:"hour"`
+	Label       string  `json:"label"` // e.g. "07:00 - 08:00"
+	OrderCount  int64   `json:"order_count"`
+	Revenue     float64 `json:"revenue"`
+	Percentage  float64 `json:"percentage"`
+}
+
+type HourlyDistributionResponse struct {
+	Items        []HourlyDistributionItem `json:"items"`
+	TotalOrders  int64                    `json:"total_orders"`
+	TotalRevenue float64                  `json:"total_revenue"`
+	PeakHour     string                   `json:"peak_hour"`
+	PeakOrders   int64                    `json:"peak_orders"`
+	Period       string                   `json:"period"`
+	From         string                   `json:"from"`
+	To           string                   `json:"to"`
+}
+
+// GetHourlyDistribution computes order count and revenue grouped by hour (0..23)
+// GET /api/v1/analytics/hourly-distribution
+func (h *AnalyticsHandler) GetHourlyDistribution(c *gin.Context) {
+	startTime, endTime, _, _, period, fromStr, toStr := parseAnalyticsPeriod(c)
+
+	type HourlyRaw struct {
+		Hour       int     `gorm:"column:hour"`
+		OrderCount int64   `gorm:"column:order_count"`
+		Revenue    float64 `gorm:"column:revenue"`
+	}
+
+	var rawRows []HourlyRaw
+	query := `
+		SELECT 
+			EXTRACT(HOUR FROM created_at AT TIME ZONE 'Asia/Ho_Chi_Minh')::INTEGER as hour,
+			COUNT(id) as order_count,
+			COALESCE(SUM(total_amount), 0) as revenue
+		FROM orders
+		WHERE status = 'completed' AND created_at BETWEEN ? AND ?
+		GROUP BY hour
+		ORDER BY hour ASC
+	`
+
+	if err := h.db.Raw(query, startTime, endTime).Scan(&rawRows).Error; err != nil {
+		models.SendInternalError(c, "Failed to calculate hourly distribution: "+err.Error())
+		return
+	}
+
+	hourMap := make(map[int]HourlyRaw)
+	var grandTotalRevenue float64
+	var grandTotalOrders int64
+	for _, r := range rawRows {
+		hourMap[r.Hour] = r
+		grandTotalRevenue += r.Revenue
+		grandTotalOrders += r.OrderCount
+	}
+
+	items := make([]HourlyDistributionItem, 24)
+	var peakHourLabel string = "—"
+	var peakOrders int64 = 0
+
+	for hIdx := 0; hIdx < 24; hIdx++ {
+		raw := hourMap[hIdx]
+		var pct float64
+		if grandTotalRevenue > 0 {
+			pct = math.Round((raw.Revenue/grandTotalRevenue)*10000) / 100
+		}
+
+		label := fmt.Sprintf("%02d:00 - %02d:00", hIdx, (hIdx+1)%24)
+		items[hIdx] = HourlyDistributionItem{
+			Hour:       hIdx,
+			Label:      label,
+			OrderCount: raw.OrderCount,
+			Revenue:    raw.Revenue,
+			Percentage: pct,
+		}
+
+		if raw.OrderCount > peakOrders {
+			peakOrders = raw.OrderCount
+			peakHourLabel = label
+		}
+	}
+
+	resp := HourlyDistributionResponse{
+		Items:        items,
+		TotalOrders:  grandTotalOrders,
+		TotalRevenue: grandTotalRevenue,
+		PeakHour:     peakHourLabel,
+		PeakOrders:   peakOrders,
+		Period:       period,
+		From:         fromStr,
+		To:           toStr,
+	}
+
+	models.SendSuccess(c, http.StatusOK, resp, "Hourly distribution retrieved successfully")
+}

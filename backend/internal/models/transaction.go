@@ -18,6 +18,7 @@ const (
 	CategoryIngredientPurchase     TransactionCategory = "ingredient_purchase"
 	CategoryUtilityBill            TransactionCategory = "utility_bill"
 	CategoryReconciliationVariance TransactionCategory = "reconciliation_variance"
+	CategoryOrderRefund            TransactionCategory = "Hủy đơn / Trả hàng"
 	CategoryOther                  TransactionCategory = "other"
 )
 

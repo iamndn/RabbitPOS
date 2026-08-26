@@ -593,6 +593,8 @@ func (s *SheetsSyncService) AppendTransactionRow(tx models.Transaction) {
 		"ingredient_purchase":     "Mua nguyên vật liệu",
 		"utility_bill":            "Chi phí vận hành / Hóa đơn",
 		"reconciliation_variance": "Chênh lệch đối soát két",
+		"order_refund":            "Hủy đơn / Trả hàng",
+		"Hủy đơn / Trả hàng":      "Hủy đơn / Trả hàng",
 		"other":                   "Chi phí khác",
 	}
 	for _, item := range txCatItems {
@@ -608,7 +610,10 @@ func (s *SheetsSyncService) AppendTransactionRow(tx models.Transaction) {
 
 	refOrderCode := ""
 	if tx.ReferenceOrder != nil {
-		refOrderCode = tx.ReferenceOrder.OrderCode
+		refOrderCode = fmt.Sprintf("#%s", tx.ReferenceOrder.OrderCode)
+		if tx.ReferenceOrder.Status == models.OrderStatusCancelled {
+			refOrderCode += " (Đơn đã hủy)"
+		}
 	}
 
 	cashierStr := tx.CashierName
@@ -933,7 +938,10 @@ func (s *SheetsSyncService) SyncAllToGoogleSheets() error {
 
 		refOrderCode := ""
 		if tx.ReferenceOrder != nil {
-			refOrderCode = tx.ReferenceOrder.OrderCode
+			refOrderCode = fmt.Sprintf("#%s", tx.ReferenceOrder.OrderCode)
+			if tx.ReferenceOrder.Status == models.OrderStatusCancelled {
+				refOrderCode += " (Đơn đã hủy)"
+			}
 		}
 
 		cashierStr := tx.CashierName

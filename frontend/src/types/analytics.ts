@@ -187,3 +187,24 @@ export interface ProductSalesPerformanceResponse {
   from: string;
   to: string;
 }
+
+// --- Hourly Distribution & Peak Hours ---
+
+export interface HourlyDistributionItem {
+  hour: number;
+  label: string;
+  order_count: number;
+  revenue: number;
+  percentage: number;
+}
+
+export interface HourlyDistributionResponse {
+  items: HourlyDistributionItem[];
+  total_orders: number;
+  total_revenue: number;
+  peak_hour: string;
+  peak_orders: number;
+  period: string;
+  from: string;
+  to: string;
+}

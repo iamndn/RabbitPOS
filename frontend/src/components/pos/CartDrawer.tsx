@@ -56,6 +56,16 @@ interface Props {
   settings?: SettingsMap | null;
 }
 
+const FAST_NOTE_PRESETS = [
+  'Mang về',
+  'Uống tại bàn',
+  'Ít ngọt',
+  'Không đá',
+  'Đá riêng',
+  'Nhiều sữa',
+  'Ít sữa',
+];
+
 export default function CartDrawer({
   isOpen,
   onClose,
@@ -82,6 +92,21 @@ export default function CartDrawer({
   settings,
 }: Props) {
   const { t } = useTranslation();
+
+  const handleToggleFastNote = (preset: string) => {
+    if (!orderNote) {
+      onOrderNoteChange(preset);
+      return;
+    }
+    const parts = orderNote.split(',').map((p) => p.trim()).filter(Boolean);
+    const existingIndex = parts.findIndex((p) => p.toLowerCase() === preset.toLowerCase());
+    if (existingIndex >= 0) {
+      parts.splice(existingIndex, 1);
+    } else {
+      parts.push(preset);
+    }
+    onOrderNoteChange(parts.join(', '));
+  };
 
   // Active Promotions for Cart
   const [activePromotions, setActivePromotions] = useState<Promotion[]>([]);
@@ -401,12 +426,23 @@ export default function CartDrawer({
               )}
             </div>
 
-            {/* 2. Order Notes (Text area) */}
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-700 flex items-center gap-1">
-                <FileText className="w-3.5 h-3.5 text-slate-500" />
-                {t('pos.order_note')}
-              </label>
+            {/* 2. Order Notes (Text area & Fast Note Chips) */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-slate-700 flex items-center gap-1">
+                  <FileText className="w-3.5 h-3.5 text-slate-500" />
+                  {t('pos.order_note')}
+                </label>
+                {orderNote && (
+                  <button
+                    type="button"
+                    onClick={() => onOrderNoteChange('')}
+                    className="text-[10px] font-bold text-slate-400 hover:text-rose-600 transition cursor-pointer"
+                  >
+                    Xóa ghi chú
+                  </button>
+                )}
+              </div>
               <input
                 type="text"
                 placeholder={t('pos.order_note_placeholder')}
@@ -414,6 +450,31 @@ export default function CartDrawer({
                 onChange={(e) => onOrderNoteChange(e.target.value)}
                 className="w-full p-2 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-600 bg-white"
               />
+
+              {/* Fast Note Preset Chips */}
+              <div className="flex flex-wrap gap-1 pt-0.5">
+                {FAST_NOTE_PRESETS.map((preset) => {
+                  const isActive = orderNote
+                    .toLowerCase()
+                    .split(',')
+                    .map((s) => s.trim())
+                    .includes(preset.toLowerCase());
+                  return (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => handleToggleFastNote(preset)}
+                      className={`px-2 py-1 rounded-lg text-[10px] font-bold transition active:scale-95 cursor-pointer flex items-center gap-1 ${
+                        isActive
+                          ? 'bg-emerald-700 text-white shadow-2xs'
+                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200/60'
+                      }`}
+                    >
+                      <span>{preset}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             {/* 3. Order Creation Time (Customizable) */}

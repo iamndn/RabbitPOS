@@ -139,7 +139,10 @@ export default function TransactionModal({
           }))
         );
       } else if (isPurchaseCat && initialData.transaction_type === 'outflow') {
-        setIsPurchaseLogging(true);
+        // Đơn cũ: category là nhập hàng nhưng KHÔNG có purchase_items
+        // → Mặc định ẨN bảng nguyên liệu để tránh ghi đè / tạo items sai
+        // User có thể bật toggle "Chi Mua Hàng Hóa" nếu muốn thêm chi tiết
+        setIsPurchaseLogging(false);
         setPurchaseItems([
           { ingredient_name: '', category: 'fruit', quantity: 1, unit: 'kg', unit_price: 0, subtotal: 0, is_custom_new: false },
         ]);
@@ -303,6 +306,7 @@ export default function TransactionModal({
 
         if (modalType === 'outflow') {
           if (isPurchaseLogging) {
+            // User đã bật chế độ ghi chi tiết nguyên liệu
             const validItems = purchaseItems
               .filter((p) => p.ingredient_name.trim() !== '' && p.quantity > 0)
               .map((p) => ({
@@ -313,10 +317,11 @@ export default function TransactionModal({
                 unit_price: Number(p.unit_price),
                 unit: p.unit.trim() || 'kg',
               }));
+            // Gửi danh sách (có thể rỗng nếu user muốn xóa hết items)
             payload.purchase_items = validItems;
-          } else {
-            payload.purchase_items = [];
           }
+          // isPurchaseLogging = false → KHÔNG đưa key purchase_items vào payload
+          // Backend sẽ bỏ qua và giữ nguyên items hiện tại của đơn (đúng với đơn cũ)
         }
 
         const res = await fetchApi(`/transactions/${initialData.id}`, {

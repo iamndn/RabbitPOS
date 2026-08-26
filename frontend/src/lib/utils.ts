@@ -53,6 +53,7 @@ const CATEGORY_ALIASES: Record<string, string[]> = {
   ingredient_purchase: ['ingredient_purchase', 'mua nguyên liệu', 'mua nguyên vật liệu', 'nguyên liệu'],
   utility_bill: ['utility_bill', 'chi phí vận hành', 'vận hành'],
   reconciliation_variance: ['reconciliation_variance', 'chênh lệch đối soát', 'chênh lệch đối soát két', 'đối soát'],
+  order_refund: ['order_refund', 'hủy đơn / trả hàng', 'hủy đơn', 'trả hàng', 'hoàn tiền đơn hàng', 'hoàn tiền'],
   other: ['other', 'khác', 'chi phí khác', 'thu khác'],
 };
 
