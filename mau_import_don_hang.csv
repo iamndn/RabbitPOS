@@ -1,6 +1,0 @@
-﻿Mã Đơn Hàng (*),Thời Gian (YYYY-MM-DD HH:MM),Trạng Thái (completed/cancelled),Tên Món (*),Biến Thể / Size,Số Lượng (*),Đơn Giá Món (*),Topping Đi Kèm,Tiền Topping,Giảm Giá Đơn,Phí Ship,Phụ Thu,Tổng Tiền Đơn,Nguồn Tiền (Tiền mặt/Chuyển khoản),Thu Ngân,Ghi Chú Đơn
-ORD-20260821-0001,2026-08-21 00:39,completed,Cà Phê Muối,Size M,2,25000,Trân Châu Trắng 3Q,8000,0,0,0,58000,Tiền mặt,NDN,Ít ngọt ít đá
-ORD-20260821-0002,2026-08-21 01:39,completed,Trà Đào Cam Sả,Size L,1,42000,Thạch Đào Giòn,8000,5000,0,0,45000,Chuyển khoản,NHUNG,Khách mang về
-ORD-20260821-0003,2026-08-21 02:09,completed,Trà Sữa Oolong Nướng,Size L,2,38000,"Trân Châu Trắng 3Q, Kem Cheese Macchiato",18000,10000,15000,0,99000,Chuyển khoản,DAT,Giao qua Grab - Ít đường
-ORD-20260821-0003,2026-08-21 02:09,completed,Bánh Croissant Bơ Tỏi,Mặc định,1,28000,,0,0,0,0,99000,Chuyển khoản,DAT,Hâm nóng bánh
-ORD-20260821-0004,2026-08-21 02:39,completed,Sinh Tố Bơ Sáp,Size L,1,48000,,0,0,0,0,48000,Tiền mặt,NDN,Không đường chua ngọt
