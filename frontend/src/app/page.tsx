@@ -258,43 +258,46 @@ const ProductCard = React.memo(function ProductCard({
         </h3>
       </div>
 
-      <div className="mt-1.5 sm:mt-2 flex items-center justify-between gap-1 pt-1.5 border-t border-slate-100 min-w-0">
-        <div className="flex flex-col min-w-0 pr-0.5">
+      <div className="mt-2 flex items-center justify-between gap-1.5 pt-2 border-t border-slate-100 min-w-0">
+        <div className="flex flex-col min-w-0 flex-1 overflow-hidden pr-1">
           {variantsCount > 1 && (
-            <span className="text-[9px] text-slate-400 font-semibold leading-none mb-0.5">Từ</span>
+            <span className="text-[10px] text-slate-400 font-semibold leading-none mb-0.5">
+              {t('pos.from_price') || 'Từ'}
+            </span>
           )}
-          <span className="font-black text-emerald-700 text-xs sm:text-[13px] whitespace-nowrap tracking-tight">
+          <span
+            className="font-black text-emerald-700 text-xs sm:text-[13px] tracking-tight truncate leading-tight block"
+            title={formatCurrency(startingPrice, settings)}
+          >
             {formatCurrency(startingPrice, settings)}
           </span>
         </div>
 
         {isSuspended ? (
-          <span className="bg-slate-100 text-slate-500 text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded-md border border-slate-200 shrink-0">
+          <span className="bg-slate-100 text-slate-500 text-[9px] sm:text-[10px] font-bold px-1.5 py-1 rounded-lg border border-slate-200 shrink-0">
             ⛔ {t('products.suspended') || 'Tạm ngưng'}
           </span>
         ) : isComingSoon ? (
-          <span className="bg-sky-50 text-sky-600 text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded-md border border-sky-200 shrink-0">
+          <span className="bg-sky-50 text-sky-600 text-[9px] sm:text-[10px] font-bold px-1.5 py-1 rounded-lg border border-sky-200 shrink-0">
             ⏳ {t('products.coming_soon') || 'Sắp có'}
           </span>
         ) : isSingleVariant ? (
           <button
             type="button"
             onClick={handleClick}
-            className="h-6 sm:h-7 px-1.5 sm:px-2 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-lg transition flex items-center justify-center gap-1 shrink-0 active:scale-90 shadow-2xs cursor-pointer"
-            title="Thêm nhanh vào giỏ"
+            className="w-7 h-7 sm:w-7.5 sm:h-7.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-xl transition-all flex items-center justify-center shrink-0 active:scale-90 shadow-2xs cursor-pointer group-hover:scale-105"
+            title={orderBtnLabel || t('pos.order_button') || 'Gọi món'}
           >
-            <Plus className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline text-[10px] sm:text-[11px] font-bold">{orderBtnLabel || 'Thêm'}</span>
+            <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[2.5]" />
           </button>
         ) : (
           <button
             type="button"
             onClick={handleOpenCustomize}
-            className="h-6 sm:h-7 px-1.5 sm:px-2 bg-emerald-50 hover:bg-emerald-600 hover:text-white group-hover:bg-emerald-600 group-hover:text-white text-emerald-700 text-[10px] sm:text-[11px] font-bold rounded-lg border border-emerald-200/80 transition flex items-center justify-center gap-0.5 shrink-0 active:scale-90 shadow-2xs cursor-pointer"
-            title="Tùy chọn size & topping"
+            className="w-7 h-7 sm:w-7.5 sm:h-7.5 bg-emerald-50 hover:bg-emerald-600 hover:text-white group-hover:bg-emerald-600 group-hover:text-white text-emerald-700 rounded-xl border border-emerald-200/80 transition-all flex items-center justify-center shrink-0 active:scale-90 shadow-2xs cursor-pointer group-hover:scale-105"
+            title={t('pos.select_variant') || 'Chọn size & tùy chọn'}
           >
-            <SlidersHorizontal className="w-3 h-3" />
-            <span>Size</span>
+            <SlidersHorizontal className="w-3.5 h-3.5" />
           </button>
         )}
       </div>

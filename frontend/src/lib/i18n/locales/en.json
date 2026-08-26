@@ -47,6 +47,7 @@
     "all_items": "All Items",
     "no_drinks": "No drinks found.",
     "order_button": "Order",
+    "from_price": "From",
     "cart_total": "Cart Total",
     "view_cart": "View Cart",
     "checkout": "Checkout",
