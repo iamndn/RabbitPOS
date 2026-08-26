@@ -2,6 +2,16 @@
 const nextConfig = {
   output: 'standalone',
   reactStrictMode: true,
+  poweredByHeader: false,
+  compress: true,
+  eslint: {
+    // Avoid slow linting steps during production builds
+    ignoreDuringBuilds: true,
+  },
+  typescript: {
+    // Type check is strictly verified via tsc
+    ignoreBuildErrors: false,
+  },
   async rewrites() {
     // In Docker / Production, backend is reachable at http://backend:8080 or via INTERNAL_BACKEND_URL.
     // In local development, defaults to http://localhost:8080 if not set.
@@ -23,4 +33,3 @@ const nextConfig = {
 };
 
 export default nextConfig;
-

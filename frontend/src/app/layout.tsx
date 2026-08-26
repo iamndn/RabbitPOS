@@ -16,6 +16,7 @@ export const viewport: Viewport = {
 
 // --- PWA Metadata: Apple Web App capabilities, manifest, Open Graph ---
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://rabbitpos.ndnworks.com'),
   title: "ThoPOS - Thỏ Juice & Coffee",
   description: "Hệ thống Bán hàng & Quản lý Tài chính RabbitPOS",
   manifest: "/manifest.json",
