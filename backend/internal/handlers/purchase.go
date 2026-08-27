@@ -69,22 +69,61 @@ func (h *PurchaseHandler) CreateIngredient(c *gin.Context) {
 	if category == "" {
 		category = "fruit"
 	}
-	unit := strings.TrimSpace(req.Unit)
-	if unit == "" {
-		unit = "kg"
+	baseUnit := strings.TrimSpace(req.BaseUnit)
+	if baseUnit == "" {
+		baseUnit = strings.TrimSpace(req.Unit)
 	}
-	yieldRate := req.YieldRate
-	if yieldRate <= 0 || yieldRate > 1.0 {
-		yieldRate = 1.0000
+	if baseUnit == "" {
+		baseUnit = "ml"
+	}
+
+	lossRate := req.LossRate
+	if lossRate < 0 || lossRate >= 1.0 {
+		if req.YieldRate > 0 && req.YieldRate <= 1.0 {
+			lossRate = 1.0 - req.YieldRate
+		} else {
+			lossRate = 0.0
+		}
+	}
+	yieldRate := 1.0 - lossRate
+	if yieldRate <= 0 {
+		yieldRate = 1.0
+	}
+
+	packQty := req.DefaultPackQty
+	if packQty <= 0 {
+		packQty = 1.0
+	}
+	capQty := req.DefaultCapacityQty
+	if capQty <= 0 {
+		capQty = 1.0
+	}
+
+	savedConversions := strings.TrimSpace(req.SavedConversions)
+	if savedConversions == "" {
+		savedConversions = "[]"
+	}
+
+	initPrice := 0.0
+	if req.LatestPurchasePrice != nil && *req.LatestPurchasePrice >= 0 {
+		initPrice = *req.LatestPurchasePrice
 	}
 
 	ingredient := models.Ingredient{
 		Name:                 name,
 		Category:             category,
-		Unit:                 unit,
+		Unit:                 baseUnit,
+		BaseUnit:             baseUnit,
+		LossRate:             lossRate,
 		YieldRate:            yieldRate,
-		LatestPurchasePrice:  0.0,
-		AveragePurchasePrice: 0.0,
+		DefaultPurchaseUnit:  strings.TrimSpace(req.DefaultPurchaseUnit),
+		DefaultPackQty:       packQty,
+		DefaultPackUnit:      strings.TrimSpace(req.DefaultPackUnit),
+		DefaultCapacityQty:   capQty,
+		DefaultCapacityUnit:  strings.TrimSpace(req.DefaultCapacityUnit),
+		SavedConversions:     savedConversions,
+		LatestPurchasePrice:  initPrice,
+		AveragePurchasePrice: initPrice,
 		CreatedAt:            time.Now(),
 		UpdatedAt:            time.Now(),
 	}
@@ -101,7 +140,7 @@ func (h *PurchaseHandler) CreateIngredient(c *gin.Context) {
 	models.SendSuccess(c, http.StatusCreated, ingredient, "Ingredient created successfully")
 }
 
-// UpdateIngredient updates ingredient metadata (category, unit, yield rate)
+// UpdateIngredient updates ingredient metadata (category, unit, loss rate, default conversions, price)
 func (h *PurchaseHandler) UpdateIngredient(c *gin.Context) {
 	idParam := c.Param("id")
 	id, err := strconv.ParseUint(idParam, 10, 32)
@@ -132,11 +171,46 @@ func (h *PurchaseHandler) UpdateIngredient(c *gin.Context) {
 	if category := strings.TrimSpace(req.Category); category != "" {
 		ingredient.Category = category
 	}
-	if unit := strings.TrimSpace(req.Unit); unit != "" {
+	if baseUnit := strings.TrimSpace(req.BaseUnit); baseUnit != "" {
+		ingredient.BaseUnit = baseUnit
+		ingredient.Unit = baseUnit
+	} else if unit := strings.TrimSpace(req.Unit); unit != "" {
+		ingredient.BaseUnit = unit
 		ingredient.Unit = unit
 	}
-	if req.YieldRate > 0 && req.YieldRate <= 1.0 {
+
+	if req.LossRate >= 0 && req.LossRate < 1.0 {
+		ingredient.LossRate = req.LossRate
+		ingredient.YieldRate = 1.0 - req.LossRate
+	} else if req.YieldRate > 0 && req.YieldRate <= 1.0 {
 		ingredient.YieldRate = req.YieldRate
+		ingredient.LossRate = 1.0 - req.YieldRate
+	}
+
+	if req.LatestPurchasePrice != nil && *req.LatestPurchasePrice >= 0 {
+		ingredient.LatestPurchasePrice = *req.LatestPurchasePrice
+		if ingredient.AveragePurchasePrice == 0 {
+			ingredient.AveragePurchasePrice = *req.LatestPurchasePrice
+		}
+	}
+
+	if req.DefaultPurchaseUnit != "" {
+		ingredient.DefaultPurchaseUnit = strings.TrimSpace(req.DefaultPurchaseUnit)
+	}
+	if req.DefaultPackQty > 0 {
+		ingredient.DefaultPackQty = req.DefaultPackQty
+	}
+	if req.DefaultPackUnit != "" {
+		ingredient.DefaultPackUnit = strings.TrimSpace(req.DefaultPackUnit)
+	}
+	if req.DefaultCapacityQty > 0 {
+		ingredient.DefaultCapacityQty = req.DefaultCapacityQty
+	}
+	if req.DefaultCapacityUnit != "" {
+		ingredient.DefaultCapacityUnit = strings.TrimSpace(req.DefaultCapacityUnit)
+	}
+	if req.SavedConversions != "" {
+		ingredient.SavedConversions = req.SavedConversions
 	}
 	ingredient.UpdatedAt = time.Now()
 
@@ -179,7 +253,7 @@ func (h *PurchaseHandler) DeleteIngredient(c *gin.Context) {
 	models.SendSuccess(c, http.StatusOK, gin.H{"deleted_id": id}, "Ingredient deleted successfully")
 }
 
-// GetIngredientHistory returns the chronological invoice purchase records for an ingredient
+// GetIngredientHistory returns the chronological invoice purchase records for an ingredient with detailed conversion info
 func (h *PurchaseHandler) GetIngredientHistory(c *gin.Context) {
 	idParam := c.Param("id")
 	id, err := strconv.ParseUint(idParam, 10, 32)
@@ -195,24 +269,44 @@ func (h *PurchaseHandler) GetIngredientHistory(c *gin.Context) {
 	}
 
 	type HistoryItem struct {
-		ID            uint      `json:"id"`
-		TransactionID uint      `json:"transaction_id"`
-		Quantity      float64   `json:"quantity"`
-		UnitPrice     float64   `json:"unit_price"`
-		Subtotal      float64   `json:"subtotal"`
-		CreatedAt     time.Time `json:"created_at"`
-		FundName      string    `json:"fund_name"`
-		CashierName   string    `json:"cashier_name"`
-		Description   string    `json:"description"`
+		ID                    uint      `json:"id"`
+		TransactionID         uint      `json:"transaction_id"`
+		Quantity              float64   `json:"quantity"`
+		UnitPrice             float64   `json:"unit_price"`
+		Subtotal              float64   `json:"subtotal"`
+		PurchaseUnit          string    `json:"purchase_unit"`
+		PurchaseQuantity      float64   `json:"purchase_quantity"`
+		PurchaseUnitPrice     float64   `json:"purchase_unit_price"`
+		PackQty               float64   `json:"pack_qty"`
+		PackUnit              string    `json:"pack_unit"`
+		CapacityQty           float64   `json:"capacity_qty"`
+		CapacityUnit          string    `json:"capacity_unit"`
+		ConversionRate        float64   `json:"conversion_rate"`
+		TotalBaseQuantity     float64   `json:"total_base_quantity"`
+		BaseUnit              string    `json:"base_unit"`
+		BaseUnitPrice         float64   `json:"base_unit_price"`
+		LossRate              float64   `json:"loss_rate"`
+		EffectiveBaseQuantity float64   `json:"effective_base_quantity"`
+		EffectiveBasePrice    float64   `json:"effective_base_price"`
+		ConversionSpec        string    `json:"conversion_spec"`
+		CreatedAt             time.Time `json:"created_at"`
+		FundName              string    `json:"fund_name"`
+		CashierName           string    `json:"cashier_name"`
+		Description           string    `json:"description"`
 	}
 
 	var history []HistoryItem
 	h.db.Table("purchase_items").
-		Select("purchase_items.id, purchase_items.transaction_id, purchase_items.quantity, purchase_items.unit_price, purchase_items.subtotal, purchase_items.created_at, funds.name as fund_name, transactions.cashier_name, transactions.description").
+		Select(`purchase_items.id, purchase_items.transaction_id, purchase_items.quantity, purchase_items.unit_price, 
+			purchase_items.subtotal, purchase_items.purchase_unit, purchase_items.purchase_quantity, purchase_items.purchase_unit_price,
+			purchase_items.pack_qty, purchase_items.pack_unit, purchase_items.capacity_qty, purchase_items.capacity_unit,
+			purchase_items.conversion_rate, purchase_items.total_base_quantity, purchase_items.base_unit, purchase_items.base_unit_price,
+			purchase_items.loss_rate, purchase_items.effective_base_quantity, purchase_items.effective_base_price, purchase_items.conversion_spec,
+			purchase_items.created_at, funds.name as fund_name, transactions.cashier_name, transactions.description`).
 		Joins("JOIN transactions ON transactions.id = purchase_items.transaction_id").
 		Joins("LEFT JOIN funds ON funds.id = transactions.fund_id").
 		Where("purchase_items.ingredient_id = ?", id).
-		Order("purchase_items.created_at DESC").
+		Order("purchase_items.created_at DESC, purchase_items.id DESC").
 		Scan(&history)
 
 	models.SendSuccess(c, http.StatusOK, gin.H{
@@ -271,16 +365,11 @@ func (h *PurchaseHandler) GetCostComparison(c *gin.Context) {
 					continue
 				}
 
-				yield := r.Ingredient.YieldRate
-				if yield <= 0 {
-					yield = 1.0
-				}
-
-				effectiveLatest := r.Ingredient.LatestPurchasePrice / yield
+				effectiveLatest := r.Ingredient.LatestPurchasePrice
 				lineCostLatest := math.Round(r.UsageQuantity*effectiveLatest*100) / 100
 				estimatedLatest += lineCostLatest
 
-				effectiveAvg := r.Ingredient.AveragePurchasePrice / yield
+				effectiveAvg := r.Ingredient.AveragePurchasePrice
 				lineCostAvg := math.Round(r.UsageQuantity*effectiveAvg*100) / 100
 				estimatedAvg += lineCostAvg
 
@@ -289,8 +378,10 @@ func (h *PurchaseHandler) GetCostComparison(c *gin.Context) {
 					IngredientName:      r.Ingredient.Name,
 					Category:            r.Ingredient.Category,
 					Unit:                r.Ingredient.Unit,
+					BaseUnit:            r.Ingredient.BaseUnit,
 					UsageQuantity:       r.UsageQuantity,
-					YieldRate:           yield,
+					LossRate:            r.Ingredient.LossRate,
+					YieldRate:           r.Ingredient.YieldRate,
 					LatestPurchasePrice: r.Ingredient.LatestPurchasePrice,
 					EffectiveUnitCost:   math.Round(effectiveLatest*100) / 100,
 					LineCost:            lineCostLatest,
@@ -349,16 +440,11 @@ func (h *PurchaseHandler) GetCostComparison(c *gin.Context) {
 					continue
 				}
 
-				yield := r.Ingredient.YieldRate
-				if yield <= 0 {
-					yield = 1.0
-				}
-
-				effectiveLatest := r.Ingredient.LatestPurchasePrice / yield
+				effectiveLatest := r.Ingredient.LatestPurchasePrice
 				lineCostLatest := math.Round(r.UsageQuantity*effectiveLatest*100) / 100
 				estimatedLatest += lineCostLatest
 
-				effectiveAvg := r.Ingredient.AveragePurchasePrice / yield
+				effectiveAvg := r.Ingredient.AveragePurchasePrice
 				lineCostAvg := math.Round(r.UsageQuantity*effectiveAvg*100) / 100
 				estimatedAvg += lineCostAvg
 
@@ -367,8 +453,10 @@ func (h *PurchaseHandler) GetCostComparison(c *gin.Context) {
 					IngredientName:      r.Ingredient.Name,
 					Category:            r.Ingredient.Category,
 					Unit:                r.Ingredient.Unit,
+					BaseUnit:            r.Ingredient.BaseUnit,
 					UsageQuantity:       r.UsageQuantity,
-					YieldRate:           yield,
+					LossRate:            r.Ingredient.LossRate,
+					YieldRate:           r.Ingredient.YieldRate,
 					LatestPurchasePrice: r.Ingredient.LatestPurchasePrice,
 					EffectiveUnitCost:   math.Round(effectiveLatest*100) / 100,
 					LineCost:            lineCostLatest,

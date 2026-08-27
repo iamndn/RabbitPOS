@@ -5,6 +5,8 @@ main.exe
 *.dll
 *.so
 *.dylib
+*.test
+coverage.out
 
 # Environment variables
 .env

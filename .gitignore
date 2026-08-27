@@ -11,7 +11,12 @@ out/
 frontend/out/
 build/
 frontend/build/
+dist/
+frontend/dist/
 .turbo/
+*.tsbuildinfo
+frontend/*.tsbuildinfo
+.gemini/
 
 # Environment Variables & Secrets (NEVER COMMIT)
 .env

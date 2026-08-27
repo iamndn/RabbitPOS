@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"errors"
+	"fmt"
 	"math"
 	"net/http"
 	"strconv"
@@ -201,80 +202,17 @@ func (h *TransactionHandler) CreateTransaction(c *gin.Context) {
 			}
 		}
 
-		// 3. Process optional itemized purchase items (Ingredients & Packaging)
+		// 3. Process optional itemized purchase items (Ingredients & Packaging with Conversions)
 		if len(req.PurchaseItems) > 0 {
 			for _, item := range req.PurchaseItems {
-				ingName := strings.TrimSpace(item.IngredientName)
-				if ingName == "" && (item.IngredientID == nil || *item.IngredientID == 0) {
-					continue
-				}
-
-				var ingredient models.Ingredient
-				var findErr error
-
-				if item.IngredientID != nil && *item.IngredientID > 0 {
-					findErr = tx.First(&ingredient, *item.IngredientID).Error
-				} else {
-					findErr = tx.Where("LOWER(name) = LOWER(?)", ingName).First(&ingredient).Error
-				}
-
-				unit := strings.TrimSpace(item.Unit)
-				if unit == "" {
-					unit = "kg"
-				}
-				category := strings.TrimSpace(item.Category)
-				if category == "" {
-					category = "fruit"
-				}
-
-				if errors.Is(findErr, gorm.ErrRecordNotFound) {
-					// Create new ingredient
-					ingredient = models.Ingredient{
-						Name:                 ingName,
-						Category:             category,
-						Unit:                 unit,
-						LatestPurchasePrice:  item.UnitPrice,
-						AveragePurchasePrice: item.UnitPrice,
-						YieldRate:            1.0000,
-						CreatedAt:            txTime,
-						UpdatedAt:            txTime,
-					}
-					if err := tx.Create(&ingredient).Error; err != nil {
-						return err
-					}
-				} else if findErr == nil {
-					// Update existing ingredient latest price and unit if unset
-					ingredient.LatestPurchasePrice = item.UnitPrice
-					if ingredient.Unit == "" {
-						ingredient.Unit = unit
-					}
-					if item.Category != "" && (ingredient.Category == "" || ingredient.Category == "fruit") {
-						ingredient.Category = category
-					}
-					ingredient.UpdatedAt = txTime
-					if err := tx.Save(&ingredient).Error; err != nil {
-						return err
-					}
-				} else {
-					return findErr
-				}
-
-				// Insert Purchase Item record
-				subtotal := math.Round(item.Quantity*item.UnitPrice*100) / 100
-				purchaseItem := models.PurchaseItem{
-					TransactionID: transaction.ID,
-					IngredientID:  ingredient.ID,
-					Quantity:      item.Quantity,
-					UnitPrice:     item.UnitPrice,
-					Subtotal:      subtotal,
-					CreatedAt:     txTime,
-				}
-				if err := tx.Create(&purchaseItem).Error; err != nil {
+				_, ingID, err := buildPurchaseItemAndApplyIngredient(tx, item, transaction.ID, txTime)
+				if err != nil {
 					return err
 				}
-
-				if err := recalculateIngredientPrices(tx, ingredient.ID); err != nil {
-					return err
+				if ingID > 0 {
+					if err := recalculateIngredientPrices(tx, ingID); err != nil {
+						return err
+					}
 				}
 			}
 		}
@@ -301,18 +239,237 @@ func (h *TransactionHandler) CreateTransaction(c *gin.Context) {
 	models.SendSuccess(c, http.StatusCreated, transaction, "Transaction logged successfully")
 }
 
-// recalculateIngredientPrices computes weighted average and latest purchase price from all purchase items for an ingredient
+// buildPurchaseItemAndApplyIngredient processes conversion logic, updates/creates Ingredient, and inserts PurchaseItem
+func buildPurchaseItemAndApplyIngredient(tx *gorm.DB, item models.PurchaseItemInput, txID uint, txTime time.Time) (*models.PurchaseItem, uint, error) {
+	ingName := strings.TrimSpace(item.IngredientName)
+	if ingName == "" && (item.IngredientID == nil || *item.IngredientID == 0) {
+		return nil, 0, nil
+	}
+
+	var ingredient models.Ingredient
+	var findErr error
+
+	if item.IngredientID != nil && *item.IngredientID > 0 {
+		findErr = tx.First(&ingredient, *item.IngredientID).Error
+	} else {
+		findErr = tx.Where("LOWER(name) = LOWER(?)", ingName).First(&ingredient).Error
+	}
+
+	baseUnit := strings.TrimSpace(item.BaseUnit)
+	if baseUnit == "" {
+		baseUnit = strings.TrimSpace(item.Unit)
+	}
+	if baseUnit == "" && findErr == nil && ingredient.BaseUnit != "" {
+		baseUnit = ingredient.BaseUnit
+	}
+	if baseUnit == "" {
+		baseUnit = "ml"
+	}
+
+	category := strings.TrimSpace(item.Category)
+	if category == "" {
+		if findErr == nil && ingredient.Category != "" {
+			category = ingredient.Category
+		} else {
+			category = "fruit"
+		}
+	}
+
+	// Purchase inputs
+	purchaseQty := item.PurchaseQuantity
+	if purchaseQty <= 0 {
+		purchaseQty = item.Quantity
+	}
+	if purchaseQty <= 0 {
+		purchaseQty = 1.0
+	}
+
+	purchaseUnitPrice := item.PurchaseUnitPrice
+	if purchaseUnitPrice <= 0 {
+		purchaseUnitPrice = item.UnitPrice
+	}
+
+	purchaseUnit := strings.TrimSpace(item.PurchaseUnit)
+	if purchaseUnit == "" {
+		purchaseUnit = strings.TrimSpace(item.Unit)
+	}
+	if purchaseUnit == "" {
+		purchaseUnit = baseUnit
+	}
+
+	packQty := item.PackQty
+	if packQty <= 0 {
+		packQty = 1.0
+	}
+	packUnit := strings.TrimSpace(item.PackUnit)
+
+	capacityQty := item.CapacityQty
+	if capacityQty <= 0 {
+		capacityQty = 1.0
+	}
+	capacityUnit := strings.TrimSpace(item.CapacityUnit)
+	if capacityUnit == "" {
+		capacityUnit = baseUnit
+	}
+
+	// Calculate conversion rate to BaseUnit
+	unitFactor := 1.0
+	capUnitLower := strings.ToLower(capacityUnit)
+	baseUnitLower := strings.ToLower(baseUnit)
+	if (capUnitLower == "l" || capUnitLower == "lít" || capUnitLower == "lit") && baseUnitLower == "ml" {
+		unitFactor = 1000.0
+	} else if capUnitLower == "ml" && (baseUnitLower == "l" || baseUnitLower == "lít" || baseUnitLower == "lit") {
+		unitFactor = 0.001
+	} else if (capUnitLower == "kg" || capUnitLower == "kilogram") && (baseUnitLower == "g" || baseUnitLower == "gram" || baseUnitLower == "gr") {
+		unitFactor = 1000.0
+	} else if (capUnitLower == "g" || capUnitLower == "gram" || capUnitLower == "gr") && (baseUnitLower == "kg" || baseUnitLower == "kilogram") {
+		unitFactor = 0.001
+	}
+
+	conversionRate := item.ConversionRate
+	if conversionRate <= 0 {
+		conversionRate = packQty * capacityQty * unitFactor
+	}
+	if conversionRate <= 0 {
+		conversionRate = 1.0
+	}
+
+	totalBaseQty := item.TotalBaseQuantity
+	if totalBaseQty <= 0 {
+		totalBaseQty = math.Round(purchaseQty*conversionRate*1000) / 1000
+	}
+
+	subtotal := math.Round(purchaseQty*purchaseUnitPrice*100) / 100
+
+	baseUnitPrice := item.BaseUnitPrice
+	if baseUnitPrice <= 0 && totalBaseQty > 0 {
+		baseUnitPrice = math.Round((subtotal/totalBaseQty)*10000) / 10000
+	}
+
+	lossRate := item.LossRate
+	if lossRate < 0 || lossRate >= 1.0 {
+		lossRate = 0.0
+	}
+
+	effectiveBaseQty := item.EffectiveBaseQuantity
+	if effectiveBaseQty <= 0 {
+		effectiveBaseQty = math.Round(totalBaseQty*(1.0-lossRate)*1000) / 1000
+	}
+
+	effectiveBasePrice := item.EffectiveBasePrice
+	if effectiveBasePrice <= 0 && effectiveBaseQty > 0 {
+		effectiveBasePrice = math.Round((subtotal/effectiveBaseQty)*10000) / 10000
+	} else if effectiveBasePrice <= 0 {
+		effectiveBasePrice = baseUnitPrice
+	}
+
+	conversionSpec := strings.TrimSpace(item.ConversionSpec)
+	if conversionSpec == "" {
+		if packQty > 1 && packUnit != "" {
+			conversionSpec = strings.TrimSpace(fmt.Sprintf("%g %s × %g %s × %g %s", purchaseQty, purchaseUnit, packQty, packUnit, capacityQty, capacityUnit))
+		} else if capacityQty > 1 || capacityUnit != purchaseUnit {
+			conversionSpec = strings.TrimSpace(fmt.Sprintf("%g %s × %g %s", purchaseQty, purchaseUnit, capacityQty, capacityUnit))
+		} else {
+			conversionSpec = strings.TrimSpace(fmt.Sprintf("%g %s", purchaseQty, purchaseUnit))
+		}
+	}
+
+	if errors.Is(findErr, gorm.ErrRecordNotFound) {
+		ingredient = models.Ingredient{
+			Name:                 ingName,
+			Category:             category,
+			Unit:                 baseUnit,
+			BaseUnit:             baseUnit,
+			LossRate:             lossRate,
+			YieldRate:            1.0 - lossRate,
+			LatestPurchasePrice:  effectiveBasePrice,
+			AveragePurchasePrice: effectiveBasePrice,
+			DefaultPurchaseUnit:  purchaseUnit,
+			DefaultPackQty:       packQty,
+			DefaultPackUnit:      packUnit,
+			DefaultCapacityQty:   capacityQty,
+			DefaultCapacityUnit:  capacityUnit,
+			CreatedAt:            txTime,
+			UpdatedAt:            txTime,
+		}
+		if err := tx.Create(&ingredient).Error; err != nil {
+			return nil, 0, err
+		}
+	} else if findErr == nil {
+		ingredient.BaseUnit = baseUnit
+		ingredient.Unit = baseUnit
+		if lossRate > 0 {
+			ingredient.LossRate = lossRate
+			ingredient.YieldRate = 1.0 - lossRate
+		}
+		if purchaseUnit != "" {
+			ingredient.DefaultPurchaseUnit = purchaseUnit
+		}
+		if packQty > 0 {
+			ingredient.DefaultPackQty = packQty
+		}
+		if packUnit != "" {
+			ingredient.DefaultPackUnit = packUnit
+		}
+		if capacityQty > 0 {
+			ingredient.DefaultCapacityQty = capacityQty
+		}
+		if capacityUnit != "" {
+			ingredient.DefaultCapacityUnit = capacityUnit
+		}
+		ingredient.LatestPurchasePrice = effectiveBasePrice
+		ingredient.UpdatedAt = txTime
+		if err := tx.Save(&ingredient).Error; err != nil {
+			return nil, 0, err
+		}
+	} else {
+		return nil, 0, findErr
+	}
+
+	purchaseItem := models.PurchaseItem{
+		TransactionID:         txID,
+		IngredientID:          ingredient.ID,
+		Quantity:              totalBaseQty,
+		UnitPrice:             effectiveBasePrice,
+		Subtotal:              subtotal,
+		PurchaseUnit:          purchaseUnit,
+		PurchaseQuantity:      purchaseQty,
+		PurchaseUnitPrice:     purchaseUnitPrice,
+		PackQty:               packQty,
+		PackUnit:              packUnit,
+		CapacityQty:           capacityQty,
+		CapacityUnit:          capacityUnit,
+		ConversionRate:        conversionRate,
+		TotalBaseQuantity:     totalBaseQty,
+		BaseUnit:              baseUnit,
+		BaseUnitPrice:         baseUnitPrice,
+		LossRate:              lossRate,
+		EffectiveBaseQuantity: effectiveBaseQty,
+		EffectiveBasePrice:    effectiveBasePrice,
+		ConversionSpec:        conversionSpec,
+		CreatedAt:             txTime,
+	}
+
+	if err := tx.Create(&purchaseItem).Error; err != nil {
+		return nil, 0, err
+	}
+
+	return &purchaseItem, ingredient.ID, nil
+}
+
+// recalculateIngredientPrices computes weighted average and latest purchase price from all purchase items for an ingredient based on BaseUnit
 func recalculateIngredientPrices(tx *gorm.DB, ingredientID uint) error {
 	if ingredientID == 0 {
 		return nil
 	}
 	type CostSummary struct {
-		TotalCost float64 `gorm:"column:total_cost"`
-		TotalQty  float64 `gorm:"column:total_qty"`
+		TotalCost         float64 `gorm:"column:total_cost"`
+		TotalBaseQty      float64 `gorm:"column:total_base_qty"`
+		TotalEffectiveQty float64 `gorm:"column:total_effective_qty"`
 	}
 	var summary CostSummary
 	if err := tx.Model(&models.PurchaseItem{}).
-		Select("COALESCE(SUM(subtotal), 0) AS total_cost, COALESCE(SUM(quantity), 0) AS total_qty").
+		Select("COALESCE(SUM(subtotal), 0) AS total_cost, COALESCE(SUM(CASE WHEN effective_base_quantity > 0 THEN effective_base_quantity WHEN total_base_quantity > 0 THEN total_base_quantity ELSE quantity END), 0) AS total_effective_qty, COALESCE(SUM(CASE WHEN total_base_quantity > 0 THEN total_base_quantity ELSE quantity END), 0) AS total_base_qty").
 		Where("ingredient_id = ?", ingredientID).
 		Scan(&summary).Error; err != nil {
 		return err
@@ -329,14 +486,22 @@ func recalculateIngredientPrices(tx *gorm.DB, ingredientID uint) error {
 		return err
 	}
 
-	if summary.TotalQty > 0 {
-		ingredient.AveragePurchasePrice = math.Round((summary.TotalCost/summary.TotalQty)*100) / 100
+	if summary.TotalEffectiveQty > 0 {
+		ingredient.AveragePurchasePrice = math.Round((summary.TotalCost/summary.TotalEffectiveQty)*100) / 100
+	} else if summary.TotalBaseQty > 0 {
+		ingredient.AveragePurchasePrice = math.Round((summary.TotalCost/summary.TotalBaseQty)*100) / 100
 	} else {
 		ingredient.AveragePurchasePrice = 0
 	}
 
 	if hasLatest {
-		ingredient.LatestPurchasePrice = latestItem.UnitPrice
+		if latestItem.EffectiveBasePrice > 0 {
+			ingredient.LatestPurchasePrice = math.Round(latestItem.EffectiveBasePrice*100) / 100
+		} else if latestItem.BaseUnitPrice > 0 {
+			ingredient.LatestPurchasePrice = math.Round(latestItem.BaseUnitPrice*100) / 100
+		} else {
+			ingredient.LatestPurchasePrice = latestItem.UnitPrice
+		}
 	} else {
 		ingredient.LatestPurchasePrice = 0
 	}
@@ -449,74 +614,12 @@ func (h *TransactionHandler) UpdateTransaction(c *gin.Context) {
 
 			// Insert new purchase items
 			for _, item := range *req.PurchaseItems {
-				ingName := strings.TrimSpace(item.IngredientName)
-				if ingName == "" && (item.IngredientID == nil || *item.IngredientID == 0) {
-					continue
-				}
-
-				var ingredient models.Ingredient
-				var findErr error
-
-				if item.IngredientID != nil && *item.IngredientID > 0 {
-					findErr = tx.First(&ingredient, *item.IngredientID).Error
-				} else {
-					findErr = tx.Where("LOWER(name) = LOWER(?)", ingName).First(&ingredient).Error
-				}
-
-				unit := strings.TrimSpace(item.Unit)
-				if unit == "" {
-					unit = "kg"
-				}
-				category := strings.TrimSpace(item.Category)
-				if category == "" {
-					category = "fruit"
-				}
-
-				if errors.Is(findErr, gorm.ErrRecordNotFound) {
-					// Create new ingredient
-					ingredient = models.Ingredient{
-						Name:                 ingName,
-						Category:             category,
-						Unit:                 unit,
-						LatestPurchasePrice:  item.UnitPrice,
-						AveragePurchasePrice: item.UnitPrice,
-						YieldRate:            1.0000,
-						CreatedAt:            existingTx.CreatedAt,
-						UpdatedAt:            existingTx.CreatedAt,
-					}
-					if err := tx.Create(&ingredient).Error; err != nil {
-						return err
-					}
-				} else if findErr == nil {
-					// Update existing ingredient latest price and unit if unset
-					ingredient.LatestPurchasePrice = item.UnitPrice
-					if ingredient.Unit == "" {
-						ingredient.Unit = unit
-					}
-					if item.Category != "" && (ingredient.Category == "" || ingredient.Category == "fruit") {
-						ingredient.Category = category
-					}
-					ingredient.UpdatedAt = existingTx.CreatedAt
-					if err := tx.Save(&ingredient).Error; err != nil {
-						return err
-					}
-				} else {
-					return findErr
-				}
-
-				affectedIngredientIDs[ingredient.ID] = true
-
-				subtotal := math.Round(item.Quantity*item.UnitPrice*100) / 100
-				purchaseItem := models.PurchaseItem{
-					TransactionID: existingTx.ID,
-					IngredientID:  ingredient.ID,
-					Quantity:      item.Quantity,
-					UnitPrice:     item.UnitPrice,
-					Subtotal:      subtotal,
-					CreatedAt:     existingTx.CreatedAt,
-				}
-				if err := tx.Create(&purchaseItem).Error; err != nil {
+				_, ingID, err := buildPurchaseItemAndApplyIngredient(tx, item, existingTx.ID, existingTx.CreatedAt)
+				if err != nil {
 					return err
+				}
+				if ingID > 0 {
+					affectedIngredientIDs[ingID] = true
 				}
 			}
 
