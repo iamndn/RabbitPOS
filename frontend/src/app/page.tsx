@@ -443,12 +443,13 @@ export default function PosPage() {
 
     try {
       const [settingsRes, catRes, prodRes] = await Promise.all([
-        fetchApi<any>('/settings'),
+        fetchApi<any>('/settings/store'),
         fetchApi<Category[]>('/categories'),
         fetchApi<Product[]>('/products'),
       ]);
 
       let map: SettingsMap = {};
+      let parsedTags: CustomTag[] = [];
       if (settingsRes.status === 'success' && settingsRes.data) {
         if (Array.isArray(settingsRes.data)) {
           settingsRes.data.forEach((s: any) => {
@@ -463,6 +464,7 @@ export default function PosPage() {
           try {
             const parsed = JSON.parse(map.custom_product_tags);
             if (Array.isArray(parsed)) {
+              parsedTags = parsed;
               setCustomTags(parsed);
             }
           } catch (e) {
@@ -497,7 +499,7 @@ export default function PosPage() {
           products: prodList,
           categories: catList,
           settings: map,
-          customTags,
+          customTags: parsedTags,
         });
         setLastSyncedAt(syncedTime);
         setIsOfflineData(false);
@@ -526,7 +528,7 @@ export default function PosPage() {
     } finally {
       setLoading(false);
     }
-  }, [customTags]);
+  }, []);
 
   useEffect(() => {
     loadData();

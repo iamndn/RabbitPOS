@@ -404,6 +404,13 @@ export default function TransactionModal({
       const updated = [...prev];
       const item = { ...updated[index], [field]: value };
 
+      if (field === 'subtotal') {
+        const sub = Math.max(0, Number(value) || 0);
+        const qty = Number(item.purchase_quantity) || 1;
+        item.subtotal = sub;
+        item.purchase_unit_price = qty > 0 ? Math.round(sub / qty) : sub;
+      }
+
       if (field === 'ingredient_name') {
         const found = knownIngredients.find(
           (ing) => ing.name.toLowerCase().trim() === String(value).toLowerCase().trim()
@@ -436,7 +443,9 @@ export default function TransactionModal({
       });
 
       item.total_base_quantity = res.totalBaseQuantity;
-      item.subtotal = res.subtotal;
+      if (field !== 'subtotal') {
+        item.subtotal = res.subtotal;
+      }
       item.base_unit_price = res.baseUnitPrice;
       item.effective_base_quantity = res.effectiveBaseQuantity;
       item.effective_base_price = res.effectiveBasePrice;
@@ -618,11 +627,14 @@ export default function TransactionModal({
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-150">
       <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-2xl w-full flex flex-col h-[94dvh] sm:h-auto sm:max-h-[90vh] shadow-2xl overflow-hidden">
+        {/* Mobile Pull Handle */}
+        <div className="w-10 h-1 rounded-full bg-slate-300 mx-auto my-1.5 sm:hidden shrink-0" />
+
         {/* Modal Header */}
-        <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3 sm:px-6 sm:py-4 shrink-0 bg-white">
+        <div className="flex items-center justify-between border-b border-slate-100 px-4 py-2.5 sm:px-6 sm:py-4 shrink-0 bg-white">
           <div className="flex items-center space-x-2.5">
             <div
-              className={`w-9 h-9 rounded-2xl flex items-center justify-center font-bold text-white shadow-xs ${
+              className={`w-8 h-8 sm:w-9 sm:h-9 rounded-2xl flex items-center justify-center font-bold text-white shadow-xs shrink-0 ${
                 modalType === 'inflow' ? 'bg-emerald-600' : 'bg-rose-600'
               }`}
             >
@@ -632,10 +644,10 @@ export default function TransactionModal({
               <h3 className="font-extrabold text-slate-900 text-sm sm:text-base">
                 {isEditing ? (t('tx.modal_title_edit') || 'Chỉnh Sửa Giao Dịch') : (t('tx.modal_title_add') || 'Tạo Giao Dịch Mới')}
               </h3>
-              <p className="text-[11px] sm:text-xs text-slate-500">
+              <p className="text-[11px] sm:text-xs text-slate-500 line-clamp-1">
                 {isEditing
-                  ? (t('tx.modal_subtitle_edit') || 'Cập nhật thông tin phiếu thu chi hoặc nguyên liệu đã ghi')
-                  : (t('tx.modal_subtitle_add') || 'Ghi nhận dòng tiền ra/vào hoặc chi mua nguyên liệu')}
+                  ? (t('tx.modal_subtitle_edit') || 'Cập nhật phiếu thu chi hoặc nguyên liệu')
+                  : (t('tx.modal_subtitle_add') || 'Ghi nhận dòng tiền hoặc chi mua nguyên liệu')}
               </p>
             </div>
           </div>
@@ -649,7 +661,7 @@ export default function TransactionModal({
         </div>
 
         {/* Scrollable Form Body */}
-        <form id="tx-modal-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-3.5 sm:p-6 space-y-3.5 sm:space-y-4">
+        <form id="tx-modal-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto overflow-x-hidden p-3 sm:p-5 space-y-3 sm:space-y-4 w-full max-w-full min-w-0 box-border">
           {errorMessage && (
             <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold rounded-xl">
               {errorMessage}
@@ -730,26 +742,27 @@ export default function TransactionModal({
 
           {/* Integrated Itemized Purchases Toggle & Detailed Conversion Engine */}
           {modalType === 'outflow' && (
-            <div className="bg-emerald-50/70 border border-emerald-200/80 rounded-2xl p-3 sm:p-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <div className="w-7 h-7 rounded-xl bg-emerald-700 text-white flex items-center justify-center shadow-xs">
+            <div className="bg-emerald-50/60 border border-emerald-200/80 rounded-2xl p-3 sm:p-4 space-y-3 w-full max-w-full min-w-0 box-border">
+              {/* Header Toggle */}
+              <div className="flex items-center justify-between gap-2 w-full min-w-0">
+                <div className="flex items-center space-x-2 min-w-0">
+                  <div className="w-7 h-7 rounded-xl bg-emerald-700 text-white flex items-center justify-center shadow-xs shrink-0">
                     <ShoppingBag className="w-4 h-4" />
                   </div>
-                  <div>
-                    <span className="font-extrabold text-emerald-950 text-xs flex items-center gap-1.5">
+                  <div className="min-w-0">
+                    <span className="font-extrabold text-emerald-950 text-xs flex items-center gap-1.5 flex-wrap">
                       Chi Mua Nguyên Liệu & Quy Đổi Giá Vốn
                       <span className="bg-emerald-200/80 text-emerald-900 text-[10px] font-bold px-1.5 py-0.2 rounded-md">
-                        Tự động tính cost
+                        Tự tính cost
                       </span>
                     </span>
-                    <p className="text-[11px] text-emerald-700">
-                      Nhập theo chai, túi, thùng... tự động quy đổi thành ml, g, cái để tính cost món
+                    <p className="text-[11px] text-emerald-700 truncate">
+                      Quy đổi đa cấp (thùng, chai → ml, g) để tính giá vốn món
                     </p>
                   </div>
                 </div>
 
-                <label className="relative inline-flex items-center cursor-pointer">
+                <label className="relative inline-flex items-center cursor-pointer shrink-0">
                   <input
                     type="checkbox"
                     checked={isPurchaseLogging}
@@ -765,9 +778,9 @@ export default function TransactionModal({
                 </label>
               </div>
 
-              {/* Purchase Items List with Detailed Mobile-Friendly Conversion UI */}
+              {/* Purchase Items List */}
               {isPurchaseLogging && (
-                <div className="space-y-3 pt-2 border-t border-emerald-200/60">
+                <div className="space-y-3 pt-2 border-t border-emerald-200/60 w-full min-w-0">
                   {purchaseItems.map((item, idx) => {
                     const matchedIng = knownIngredients.find(
                       (i) => i.id === item.ingredient_id || i.name.toLowerCase() === item.ingredient_name.toLowerCase()
@@ -784,23 +797,23 @@ export default function TransactionModal({
                     return (
                       <div
                         key={idx}
-                        className="bg-white rounded-2xl p-3 sm:p-3.5 border border-emerald-200/90 shadow-2xs space-y-2.5 transition-all hover:border-emerald-300"
+                        className="bg-white rounded-2xl p-3 sm:p-3.5 border border-emerald-200/90 shadow-2xs space-y-2.5 transition-all hover:border-emerald-300 w-full max-w-full min-w-0 box-border"
                       >
-                        {/* Line Item Header: Ingredient Selector & Category */}
-                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
+                        {/* Hàng 1: Chọn nguyên liệu + Danh mục + Nút Xóa */}
+                        <div className="flex items-center gap-2 w-full min-w-0">
                           <div className="flex-1 min-w-0">
                             {item.is_custom_new ? (
-                              <div className="flex items-center gap-1.5">
+                              <div className="flex items-center gap-1.5 w-full min-w-0">
                                 <input
                                   type="text"
                                   required
                                   autoFocus
-                                  placeholder="Nhập tên nguyên liệu mới (vd: Cốt cà phê, Sữa tươi...)"
+                                  placeholder="Nhập tên nguyên liệu mới..."
                                   value={item.ingredient_name}
                                   onChange={(e) =>
                                     handleItemChange(idx, 'ingredient_name', e.target.value)
                                   }
-                                  className="flex-1 h-9 px-2.5 border border-amber-300 bg-amber-50/50 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                                  className="w-full min-w-0 h-9 px-2.5 border border-amber-300 bg-amber-50/50 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500"
                                 />
                                 <button
                                   type="button"
@@ -822,46 +835,44 @@ export default function TransactionModal({
                                 </button>
                               </div>
                             ) : (
-                              <div className="flex items-center gap-1.5">
-                                <select
-                                  required
-                                  value={item.ingredient_id || ''}
-                                  onChange={(e) => handleSelectIngredient(idx, e.target.value)}
-                                  className="flex-1 h-9 px-2.5 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
-                                >
-                                  <option value="">— Chọn nguyên liệu nhập hàng —</option>
-                                  {knownIngredients.map((ing) => (
-                                    <option key={ing.id} value={ing.id}>
-                                      {ing.name} ({ing.base_unit || ing.unit}){' '}
-                                      {ing.latest_purchase_price > 0
-                                        ? `— ${formatCurrency(ing.latest_purchase_price)}/${ing.base_unit || ing.unit}`
-                                        : ''}
-                                    </option>
-                                  ))}
-                                  <option value="__custom_new__" className="font-bold text-amber-700">
-                                    ➕ + Thêm nguyên liệu mới...
+                              <select
+                                required
+                                value={item.ingredient_id || ''}
+                                onChange={(e) => handleSelectIngredient(idx, e.target.value)}
+                                className="w-full min-w-0 h-10 sm:h-9 px-2.5 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+                              >
+                                <option value="">— Chọn nguyên liệu nhập hàng —</option>
+                                {knownIngredients.map((ing) => (
+                                  <option key={ing.id} value={ing.id}>
+                                    {ing.name} ({ing.base_unit || ing.unit})
+                                    {ing.latest_purchase_price > 0
+                                      ? ` — ${formatCurrency(ing.latest_purchase_price)}/${ing.base_unit || ing.unit}`
+                                      : ''}
                                   </option>
-                                </select>
-                              </div>
+                                ))}
+                                <option value="__custom_new__" className="font-bold text-amber-700">
+                                  ➕ + Thêm nguyên liệu mới...
+                                </option>
+                              </select>
                             )}
                           </div>
 
-                          <div className="flex items-center gap-1.5 shrink-0 justify-between sm:justify-end">
+                          <div className="flex items-center gap-1 shrink-0">
                             <select
                               value={item.category}
                               onChange={(e) => handleItemChange(idx, 'category', e.target.value)}
-                              className="h-8 px-2 border border-slate-200 rounded-lg text-[11px] font-semibold bg-slate-50 text-slate-700"
+                              className="h-8 px-1.5 border border-slate-200 rounded-lg text-[10px] font-semibold bg-slate-50 text-slate-700 max-w-[105px] truncate"
                             >
-                              <option value="fruit">Hoa quả tươi</option>
-                              <option value="ingredient">Nguyên liệu / Sữa</option>
-                              <option value="packaging">Bao bì / Ly nắp</option>
+                              <option value="ingredient">NL / Sữa</option>
+                              <option value="fruit">Hoa quả</option>
+                              <option value="packaging">Bao bì</option>
                               <option value="other">Khác</option>
                             </select>
 
                             <button
                               type="button"
                               onClick={() => handleRemoveRow(idx)}
-                              className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition cursor-pointer"
+                              className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition cursor-pointer shrink-0"
                               title="Xóa dòng này"
                             >
                               <Trash2 className="w-4 h-4" />
@@ -869,16 +880,16 @@ export default function TransactionModal({
                           </div>
                         </div>
 
-                        {/* Presets Quick Selector if Available */}
+                        {/* Hàng 2: Quy cách lưu sẵn (Presets Quick Chips) */}
                         {presets.length > 0 && (
-                          <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
-                            <span className="text-[10px] text-slate-400 font-bold uppercase">Quy cách lưu sẵn:</span>
+                          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar pt-0.5 w-full min-w-0">
+                            <span className="text-[10px] text-slate-400 font-bold uppercase shrink-0">Quy cách:</span>
                             {presets.map((pr, pIdx) => (
                               <button
                                 key={pIdx}
                                 type="button"
                                 onClick={() => handleApplyPreset(idx, pr)}
-                                className="text-[10px] font-bold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2 py-0.5 rounded-md transition cursor-pointer"
+                                className="text-[10px] font-bold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2.5 py-1 rounded-lg transition active:scale-95 shrink-0 cursor-pointer"
                               >
                                 {pr.label || `${pr.purchase_unit} (${pr.pack_qty > 1 ? `${pr.pack_qty}x` : ''}${pr.capacity_qty}${pr.capacity_unit})`}
                               </button>
@@ -886,9 +897,8 @@ export default function TransactionModal({
                           </div>
                         )}
 
-                        {/* Conversion Form: Responsive Grid for Mobile & Desktop */}
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs pt-1">
-                          {/* 1. Số lượng mua */}
+                        {/* Hàng 3: Số lượng mua & Đơn vị mua */}
+                        <div className="grid grid-cols-2 gap-2 w-full min-w-0 text-xs">
                           <div>
                             <label className="text-[10px] font-bold text-slate-500 uppercase block mb-0.5">
                               Số lượng mua *
@@ -907,11 +917,10 @@ export default function TransactionModal({
                                 )
                               }
                               placeholder="2"
-                              className="w-full h-9 px-2 border border-slate-200 rounded-xl text-xs font-black text-center text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                              className="w-full min-w-0 h-10 sm:h-9 px-2 border border-slate-200 rounded-xl text-xs font-black text-center text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                             />
                           </div>
 
-                          {/* 2. Đơn vị mua */}
                           <div>
                             <label className="text-[10px] font-bold text-slate-500 uppercase block mb-0.5">
                               Đơn vị mua *
@@ -919,7 +928,7 @@ export default function TransactionModal({
                             <select
                               value={item.purchase_unit}
                               onChange={(e) => handleItemChange(idx, 'purchase_unit', e.target.value)}
-                              className="w-full h-9 px-2 border border-slate-200 rounded-xl text-xs font-bold bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                              className="w-full min-w-0 h-10 sm:h-9 px-2 border border-slate-200 rounded-xl text-xs font-bold bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                             >
                               {COMMON_PURCHASE_UNITS.map((u) => (
                                 <option key={u} value={u}>
@@ -928,54 +937,13 @@ export default function TransactionModal({
                               ))}
                             </select>
                           </div>
+                        </div>
 
-                          {/* 3. Quy cách mỗi đơn vị */}
+                        {/* Hàng 4: Đơn giá mua & Thành tiền (Hỗ trợ 2 chiều) */}
+                        <div className="grid grid-cols-2 gap-2 w-full min-w-0 text-xs">
                           <div>
                             <label className="text-[10px] font-bold text-slate-500 uppercase block mb-0.5 truncate">
-                              {item.purchase_unit === 'Thùng' || item.is_multi_level
-                                ? 'Quy cách / Đơn vị'
-                                : `Mỗi ${item.purchase_unit} chứa`}
-                            </label>
-                            <div className="flex items-center gap-1">
-                              <input
-                                type="number"
-                                step="any"
-                                min="0.001"
-                                required
-                                value={item.capacity_qty === 0 ? '' : item.capacity_qty}
-                                onChange={(e) =>
-                                  handleItemChange(
-                                    idx,
-                                    'capacity_qty',
-                                    e.target.value === '' ? 0 : parseFloat(e.target.value)
-                                  )
-                                }
-                                placeholder="1000"
-                                className="w-full min-w-0 h-9 px-1.5 border border-slate-200 rounded-xl text-xs font-black text-right text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                              />
-                              <select
-                                value={item.capacity_unit}
-                                onChange={(e) => handleItemChange(idx, 'capacity_unit', e.target.value)}
-                                className="h-9 px-1.5 border border-slate-200 rounded-xl text-xs font-bold bg-slate-50 shrink-0"
-                              >
-                                <option value="ml">ml</option>
-                                <option value="l">Lít</option>
-                                <option value="g">g</option>
-                                <option value="kg">kg</option>
-                                <option value="cái">cái</option>
-                                <option value="quả">quả</option>
-                                <option value="viên">viên</option>
-                                <option value="hộp">hộp</option>
-                                <option value="lon">lon</option>
-                                <option value="gói">gói</option>
-                              </select>
-                            </div>
-                          </div>
-
-                          {/* 4. Giá mỗi đơn vị mua */}
-                          <div>
-                            <label className="text-[10px] font-bold text-slate-500 uppercase block mb-0.5 truncate">
-                              Giá mua (đ/{item.purchase_unit}) *
+                              Đơn giá (đ/{item.purchase_unit}) *
                             </label>
                             <input
                               type="number"
@@ -991,101 +959,161 @@ export default function TransactionModal({
                                   e.target.value === '' ? 0 : parseFloat(e.target.value)
                                 )
                               }
-                              className="w-full h-9 px-2 border border-slate-200 rounded-xl text-xs font-black text-right text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                              className="w-full min-w-0 h-10 sm:h-9 px-2 border border-slate-200 rounded-xl text-xs font-black text-right text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="text-[10px] font-bold text-emerald-800 uppercase block mb-0.5 truncate">
+                              Thành tiền (đ)
+                            </label>
+                            <input
+                              type="number"
+                              step="any"
+                              min="0"
+                              placeholder="240.000"
+                              value={item.subtotal === 0 ? '' : item.subtotal}
+                              onChange={(e) =>
+                                handleItemChange(
+                                  idx,
+                                  'subtotal',
+                                  e.target.value === '' ? 0 : parseFloat(e.target.value)
+                                )
+                              }
+                              className="w-full min-w-0 h-10 sm:h-9 px-2 border border-emerald-300 bg-emerald-50/40 rounded-xl text-xs font-black text-right text-emerald-950 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                             />
                           </div>
                         </div>
 
-                        {/* Multi-level toggle & Loss Rate toggle */}
-                        <div className="flex items-center justify-between flex-wrap gap-2 text-xs pt-1 border-t border-slate-100">
-                          <div className="flex items-center gap-3">
-                            <label className="inline-flex items-center gap-1.5 cursor-pointer text-[11px] text-slate-600 font-semibold select-none">
-                              <input
-                                type="checkbox"
-                                checked={item.is_multi_level}
-                                onChange={(e) => {
-                                  handleItemChange(idx, 'is_multi_level', e.target.checked);
-                                  if (!e.target.checked) {
-                                    handleItemChange(idx, 'pack_qty', 1);
-                                    handleItemChange(idx, 'pack_unit', '');
-                                  }
-                                }}
-                                className="rounded text-emerald-600 focus:ring-emerald-500 h-3.5 w-3.5"
-                              />
-                              <span>Quy cách thùng</span>
-                            </label>
-
-                            <label className="inline-flex items-center gap-1.5 cursor-pointer text-[11px] text-slate-600 font-semibold select-none">
-                              <input
-                                type="checkbox"
-                                checked={item.show_loss_input}
-                                onChange={(e) => {
-                                  handleItemChange(idx, 'show_loss_input', e.target.checked);
-                                  if (!e.target.checked) {
-                                    handleItemChange(idx, 'loss_rate', 0);
-                                  }
-                                }}
-                                className="rounded text-emerald-600 focus:ring-emerald-500 h-3.5 w-3.5"
-                              />
-                              <span>Hao hụt %</span>
-                            </label>
-                          </div>
-
-                          <div className="text-right">
-                            <span className="text-[10px] text-slate-400 font-bold uppercase mr-1">Thành tiền:</span>
-                            <span className="text-xs font-black text-slate-900">
-                              {formatCurrency(item.subtotal)}
-                            </span>
+                        {/* Hàng 5: Quy cách dung tích / đóng gói */}
+                        <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200/80 space-y-1 w-full min-w-0 box-border">
+                          <label className="text-[10px] font-bold text-slate-600 block uppercase">
+                            Quy cách: Mỗi 1 {item.purchase_unit} chứa
+                          </label>
+                          <div className="grid grid-cols-2 gap-2">
+                            <input
+                              type="number"
+                              step="any"
+                              min="0.001"
+                              required
+                              value={item.capacity_qty === 0 ? '' : item.capacity_qty}
+                              onChange={(e) =>
+                                handleItemChange(
+                                  idx,
+                                  'capacity_qty',
+                                  e.target.value === '' ? 0 : parseFloat(e.target.value)
+                                )
+                              }
+                              placeholder="1000"
+                              className="w-full min-w-0 h-9 px-2 border border-slate-200 rounded-lg text-xs font-black text-right bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                            />
+                            <select
+                              value={item.capacity_unit}
+                              onChange={(e) => handleItemChange(idx, 'capacity_unit', e.target.value)}
+                              className="w-full min-w-0 h-9 px-2 border border-slate-200 rounded-lg text-xs font-bold bg-white text-slate-800"
+                            >
+                              <option value="ml">ml (mililít)</option>
+                              <option value="l">Lít</option>
+                              <option value="g">g (gam)</option>
+                              <option value="kg">kg (kilôgam)</option>
+                              <option value="cái">cái</option>
+                              <option value="quả">quả / trái</option>
+                              <option value="viên">viên</option>
+                              <option value="hộp">hộp con</option>
+                              <option value="lon">lon</option>
+                              <option value="gói">gói con</option>
+                            </select>
                           </div>
                         </div>
 
-                        {/* Multi-level Specification Inputs */}
+                        {/* Hàng 6: Nút bật tắt Tùy chọn Nâng cao */}
+                        <div className="flex items-center gap-2 flex-wrap pt-0.5">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const next = !item.is_multi_level;
+                              handleItemChange(idx, 'is_multi_level', next);
+                              if (!next) {
+                                handleItemChange(idx, 'pack_qty', 1);
+                                handleItemChange(idx, 'pack_unit', '');
+                              }
+                            }}
+                            className={`text-[11px] font-bold px-2.5 py-1 rounded-lg border transition cursor-pointer ${
+                              item.is_multi_level
+                                ? 'bg-indigo-50 text-indigo-800 border-indigo-300'
+                                : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                            }`}
+                          >
+                            📦 {item.is_multi_level ? '✓ Quy cách thùng' : '+ Thùng nhiều gói con'}
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const next = !item.show_loss_input;
+                              handleItemChange(idx, 'show_loss_input', next);
+                              if (!next) {
+                                handleItemChange(idx, 'loss_rate', 0);
+                              }
+                            }}
+                            className={`text-[11px] font-bold px-2.5 py-1 rounded-lg border transition cursor-pointer ${
+                              item.show_loss_input
+                                ? 'bg-amber-50 text-amber-800 border-amber-300'
+                                : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                            }`}
+                          >
+                            📉 {item.show_loss_input ? '✓ Hao hụt %' : '+ Hao hụt sơ chế %'}
+                          </button>
+                        </div>
+
+                        {/* Chi tiết Thùng nhiều gói con */}
                         {item.is_multi_level && (
-                          <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200/80 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
-                            <div>
-                              <span className="text-[10px] text-slate-500 font-bold block mb-0.5">
-                                Số lượng gói trong 1 {item.purchase_unit}:
-                              </span>
-                              <input
-                                type="number"
-                                min="1"
-                                step="1"
-                                value={item.pack_qty}
-                                onChange={(e) =>
-                                  handleItemChange(idx, 'pack_qty', parseFloat(e.target.value) || 1)
-                                }
-                                placeholder="12"
-                                className="w-full h-8 px-2 border border-slate-200 rounded-lg text-xs font-bold text-center bg-white"
-                              />
-                            </div>
+                          <div className="p-2.5 bg-indigo-50/60 rounded-xl border border-indigo-200/80 space-y-1.5 text-xs w-full min-w-0 box-border">
+                            <div className="grid grid-cols-2 gap-2">
+                              <div>
+                                <span className="text-[10px] text-indigo-900 font-bold block mb-0.5">
+                                  Số gói trong 1 {item.purchase_unit}:
+                                </span>
+                                <input
+                                  type="number"
+                                  min="1"
+                                  step="1"
+                                  value={item.pack_qty}
+                                  onChange={(e) =>
+                                    handleItemChange(idx, 'pack_qty', parseFloat(e.target.value) || 1)
+                                  }
+                                  placeholder="12"
+                                  className="w-full min-w-0 h-8 px-2 border border-indigo-200 rounded-lg text-xs font-bold text-center bg-white"
+                                />
+                              </div>
 
-                            <div>
-                              <span className="text-[10px] text-slate-500 font-bold block mb-0.5">
-                                Tên gói con:
-                              </span>
-                              <input
-                                type="text"
-                                value={item.pack_unit}
-                                onChange={(e) => handleItemChange(idx, 'pack_unit', e.target.value)}
-                                placeholder="Chai, Hộp, Túi..."
-                                className="w-full h-8 px-2 border border-slate-200 rounded-lg text-xs font-bold text-center bg-white"
-                              />
+                              <div>
+                                <span className="text-[10px] text-indigo-900 font-bold block mb-0.5">
+                                  Tên gói con:
+                                </span>
+                                <input
+                                  type="text"
+                                  value={item.pack_unit}
+                                  onChange={(e) => handleItemChange(idx, 'pack_unit', e.target.value)}
+                                  placeholder="Chai, Hộp, Túi..."
+                                  className="w-full min-w-0 h-8 px-2 border border-indigo-200 rounded-lg text-xs font-bold text-center bg-white"
+                                />
+                              </div>
                             </div>
-
-                            <div className="flex items-center text-[11px] text-slate-600 font-medium pt-1 sm:pt-0">
+                            <div className="text-[10px] text-indigo-700 font-semibold truncate">
                               = {item.pack_qty} {item.pack_unit || 'gói'} × {item.capacity_qty} {item.capacity_unit}
                             </div>
                           </div>
                         )}
 
-                        {/* Loss Rate Input */}
+                        {/* Chi tiết Hao hụt */}
                         {item.show_loss_input && (
-                          <div className="p-2.5 bg-amber-50/70 rounded-xl border border-amber-200 flex flex-col sm:flex-row sm:items-center gap-2 text-xs">
-                            <div className="flex items-center gap-2">
-                              <span className="text-[11px] font-bold text-amber-900 shrink-0">
-                                Hao hụt sơ chế:
+                          <div className="p-2.5 bg-amber-50/70 rounded-xl border border-amber-200 space-y-1 text-xs w-full min-w-0 box-border">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-[11px] font-bold text-amber-900">
+                                Tỷ lệ hao hụt sơ chế (gọt vỏ, rã đông...):
                               </span>
-                              <div className="flex items-center gap-1.5 w-24">
+                              <div className="flex items-center gap-1 w-20 shrink-0">
                                 <input
                                   type="number"
                                   step="1"
@@ -1096,22 +1124,22 @@ export default function TransactionModal({
                                     const val = parseFloat(e.target.value) || 0;
                                     handleItemChange(idx, 'loss_rate', val / 100);
                                   }}
-                                  className="w-full h-8 px-2 border border-amber-300 rounded-lg text-xs font-black text-center bg-white text-amber-950"
+                                  className="w-full min-w-0 h-8 px-1 border border-amber-300 rounded-lg text-xs font-black text-center bg-white text-amber-950"
                                 />
                                 <span className="font-bold text-amber-800">%</span>
                               </div>
                             </div>
-                            <span className="text-[10px] text-amber-700 font-medium">
-                              (Lượng tính cost: {formatQuantityWithUnit(item.effective_base_quantity, item.base_unit)})
-                            </span>
+                            <div className="text-[10px] text-amber-700">
+                              Lượng dùng thực tế: {formatQuantityWithUnit(item.effective_base_quantity, item.base_unit)}
+                            </div>
                           </div>
                         )}
 
-                        {/* Real-time Calculation Result Banner */}
-                        <div className="bg-emerald-100/60 rounded-xl p-2.5 border border-emerald-200/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1.5 text-xs">
-                          <div className="flex items-center gap-1.5 flex-wrap text-emerald-950 font-bold text-[11px] sm:text-xs">
+                        {/* Hàng 7: Smart Real-time Calculation Result Banner */}
+                        <div className="bg-emerald-100/70 rounded-xl p-2.5 border border-emerald-200/90 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1.5 text-xs w-full min-w-0 box-border">
+                          <div className="flex items-center gap-1.5 flex-wrap text-emerald-950 font-bold text-[11px] sm:text-xs min-w-0">
                             <Sparkles className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
-                            <span>
+                            <span className="break-words">
                               {item.conversion_spec || `${item.purchase_quantity} ${item.purchase_unit}`} ={' '}
                               <strong className="text-emerald-900">
                                 {formatQuantityWithUnit(item.total_base_quantity, item.base_unit)}
@@ -1123,14 +1151,14 @@ export default function TransactionModal({
                             </span>
                           </div>
 
-                          <div className="flex items-center gap-1.5 text-right self-end sm:self-auto shrink-0">
+                          <div className="self-end sm:self-auto shrink-0">
                             {item.loss_rate > 0 ? (
-                              <span className="bg-emerald-700 text-white font-black text-[11px] sm:text-xs px-2 py-0.5 rounded-lg shadow-2xs">
+                              <span className="bg-emerald-700 text-white font-black text-[11px] sm:text-xs px-2.5 py-0.5 rounded-lg shadow-2xs">
                                 Cost thực tế: {formatCurrency(item.effective_base_price)}/{item.base_unit}
                               </span>
                             ) : (
-                              <span className="bg-emerald-700 text-white font-black text-[11px] sm:text-xs px-2 py-0.5 rounded-lg shadow-2xs">
-                                Giá quy đổi: {formatCurrency(item.base_unit_price)}/{item.base_unit}
+                              <span className="bg-emerald-700 text-white font-black text-[11px] sm:text-xs px-2.5 py-0.5 rounded-lg shadow-2xs">
+                                Giá vốn: {formatCurrency(item.base_unit_price)}/{item.base_unit}
                               </span>
                             )}
                           </div>
@@ -1140,7 +1168,7 @@ export default function TransactionModal({
                   })}
 
                   {/* Add Row Buttons */}
-                  <div className="grid grid-cols-2 gap-2 pt-1">
+                  <div className="grid grid-cols-2 gap-2 pt-1 w-full min-w-0">
                     <button
                       type="button"
                       onClick={() => handleAddRow(false)}
@@ -1260,9 +1288,9 @@ export default function TransactionModal({
         </form>
 
         {/* Sticky Action Footer */}
-        <div className="px-4 py-3 sm:px-6 sm:py-3.5 border-t border-slate-100 bg-slate-50/90 backdrop-blur-xs flex items-center justify-between shrink-0">
+        <div className="px-4 py-3 sm:px-6 sm:py-3.5 border-t border-slate-100 bg-slate-50/95 backdrop-blur-xs flex items-center justify-between shrink-0 pb-6 sm:pb-3.5">
           <div className="text-xs font-bold text-slate-600">
-            Tổng tiền: <span className="text-rose-600 text-sm font-black">{formatCurrency(modalAmount)}</span>
+            Tổng: <span className="text-rose-600 text-sm font-black">{formatCurrency(modalAmount)}</span>
           </div>
 
           <div className="flex items-center space-x-2">

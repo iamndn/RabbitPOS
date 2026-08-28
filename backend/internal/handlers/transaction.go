@@ -521,6 +521,12 @@ func recalculateIngredientPrices(tx *gorm.DB, ingredientID uint) error {
 	if ingredientID == 0 {
 		return nil
 	}
+
+	var ingredient models.Ingredient
+	if err := tx.First(&ingredient, ingredientID).Error; err != nil {
+		return err
+	}
+
 	type CostSummary struct {
 		TotalCost         float64 `gorm:"column:total_cost"`
 		TotalBaseQty      float64 `gorm:"column:total_base_qty"`
@@ -529,21 +535,16 @@ func recalculateIngredientPrices(tx *gorm.DB, ingredientID uint) error {
 	var summary CostSummary
 	if err := tx.Model(&models.PurchaseItem{}).
 		Select("COALESCE(SUM(subtotal), 0) AS total_cost, COALESCE(SUM(CASE WHEN effective_base_quantity > 0 THEN effective_base_quantity WHEN total_base_quantity > 0 THEN total_base_quantity ELSE quantity END), 0) AS total_effective_qty, COALESCE(SUM(CASE WHEN total_base_quantity > 0 THEN total_base_quantity ELSE quantity END), 0) AS total_base_qty").
-		Where("ingredient_id = ?", ingredientID).
+		Where("ingredient_id = ? OR LOWER(ingredient_name) = LOWER(?)", ingredientID, ingredient.Name).
 		Scan(&summary).Error; err != nil {
 		return err
 	}
 
 	var latestItem models.PurchaseItem
-	hasLatest := tx.Where("ingredient_id = ?", ingredientID).
+	hasLatest := tx.Where("ingredient_id = ? OR LOWER(ingredient_name) = LOWER(?)", ingredientID, ingredient.Name).
 		Order("created_at DESC, id DESC").
 		Limit(1).
 		Find(&latestItem).RowsAffected > 0
-
-	var ingredient models.Ingredient
-	if err := tx.First(&ingredient, ingredientID).Error; err != nil {
-		return err
-	}
 
 	if summary.TotalEffectiveQty > 0 {
 		ingredient.AveragePurchasePrice = math.Round((summary.TotalCost/summary.TotalEffectiveQty)*100) / 100

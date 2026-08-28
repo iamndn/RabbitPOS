@@ -99,7 +99,6 @@ func SetupRouter(cfg *config.Config, db *gorm.DB, emailSvc *services.EmailServic
 			authenticated.POST("/orders", orderHandler.CreateOrder)
 			authenticated.GET("/vietqr/generate", orderHandler.GetVietQR)
 			authenticated.GET("/settings/store", settingHandler.GetStoreSettings)
-			authenticated.GET("/settings", settingHandler.GetStoreSettings)
 
 			// Toppings: public read (for POS variant selector) + admin write
 			authenticated.GET("/toppings", toppingHandler.ListToppings)

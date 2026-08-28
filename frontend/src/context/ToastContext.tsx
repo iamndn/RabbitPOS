@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useCallback, useRef, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import {
   ToastContextType,
   ToastItem,
@@ -212,23 +212,42 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     [showToast]
   );
 
-  const contextValue: ToastContextType = {
-    toasts,
-    showToast,
-    success,
-    error,
-    warning,
-    info,
-    loading,
-    update,
-    dismiss,
-    clearAll,
-    offline,
-    online,
-    queuedOrder,
-    syncSuccess,
-    syncConflict,
-  };
+  const contextValue: ToastContextType = useMemo(
+    () => ({
+      toasts,
+      showToast,
+      success,
+      error,
+      warning,
+      info,
+      loading,
+      update,
+      dismiss,
+      clearAll,
+      offline,
+      online,
+      queuedOrder,
+      syncSuccess,
+      syncConflict,
+    }),
+    [
+      toasts,
+      showToast,
+      success,
+      error,
+      warning,
+      info,
+      loading,
+      update,
+      dismiss,
+      clearAll,
+      offline,
+      online,
+      queuedOrder,
+      syncSuccess,
+      syncConflict,
+    ]
+  );
 
   return (
     <ToastContext.Provider value={contextValue}>

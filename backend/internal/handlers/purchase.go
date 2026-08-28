@@ -4,6 +4,7 @@ import (
 	"errors"
 	"math"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -302,11 +303,12 @@ func (h *PurchaseHandler) GetIngredientHistory(c *gin.Context) {
 			purchase_items.pack_qty, purchase_items.pack_unit, purchase_items.capacity_qty, purchase_items.capacity_unit,
 			purchase_items.conversion_rate, purchase_items.total_base_quantity, purchase_items.base_unit, purchase_items.base_unit_price,
 			purchase_items.loss_rate, purchase_items.effective_base_quantity, purchase_items.effective_base_price, purchase_items.conversion_spec,
-			purchase_items.created_at, funds.name as fund_name, transactions.cashier_name, transactions.description`).
+			COALESCE(NULLIF(purchase_items.created_at, '0001-01-01 00:00:00+00'), transactions.created_at) as created_at, 
+			funds.name as fund_name, transactions.cashier_name, transactions.description`).
 		Joins("JOIN transactions ON transactions.id = purchase_items.transaction_id").
 		Joins("LEFT JOIN funds ON funds.id = transactions.fund_id").
-		Where("purchase_items.ingredient_id = ?", id).
-		Order("purchase_items.created_at DESC, purchase_items.id DESC").
+		Where("purchase_items.ingredient_id = ? OR LOWER(purchase_items.ingredient_name) = LOWER(?)", id, ingredient.Name).
+		Order("created_at DESC, purchase_items.id DESC").
 		Scan(&history)
 
 	models.SendSuccess(c, http.StatusOK, gin.H{
@@ -356,14 +358,85 @@ func (h *PurchaseHandler) GetAllPurchaseHistory(c *gin.Context) {
 			purchase_items.pack_qty, purchase_items.pack_unit, purchase_items.capacity_qty, purchase_items.capacity_unit,
 			purchase_items.total_base_quantity, purchase_items.base_unit, purchase_items.base_unit_price,
 			purchase_items.loss_rate, purchase_items.effective_base_quantity, purchase_items.effective_base_price,
-			purchase_items.conversion_spec, purchase_items.created_at,
+			purchase_items.conversion_spec,
+			COALESCE(NULLIF(purchase_items.created_at, '0001-01-01 00:00:00+00'), transactions.created_at) as created_at,
 			funds.name as fund_name, transactions.cashier_name, transactions.description`).
 		Joins("JOIN transactions ON transactions.id = purchase_items.transaction_id").
 		Joins("LEFT JOIN ingredients ON ingredients.id = purchase_items.ingredient_id").
 		Joins("LEFT JOIN funds ON funds.id = transactions.fund_id").
-		Order("purchase_items.created_at DESC, purchase_items.id DESC").
-		Limit(300).
+		Order("created_at DESC, purchase_items.id DESC").
+		Limit(500).
 		Scan(&records)
+
+	// Retrieve un-itemized legacy outflow/expense transactions so past purchases are not missed
+	type UnitemizedTx struct {
+		ID          uint      `json:"id"`
+		FundID      uint      `json:"fund_id"`
+		FundName    string    `json:"fund_name"`
+		Category    string    `json:"category"`
+		Amount      float64   `json:"amount"`
+		Description string    `json:"description"`
+		CashierName string    `json:"cashier_name"`
+		CreatedAt   time.Time `json:"created_at"`
+	}
+	var legacyTxs []UnitemizedTx
+	h.db.Table("transactions").
+		Select("transactions.id, transactions.fund_id, funds.name as fund_name, transactions.category, transactions.amount, transactions.description, transactions.cashier_name, transactions.created_at").
+		Joins("LEFT JOIN funds ON funds.id = transactions.fund_id").
+		Where("transactions.transaction_type = 'outflow'").
+		Where("transactions.id NOT IN (SELECT DISTINCT transaction_id FROM purchase_items WHERE transaction_id IS NOT NULL)").
+		Order("transactions.created_at DESC, transactions.id DESC").
+		Limit(300).
+		Scan(&legacyTxs)
+
+	for _, tx := range legacyTxs {
+		ingName := strings.TrimSpace(tx.Description)
+		if ingName == "" {
+			ingName = string(tx.Category)
+		}
+		if ingName == "" {
+			ingName = "Chi phí mua hàng"
+		}
+
+		spec := "Phiếu chi: " + tx.Description
+		if strings.TrimSpace(tx.Description) == "" {
+			spec = "Phiếu chi " + string(tx.Category)
+		}
+
+		records = append(records, PurchaseRecord{
+			ID:                    tx.ID,
+			TransactionID:         tx.ID,
+			IngredientID:          nil,
+			IngredientName:        ingName,
+			Category:              string(tx.Category),
+			Quantity:              1,
+			UnitPrice:             tx.Amount,
+			Subtotal:              tx.Amount,
+			PurchaseUnit:          "Đợt nhập",
+			PurchaseQuantity:      1,
+			PurchaseUnitPrice:     tx.Amount,
+			PackQty:               1,
+			PackUnit:              "",
+			CapacityQty:           1,
+			CapacityUnit:          "lần",
+			TotalBaseQuantity:     1,
+			BaseUnit:              "lần",
+			BaseUnitPrice:         tx.Amount,
+			LossRate:              0,
+			EffectiveBaseQuantity: 1,
+			EffectiveBasePrice:    tx.Amount,
+			ConversionSpec:        spec,
+			CreatedAt:             tx.CreatedAt,
+			FundName:              tx.FundName,
+			CashierName:           tx.CashierName,
+			Description:           tx.Description,
+		})
+	}
+
+	// Sort combined list by CreatedAt DESC
+	sort.Slice(records, func(i, j int) bool {
+		return records[i].CreatedAt.After(records[j].CreatedAt)
+	})
 
 	var totalSpend float64 = 0
 	for _, r := range records {
