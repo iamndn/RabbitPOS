@@ -2,27 +2,20 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import {
-  ShoppingBag,
   Plus,
   Search,
   RefreshCw,
   Edit,
   Trash2,
   TrendingUp,
-  TrendingDown,
   AlertCircle,
   CheckCircle2,
-  Sparkles,
-  Layers,
   Scale,
   ChevronDown,
   ChevronUp,
   History,
   X,
   PlusCircle,
-  DollarSign,
-  Percent,
-  Filter,
   Package,
 } from 'lucide-react';
 import ModernSelect, { ModernSelectOption } from '@/components/common/ModernSelect';
@@ -69,8 +62,8 @@ export default function PurchasesCostTab({
 }: PurchasesCostTabProps) {
   const { t } = useTranslation();
 
-  // Active Sub-Tab: 'cost-estimator' | 'ingredients'
-  const [activeSubTab, setActiveSubTab] = useState<'cost-estimator' | 'ingredients'>('cost-estimator');
+  // Active Sub-Tab: 'profit-recovery' | 'purchase-history' | 'ingredients'
+  const [activeSubTab, setActiveSubTab] = useState<'profit-recovery' | 'purchase-history' | 'ingredients'>('profit-recovery');
 
   // Pricing Mode in Cost Estimator: 'latest' | 'average'
   const [pricingBasis, setPricingBasis] = useState<'latest' | 'average'>('latest');
@@ -78,12 +71,15 @@ export default function PurchasesCostTab({
   // Main Data States
   const [costItems, setCostItems] = useState<CostComparisonItem[]>([]);
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
+  const [allHistory, setAllHistory] = useState<IngredientHistoryRecord[]>([]);
+  const [totalSpend, setTotalSpend] = useState<number>(0);
   const [settings, setSettings] = useState<SettingsMap | null>(propSettings || null);
   const [loading, setLoading] = useState<boolean>(true);
 
   // Search & Filters
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [historySearch, setHistorySearch] = useState<string>('');
   const [ingSearchQuery, setIngSearchQuery] = useState<string>('');
   const [ingCategoryFilter, setIngCategoryFilter] = useState<string>('all');
 
@@ -111,7 +107,7 @@ export default function PurchasesCostTab({
   const [ingFormPresets, setIngFormPresets] = useState<IngredientConversionPreset[]>([]);
   const [savingIngredient, setSavingIngredient] = useState<boolean>(false);
 
-  // Ingredient History Modal State
+  // Single Ingredient History Modal State
   const [viewingHistoryIng, setViewingHistoryIng] = useState<Ingredient | null>(null);
   const [ingHistoryRecords, setIngHistoryRecords] = useState<IngredientHistoryRecord[]>([]);
   const [historyLoading, setHistoryLoading] = useState<boolean>(false);
@@ -129,9 +125,10 @@ export default function PurchasesCostTab({
   const loadData = async () => {
     setLoading(true);
     try {
-      const [costRes, ingRes, setRes] = await Promise.all([
+      const [costRes, ingRes, histRes, setRes] = await Promise.all([
         fetchApi<CostComparisonItem[]>('/purchases/cost-comparison'),
         fetchApi<Ingredient[]>('/purchases/ingredients'),
+        fetchApi<{ items: IngredientHistoryRecord[]; total_spend: number }>('/purchases/history'),
         propSettings ? Promise.resolve({ status: 'success', data: propSettings }) : fetchApi<SettingsMap>('/settings'),
       ]);
 
@@ -141,11 +138,15 @@ export default function PurchasesCostTab({
       if (ingRes.status === 'success' && Array.isArray(ingRes.data)) {
         setIngredients(ingRes.data);
       }
+      if (histRes.status === 'success' && histRes.data) {
+        setAllHistory(histRes.data.items || []);
+        setTotalSpend(histRes.data.total_spend || 0);
+      }
       if (setRes.status === 'success' && setRes.data) {
         setSettings(setRes.data as SettingsMap);
       }
     } catch {
-      showToast('error', 'Lỗi khi tải dữ liệu giá vốn');
+      showToast('error', 'Lỗi khi tải dữ liệu mua hàng & giá vốn');
     } finally {
       setLoading(false);
     }
@@ -192,6 +193,19 @@ export default function PurchasesCostTab({
     });
   }, [costItems, searchQuery, selectedCategory]);
 
+  const filteredHistory = useMemo(() => {
+    return allHistory.filter((item) => {
+      const q = historySearch.toLowerCase().trim();
+      if (!q) return true;
+      return (
+        (item.ingredient_name || '').toLowerCase().includes(q) ||
+        (item.conversion_spec || '').toLowerCase().includes(q) ||
+        (item.purchase_unit || '').toLowerCase().includes(q) ||
+        (item.fund_name || '').toLowerCase().includes(q)
+      );
+    });
+  }, [allHistory, historySearch]);
+
   const filteredIngredients = useMemo(() => {
     return ingredients.filter((ing) => {
       const matchesSearch = ing.name.toLowerCase().includes(ingSearchQuery.toLowerCase());
@@ -204,8 +218,6 @@ export default function PurchasesCostTab({
   const metrics = useMemo(() => {
     const totalItems = costItems.length;
     const itemsWithRecipe = costItems.filter((i) => i.recipe_item_count > 0).length;
-    const fruitCount = ingredients.filter((i) => i.category === 'fruit').length;
-    const supplyCount = ingredients.filter((i) => i.category !== 'fruit').length;
 
     let totalDiff = 0;
     let totalMargin = 0;
@@ -227,17 +239,16 @@ export default function PurchasesCostTab({
     return {
       totalItems,
       itemsWithRecipe,
-      fruitCount,
-      supplyCount,
-      totalDiff: Math.round(totalDiff),
+      totalSpend,
       avgMargin,
+      totalDiff: Math.round(totalDiff),
     };
-  }, [costItems, ingredients, pricingBasis]);
+  }, [costItems, totalSpend, pricingBasis]);
 
   const handleApplySingleCost = async (item: CostComparisonItem) => {
     const newCost = pricingBasis === 'latest' ? item.estimated_cogs : item.estimated_cogs_avg;
     if (newCost <= 0) {
-      showToast('error', 'Giá vốn ước tính chưa được tính toán qua công thức');
+      showToast('error', 'Giá vốn chưa được tính toán qua công thức');
       return;
     }
 
@@ -551,16 +562,16 @@ export default function PurchasesCostTab({
         </div>
       )}
 
-      {/* Header Banner & Sub-Tabs Navigation */}
+      {/* Header Banner with Summary KPIs */}
       <div className="bg-white rounded-3xl p-4 sm:p-6 border border-slate-200/90 shadow-sm space-y-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="space-y-1">
             <h1 className="text-xl sm:text-2xl font-black text-slate-900 flex items-center gap-2.5">
               <Scale className="w-6 h-6 text-emerald-700" />
-              <span>Quy Đổi Nhập Hàng & Giá Vốn Món (BOM)</span>
+              <span>Quản Lý Mua Hàng & Lợi Nhuận Thu Hồi</span>
             </h1>
             <p className="text-xs sm:text-sm text-slate-500 font-medium">
-              Nhập theo chai, túi, thùng → Quy đổi về ml, g, cái → Định lượng công thức & tính cost chính xác
+              Lưu trữ lịch sử nhập hàng, theo dõi biến động giá và tính toán chính xác lợi nhuận thu hồi trên từng món
             </p>
           </div>
 
@@ -572,41 +583,89 @@ export default function PurchasesCostTab({
                 className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-2xl text-xs font-extrabold shadow-sm transition active:scale-95 cursor-pointer"
               >
                 <Plus className="w-4 h-4" />
-                <span>+ Nhập Hàng Mới</span>
+                <span>+ Ghi Nhận Mua Hàng</span>
               </button>
             )}
           </div>
         </div>
 
-        {/* Sub-Tabs: Cost Estimator vs Ingredients List */}
-        <div className="flex items-center gap-2 border-b border-slate-100 pt-2">
+        {/* 3 Summary KPI Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+          <div className="bg-emerald-50/80 rounded-2xl p-3.5 border border-emerald-200/90 flex items-center justify-between">
+            <div>
+              <span className="text-[11px] font-bold text-emerald-800 uppercase block">Biên Lãi Gộp TB Menu</span>
+              <span className="text-xl font-black text-emerald-950">{metrics.avgMargin}%</span>
+            </div>
+            <div className="w-9 h-9 rounded-xl bg-emerald-700 text-white flex items-center justify-center shadow-xs">
+              <TrendingUp className="w-5 h-5" />
+            </div>
+          </div>
+
+          <div className="bg-slate-50 rounded-2xl p-3.5 border border-slate-200 flex items-center justify-between">
+            <div>
+              <span className="text-[11px] font-bold text-slate-500 uppercase block">Đã Định Lượng Cost Món</span>
+              <span className="text-xl font-black text-slate-900">
+                {metrics.itemsWithRecipe}/{metrics.totalItems} món
+              </span>
+            </div>
+            <div className="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-xs">
+              <Scale className="w-5 h-5" />
+            </div>
+          </div>
+
+          <div className="bg-slate-50 rounded-2xl p-3.5 border border-slate-200 flex items-center justify-between">
+            <div>
+              <span className="text-[11px] font-bold text-slate-500 uppercase block">Nguyên Liệu Theo Dõi Giá</span>
+              <span className="text-xl font-black text-slate-900">{ingredients.length}</span>
+            </div>
+            <div className="w-9 h-9 rounded-xl bg-amber-600 text-white flex items-center justify-center shadow-xs">
+              <Package className="w-5 h-5" />
+            </div>
+          </div>
+        </div>
+
+        {/* 3 Streamlined Sub-Tabs */}
+        <div className="flex items-center gap-1 sm:gap-2 border-b border-slate-100 pt-2 overflow-x-auto">
           <button
             type="button"
-            onClick={() => setActiveSubTab('cost-estimator')}
-            className={`pb-3 px-3 text-xs sm:text-sm font-extrabold flex items-center gap-2 border-b-2 transition cursor-pointer ${
-              activeSubTab === 'cost-estimator'
+            onClick={() => setActiveSubTab('profit-recovery')}
+            className={`pb-3 px-3 text-xs sm:text-sm font-extrabold flex items-center gap-2 border-b-2 transition shrink-0 cursor-pointer ${
+              activeSubTab === 'profit-recovery'
                 ? 'border-emerald-700 text-emerald-800'
                 : 'border-transparent text-slate-500 hover:text-slate-900'
             }`}
           >
-            <Scale className="w-4 h-4" />
-            <span>Công Thức & Bảng Tính Giá Vốn</span>
-            <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full">
-              {metrics.itemsWithRecipe}/{metrics.totalItems} món
+            <TrendingUp className="w-4 h-4" />
+            <span>Lợi Nhuận & Giá Vốn Món</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveSubTab('purchase-history')}
+            className={`pb-3 px-3 text-xs sm:text-sm font-extrabold flex items-center gap-2 border-b-2 transition shrink-0 cursor-pointer ${
+              activeSubTab === 'purchase-history'
+                ? 'border-emerald-700 text-emerald-800'
+                : 'border-transparent text-slate-500 hover:text-slate-900'
+            }`}
+          >
+            <History className="w-4 h-4" />
+            <span>Lịch Sử Mua Hàng & Giá Cả</span>
+            <span className="bg-slate-100 text-slate-700 text-[10px] font-bold px-2 py-0.5 rounded-full">
+              {allHistory.length}
             </span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveSubTab('ingredients')}
-            className={`pb-3 px-3 text-xs sm:text-sm font-extrabold flex items-center gap-2 border-b-2 transition cursor-pointer ${
+            className={`pb-3 px-3 text-xs sm:text-sm font-extrabold flex items-center gap-2 border-b-2 transition shrink-0 cursor-pointer ${
               activeSubTab === 'ingredients'
                 ? 'border-emerald-700 text-emerald-800'
                 : 'border-transparent text-slate-500 hover:text-slate-900'
             }`}
           >
             <Package className="w-4 h-4" />
-            <span>Danh Mục Nguyên Liệu & Quy Cách</span>
+            <span>Bảng Giá Nguyên Liệu</span>
             <span className="bg-slate-100 text-slate-700 text-[10px] font-bold px-2 py-0.5 rounded-full">
               {ingredients.length}
             </span>
@@ -614,10 +673,9 @@ export default function PurchasesCostTab({
         </div>
       </div>
 
-      {/* ── TAB 1: RECIPE BOM & COST ESTIMATOR ────────────────────────────────────────── */}
-      {activeSubTab === 'cost-estimator' && (
+      {/* ── TAB 1: PROFIT MARGIN & MENU RECOVERY ───────────────────────────────── */}
+      {activeSubTab === 'profit-recovery' && (
         <div className="space-y-4">
-          {/* Controls Bar */}
           <div className="bg-white rounded-3xl p-3 sm:p-4 border border-slate-200 shadow-2xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
             <div className="flex items-center gap-2 flex-1">
               <div className="relative flex-1 max-w-md">
@@ -640,7 +698,6 @@ export default function PurchasesCostTab({
               </div>
             </div>
 
-            {/* Pricing Basis Toggle & Bulk Apply Button */}
             <div className="flex items-center gap-2 justify-between md:justify-end">
               <div className="flex items-center bg-slate-100 p-1 rounded-xl text-xs font-bold">
                 <button
@@ -676,13 +733,12 @@ export default function PurchasesCostTab({
                 className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-extrabold shadow-2xs transition active:scale-95 cursor-pointer"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${bulkApplying ? 'animate-spin' : ''}`} />
-                <span className="hidden sm:inline">Áp dụng tất cả vào Menu</span>
+                <span className="hidden sm:inline">Đồng bộ giá vốn Menu</span>
                 <span className="sm:hidden">Đồng bộ</span>
               </button>
             </div>
           </div>
 
-          {/* Cost Items Grid / Table */}
           {loading ? (
             <div className="flex items-center justify-center py-16 bg-white rounded-3xl border border-slate-200">
               <RefreshCw className="w-7 h-7 text-emerald-600 animate-spin" />
@@ -697,7 +753,7 @@ export default function PurchasesCostTab({
                 const estCost = pricingBasis === 'latest' ? item.estimated_cogs : item.estimated_cogs_avg;
                 const isExpanded = expandedItemId === `${item.target_type}-${item.target_id}`;
                 const hasRecipe = item.recipe_item_count > 0;
-                const costDiff = estCost - item.current_cogs;
+                const unitProfit = item.retail_price - estCost;
                 const marginPct =
                   item.retail_price > 0
                     ? Math.round(((item.retail_price - estCost) / item.retail_price) * 1000) / 10
@@ -706,7 +762,6 @@ export default function PurchasesCostTab({
                 return (
                   <div key={`${item.target_type}-${item.target_id}`} className="p-3.5 sm:p-4 hover:bg-slate-50/60 transition">
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                      {/* Left: Product & Recipe Status */}
                       <div className="flex items-center gap-3 min-w-0">
                         {item.image_url ? (
                           <img
@@ -741,36 +796,28 @@ export default function PurchasesCostTab({
                         </div>
                       </div>
 
-                      {/* Right: Cost KPIs & Actions */}
                       <div className="flex items-center gap-3 self-stretch sm:self-auto justify-between sm:justify-end">
                         <div className="text-right">
                           <div className="flex items-center gap-1.5 justify-end">
-                            <span className="text-[10px] text-slate-400 font-bold uppercase">Cost tính toán:</span>
-                            <span className="font-black text-emerald-700 text-sm">
-                              {hasRecipe ? formatCurrency(estCost, settings) : 'Chưa có định lượng'}
+                            <span className="text-[10px] text-slate-400 font-bold uppercase">Giá vốn:</span>
+                            <span className="font-black text-slate-900 text-sm">
+                              {hasRecipe ? formatCurrency(estCost, settings) : 'Chưa định lượng'}
                             </span>
                           </div>
                           {hasRecipe && (
                             <div className="flex items-center gap-1.5 justify-end text-[11px]">
-                              <span className="text-slate-400">
-                                Menu: {formatCurrency(item.current_cogs, settings)}
+                              <span className="font-bold text-emerald-700">
+                                Lãi: +{formatCurrency(unitProfit, settings)}
                               </span>
-                              <span
-                                className={`font-bold ${
-                                  costDiff > 0 ? 'text-rose-600' : costDiff < 0 ? 'text-emerald-600' : 'text-slate-400'
-                                }`}
-                              >
-                                ({costDiff > 0 ? `+${formatCurrency(costDiff)}` : formatCurrency(costDiff)})
-                              </span>
-                              <span className="font-extrabold text-emerald-800 bg-emerald-100 px-1.5 py-0.2 rounded text-[10px]">
-                                Lãi {marginPct}%
+                              <span className="font-black text-emerald-800 bg-emerald-100 px-1.5 py-0.2 rounded text-[10px]">
+                                {marginPct}%
                               </span>
                             </div>
                           )}
                         </div>
 
                         <div className="flex items-center gap-1.5 shrink-0">
-                          {hasRecipe && Math.abs(costDiff) >= 1 && (
+                          {hasRecipe && Math.abs(estCost - item.current_cogs) >= 1 && (
                             <button
                               type="button"
                               onClick={() => handleApplySingleCost(item)}
@@ -788,7 +835,7 @@ export default function PurchasesCostTab({
                             className="px-3 py-1.5 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition cursor-pointer flex items-center gap-1"
                           >
                             <Scale className="w-3.5 h-3.5 text-emerald-700" />
-                            <span>{hasRecipe ? 'Sửa công thức' : '+ Công thức'}</span>
+                            <span>{hasRecipe ? 'Công thức' : '+ Công thức'}</span>
                           </button>
 
                           {hasRecipe && (
@@ -808,11 +855,10 @@ export default function PurchasesCostTab({
                       </div>
                     </div>
 
-                    {/* Expandable Recipe Breakdown with Base Units */}
                     {isExpanded && item.recipe_details && item.recipe_details.length > 0 && (
                       <div className="mt-3 pt-3 border-t border-slate-100 bg-slate-50/80 rounded-2xl p-3 space-y-2">
                         <span className="text-[10px] font-bold text-slate-500 uppercase block">
-                          Chi tiết định lượng nguyên liệu (BOM):
+                          Chi tiết định lượng nguyên liệu:
                         </span>
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
                           {item.recipe_details.map((rd) => (
@@ -843,10 +889,101 @@ export default function PurchasesCostTab({
         </div>
       )}
 
-      {/* ── TAB 2: INGREDIENTS LIST & SPECIFICATIONS ──────────────────────────────────── */}
+      {/* ── TAB 2: COMPLETE PURCHASE HISTORY & PRICES ─────────────────────────── */}
+      {activeSubTab === 'purchase-history' && (
+        <div className="space-y-4">
+          <div className="bg-white rounded-3xl p-3 sm:p-4 border border-slate-200 shadow-2xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+            <div className="relative flex-1 max-w-md">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Tìm kiếm theo tên nguyên liệu, quy cách, quỹ chi trả..."
+                value={historySearch}
+                onChange={(e) => setHistorySearch(e.target.value)}
+                className="w-full h-9.5 pl-9 pr-3 text-xs font-semibold rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-slate-50 focus:bg-white"
+              />
+            </div>
+
+            <div className="text-xs font-bold text-slate-700 text-right">
+              Tổng tiền đã nhập: <span className="text-rose-600 font-black">{formatCurrency(totalSpend, settings)}</span>
+            </div>
+          </div>
+
+          {loading ? (
+            <div className="flex items-center justify-center py-16 bg-white rounded-3xl border border-slate-200">
+              <RefreshCw className="w-7 h-7 text-emerald-600 animate-spin" />
+            </div>
+          ) : filteredHistory.length === 0 ? (
+            <div className="py-14 text-center bg-white rounded-3xl border border-slate-200 text-slate-400 font-semibold text-sm">
+              Chưa có lịch sử mua hàng nào được ghi nhận
+            </div>
+          ) : (
+            <div className="bg-white rounded-3xl border border-slate-200 shadow-xs overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead>
+                    <tr className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
+                      <th className="py-3 px-4">Ngày Nhập</th>
+                      <th className="py-3 px-3">Tên Nguyên Liệu</th>
+                      <th className="py-3 px-3 text-right">Số Lượng Mua</th>
+                      <th className="py-3 px-3">Quy Cách Chi Tiết</th>
+                      <th className="py-3 px-3 text-right">Giá Mua</th>
+                      <th className="py-3 px-3 text-right">Tổng Tiền</th>
+                      <th className="py-3 px-3 text-right">Giá Quy Đổi Base Unit</th>
+                      <th className="py-3 px-4">Tài Khoản Quỹ</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {filteredHistory.map((rec) => {
+                      const baseUnit = rec.base_unit || 'ml';
+                      const pUnit = rec.purchase_unit || baseUnit;
+                      const pQty = rec.purchase_quantity || rec.quantity;
+                      const pPrice = rec.purchase_unit_price || rec.unit_price;
+                      const spec = rec.conversion_spec || `${pQty} ${pUnit}`;
+                      const effectivePrice = rec.effective_base_price || rec.base_unit_price || rec.unit_price;
+
+                      return (
+                        <tr key={rec.id} className="hover:bg-slate-50/80 transition">
+                          <td className="py-3 px-4 font-semibold text-slate-500 whitespace-nowrap">
+                            {new Date(rec.created_at).toLocaleDateString('vi-VN', {
+                              day: '2-digit',
+                              month: '2-digit',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          </td>
+                          <td className="py-3 px-3 font-extrabold text-slate-900">{rec.ingredient_name}</td>
+                          <td className="py-3 px-3 text-right font-black text-slate-800">
+                            {pQty} {pUnit}
+                          </td>
+                          <td className="py-3 px-3 text-slate-600 font-semibold">{spec}</td>
+                          <td className="py-3 px-3 text-right font-bold text-slate-800">
+                            {formatCurrency(pPrice, settings)}/{pUnit}
+                          </td>
+                          <td className="py-3 px-3 text-right font-black text-rose-600">
+                            {formatCurrency(rec.subtotal, settings)}
+                          </td>
+                          <td className="py-3 px-3 text-right font-extrabold text-emerald-800">
+                            <span className="bg-emerald-50 text-emerald-900 border border-emerald-200 px-2 py-0.5 rounded-md">
+                              {formatCurrency(effectivePrice, settings)}/{baseUnit}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 font-medium text-slate-600">{rec.fund_name || '—'}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── TAB 3: INGREDIENTS PRICING & SPECIFICATIONS ───────────────────────── */}
       {activeSubTab === 'ingredients' && (
         <div className="space-y-4">
-          {/* Controls Bar */}
           <div className="bg-white rounded-3xl p-3 sm:p-4 border border-slate-200 shadow-2xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
             <div className="flex items-center gap-2 flex-1">
               <div className="relative flex-1 max-w-md">
@@ -883,7 +1020,6 @@ export default function PurchasesCostTab({
             </button>
           </div>
 
-          {/* Ingredients List (Mobile Cards & Desktop Table) */}
           {loading ? (
             <div className="flex items-center justify-center py-16 bg-white rounded-3xl border border-slate-200">
               <RefreshCw className="w-7 h-7 text-emerald-600 animate-spin" />
@@ -963,7 +1099,7 @@ export default function PurchasesCostTab({
                           className="px-2.5 py-1.5 text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer"
                         >
                           <Edit className="w-3.5 h-3.5" />
-                          <span>Sửa thông tin</span>
+                          <span>Sửa</span>
                         </button>
                         <button
                           type="button"
@@ -1099,7 +1235,6 @@ export default function PurchasesCostTab({
               </button>
             </div>
 
-            {/* Live Pricing KPI card */}
             <div className="bg-emerald-50/90 rounded-2xl p-3.5 border border-emerald-200 flex items-center justify-between text-xs">
               <div>
                 <span className="text-[10px] font-bold text-emerald-800 uppercase block">Giá vốn tính toán</span>
@@ -1120,7 +1255,6 @@ export default function PurchasesCostTab({
               </div>
             </div>
 
-            {/* Recipe Line Items */}
             <div className="space-y-2.5">
               <label className="text-xs font-bold text-slate-700">Định lượng theo Đơn vị cơ sở (Base Unit)</label>
               {recipeLines.map((line, idx) => {
@@ -1210,7 +1344,6 @@ export default function PurchasesCostTab({
               </button>
             </div>
 
-            {/* Modal Actions */}
             <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
               <button
                 type="button"
@@ -1297,11 +1430,10 @@ export default function PurchasesCostTab({
                 </div>
               </div>
 
-              {/* Base Price & Loss Rate in 2 Cols */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-bold text-slate-700 block mb-1">
-                    Giá nhập quy đổi (đ/{ingFormBaseUnit})
+                    Giá quy đổi cơ sở (đ/{ingFormBaseUnit})
                   </label>
                   <input
                     type="number"
@@ -1336,10 +1468,9 @@ export default function PurchasesCostTab({
                 </div>
               </div>
 
-              {/* Default Purchase Specification Box */}
               <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 space-y-2.5">
                 <span className="text-[11px] font-bold text-slate-700 block">
-                  Quy Cách Mua Hàng Mặc Định (Tự điền khi nhập):
+                  Quy Cách Mua Hàng Mặc Định:
                 </span>
                 <div className="grid grid-cols-3 gap-2">
                   <div>
@@ -1385,7 +1516,6 @@ export default function PurchasesCostTab({
                 </div>
               </div>
 
-              {/* Saved Conversion Presets Manager */}
               <div className="bg-emerald-50/60 p-3 rounded-2xl border border-emerald-200/80 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] font-bold text-emerald-950">
@@ -1439,7 +1569,6 @@ export default function PurchasesCostTab({
                 )}
               </div>
 
-              {/* Modal Actions */}
               <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
                 <button
                   type="button"

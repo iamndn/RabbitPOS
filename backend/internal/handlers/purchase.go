@@ -315,6 +315,68 @@ func (h *PurchaseHandler) GetIngredientHistory(c *gin.Context) {
 	}, "Purchase history retrieved successfully")
 }
 
+// GetAllPurchaseHistory returns all chronological purchase records across transactions with conversion details
+func (h *PurchaseHandler) GetAllPurchaseHistory(c *gin.Context) {
+	type PurchaseRecord struct {
+		ID                    uint      `json:"id"`
+		TransactionID         uint      `json:"transaction_id"`
+		IngredientID          *uint     `json:"ingredient_id"`
+		IngredientName        string    `json:"ingredient_name"`
+		Category              string    `json:"category"`
+		Quantity              float64   `json:"quantity"`
+		UnitPrice             float64   `json:"unit_price"`
+		Subtotal              float64   `json:"subtotal"`
+		PurchaseUnit          string    `json:"purchase_unit"`
+		PurchaseQuantity      float64   `json:"purchase_quantity"`
+		PurchaseUnitPrice     float64   `json:"purchase_unit_price"`
+		PackQty               float64   `json:"pack_qty"`
+		PackUnit              string    `json:"pack_unit"`
+		CapacityQty           float64   `json:"capacity_qty"`
+		CapacityUnit          string    `json:"capacity_unit"`
+		TotalBaseQuantity     float64   `json:"total_base_quantity"`
+		BaseUnit              string    `json:"base_unit"`
+		BaseUnitPrice         float64   `json:"base_unit_price"`
+		LossRate              float64   `json:"loss_rate"`
+		EffectiveBaseQuantity float64   `json:"effective_base_quantity"`
+		EffectiveBasePrice    float64   `json:"effective_base_price"`
+		ConversionSpec        string    `json:"conversion_spec"`
+		CreatedAt             time.Time `json:"created_at"`
+		FundName              string    `json:"fund_name"`
+		CashierName           string    `json:"cashier_name"`
+		Description           string    `json:"description"`
+	}
+
+	var records []PurchaseRecord
+	h.db.Table("purchase_items").
+		Select(`purchase_items.id, purchase_items.transaction_id, purchase_items.ingredient_id,
+			COALESCE(ingredients.name, purchase_items.ingredient_name, '') as ingredient_name,
+			COALESCE(ingredients.category, purchase_items.category, 'ingredient') as category,
+			purchase_items.quantity, purchase_items.unit_price, purchase_items.subtotal,
+			purchase_items.purchase_unit, purchase_items.purchase_quantity, purchase_items.purchase_unit_price,
+			purchase_items.pack_qty, purchase_items.pack_unit, purchase_items.capacity_qty, purchase_items.capacity_unit,
+			purchase_items.total_base_quantity, purchase_items.base_unit, purchase_items.base_unit_price,
+			purchase_items.loss_rate, purchase_items.effective_base_quantity, purchase_items.effective_base_price,
+			purchase_items.conversion_spec, purchase_items.created_at,
+			funds.name as fund_name, transactions.cashier_name, transactions.description`).
+		Joins("JOIN transactions ON transactions.id = purchase_items.transaction_id").
+		Joins("LEFT JOIN ingredients ON ingredients.id = purchase_items.ingredient_id").
+		Joins("LEFT JOIN funds ON funds.id = transactions.fund_id").
+		Order("purchase_items.created_at DESC, purchase_items.id DESC").
+		Limit(300).
+		Scan(&records)
+
+	var totalSpend float64 = 0
+	for _, r := range records {
+		totalSpend += r.Subtotal
+	}
+
+	models.SendSuccess(c, http.StatusOK, gin.H{
+		"items":       records,
+		"total_spend": totalSpend,
+		"count":       len(records),
+	}, "All purchase history retrieved successfully")
+}
+
 // ── Recipe BOM & Cost Calculation ──────────────────────────────────────────
 
 // GetCostComparison computes real-time recipe theoretical COGS vs active menu COGS

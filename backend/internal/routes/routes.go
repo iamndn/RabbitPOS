@@ -118,6 +118,7 @@ func SetupRouter(cfg *config.Config, db *gorm.DB, emailSvc *services.EmailServic
 				adminOnly.PUT("/purchases/ingredients/:id", purchaseHandler.UpdateIngredient)
 				adminOnly.DELETE("/purchases/ingredients/:id", purchaseHandler.DeleteIngredient)
 				adminOnly.GET("/purchases/ingredients/:id/history", purchaseHandler.GetIngredientHistory)
+				adminOnly.GET("/purchases/history", purchaseHandler.GetAllPurchaseHistory)
 				adminOnly.GET("/purchases/cost-comparison", purchaseHandler.GetCostComparison)
 				adminOnly.POST("/purchases/apply-cost", purchaseHandler.ApplyCostToMenu)
 				adminOnly.GET("/purchases/recipes/:target_type/:target_id", purchaseHandler.GetRecipe)

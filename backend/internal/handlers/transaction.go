@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math"
@@ -389,9 +390,33 @@ func buildPurchaseItemAndApplyIngredient(tx *gorm.DB, item models.PurchaseItemIn
 			DefaultPackUnit:      packUnit,
 			DefaultCapacityQty:   capacityQty,
 			DefaultCapacityUnit:  capacityUnit,
+			SavedConversions:     "[]",
 			CreatedAt:            txTime,
 			UpdatedAt:            txTime,
 		}
+
+		// Initialize first preset
+		if purchaseUnit != "" && capacityQty > 0 {
+			label := fmt.Sprintf("%s (%g%s)", purchaseUnit, capacityQty, capacityUnit)
+			if packQty > 1 && packUnit != "" {
+				label = fmt.Sprintf("%s (%g%s × %g%s)", purchaseUnit, packQty, packUnit, capacityQty, capacityUnit)
+			}
+			initialPresets := []models.IngredientConversionPreset{
+				{
+					Label:        label,
+					PurchaseUnit: purchaseUnit,
+					PackQty:      packQty,
+					PackUnit:     packUnit,
+					CapacityQty:  capacityQty,
+					CapacityUnit: capacityUnit,
+					LossRate:     lossRate,
+				},
+			}
+			if b, err := json.Marshal(initialPresets); err == nil {
+				ingredient.SavedConversions = string(b)
+			}
+		}
+
 		if err := tx.Create(&ingredient).Error; err != nil {
 			return nil, 0, err
 		}
@@ -419,6 +444,40 @@ func buildPurchaseItemAndApplyIngredient(tx *gorm.DB, item models.PurchaseItemIn
 		}
 		ingredient.LatestPurchasePrice = effectiveBasePrice
 		ingredient.UpdatedAt = txTime
+
+		// Auto-save new preset if unique
+		if purchaseUnit != "" && capacityQty > 0 {
+			var presets []models.IngredientConversionPreset
+			if ingredient.SavedConversions != "" && ingredient.SavedConversions != "[]" {
+				_ = json.Unmarshal([]byte(ingredient.SavedConversions), &presets)
+			}
+			exists := false
+			for _, p := range presets {
+				if strings.EqualFold(p.PurchaseUnit, purchaseUnit) && p.PackQty == packQty && p.CapacityQty == capacityQty && strings.EqualFold(p.CapacityUnit, capacityUnit) {
+					exists = true
+					break
+				}
+			}
+			if !exists {
+				label := fmt.Sprintf("%s (%g%s)", purchaseUnit, capacityQty, capacityUnit)
+				if packQty > 1 && packUnit != "" {
+					label = fmt.Sprintf("%s (%g%s × %g%s)", purchaseUnit, packQty, packUnit, capacityQty, capacityUnit)
+				}
+				presets = append(presets, models.IngredientConversionPreset{
+					Label:        label,
+					PurchaseUnit: purchaseUnit,
+					PackQty:      packQty,
+					PackUnit:     packUnit,
+					CapacityQty:  capacityQty,
+					CapacityUnit: capacityUnit,
+					LossRate:     lossRate,
+				})
+				if b, err := json.Marshal(presets); err == nil {
+					ingredient.SavedConversions = string(b)
+				}
+			}
+		}
+
 		if err := tx.Save(&ingredient).Error; err != nil {
 			return nil, 0, err
 		}

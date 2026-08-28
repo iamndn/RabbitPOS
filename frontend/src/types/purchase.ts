@@ -13,7 +13,7 @@ export interface Ingredient {
   id: number;
   name: string;
   category: 'fruit' | 'ingredient' | 'packaging' | 'other' | string;
-  unit: string; // Legacy / synced with base_unit
+  unit: string;
   base_unit: string; // 'ml', 'g', 'cái', 'quả', 'viên', 'lon', 'hộp', 'túi', 'lít', 'kg'
   loss_rate: number; // 0.05 = 5% hao hụt
   latest_purchase_price: number; // Giá quy đổi / base_unit
@@ -24,7 +24,7 @@ export interface Ingredient {
   default_pack_unit?: string;
   default_capacity_qty?: number;
   default_capacity_unit?: string;
-  saved_conversions?: string | IngredientConversionPreset[]; // JSON string or parsed array
+  saved_conversions?: string | IngredientConversionPreset[];
   created_at: string;
   updated_at: string;
 }
@@ -36,8 +36,8 @@ export interface PurchaseItem {
   ingredient?: Ingredient;
   ingredient_name?: string;
   category?: string;
-  quantity: number; // Base quantity / legacy
-  unit_price: number; // Base unit price / legacy
+  quantity: number;
+  unit_price: number;
   unit?: string;
   subtotal: number;
   purchase_unit?: string;
@@ -64,7 +64,7 @@ export interface RecipeItem {
   topping_id?: number;
   ingredient_id: number;
   ingredient?: Ingredient;
-  usage_quantity: number; // In Ingredient's BaseUnit (e.g. 60 ml, 30 g, 1 cái)
+  usage_quantity: number;
   created_at?: string;
   updated_at?: string;
 }
@@ -104,6 +104,9 @@ export interface CostComparisonItem {
 export interface IngredientHistoryRecord {
   id: number;
   transaction_id: number;
+  ingredient_id?: number;
+  ingredient_name?: string;
+  category?: string;
   quantity: number;
   unit_price: number;
   subtotal: number;
