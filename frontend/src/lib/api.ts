@@ -5,6 +5,7 @@ export interface ApiResponse<T> {
   status: 'success' | 'error';
   data: T | null;
   message: string;
+  error_code?: string;
 }
 
 declare const process: {

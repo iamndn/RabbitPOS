@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/RabbitPOS/backend/internal/cache"
@@ -522,7 +523,25 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 	})
 
 	if txErr != nil {
-		models.SendErrorCode(c, http.StatusBadRequest, "ORDER_PROCESSING_FAILED", txErr.Error())
+		errStr := txErr.Error()
+		status := http.StatusBadRequest
+		code := "ORDER_PROCESSING_FAILED"
+
+		if strings.HasPrefix(errStr, "VARIANT_NOT_FOUND") || strings.HasPrefix(errStr, "VARIANT_INACTIVE") || strings.HasPrefix(errStr, "PRODUCT_INACTIVE") {
+			status = http.StatusUnprocessableEntity
+			code = "ORDER_ITEM_UNAVAILABLE"
+		} else if strings.HasPrefix(errStr, "TOPPING_NOT_FOUND") {
+			status = http.StatusUnprocessableEntity
+			code = "ORDER_TOPPING_UNAVAILABLE"
+		} else if strings.HasPrefix(errStr, "PROMOTION_") {
+			status = http.StatusUnprocessableEntity
+			code = "ORDER_PROMOTION_INVALID"
+		} else if strings.HasPrefix(errStr, "FUND_") {
+			status = http.StatusUnprocessableEntity
+			code = "ORDER_FUND_INVALID"
+		}
+
+		models.SendErrorCode(c, status, code, errStr)
 		return
 	}
 

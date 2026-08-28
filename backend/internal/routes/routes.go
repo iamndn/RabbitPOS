@@ -25,8 +25,9 @@ func SetupRouter(cfg *config.Config, db *gorm.DB, emailSvc *services.EmailServic
 	// Ensure uploads directory exists on server startup
 	_ = os.MkdirAll("./uploads", os.ModePerm)
 
-	// Global CORS Middleware
+	// Global CORS & Structured Logging Middleware
 	router.Use(middleware.CORSMiddleware(cfg))
+	router.Use(middleware.StructuredLoggerMiddleware())
 
 	// Serve uploaded image assets and brand logo statically
 	router.Static("/uploads", "./uploads")

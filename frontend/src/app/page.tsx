@@ -41,9 +41,17 @@ import {
   saveCartToOfflineCache,
   loadCartFromOfflineCache,
   clearCartFromOfflineCache,
+  getDeviceId,
   Category,
   Topping,
 } from '@/lib/offline/catalog';
+import {
+  enqueueOfflineOrder,
+  getOfflineQueueStats,
+  OfflineQueueStats,
+  OfflineOrder,
+} from '@/lib/offline/orders';
+import { syncOfflineOrders } from '@/lib/offline/sync';
 import { formatCurrency, SettingsMap } from '@/lib/utils';
 import { CustomTag, DEFAULT_SYSTEM_TAGS, getTagBadgeStyle } from '@/components/products/TagManagerModal';
 
@@ -79,6 +87,7 @@ const VariantSelectorModal = dynamic(() => import('@/components/pos/VariantSelec
 const CheckoutModal = dynamic(() => import('@/components/pos/CheckoutModal'), { ssr: false });
 const VietQRModal = dynamic(() => import('@/components/pos/VietQRModal'), { ssr: false });
 const ReceiptModal = dynamic(() => import('@/components/pos/ReceiptModal'), { ssr: false });
+const OfflineQueueModal = dynamic(() => import('@/components/pos/OfflineQueueModal'), { ssr: false });
 
 
 
@@ -357,6 +366,45 @@ export default function PosPage() {
   // Receipt Modal State
   const [completedOrder, setCompletedOrder] = useState<CompletedOrderData | null>(null);
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState<boolean>(false);
+
+  // Offline Queue Modal State
+  const [isQueueModalOpen, setIsQueueModalOpen] = useState<boolean>(false);
+  const [queueStats, setQueueStats] = useState<OfflineQueueStats>({
+    total: 0,
+    pending: 0,
+    syncing: 0,
+    requiresReview: 0,
+    synced: 0,
+    failed: 0,
+  });
+
+  const refreshQueueStats = useCallback(async () => {
+    try {
+      const s = await getOfflineQueueStats();
+      setQueueStats(s);
+    } catch (e) {
+      // Ignore IDB errors
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshQueueStats();
+  }, [refreshQueueStats]);
+
+  useEffect(() => {
+    if (network.isOnline && network.wasOffline) {
+      syncOfflineOrders({
+        onSuccessToast: (cnt) => {
+          toast.syncSuccess(cnt);
+          refreshQueueStats();
+        },
+        onConflictToast: (code, reason) => {
+          toast.syncConflict(code, reason);
+          refreshQueueStats();
+        },
+      }).then(() => refreshQueueStats());
+    }
+  }, [network.isOnline, network.wasOffline, refreshQueueStats, toast]);
 
   // Filter Modal State
   const [isFilterModalOpen, setIsFilterModalOpen] = useState<boolean>(false);
@@ -666,17 +714,9 @@ export default function PosPage() {
     setActiveCategoryId(id);
   }, []);
 
-  // Order Submission Logic (Server-Authoritative Pricing & Idempotency)
+  // Order Submission Logic (Server-Authoritative Pricing, Idempotency & Offline Queue)
   const submitOrder = async (targetFundId: number) => {
     if (cartItems.length === 0) return;
-
-    if (!network.isOnline) {
-      toast.warning(
-        'Chế độ Bán Hàng Ngoại Tuyến sẽ được kích hoạt tại Phase 6. Vui lòng kết nối mạng để gửi đơn hàng.',
-        { title: 'Đang Ngoại Tuyến' }
-      );
-      return;
-    }
 
     const fundIdNum = Number(targetFundId);
     if (!fundIdNum || isNaN(fundIdNum)) {
@@ -685,6 +725,100 @@ export default function PosPage() {
     }
 
     const orderCartSnapshot = [...cartItems];
+
+    // ── Offline Mode Order Processing (Cash Only) ──
+    if (!network.isOnline) {
+      if (fundIdNum !== 1) {
+        toast.warning(
+          'Không thể xác nhận chuyển khoản ngân hàng / VietQR khi đang ngoại tuyến. Vui lòng chọn thanh toán Tiền mặt.',
+          { title: 'Chỉ chấp nhận Tiền mặt' }
+        );
+        return;
+      }
+
+      const offlineOrderId = typeof crypto !== 'undefined' && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `off_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+      const idempotencyKey = typeof crypto !== 'undefined' && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `idemp_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+      const deviceId = await getDeviceId();
+      const provisionalCode = 'OFF-' + offlineOrderId.replace(/-/g, '').substring(0, 8).toUpperCase();
+
+      const offlineOrder: OfflineOrder = {
+        offline_order_id: offlineOrderId,
+        idempotency_key: idempotencyKey,
+        device_id: deviceId,
+        catalog_version: lastSyncedAt || Date.now(),
+        created_at_device: new Date().toISOString(),
+        queued_at: Date.now(),
+        payload: {
+          idempotency_key: idempotencyKey,
+          fund_id: fundIdNum,
+          promotion_id: selectedPromotion ? selectedPromotion.id : undefined,
+          note: orderNote || undefined,
+          manual_discount: discountAmount > 0 ? discountAmount : undefined,
+          shipping_fee: shippingFee > 0 ? shippingFee : undefined,
+          surcharge: surcharge > 0 ? surcharge : undefined,
+          created_at: orderCreatedAt || undefined,
+          items: cartItems.map((item) => ({
+            product_variant_id: item.selectedVariant.id,
+            quantity: item.quantity,
+            topping_ids: (item.selectedToppings || []).map((t) => t.id),
+            notes: item.notes || '',
+          })),
+        },
+        display_snapshot: {
+          order_code: provisionalCode,
+          items: orderCartSnapshot,
+          subtotal: cartSubtotal,
+          discount: discountAmount,
+          promotion_discount: promotionDiscount,
+          promotion_name: selectedPromotion?.name || undefined,
+          shipping_fee: shippingFee,
+          surcharge: surcharge,
+          total: cartTotal,
+          final_total: cartTotal,
+          payment_method: 'Tiền mặt (Offline)',
+          cashier_name: 'Thu ngân',
+          note: orderNote || undefined,
+          is_offline_provisional: true,
+        },
+        status: 'pending',
+        retry_count: 0,
+        last_error: null,
+        error_code: null,
+        server_order_id: null,
+        server_order_code: null,
+        synced_at: null,
+      };
+
+      await enqueueOfflineOrder(offlineOrder);
+
+      setCartItems([]);
+      setOrderNote('');
+      setDiscountAmount(0);
+      setSelectedPromotion(null);
+      setPromotionDiscount(0);
+      setShippingFee(0);
+      setPlatformFeeDiscount(0);
+      setSurcharge(0);
+      setOrderCreatedAt(null);
+      setIsCheckoutModalOpen(false);
+      setIsVietQRModalOpen(false);
+      setIsCartDrawerOpen(false);
+
+      setCompletedOrder(offlineOrder.display_snapshot);
+      if (settings?.auto_show_receipt_after_checkout !== 'false') {
+        setIsReceiptModalOpen(true);
+      }
+      clearCartFromOfflineCache().catch(() => {});
+      localStorage.removeItem('rabbitpos_active_cart');
+      refreshQueueStats();
+      toast.queuedOrder(provisionalCode);
+      return;
+    }
+
     const idempotencyKey = typeof crypto !== 'undefined' && crypto.randomUUID
       ? crypto.randomUUID()
       : `ord_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
@@ -763,6 +897,13 @@ export default function PosPage() {
   const handleInitiatePayment = (fundId: number) => {
     setSelectedFundId(fundId);
     if (fundId === 2) {
+      if (!network.isOnline) {
+        toast.warning(
+          'Không thể xác nhận chuyển khoản ngân hàng / VietQR khi đang ngoại tuyến. Vui lòng chọn thanh toán Tiền mặt.',
+          { title: 'Chỉ chấp nhận Tiền mặt' }
+        );
+        return;
+      }
       setIsCheckoutModalOpen(false);
       setIsVietQRModalOpen(true);
     } else {
@@ -873,6 +1014,25 @@ export default function PosPage() {
               <WifiOff className="w-3.5 h-3.5 text-amber-700" />
               Ngoại tuyến {lastSyncedAt && `(${new Date(lastSyncedAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })})`}
             </span>
+          )}
+
+          {/* Offline Queue Badge Button */}
+          {queueStats.total > 0 && (
+            <button
+              type="button"
+              onClick={() => setIsQueueModalOpen(true)}
+              className={`px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer shadow-2xs ${
+                queueStats.requiresReview > 0
+                  ? 'bg-rose-100 text-rose-800 border border-rose-300 animate-pulse'
+                  : 'bg-amber-100 text-amber-900 border border-amber-300'
+              }`}
+              title="Xem danh sách đơn hàng ngoại tuyến"
+            >
+              <span>⚡ Hàng đợi</span>
+              <span className="bg-amber-200 text-amber-900 text-[10px] px-1.5 py-0.2 rounded-full font-black">
+                {queueStats.pending + queueStats.requiresReview}
+              </span>
+            </button>
           )}
 
           <div className="relative flex-1 min-w-0">
@@ -1317,6 +1477,13 @@ export default function PosPage() {
           }}
           order={completedOrder}
           settings={settings}
+        />
+
+        <OfflineQueueModal
+          isOpen={isQueueModalOpen}
+          onClose={() => setIsQueueModalOpen(false)}
+          settings={settings}
+          onSyncCompleted={refreshQueueStats}
         />
       </div>
     </AppShell>

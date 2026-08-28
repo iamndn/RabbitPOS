@@ -26,6 +26,7 @@ export interface CompletedOrderData {
   total: number;
   final_total?: number;
   note?: string;
+  is_offline_provisional?: boolean;
 }
 
 interface ReceiptModalProps {
@@ -115,9 +116,15 @@ export default function ReceiptModal({ isOpen, onClose, order, settings: initial
             <p className="text-[10px] text-slate-600">{storeAddress}</p>
             <p className="text-[10px] text-slate-600">Hotline: {storePhone}</p>
             <div className="pt-2">
-              <span className="inline-block text-xs font-black tracking-widest uppercase border-y border-slate-800 py-0.5 my-1">
-                PHIẾU THANH TOÁN
-              </span>
+              {order.is_offline_provisional ? (
+                <div className="bg-amber-100 text-amber-900 border border-amber-300 font-black text-[11px] py-1 px-2 rounded-md my-1 text-center tracking-wider uppercase">
+                  ⚠️ PHIẾU TẠM - CHƯA ĐỒNG BỘ
+                </div>
+              ) : (
+                <span className="inline-block text-xs font-black tracking-widest uppercase border-y border-slate-800 py-0.5 my-1">
+                  PHIẾU THANH TOÁN
+                </span>
+              )}
             </div>
             <div className="pt-1 text-[10px] text-slate-700 text-left space-y-0.5">
               <div className="flex justify-between">
@@ -244,6 +251,11 @@ export default function ReceiptModal({ isOpen, onClose, order, settings: initial
           <div className="text-center pt-3 text-[10px] text-slate-600 space-y-1">
             <p className="font-bold text-slate-800">{t('pos.thank_you_title')}</p>
             <p className="italic">{t('pos.thank_you_sub')}</p>
+            {order.is_offline_provisional && (
+              <p className="text-[9px] text-amber-800 font-bold pt-1 border-t border-dashed border-amber-200 mt-2">
+                * Đơn hàng tạo ngoại tuyến và sẽ tự động đồng bộ khi có Internet.
+              </p>
+            )}
           </div>
         </div>
 
