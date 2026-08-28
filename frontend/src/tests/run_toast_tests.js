@@ -1,15 +1,9 @@
-/**
- * Unit Test Suite for RabbitPOS Toast Notification Logic
- * Tests: Auto-dismiss durations, manual dismiss, queue size limit (max 3),
- * deduplication window (2s), and timer cleanups.
- */
-
-import { ToastItem, ToastType, ToastOptions } from '../types/toast';
+// Toast Unit Test Runner
 
 const MAX_TOASTS = 3;
 const DEDUPLICATION_WINDOW_MS = 2000;
 
-export function getDefaultDuration(type: ToastType): number {
+function getDefaultDuration(type) {
   switch (type) {
     case 'success':
     case 'info':
@@ -19,22 +13,23 @@ export function getDefaultDuration(type: ToastType): number {
     case 'error':
       return 7000;
     case 'loading':
-      return 0; // Persistent
+      return 0;
     default:
       return 4000;
   }
 }
 
-export class ToastManager {
-  public toasts: ToastItem[] = [];
-  public activeTimers = new Map<string, NodeJS.Timeout>();
-  public recentToasts = new Map<string, number>();
+class ToastManager {
+  constructor() {
+    this.toasts = [];
+    this.activeTimers = new Map();
+    this.recentToasts = new Map();
+  }
 
-  public showToast(type: ToastType, message: string, options: ToastOptions = {}): string {
+  showToast(type, message, options = {}) {
     const now = Date.now();
     const dedupKey = `${type}:${message.trim()}`;
 
-    // Deduplication check within 2s
     const lastShown = this.recentToasts.get(dedupKey);
     if (lastShown && now - lastShown < DEDUPLICATION_WINDOW_MS) {
       return options.id || dedupKey;
@@ -45,7 +40,7 @@ export class ToastManager {
     const duration = options.duration !== undefined ? options.duration : getDefaultDuration(type);
     const dismissible = options.dismissible !== undefined ? options.dismissible : true;
 
-    const newToast: ToastItem = {
+    const newToast = {
       id,
       type,
       title: options.title,
@@ -63,7 +58,6 @@ export class ToastManager {
       this.activeTimers.set(id, timer);
     }
 
-    // Max 3 toasts queue
     const filtered = this.toasts.filter((t) => t.id !== id);
     if (filtered.length >= MAX_TOASTS) {
       const removed = filtered.slice(0, filtered.length - MAX_TOASTS + 1);
@@ -82,7 +76,7 @@ export class ToastManager {
     return id;
   }
 
-  public dismiss(id: string) {
+  dismiss(id) {
     const timer = this.activeTimers.get(id);
     if (timer) {
       clearTimeout(timer);
@@ -91,23 +85,20 @@ export class ToastManager {
     this.toasts = this.toasts.filter((t) => t.id !== id);
   }
 
-  public clearAll() {
+  clearAll() {
     this.activeTimers.forEach((timer) => clearTimeout(timer));
     this.activeTimers.clear();
     this.toasts = [];
   }
 }
 
-// Self-contained Verification Suite
-export function runToastLogicTests(): { passed: number; failed: number } {
+function runTests() {
   let passed = 0;
-  let failed = 0;
 
-  function assert(condition: boolean, msg: string) {
+  function assert(condition, msg) {
     if (!condition) {
-      failed++;
       console.error(`❌ FAIL: ${msg}`);
-      throw new Error(`Assertion failed: ${msg}`);
+      process.exit(1);
     } else {
       passed++;
       console.log(`✅ PASS: ${msg}`);
@@ -159,5 +150,7 @@ export function runToastLogicTests(): { passed: number; failed: number } {
   assert(manager.toasts.length === 0, 'Loading toast dismissed');
 
   manager.clearAll();
-  return { passed, failed };
+  console.log(`\n🎉 All ${passed} Toast logic tests PASSED successfully!`);
 }
+
+runTests();
