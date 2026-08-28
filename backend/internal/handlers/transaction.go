@@ -47,8 +47,8 @@ func (h *TransactionHandler) ListTransactions(c *gin.Context) {
 	if category := strings.TrimSpace(c.Query("category")); category != "" && category != "all" {
 		categoryAliases := map[string][]string{
 			"sale":                    {"sale", "Doanh thu bán hàng POS", "Doanh thu bán hàng", "Bán hàng"},
-			"Doanh thu bán hàng POS": {"sale", "Doanh thu bán hàng POS", "Doanh thu bán hàng", "Bán hàng"},
-			"Doanh thu bán hàng":     {"sale", "Doanh thu bán hàng POS", "Doanh thu bán hàng", "Bán hàng"},
+			"Doanh thu bán hàng POS":  {"sale", "Doanh thu bán hàng POS", "Doanh thu bán hàng", "Bán hàng"},
+			"Doanh thu bán hàng":      {"sale", "Doanh thu bán hàng POS", "Doanh thu bán hàng", "Bán hàng"},
 			"ingredient_purchase":     {"ingredient_purchase", "Mua nguyên liệu", "Mua nguyên vật liệu", "Nguyên liệu"},
 			"Mua nguyên liệu":         {"ingredient_purchase", "Mua nguyên liệu", "Mua nguyên vật liệu", "Nguyên liệu"},
 			"utility_bill":            {"utility_bill", "Chi phí vận hành", "Vận hành"},
@@ -839,8 +839,8 @@ func (h *TransactionHandler) GetCategoryBreakdown(c *gin.Context) {
 		Code  string
 	}{
 		"sale":                    {Label: "Doanh thu bán hàng POS", Code: "sale"},
-		"doanh thu bán hàng pos": {Label: "Doanh thu bán hàng POS", Code: "sale"},
-		"doanh thu bán hàng":     {Label: "Doanh thu bán hàng POS", Code: "sale"},
+		"doanh thu bán hàng pos":  {Label: "Doanh thu bán hàng POS", Code: "sale"},
+		"doanh thu bán hàng":      {Label: "Doanh thu bán hàng POS", Code: "sale"},
 		"ingredient_purchase":     {Label: "Mua nguyên liệu (Sữa, Cà phê, Đá)", Code: "ingredient_purchase"},
 		"mua nguyên liệu":         {Label: "Mua nguyên liệu (Sữa, Cà phê, Đá)", Code: "ingredient_purchase"},
 		"utility_bill":            {Label: "Chi phí vận hành (Điện, Nước, Net)", Code: "utility_bill"},

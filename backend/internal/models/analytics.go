@@ -162,10 +162,10 @@ type FundPeriodTotals struct {
 }
 
 type FundsPeriodSummaryResponse struct {
-	SelectedMonth string             `json:"selected_month"`
-	PreviousMonth string             `json:"previous_month"`
-	Funds         []FundPeriodItem   `json:"funds"`
-	Totals        FundPeriodTotals   `json:"totals"`
+	SelectedMonth string           `json:"selected_month"`
+	PreviousMonth string           `json:"previous_month"`
+	Funds         []FundPeriodItem `json:"funds"`
+	Totals        FundPeriodTotals `json:"totals"`
 }
 
 // --- Expense Category Breakdown Models ---

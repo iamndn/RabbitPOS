@@ -93,13 +93,13 @@ func (s *SheetsSyncService) GetConfig() (*SheetsConfig, error) {
 	}
 
 	cfg := &SheetsConfig{
-		SyncEnabled:      false,
-		SpreadsheetID:    "",
+		SyncEnabled:        false,
+		SpreadsheetID:      "",
 		ServiceAccountJSON: "",
-		AutoRealtimeSync: true,
-		LastSyncedAt:     "",
-		LastSyncStatus:   "idle",
-		LastSyncError:    "",
+		AutoRealtimeSync:   true,
+		LastSyncedAt:       "",
+		LastSyncStatus:     "idle",
+		LastSyncError:      "",
 	}
 
 	for _, st := range settings {

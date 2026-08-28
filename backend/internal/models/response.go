@@ -8,11 +8,12 @@ import (
 )
 
 // ResponseEnvelope represents the mandatory JSON structure per project rules.
-// Structure: { "status": "success|error", "data": {...}, "message": "..." }
+// Structure: { "status": "success|error", "error_code": "...", "data": {...}, "message": "..." }
 type ResponseEnvelope struct {
-	Status  string      `json:"status"`
-	Data    interface{} `json:"data,omitempty"`
-	Message string      `json:"message"`
+	Status    string      `json:"status"`
+	ErrorCode string      `json:"error_code,omitempty"`
+	Data      interface{} `json:"data,omitempty"`
+	Message   string      `json:"message"`
 }
 
 // SendSuccess sends a standardized success JSON response
@@ -30,6 +31,16 @@ func SendError(c *gin.Context, statusCode int, message string) {
 		Status:  "error",
 		Data:    nil,
 		Message: message,
+	})
+}
+
+// SendErrorCode sends a standardized error JSON response with a specific domain error code
+func SendErrorCode(c *gin.Context, statusCode int, errorCode string, message string) {
+	c.JSON(statusCode, ResponseEnvelope{
+		Status:    "error",
+		ErrorCode: errorCode,
+		Data:      nil,
+		Message:   message,
 	})
 }
 
@@ -51,4 +62,3 @@ func SendInternalErrorLogged(c *gin.Context, publicMessage string, internalErr e
 	}
 	SendError(c, http.StatusInternalServerError, publicMessage)
 }
-

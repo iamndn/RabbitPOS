@@ -507,7 +507,7 @@ export default function TagManagerModal({
             {/* Unified Drag-and-Drop Tags List */}
             {tags.length === 0 ? (
               <div className="p-5 sm:p-6 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-slate-400 text-xs font-semibold">
-                Chưa có nhãn nào. Hãy nhấn "Khôi phục mặc định" hoặc thêm nhãn mới từ biểu mẫu phía trên!
+                Chưa có nhãn nào. Hãy nhấn &quot;Khôi phục mặc định&quot; hoặc thêm nhãn mới từ biểu mẫu phía trên!
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">

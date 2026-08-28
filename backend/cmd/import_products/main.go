@@ -16,8 +16,8 @@ import (
 )
 
 type CatalogData struct {
-	Categories map[string]int           `json:"categories"`
-	Products   map[string]ProductData   `json:"products"`
+	Categories map[string]int         `json:"categories"`
+	Products   map[string]ProductData `json:"products"`
 }
 
 type ProductData struct {

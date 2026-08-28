@@ -55,7 +55,7 @@ func SetupRouter(cfg *config.Config, db *gorm.DB, emailSvc *services.EmailServic
 	txHandler := handlers.NewTransactionHandler(db, sheetsSyncSvc, fundCache)
 	analyticsHandler := handlers.NewAnalyticsHandler(db, emailSvc)
 	settingHandler := handlers.NewSettingHandler(db, emailSvc, settingCache)
-	backupHandler := handlers.NewBackupHandler(db)
+	backupHandler := handlers.NewBackupHandler(db, catCache, productCache, fundCache, settingCache, toppingCache)
 	importerHandler := handlers.NewImporterHandler(importerSvc)
 	toppingHandler := handlers.NewToppingHandler(db, toppingCache)
 	promotionHandler := handlers.NewPromotionHandler(db)
@@ -198,8 +198,9 @@ func SetupRouter(cfg *config.Config, db *gorm.DB, emailSvc *services.EmailServic
 				adminOnly.POST("/settings/sheets/sync-now", sheetsSyncHandler.SyncNow)
 				adminOnly.GET("/settings/sheets/status", sheetsSyncHandler.GetStatus)
 
-				// Database Manual Backup & Restore
+				// Database Manual Backup & Restore V2
 				adminOnly.GET("/backup/export", backupHandler.ExportBackup)
+				adminOnly.POST("/backup/preview", backupHandler.PreviewBackup)
 				adminOnly.POST("/backup/restore", backupHandler.RestoreBackup)
 
 				// Data Import Engine (Excel & CSV)

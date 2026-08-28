@@ -27,15 +27,15 @@ func NewEmailService(db *gorm.DB) *EmailService {
 
 // smtpConfig holds runtime SMTP credentials loaded from the settings table
 type smtpConfig struct {
-	Host             string
-	Port             string
-	User             string
-	Password         string
-	FromEmail        string
-	FromName         string
-	RecipientEmails  []string
+	Host              string
+	Port              string
+	User              string
+	Password          string
+	FromEmail         string
+	FromName          string
+	RecipientEmails   []string
 	EnableDailyReport bool
-	DailyReportTime  string
+	DailyReportTime   string
 }
 
 // loadSMTPConfig reads SMTP and report config from the settings table at runtime
@@ -53,9 +53,9 @@ func (s *EmailService) loadSMTPConfig() smtpConfig {
 	)`).Scan(&rows)
 
 	cfg := smtpConfig{
-		Host:      "smtp.gmail.com",
-		Port:      "587",
-		FromName:  "Thỏ Juice & Coffee - RabbitPOS",
+		Host:            "smtp.gmail.com",
+		Port:            "587",
+		FromName:        "Thỏ Juice & Coffee - RabbitPOS",
 		DailyReportTime: "22:30",
 	}
 
@@ -198,13 +198,13 @@ func (s *EmailService) GetDefaultRecipients() []string {
 // --- Financial Data Aggregation Structs ---
 
 type dailyRevenueSummary struct {
-	TotalGrossSales  float64
-	TotalDiscounts   float64
-	ShippingFees     float64
-	Surcharges       float64
-	NetRevenue       float64
-	OrderCount       int64
-	AOV              float64
+	TotalGrossSales float64
+	TotalDiscounts  float64
+	ShippingFees    float64
+	Surcharges      float64
+	NetRevenue      float64
+	OrderCount      int64
+	AOV             float64
 }
 
 type fundCollection struct {
@@ -229,18 +229,18 @@ type topProduct struct {
 }
 
 type dailyReportData struct {
-	Date             string
-	StoreName        string
-	Revenue          dailyRevenueSummary
-	FundCollections  []fundCollection
-	Expenses         []expenseCategory
-	TotalExpenses    float64
-	EstimatedCOGS    float64
-	GrossProfit      float64
-	NetProfit        float64
-	TopProducts      []topProduct
-	TriggeredBy      string
-	GeneratedAt      string
+	Date            string
+	StoreName       string
+	Revenue         dailyRevenueSummary
+	FundCollections []fundCollection
+	Expenses        []expenseCategory
+	TotalExpenses   float64
+	EstimatedCOGS   float64
+	GrossProfit     float64
+	NetProfit       float64
+	TopProducts     []topProduct
+	TriggeredBy     string
+	GeneratedAt     string
 }
 
 // aggregateDailyData queries all financial metrics for the given date
@@ -349,14 +349,14 @@ func (s *EmailService) aggregateDailyData(date time.Time) dailyReportData {
 
 	// Human-readable category labels
 	categoryLabels := map[string]string{
-		"ingredient_purchase":       "Nguyên vật liệu",
-		"utility_bill":              "Chi phí tiện ích",
-		"reconciliation_variance":   "Chênh lệch kiểm kê",
-		"salary":                    "Lương nhân viên",
-		"packaging":                 "Vật tư đóng gói",
-		"equipment":                 "Thiết bị & dụng cụ",
-		"marketing":                 "Marketing & quảng cáo",
-		"other":                     "Chi phí khác",
+		"ingredient_purchase":     "Nguyên vật liệu",
+		"utility_bill":            "Chi phí tiện ích",
+		"reconciliation_variance": "Chênh lệch kiểm kê",
+		"salary":                  "Lương nhân viên",
+		"packaging":               "Vật tư đóng gói",
+		"equipment":               "Thiết bị & dụng cụ",
+		"marketing":               "Marketing & quảng cáo",
+		"other":                   "Chi phí khác",
 	}
 	for _, er := range expenseRows {
 		label, ok := categoryLabels[er.Category]

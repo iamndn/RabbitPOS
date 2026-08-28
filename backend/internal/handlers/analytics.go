@@ -1004,12 +1004,12 @@ func (h *AnalyticsHandler) GetProductsSalesPerformance(c *gin.Context) {
 		totalRev    float64
 		totalProfit float64
 
-		topSoldName    string
-		topSoldQty     int64
-		topRevName     string
-		topRevAmount   float64
-		topProfitName  string
-		topProfitAmt   float64
+		topSoldName   string
+		topSoldQty    int64
+		topRevName    string
+		topRevAmount  float64
+		topProfitName string
+		topProfitAmt  float64
 	)
 
 	for _, r := range rawRows {
@@ -1086,11 +1086,11 @@ func (h *AnalyticsHandler) GetProductsSalesPerformance(c *gin.Context) {
 
 // HourlyDistributionItem holds metrics for one hour of the day (0..23)
 type HourlyDistributionItem struct {
-	Hour        int     `json:"hour"`
-	Label       string  `json:"label"` // e.g. "07:00 - 08:00"
-	OrderCount  int64   `json:"order_count"`
-	Revenue     float64 `json:"revenue"`
-	Percentage  float64 `json:"percentage"`
+	Hour       int     `json:"hour"`
+	Label      string  `json:"label"` // e.g. "07:00 - 08:00"
+	OrderCount int64   `json:"order_count"`
+	Revenue    float64 `json:"revenue"`
+	Percentage float64 `json:"percentage"`
 }
 
 type HourlyDistributionResponse struct {

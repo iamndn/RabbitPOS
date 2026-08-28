@@ -574,7 +574,7 @@ export default function PosPage() {
     setActiveCategoryId(id);
   }, []);
 
-  // Order Submission Logic
+  // Order Submission Logic (Server-Authoritative Pricing & Idempotency)
   const submitOrder = async (targetFundId: number) => {
     if (cartItems.length === 0) return;
 
@@ -584,42 +584,38 @@ export default function PosPage() {
       return;
     }
 
-    const currentSubtotal = cartItems.reduce((acc, item) => acc + item.lineTotal, 0);
-    const currentTotal = Math.max(
-      0,
-      currentSubtotal - discountAmount - promotionDiscount - platformFeeDiscount + shippingFee + surcharge
-    );
     const orderCartSnapshot = [...cartItems];
+    const idempotencyKey = typeof crypto !== 'undefined' && crypto.randomUUID
+      ? crypto.randomUUID()
+      : `ord_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 
     const payload = {
+      idempotency_key: idempotencyKey,
       fund_id: fundIdNum,
-      subtotal: currentSubtotal,
-      discount_amount: discountAmount,
-      promotion_id: selectedPromotion ? selectedPromotion.id : null,
-      promotion_discount: promotionDiscount,
-      shipping_fee: shippingFee,
-      platform_fee_discount: platformFeeDiscount,
-      surcharge: surcharge,
-      total_amount: currentTotal,
-      note: orderNote,
+      promotion_id: selectedPromotion ? selectedPromotion.id : undefined,
+      note: orderNote || undefined,
+      manual_discount: discountAmount > 0 ? discountAmount : undefined,
+      shipping_fee: shippingFee > 0 ? shippingFee : undefined,
+      surcharge: surcharge > 0 ? surcharge : undefined,
       created_at: orderCreatedAt || undefined,
       items: cartItems.map((item) => ({
         product_variant_id: item.selectedVariant.id,
         quantity: item.quantity,
-        unit_price: item.unitPrice,
-        line_total: item.lineTotal,
-        selected_toppings: item.selectedToppings || [],
-        toppings_price: item.toppingsPrice || 0,
+        topping_ids: (item.selectedToppings || []).map((t) => t.id),
         notes: item.notes || '',
       })),
     };
 
     const res = await fetchApi<any>('/orders', {
       method: 'POST',
+      headers: {
+        'Idempotency-Key': idempotencyKey,
+      },
       body: JSON.stringify(payload),
     });
 
     if (res.status === 'success' && res.data) {
+      const serverOrder = res.data;
       setCartItems([]);
       setOrderNote('');
       setDiscountAmount(0);
@@ -634,19 +630,22 @@ export default function PosPage() {
       setIsCartDrawerOpen(false);
 
       const orderData: CompletedOrderData = {
-        order_code: res.data.order_code,
-        created_at: res.data.created_at || new Date().toISOString(),
+        order_code: serverOrder.order_code,
+        created_at: serverOrder.created_at || new Date().toISOString(),
         items: orderCartSnapshot,
-        subtotal: currentSubtotal,
-        discount: discountAmount,
-        promotion_discount: promotionDiscount,
-        platform_fee_discount: platformFeeDiscount,
-        shipping_fee: shippingFee,
-        surcharge: surcharge,
-        total: currentTotal,
-        payment_method: res.data.fund?.name || (fundIdNum === 1 ? 'Tiền mặt' : 'Chuyển khoản'),
-        cashier_name: res.data.cashier_name || 'Thu ngân',
-        note: orderNote,
+        subtotal: serverOrder.subtotal,
+        discount: serverOrder.discount_amount || serverOrder.manual_discount || 0,
+        discount_amount: serverOrder.discount_amount || serverOrder.manual_discount || 0,
+        promotion_discount: serverOrder.promotion_discount || 0,
+        promotion_name: serverOrder.promotion?.name || undefined,
+        platform_fee_discount: serverOrder.platform_fee_discount || 0,
+        shipping_fee: serverOrder.shipping_fee || 0,
+        surcharge: serverOrder.surcharge || 0,
+        total: serverOrder.total_amount,
+        final_total: serverOrder.total_amount,
+        payment_method: serverOrder.fund?.name || (fundIdNum === 1 ? 'Tiền mặt' : 'Chuyển khoản'),
+        cashier_name: serverOrder.cashier_name || serverOrder.created_by || 'Thu ngân',
+        note: serverOrder.note || orderNote,
       };
 
       setCompletedOrder(orderData);

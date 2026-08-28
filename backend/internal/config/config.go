@@ -35,12 +35,12 @@ type Config struct {
 	InitialStaffPassword string
 
 	// SMTP Email configuration (used as fallback defaults; runtime values are read from settings table)
-	SMTPHost             string
-	SMTPPort             string
-	SMTPUser             string
-	SMTPPassword         string
-	SMTPFromEmail        string
-	SMTPFromName         string
+	SMTPHost      string
+	SMTPPort      string
+	SMTPUser      string
+	SMTPPassword  string
+	SMTPFromEmail string
+	SMTPFromName  string
 
 	// Email report configuration defaults
 	ReportRecipientEmails  string

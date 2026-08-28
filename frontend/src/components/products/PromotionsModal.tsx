@@ -427,7 +427,7 @@ export default function PromotionsModal({ isOpen, onClose, settings: initialSett
           <div className="text-center py-12 bg-slate-50 rounded-2xl border border-slate-200">
             <Gift className="w-10 h-10 text-slate-300 mx-auto mb-2" />
             <p className="text-slate-500 font-bold text-sm">Chưa có chương trình khuyến mãi nào</p>
-            <p className="text-xs text-slate-400 mt-1">Bấm "+ Thêm KM" để tạo chương trình giảm giá đầu tiên</p>
+            <p className="text-xs text-slate-400 mt-1">Bấm &quot;+ Thêm KM&quot; để tạo chương trình giảm giá đầu tiên</p>
           </div>
         ) : (
           <div className="space-y-2">

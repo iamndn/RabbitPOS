@@ -18,10 +18,10 @@ type IngredientConversionPreset struct {
 type Ingredient struct {
 	ID                   uint      `gorm:"primaryKey" json:"id"`
 	Name                 string    `gorm:"type:varchar(150);not null;uniqueIndex" json:"name"`
-	Category             string    `gorm:"type:varchar(50);not null;default:'fruit'" json:"category"` // 'fruit', 'ingredient', 'packaging', 'other'
-	Unit                 string    `gorm:"type:varchar(20);not null" json:"unit"`                     // Legacy field, synced with BaseUnit
-	BaseUnit             string    `gorm:"type:varchar(20);not null;default:'ml'" json:"base_unit"`  // 'ml', 'g', 'cái', 'quả', 'viên', 'lon', 'hộp', 'lít', 'kg'
-	LossRate             float64   `gorm:"type:decimal(5,4);not null;default:0.0000" json:"loss_rate"` // e.g. 0.05 for 5% waste
+	Category             string    `gorm:"type:varchar(50);not null;default:'fruit'" json:"category"`              // 'fruit', 'ingredient', 'packaging', 'other'
+	Unit                 string    `gorm:"type:varchar(20);not null" json:"unit"`                                  // Legacy field, synced with BaseUnit
+	BaseUnit             string    `gorm:"type:varchar(20);not null;default:'ml'" json:"base_unit"`                // 'ml', 'g', 'cái', 'quả', 'viên', 'lon', 'hộp', 'lít', 'kg'
+	LossRate             float64   `gorm:"type:decimal(5,4);not null;default:0.0000" json:"loss_rate"`             // e.g. 0.05 for 5% waste
 	LatestPurchasePrice  float64   `gorm:"type:decimal(15,2);not null;default:0.00" json:"latest_purchase_price"`  // Effective base price per BaseUnit
 	AveragePurchasePrice float64   `gorm:"type:decimal(15,2);not null;default:0.00" json:"average_purchase_price"` // Effective weighted average base price per BaseUnit
 	YieldRate            float64   `gorm:"type:decimal(5,4);not null;default:1.0000" json:"yield_rate"`            // Legacy field: 1.0 - LossRate
@@ -41,7 +41,7 @@ type PurchaseItem struct {
 	TransactionID         uint        `gorm:"not null;index" json:"transaction_id"`
 	IngredientID          uint        `gorm:"not null;index" json:"ingredient_id"`
 	Ingredient            *Ingredient `gorm:"foreignKey:IngredientID" json:"ingredient,omitempty"`
-	Quantity              float64     `gorm:"type:decimal(10,3);not null" json:"quantity"` // Legacy field: total_base_quantity or purchase_quantity
+	Quantity              float64     `gorm:"type:decimal(10,3);not null" json:"quantity"`                // Legacy field: total_base_quantity or purchase_quantity
 	UnitPrice             float64     `gorm:"type:decimal(15,2);not null;default:0.00" json:"unit_price"` // Legacy field
 	Subtotal              float64     `gorm:"type:decimal(15,2);not null;default:0.00" json:"subtotal"`
 	PurchaseUnit          string      `gorm:"type:varchar(50);not null;default:''" json:"purchase_unit"`
@@ -133,21 +133,21 @@ type SaveRecipeRequest struct {
 
 // CostComparisonItem represents a menu item variant or topping with theoretical vs actual COGS
 type CostComparisonItem struct {
-	TargetType           string             `json:"target_type"` // 'variant' | 'topping'
-	TargetID             uint               `json:"target_id"`
-	ProductID            *uint              `json:"product_id,omitempty"`
-	ProductName          string             `json:"product_name"`
-	VariantName          string             `json:"variant_name"`
-	CategoryName         string             `json:"category_name"`
-	ImageURL             string             `json:"image_url"`
-	RetailPrice          float64            `json:"retail_price"`
-	CurrentCOGS          float64            `json:"current_cogs"`
-	EstimatedCOGS        float64            `json:"estimated_cogs"`     // Based on latest effective purchase price per base unit
-	EstimatedCOGSAvg     float64            `json:"estimated_cogs_avg"` // Based on weighted average effective purchase price per base unit
-	Difference           float64            `json:"difference"`         // EstimatedCOGS - CurrentCOGS
-	MarginPercentage     float64            `json:"margin_percentage"`  // (RetailPrice - EstimatedCOGS) / RetailPrice * 100
-	RecipeItemCount      int                `json:"recipe_item_count"`
-	RecipeDetails        []RecipeDetailItem `json:"recipe_details,omitempty"`
+	TargetType       string             `json:"target_type"` // 'variant' | 'topping'
+	TargetID         uint               `json:"target_id"`
+	ProductID        *uint              `json:"product_id,omitempty"`
+	ProductName      string             `json:"product_name"`
+	VariantName      string             `json:"variant_name"`
+	CategoryName     string             `json:"category_name"`
+	ImageURL         string             `json:"image_url"`
+	RetailPrice      float64            `json:"retail_price"`
+	CurrentCOGS      float64            `json:"current_cogs"`
+	EstimatedCOGS    float64            `json:"estimated_cogs"`     // Based on latest effective purchase price per base unit
+	EstimatedCOGSAvg float64            `json:"estimated_cogs_avg"` // Based on weighted average effective purchase price per base unit
+	Difference       float64            `json:"difference"`         // EstimatedCOGS - CurrentCOGS
+	MarginPercentage float64            `json:"margin_percentage"`  // (RetailPrice - EstimatedCOGS) / RetailPrice * 100
+	RecipeItemCount  int                `json:"recipe_item_count"`
+	RecipeDetails    []RecipeDetailItem `json:"recipe_details,omitempty"`
 }
 
 // RecipeDetailItem provides breakdown per ingredient in the recipe

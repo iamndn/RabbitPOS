@@ -1,10 +1,10 @@
 package handlers
 
 import (
+	"bytes"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"bytes"
 	"testing"
 
 	"github.com/RabbitPOS/backend/internal/models"

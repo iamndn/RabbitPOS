@@ -58,7 +58,7 @@ func main() {
 	// 3. Load product & variants map
 	var products []models.Product
 	db.Preload("Variants").Find(&products)
-	prodVariantMap := make(map[string]models.ProductVariant) // key: LOWER(prod_name + "_" + variant_name)
+	prodVariantMap := make(map[string]models.ProductVariant)   // key: LOWER(prod_name + "_" + variant_name)
 	prodFirstVariant := make(map[string]models.ProductVariant) // key: LOWER(prod_name) -> first variant
 
 	for _, p := range products {

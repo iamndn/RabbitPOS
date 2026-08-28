@@ -16,26 +16,26 @@ import (
 
 // AutoTaggingConfig holds the rule thresholds for automated product tagging
 type AutoTaggingConfig struct {
-	Enabled                    bool    `json:"enabled"`
-	TimeWindowDays             int     `json:"time_window_days"`               // e.g. 14 days
-	BestSellerTopN             int     `json:"best_seller_top_n"`               // e.g. Top 5 items
-	BestSellerMinQty           int     `json:"best_seller_min_qty"`             // e.g. minimum 10 cups
-	NewProductDays             int     `json:"new_product_days"`               // e.g. created <= 14 days
-	HighProfitMarginMin        float64 `json:"high_profit_margin_min"`          // e.g. 60.0%
-	HighProfitMinQty           int     `json:"high_profit_min_qty"`             // e.g. minimum 5 cups
+	Enabled                     bool    `json:"enabled"`
+	TimeWindowDays              int     `json:"time_window_days"`                // e.g. 14 days
+	BestSellerTopN              int     `json:"best_seller_top_n"`               // e.g. Top 5 items
+	BestSellerMinQty            int     `json:"best_seller_min_qty"`             // e.g. minimum 10 cups
+	NewProductDays              int     `json:"new_product_days"`                // e.g. created <= 14 days
+	HighProfitMarginMin         float64 `json:"high_profit_margin_min"`          // e.g. 60.0%
+	HighProfitMinQty            int     `json:"high_profit_min_qty"`             // e.g. minimum 5 cups
 	PrioritizeBestSellerOverNew bool    `json:"prioritize_best_seller_over_new"` // if true, best_seller wins over new
 }
 
 // DefaultAutoTaggingConfig returns standard defaults
 func DefaultAutoTaggingConfig() AutoTaggingConfig {
 	return AutoTaggingConfig{
-		Enabled:                    false,
-		TimeWindowDays:             14,
-		BestSellerTopN:             5,
-		BestSellerMinQty:           10,
-		NewProductDays:             14,
-		HighProfitMarginMin:        60.0,
-		HighProfitMinQty:           5,
+		Enabled:                     false,
+		TimeWindowDays:              14,
+		BestSellerTopN:              5,
+		BestSellerMinQty:            10,
+		NewProductDays:              14,
+		HighProfitMarginMin:         60.0,
+		HighProfitMinQty:            5,
 		PrioritizeBestSellerOverNew: true,
 	}
 }
@@ -153,20 +153,20 @@ func (s *AutoTaggingService) SaveConfig(cfg AutoTaggingConfig) error {
 
 // RawQueryResult models single row from the high-speed CTE aggregation
 type rawProductMetric struct {
-	ProductID        uint      `gorm:"column:product_id"`
-	ProductName      string    `gorm:"column:product_name"`
-	CategoryName     string    `gorm:"column:category_name"`
-	ImageURL         string    `gorm:"column:image_url"`
-	CurrentTag       string    `gorm:"column:current_tag"`
-	TagLocked        bool      `gorm:"column:tag_locked"`
-	IsActive         bool      `gorm:"column:is_active"`
-	CreatedAt        time.Time `gorm:"column:created_at"`
-	TotalQty         int       `gorm:"column:total_qty"`
-	TotalRevenue     float64   `gorm:"column:total_revenue"`
-	TotalCogs        float64   `gorm:"column:total_cogs"`
-	TotalProfit      float64   `gorm:"column:total_profit"`
-	MarginPercent    float64   `gorm:"column:margin_percent"`
-	SalesRank        int       `gorm:"column:sales_rank"`
+	ProductID     uint      `gorm:"column:product_id"`
+	ProductName   string    `gorm:"column:product_name"`
+	CategoryName  string    `gorm:"column:category_name"`
+	ImageURL      string    `gorm:"column:image_url"`
+	CurrentTag    string    `gorm:"column:current_tag"`
+	TagLocked     bool      `gorm:"column:tag_locked"`
+	IsActive      bool      `gorm:"column:is_active"`
+	CreatedAt     time.Time `gorm:"column:created_at"`
+	TotalQty      int       `gorm:"column:total_qty"`
+	TotalRevenue  float64   `gorm:"column:total_revenue"`
+	TotalCogs     float64   `gorm:"column:total_cogs"`
+	TotalProfit   float64   `gorm:"column:total_profit"`
+	MarginPercent float64   `gorm:"column:margin_percent"`
+	SalesRank     int       `gorm:"column:sales_rank"`
 }
 
 // Evaluate runs the single-pass CTE evaluation without applying changes to DB

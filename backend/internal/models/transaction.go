@@ -34,9 +34,9 @@ type Transaction struct {
 	ReferenceOrder   *Order              `gorm:"foreignKey:ReferenceOrderID" json:"reference_order,omitempty"`
 	Description      string              `gorm:"type:text" json:"description"`
 	// CreatedBy is kept for backward compatibility; prefer CashierName for new code
-	CreatedBy   string `gorm:"type:varchar(100);default:'system'" json:"created_by"`
-	CashierID   *uint  `gorm:"index" json:"cashier_id,omitempty"`
-	CashierName string `gorm:"type:varchar(100);default:''" json:"cashier_name"`
+	CreatedBy   string    `gorm:"type:varchar(100);default:'system'" json:"created_by"`
+	CashierID   *uint     `gorm:"index" json:"cashier_id,omitempty"`
+	CashierName string    `gorm:"type:varchar(100);default:''" json:"cashier_name"`
 	CreatedAt   time.Time `json:"created_at"`
 	// PurchaseItems contains itemized inventory purchase items if logged with this transaction
 	PurchaseItems []PurchaseItem `gorm:"foreignKey:TransactionID;constraint:OnDelete:CASCADE" json:"purchase_items,omitempty"`

@@ -30,6 +30,7 @@ import {
   ExternalLink,
   Zap,
   Receipt,
+  ShieldCheck,
 } from 'lucide-react';
 import AppShell from '@/components/AppShell';
 import { fetchApi, uploadImage, getImageUrl, getApiBaseUrl } from '@/lib/api';
@@ -111,11 +112,13 @@ export default function SettingsPage() {
   const [syncingSheetsNow, setSyncingSheetsNow] = useState<boolean>(false);
   const sheetsJsonFileRef = useRef<HTMLInputElement>(null);
 
-  // JSON Backup & Restore State
+  // JSON Backup & Restore V2 State
   const [exportingBackup, setExportingBackup] = useState<boolean>(false);
+  const [previewingBackup, setPreviewingBackup] = useState<boolean>(false);
   const [restoringBackup, setRestoringBackup] = useState<boolean>(false);
   const [backupFile, setBackupFile] = useState<File | null>(null);
   const [backupPreview, setBackupPreview] = useState<any | null>(null);
+  const [backupEncryptionKey, setBackupEncryptionKey] = useState<string>('');
   const [showRestoreModal, setShowRestoreModal] = useState<boolean>(false);
   const [restoreResult, setRestoreResult] = useState<any | null>(null);
   const backupInputRef = useRef<HTMLInputElement>(null);
@@ -221,35 +224,65 @@ export default function SettingsPage() {
     }
   };
 
-  // JSON File Selection Handler
+  // JSON File Selection & Preview Handler (Dry-run)
   const handleBackupFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setBackupFile(file);
     setRestoreResult(null);
+    setErrorMessage(null);
+    setPreviewingBackup(true);
+
     try {
-      const text = await file.text();
-      const json = JSON.parse(text);
-      setBackupPreview(json);
-    } catch {
-      setErrorMessage('File sao lưu không hợp lệ hoặc bị lỗi định dạng JSON.');
-      setBackupFile(null);
+      const baseUrl = getApiBaseUrl();
+      const token = typeof window !== 'undefined' ? localStorage.getItem('rabbitpos_jwt_token') : null;
+      const formData = new FormData();
+      formData.append('backup_file', file);
+      if (backupEncryptionKey) {
+        formData.append('encryption_key', backupEncryptionKey);
+      }
+
+      const res = await fetch(`${baseUrl}/backup/preview`, {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: formData,
+      });
+
+      const json = await res.json();
+      if (json.status === 'success' && json.data) {
+        setBackupPreview(json.data);
+      } else {
+        setErrorMessage(json.message || 'Kiểm tra file sao lưu thất bại');
+        setBackupPreview(null);
+      }
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Kiểm tra file sao lưu thất bại');
       setBackupPreview(null);
+    } finally {
+      setPreviewingBackup(false);
     }
   };
 
-  // JSON Restore Execute Handler
+  // JSON Restore Execute Handler with Single-Use Restore Token
   const handleExecuteRestore = async () => {
-    if (!backupPreview) return;
+    if (!backupPreview || !backupPreview.restore_token) return;
     setRestoringBackup(true);
     setErrorMessage(null);
     setShowRestoreModal(false);
+
     try {
       const res = await fetchApi<any>('/backup/restore', {
         method: 'POST',
-        body: JSON.stringify(backupPreview),
+        body: JSON.stringify({
+          restore_token: backupPreview.restore_token,
+          encryption_key: backupEncryptionKey,
+        }),
+        headers: {
+          'X-Restore-Token': backupPreview.restore_token,
+        },
         skipCache: true,
       });
+
       if (res.status === 'success' && res.data) {
         setRestoreResult(res.data);
         setToastMessage(t('settings.restore_success'));
@@ -1465,16 +1498,20 @@ export default function SettingsPage() {
                         <input
                           ref={backupInputRef}
                           type="file"
-                          accept=".json,application/json"
+                          accept=".json,.enc,application/json"
                           onChange={handleBackupFileSelect}
                           className="hidden"
                         />
                         <div className="w-12 h-12 rounded-2xl bg-white border border-slate-200 text-violet-600 flex items-center justify-center mx-auto shadow-2xs">
-                          <FileJson className="w-6 h-6" />
+                          {previewingBackup ? <RefreshCw className="w-6 h-6 animate-spin text-violet-600" /> : <FileJson className="w-6 h-6" />}
                         </div>
                         <div>
                           <span className="font-bold text-slate-700 block text-xs">
-                            {backupFile ? backupFile.name : t('settings.restore_select_file')}
+                            {previewingBackup
+                              ? 'Đang kiểm tra toàn vẹn file sao lưu...'
+                              : backupFile
+                              ? backupFile.name
+                              : t('settings.restore_select_file')}
                           </span>
                           <span className="text-slate-400 text-[11px]">
                             {backupFile
@@ -1484,22 +1521,108 @@ export default function SettingsPage() {
                         </div>
                       </div>
 
-                      {/* If file is selected and parsed, show action button */}
-                      {backupFile && backupPreview && (
-                        <div className="pt-2 flex justify-end">
-                          <button
-                            type="button"
-                            onClick={() => setShowRestoreModal(true)}
-                            disabled={restoringBackup}
-                            className="bg-amber-600 hover:bg-amber-700 disabled:bg-slate-300 text-white font-bold text-xs py-3 px-6 rounded-xl shadow-xs transition flex items-center gap-2"
-                          >
-                            {restoringBackup ? (
-                              <RefreshCw className="w-4 h-4 animate-spin" />
-                            ) : (
-                              <UploadCloud className="w-4 h-4" />
-                            )}
-                            <span>{restoringBackup ? t('settings.restore_loading') : t('settings.restore_btn')}</span>
-                          </button>
+                      {/* Backup Preview V2 Rich Card */}
+                      {backupPreview && (
+                        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3 animate-in fade-in">
+                          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200/80 pb-2.5">
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-slate-800 text-xs">Phiên bản:</span>
+                              {backupPreview.format_version === '2.0' ? (
+                                <span className="bg-emerald-100 text-emerald-800 text-[11px] font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                                  <ShieldCheck className="w-3.5 h-3.5" /> Chuẩn V2.0 (16 Bảng dữ liệu)
+                                </span>
+                              ) : (
+                                <span className="bg-amber-100 text-amber-800 text-[11px] font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                                  <AlertTriangle className="w-3.5 h-3.5" /> Chuẩn cũ V1.0 (Thiếu BOM & NVL)
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-[11px] text-slate-500">
+                              {backupPreview.checksum_valid ? (
+                                <span className="text-emerald-600 font-semibold flex items-center gap-1">
+                                  <Check className="w-3.5 h-3.5" /> Checksum SHA-256 Hợp Lệ
+                                </span>
+                              ) : (
+                                <span className="text-slate-400 font-medium">Không có Checksum V2</span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Warnings List if any */}
+                          {backupPreview.warnings && backupPreview.warnings.length > 0 && (
+                            <div className="bg-amber-50/80 border border-amber-200 text-amber-900 p-3 rounded-xl space-y-1">
+                              {backupPreview.warnings.map((w: string, idx: number) => (
+                                <div key={idx} className="text-[11px] flex items-start gap-1.5 leading-relaxed">
+                                  <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
+                                  <span>{w}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* 16 Tables Stats Grid */}
+                          {backupPreview.stats && (
+                            <div className="space-y-1.5">
+                              <span className="font-bold text-slate-700 block text-[11px] uppercase tracking-wide">
+                                Thống kê 16 bảng dữ liệu:
+                              </span>
+                              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 text-[11px] text-slate-600">
+                                <div className="bg-white p-2 rounded-lg border border-slate-200/60">
+                                  <span className="font-bold text-slate-900">{backupPreview.stats.categories || 0}</span> Danh mục
+                                </div>
+                                <div className="bg-white p-2 rounded-lg border border-slate-200/60">
+                                  <span className="font-bold text-slate-900">{backupPreview.stats.products || 0}</span> Sản phẩm
+                                </div>
+                                <div className="bg-white p-2 rounded-lg border border-slate-200/60">
+                                  <span className="font-bold text-slate-900">{backupPreview.stats.product_variants || 0}</span> Biến thể
+                                </div>
+                                <div className="bg-white p-2 rounded-lg border border-slate-200/60">
+                                  <span className="font-bold text-slate-900">{backupPreview.stats.toppings || 0}</span> Topping
+                                </div>
+                                <div className="bg-white p-2 rounded-lg border border-slate-200/60">
+                                  <span className="font-bold text-indigo-600">{backupPreview.stats.ingredients || 0}</span> Nguyên vật liệu
+                                </div>
+                                <div className="bg-white p-2 rounded-lg border border-slate-200/60">
+                                  <span className="font-bold text-indigo-600">{backupPreview.stats.purchase_items || 0}</span> Nhập hàng
+                                </div>
+                                <div className="bg-white p-2 rounded-lg border border-slate-200/60">
+                                  <span className="font-bold text-indigo-600">{backupPreview.stats.recipe_items || 0}</span> Định lượng BOM
+                                </div>
+                                <div className="bg-white p-2 rounded-lg border border-slate-200/60">
+                                  <span className="font-bold text-slate-900">{backupPreview.stats.promotions || 0}</span> Khuyến mãi
+                                </div>
+                                <div className="bg-white p-2 rounded-lg border border-slate-200/60">
+                                  <span className="font-bold text-slate-900">{backupPreview.stats.orders || 0}</span> Đơn hàng
+                                </div>
+                                <div className="bg-white p-2 rounded-lg border border-slate-200/60">
+                                  <span className="font-bold text-slate-900">{backupPreview.stats.order_items || 0}</span> Chi tiết đơn
+                                </div>
+                                <div className="bg-white p-2 rounded-lg border border-slate-200/60">
+                                  <span className="font-bold text-slate-900">{backupPreview.stats.transactions || 0}</span> Giao dịch
+                                </div>
+                                <div className="bg-white p-2 rounded-lg border border-slate-200/60">
+                                  <span className="font-bold text-slate-900">{backupPreview.stats.funds || 0}</span> Quỹ tiền
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Action Button */}
+                          <div className="pt-2 flex justify-end">
+                            <button
+                              type="button"
+                              onClick={() => setShowRestoreModal(true)}
+                              disabled={restoringBackup || !backupPreview.restore_token}
+                              className="bg-amber-600 hover:bg-amber-700 disabled:bg-slate-300 text-white font-bold text-xs py-2.5 px-5 rounded-xl shadow-xs transition flex items-center gap-2 cursor-pointer"
+                            >
+                              {restoringBackup ? (
+                                <RefreshCw className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <UploadCloud className="w-4 h-4" />
+                              )}
+                              <span>{restoringBackup ? t('settings.restore_loading') : 'Khôi phục dữ liệu'}</span>
+                            </button>
+                          </div>
                         </div>
                       )}
 
@@ -1519,7 +1642,10 @@ export default function SettingsPage() {
                                 <span className="font-semibold text-slate-800">{restoreResult.restored_stats.products}</span> Sản phẩm
                               </div>
                               <div className="bg-white/80 p-2 rounded-lg border border-emerald-100">
-                                <span className="font-semibold text-slate-800">{restoreResult.restored_stats.toppings}</span> Topping
+                                <span className="font-semibold text-slate-800">{restoreResult.restored_stats.ingredients || 0}</span> NVL
+                              </div>
+                              <div className="bg-white/80 p-2 rounded-lg border border-emerald-100">
+                                <span className="font-semibold text-slate-800">{restoreResult.restored_stats.recipe_items || 0}</span> BOM
                               </div>
                               <div className="bg-white/80 p-2 rounded-lg border border-emerald-100">
                                 <span className="font-semibold text-slate-800">{restoreResult.restored_stats.orders}</span> Đơn hàng
@@ -1529,9 +1655,6 @@ export default function SettingsPage() {
                               </div>
                               <div className="bg-white/80 p-2 rounded-lg border border-emerald-100">
                                 <span className="font-semibold text-slate-800">{restoreResult.restored_stats.funds}</span> Quỹ tiền
-                              </div>
-                              <div className="bg-white/80 p-2 rounded-lg border border-emerald-100">
-                                <span className="font-semibold text-slate-800">{restoreResult.restored_stats.promotions}</span> Khuyến mãi
                               </div>
                               <div className="bg-white/80 p-2 rounded-lg border border-emerald-100">
                                 <span className="font-semibold text-slate-800">{restoreResult.restored_stats.settings}</span> Cài đặt
@@ -1841,6 +1964,19 @@ export default function SettingsPage() {
                 </div>
               </div>
 
+              <div className="flex items-center justify-between text-xs bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                <span className="font-medium text-slate-600">Phiên bản:</span>
+                {backupPreview.format_version === '2.0' ? (
+                  <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                    V2.0 (16 Bảng dữ liệu)
+                  </span>
+                ) : (
+                  <span className="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                    V1.0 (Thiếu BOM & NVL)
+                  </span>
+                )}
+              </div>
+
               <p className="text-xs text-slate-600 leading-relaxed">
                 {t('settings.restore_confirm_desc')}
               </p>
@@ -1854,6 +1990,8 @@ export default function SettingsPage() {
                     <div>• Danh mục: <b>{backupPreview.stats.categories || 0}</b></div>
                     <div>• Sản phẩm: <b>{backupPreview.stats.products || 0}</b></div>
                     <div>• Topping: <b>{backupPreview.stats.toppings || 0}</b></div>
+                    <div>• Nguyên vật liệu: <b>{backupPreview.stats.ingredients || 0}</b></div>
+                    <div>• Định lượng BOM: <b>{backupPreview.stats.recipe_items || 0}</b></div>
                     <div>• Đơn hàng: <b>{backupPreview.stats.orders || 0}</b></div>
                     <div>• Giao dịch: <b>{backupPreview.stats.transactions || 0}</b></div>
                     <div>• Quỹ tiền: <b>{backupPreview.stats.funds || 0}</b></div>
@@ -1872,7 +2010,7 @@ export default function SettingsPage() {
                 <button
                   type="button"
                   onClick={handleExecuteRestore}
-                  disabled={restoringBackup}
+                  disabled={restoringBackup || !backupPreview.restore_token}
                   className="w-full sm:flex-1 py-2.5 px-4 rounded-xl bg-amber-600 hover:bg-amber-700 disabled:bg-slate-300 text-white font-bold text-xs shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer text-center"
                 >
                   {restoringBackup ? <RefreshCw className="w-4 h-4 animate-spin" /> : <UploadCloud className="w-4 h-4" />}

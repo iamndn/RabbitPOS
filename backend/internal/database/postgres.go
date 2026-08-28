@@ -75,6 +75,7 @@ func InitDB(cfg *config.Config) (*gorm.DB, error) {
 		&models.Ingredient{},
 		&models.PurchaseItem{},
 		&models.RecipeItem{},
+		&models.IdempotencyRecord{},
 	)
 	if err != nil {
 		log.Printf("Warning: Failed during DB auto-migration: %v", err)
@@ -442,4 +443,3 @@ func seedTransactionCategories(db *gorm.DB) {
 	}
 	log.Println("[SEED] Default transaction categories initialized successfully.")
 }
-
