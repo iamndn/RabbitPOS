@@ -22,6 +22,8 @@ import {
   TrendingUp,
   TrendingDown,
   ArrowUpDown,
+  Wifi,
+  WifiOff,
 } from 'lucide-react';
 import AppShell from '@/components/AppShell';
 import type { CartItem, Product } from '@/components/pos/VariantSelectorModal';
@@ -32,6 +34,16 @@ import { fetchApi, ApiResponse, getImageUrl } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
 import { useConfirm } from '@/context/ConfirmContext';
 import { useToast } from '@/context/ToastContext';
+import { useNetworkStatus } from '@/hooks/useNetworkStatus';
+import {
+  saveCatalogToOfflineCache,
+  loadCatalogFromOfflineCache,
+  saveCartToOfflineCache,
+  loadCartFromOfflineCache,
+  clearCartFromOfflineCache,
+  Category,
+  Topping,
+} from '@/lib/offline/catalog';
 import { formatCurrency, SettingsMap } from '@/lib/utils';
 import { CustomTag, DEFAULT_SYSTEM_TAGS, getTagBadgeStyle } from '@/components/products/TagManagerModal';
 
@@ -68,12 +80,7 @@ const CheckoutModal = dynamic(() => import('@/components/pos/CheckoutModal'), { 
 const VietQRModal = dynamic(() => import('@/components/pos/VietQRModal'), { ssr: false });
 const ReceiptModal = dynamic(() => import('@/components/pos/ReceiptModal'), { ssr: false });
 
-interface Category {
-  id: number;
-  name: string;
-  image_url?: string;
-  display_order: number;
-}
+
 
 export type ProductSortOption = 'default' | 'name-asc' | 'name-desc' | 'category' | 'tag' | 'price-asc' | 'price-desc';
 
@@ -315,6 +322,7 @@ export default function PosPage() {
   const { t } = useTranslation();
   const { showAlert } = useConfirm();
   const toast = useToast();
+  const network = useNetworkStatus();
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [customTags, setCustomTags] = useState<CustomTag[]>([]);
@@ -325,6 +333,8 @@ export default function PosPage() {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [debouncedSearch, setDebouncedSearch] = useState<string>('');
   const [settings, setSettings] = useState<SettingsMap | null>(null);
+  const [lastSyncedAt, setLastSyncedAt] = useState<number | null>(null);
+  const [isOfflineData, setIsOfflineData] = useState<boolean>(false);
 
   // Cart State
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
@@ -359,9 +369,29 @@ export default function PosPage() {
     return () => clearTimeout(handler);
   }, [searchQuery]);
 
-  // Parallelized initial data loading with in-memory caching and automatic retry
+  // Parallelized initial data loading with in-memory caching, IndexedDB caching and automatic retry
   const loadData = useCallback(async (retryCount = 0) => {
     setLoading(true);
+
+    // If browser is offline, directly load from IndexedDB
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      try {
+        const cached = await loadCatalogFromOfflineCache();
+        if (cached) {
+          setProducts(cached.products);
+          setCategories(cached.categories);
+          setSettings(cached.settings);
+          if (cached.customTags) setCustomTags(cached.customTags);
+          setLastSyncedAt(cached.lastSyncedAt);
+          setIsOfflineData(true);
+        }
+      } catch (err) {
+        console.error('Failed to load catalog from IndexedDB:', err);
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
 
     try {
       const [settingsRes, catRes, prodRes] = await Promise.all([
@@ -370,8 +400,8 @@ export default function PosPage() {
         fetchApi<Product[]>('/products'),
       ]);
 
+      let map: SettingsMap = {};
       if (settingsRes.status === 'success' && settingsRes.data) {
-        let map: SettingsMap = {};
         if (Array.isArray(settingsRes.data)) {
           settingsRes.data.forEach((s: any) => {
             if (s && s.key) map[s.key] = s.value;
@@ -393,8 +423,9 @@ export default function PosPage() {
         }
       }
 
+      let catList: Category[] = [];
       if (catRes.status === 'success') {
-        const catList = Array.isArray(catRes.data)
+        catList = Array.isArray(catRes.data)
           ? catRes.data
           : Array.isArray(catRes)
           ? (catRes as Category[])
@@ -402,52 +433,102 @@ export default function PosPage() {
         setCategories(catList);
       }
 
+      let prodList: Product[] = [];
       if (prodRes.status === 'success') {
-        const prodList = Array.isArray(prodRes.data)
+        prodList = Array.isArray(prodRes.data)
           ? prodRes.data
           : Array.isArray(prodRes)
           ? (prodRes as Product[])
           : [];
         setProducts(prodList);
+      }
+
+      // If online fetch succeeded, atomically persist into IndexedDB cache
+      if (prodList.length > 0 || catList.length > 0) {
+        const syncedTime = await saveCatalogToOfflineCache({
+          products: prodList,
+          categories: catList,
+          settings: map,
+          customTags,
+        });
+        setLastSyncedAt(syncedTime);
+        setIsOfflineData(false);
       } else if (retryCount < 2) {
-        // Cold-start retry
         setTimeout(() => loadData(retryCount + 1), 800);
         return;
       }
     } catch (err) {
-      console.error('Failed to load POS catalog data:', err);
-      if (retryCount < 2) {
-        setTimeout(() => loadData(retryCount + 1), 800);
-        return;
+      console.error('Network error loading POS catalog, attempting IndexedDB fallback:', err);
+      try {
+        const cached = await loadCatalogFromOfflineCache();
+        if (cached) {
+          setProducts(cached.products);
+          setCategories(cached.categories);
+          setSettings(cached.settings);
+          if (cached.customTags) setCustomTags(cached.customTags);
+          setLastSyncedAt(cached.lastSyncedAt);
+          setIsOfflineData(true);
+        } else if (retryCount < 2) {
+          setTimeout(() => loadData(retryCount + 1), 800);
+          return;
+        }
+      } catch (idbErr) {
+        console.error('IndexedDB fallback also failed:', idbErr);
       }
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [customTags]);
 
   useEffect(() => {
     loadData();
 
-    // 1. Restore Draft Cart Items from LocalStorage (Do not persist one-off discounts/fees across orders)
-    try {
-      const savedCart = localStorage.getItem('rabbitpos_active_cart');
-      if (savedCart) {
-        const parsed = JSON.parse(savedCart);
-        if (parsed.cartItems && Array.isArray(parsed.cartItems) && parsed.cartItems.length > 0) {
-          setCartItems(parsed.cartItems);
-        } else {
-          localStorage.removeItem('rabbitpos_active_cart');
+    // 1. Restore Draft Cart Items from IndexedDB (with LocalStorage fallback)
+    const restoreCart = async () => {
+      try {
+        const cachedCart = await loadCartFromOfflineCache();
+        if (cachedCart && Array.isArray(cachedCart.items) && cachedCart.items.length > 0) {
+          setCartItems(cachedCart.items);
+          if (cachedCart.orderNote) setOrderNote(cachedCart.orderNote);
+          if (cachedCart.discountAmount) setDiscountAmount(cachedCart.discountAmount);
+          if (cachedCart.selectedPromotion) setSelectedPromotion(cachedCart.selectedPromotion);
+          if (cachedCart.shippingFee) setShippingFee(cachedCart.shippingFee);
+          if (cachedCart.surcharge) setSurcharge(cachedCart.surcharge);
+          return;
         }
+
+        const savedCart = localStorage.getItem('rabbitpos_active_cart');
+        if (savedCart) {
+          const parsed = JSON.parse(savedCart);
+          if (parsed.cartItems && Array.isArray(parsed.cartItems) && parsed.cartItems.length > 0) {
+            setCartItems(parsed.cartItems);
+          } else {
+            localStorage.removeItem('rabbitpos_active_cart');
+          }
+        }
+      } catch (e) {
+        console.error('Failed to restore active cart', e);
       }
-    } catch (e) {
-      console.error('Failed to restore active cart', e);
-    }
+    };
+
+    restoreCart();
   }, [loadData]);
 
-  // 2. Persist Active Cart to LocalStorage (Only draft items; auto-reset fees & discounts when empty)
+  // 2. Persist Active Cart to IndexedDB & LocalStorage (Only draft items; auto-reset fees & discounts when empty)
   useEffect(() => {
     try {
       if (cartItems.length > 0) {
+        saveCartToOfflineCache({
+          items: cartItems,
+          orderNote,
+          discountAmount,
+          selectedPromotion,
+          promotionDiscount,
+          shippingFee,
+          platformFeeDiscount,
+          surcharge,
+        }).catch((e) => console.warn('Failed to cache cart in IndexedDB:', e));
+
         localStorage.setItem(
           'rabbitpos_active_cart',
           JSON.stringify({
@@ -455,6 +536,7 @@ export default function PosPage() {
           })
         );
       } else {
+        clearCartFromOfflineCache().catch(() => {});
         localStorage.removeItem('rabbitpos_active_cart');
         // Reset all adjustments, fees, and discounts for each fresh order
         setDiscountAmount(0);
@@ -467,9 +549,18 @@ export default function PosPage() {
         setOrderCreatedAt(null);
       }
     } catch (e) {
-      console.error('Failed to save cart to localStorage', e);
+      console.error('Failed to save cart', e);
     }
-  }, [cartItems]);
+  }, [
+    cartItems,
+    orderNote,
+    discountAmount,
+    selectedPromotion,
+    promotionDiscount,
+    shippingFee,
+    platformFeeDiscount,
+    surcharge,
+  ]);
 
   // 3. Dynamic Promotion Discount Evaluation
   useEffect(() => {
@@ -579,6 +670,14 @@ export default function PosPage() {
   const submitOrder = async (targetFundId: number) => {
     if (cartItems.length === 0) return;
 
+    if (!network.isOnline) {
+      toast.warning(
+        'Chế độ Bán Hàng Ngoại Tuyến sẽ được kích hoạt tại Phase 6. Vui lòng kết nối mạng để gửi đơn hàng.',
+        { title: 'Đang Ngoại Tuyến' }
+      );
+      return;
+    }
+
     const fundIdNum = Number(targetFundId);
     if (!fundIdNum || isNaN(fundIdNum)) {
       showAlert(t('common.error') || 'Lỗi', t('pos.order_failed', { message: 'Invalid payment fund selected' }), 'danger');
@@ -653,6 +752,8 @@ export default function PosPage() {
       if (settings?.auto_show_receipt_after_checkout !== 'false') {
         setIsReceiptModalOpen(true);
       }
+      clearCartFromOfflineCache().catch(() => {});
+      localStorage.removeItem('rabbitpos_active_cart');
       toast.success(t('pos.order_success', { code: res.data.order_code }));
     } else {
       toast.error(t('pos.order_failed', { message: res.message }));
@@ -759,6 +860,21 @@ export default function PosPage() {
       <div className="flex flex-col gap-3 sm:gap-4 max-w-7xl mx-auto w-full max-w-full overflow-x-hidden">
         {/* ── POS Search Bar (full-width, above 3-col panel) ── */}
         <div className="flex items-center gap-2 w-full">
+          {/* Network Status Badge */}
+          {network.isOnline ? (
+            <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-2 rounded-xl text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/80 shadow-2xs shrink-0">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+              {lastSyncedAt
+                ? `Đồng bộ: ${new Date(lastSyncedAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}`
+                : 'Trực tuyến'}
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-2 rounded-xl text-[11px] font-bold bg-amber-100 text-amber-900 border border-amber-300/80 shadow-2xs shrink-0 animate-pulse">
+              <WifiOff className="w-3.5 h-3.5 text-amber-700" />
+              Ngoại tuyến {lastSyncedAt && `(${new Date(lastSyncedAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })})`}
+            </span>
+          )}
+
           <div className="relative flex-1 min-w-0">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
@@ -1047,9 +1163,21 @@ export default function PosPage() {
               </div>
             ) : sortedAndFilteredProducts.length === 0 ? (
               <div className="bg-white p-8 sm:p-12 rounded-2xl border border-slate-200 text-center text-slate-500 text-xs shadow-2xs">
-                <Coffee className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                <p className="font-semibold text-slate-600">{t('pos.no_drinks')}</p>
-                <p className="text-[11px] text-slate-400 mt-1">Thử chọn danh mục khác hoặc xóa bộ lọc tìm kiếm.</p>
+                {!network.isOnline && safeProducts.length === 0 ? (
+                  <>
+                    <WifiOff className="w-10 h-10 text-amber-500 mx-auto mb-2.5" />
+                    <p className="font-bold text-slate-700 text-sm">Chưa có dữ liệu thực đơn ngoại tuyến</p>
+                    <p className="text-[11px] text-slate-400 mt-1 max-w-xs mx-auto">
+                      Thiết bị đang ngoại tuyến và chưa có bản lưu menu. Vui lòng kết nối Internet lần đầu để tải danh sách món.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <Coffee className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                    <p className="font-semibold text-slate-600">{t('pos.no_drinks')}</p>
+                    <p className="text-[11px] text-slate-400 mt-1">Thử chọn danh mục khác hoặc xóa bộ lọc tìm kiếm.</p>
+                  </>
+                )}
               </div>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3">

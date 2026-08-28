@@ -6,8 +6,8 @@
  *           Stale-While-Revalidate for the Next.js app shell (/, /pos, /dashboard, etc.)
  */
 
-const CACHE_NAME = 'rabbitpos-shell-v1';
-const STATIC_CACHE_NAME = 'rabbitpos-static-v1';
+const CACHE_NAME = 'rabbitpos-shell-v2';
+const STATIC_CACHE_NAME = 'rabbitpos-static-v2';
 
 // Static assets to pre-cache on SW install (app shell)
 const PRECACHE_URLS = [
