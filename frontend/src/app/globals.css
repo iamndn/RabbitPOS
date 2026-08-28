@@ -189,4 +189,28 @@ button, a, input, select, textarea, [role="button"] {
   .animate-scaleIn {
     animation: scaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
+
+  @keyframes toastProgress {
+    from {
+      width: 100%;
+    }
+    to {
+      width: 0%;
+    }
+  }
+
+  .animate-toast-progress {
+    animation: toastProgress linear forwards;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    ::before,
+    ::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
 }

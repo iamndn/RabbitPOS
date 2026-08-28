@@ -72,3 +72,45 @@ func TestCrypto_GenerateSecureToken(t *testing.T) {
 		t.Errorf("Tokens should be uniquely generated")
 	}
 }
+
+func TestCrypto_SettingSecret_EncryptionRoundTrip(t *testing.T) {
+	secretKey := "test-settings-secret-key-32bytes!"
+	plainSecret := "smtp_app_password_super_secret_123"
+
+	envelope, err := EncryptSettingSecret(plainSecret, secretKey)
+	if err != nil {
+		t.Fatalf("EncryptSettingSecret failed: %v", err)
+	}
+
+	if !IsSecretEncrypted(envelope) {
+		t.Errorf("Expected encrypted envelope to start with enc:v1:, got %s", envelope)
+	}
+
+	decrypted, err := DecryptSettingSecret(envelope, secretKey)
+	if err != nil {
+		t.Fatalf("DecryptSettingSecret failed: %v", err)
+	}
+
+	if decrypted != plainSecret {
+		t.Errorf("Expected decrypted %s, got %s", plainSecret, decrypted)
+	}
+}
+
+func TestCrypto_SettingSecret_TransparentMigration(t *testing.T) {
+	secretKey := "test-settings-secret-key-32bytes!"
+	legacyPlainSecret := "my_unencrypted_legacy_password"
+
+	if IsSecretEncrypted(legacyPlainSecret) {
+		t.Errorf("Plain text should not be detected as encrypted")
+	}
+
+	// Legacy plain text should be passed through safely
+	decrypted, err := DecryptSettingSecret(legacyPlainSecret, secretKey)
+	if err != nil {
+		t.Fatalf("DecryptSettingSecret failed on plaintext fallback: %v", err)
+	}
+
+	if decrypted != legacyPlainSecret {
+		t.Errorf("Expected transparent pass-through %s, got %s", legacyPlainSecret, decrypted)
+	}
+}

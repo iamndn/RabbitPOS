@@ -20,6 +20,7 @@ type User struct {
 	Role               UserRole  `gorm:"type:varchar(20);not null;default:'staff'" json:"role"`
 	IsActive           bool      `gorm:"default:true;not null" json:"is_active"`
 	NeedsPasswordSetup bool      `gorm:"default:true;not null" json:"needs_password_setup"`
+	TokenVersion       int       `gorm:"default:1;not null" json:"token_version"`
 	CreatedAt          time.Time `json:"created_at"`
 	UpdatedAt          time.Time `json:"updated_at"`
 }

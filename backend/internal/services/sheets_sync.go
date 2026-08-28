@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/RabbitPOS/backend/internal/models"
+	"github.com/RabbitPOS/backend/internal/utils"
 	"google.golang.org/api/option"
 	"google.golang.org/api/sheets/v4"
 	"gorm.io/gorm"
@@ -109,7 +110,13 @@ func (s *SheetsSyncService) GetConfig() (*SheetsConfig, error) {
 		case "google_sheets_spreadsheet_id":
 			cfg.SpreadsheetID = strings.TrimSpace(st.Value)
 		case "google_sheets_service_account_json":
-			cfg.ServiceAccountJSON = strings.TrimSpace(st.Value)
+			decrypted, err := utils.DecryptSettingSecret(st.Value, utils.GetSettingsEncryptionKey())
+			if err != nil {
+				log.Printf("[SHEETS WARN] Failed to decrypt service account JSON: %v", err)
+				cfg.ServiceAccountJSON = strings.TrimSpace(st.Value)
+			} else {
+				cfg.ServiceAccountJSON = strings.TrimSpace(decrypted)
+			}
 		case "google_sheets_auto_realtime_sync":
 			cfg.AutoRealtimeSync = strings.ToLower(strings.TrimSpace(st.Value)) != "false"
 		case "google_sheets_last_synced_at":

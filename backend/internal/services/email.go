@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/RabbitPOS/backend/internal/utils"
 	"gorm.io/gorm"
 )
 
@@ -68,7 +69,13 @@ func (s *EmailService) loadSMTPConfig() smtpConfig {
 		case "smtp_user":
 			cfg.User = r.Value
 		case "smtp_password":
-			cfg.Password = r.Value
+			decrypted, err := utils.DecryptSettingSecret(r.Value, utils.GetSettingsEncryptionKey())
+			if err != nil {
+				log.Printf("[EMAIL WARN] Failed to decrypt SMTP password: %v", err)
+				cfg.Password = r.Value
+			} else {
+				cfg.Password = decrypted
+			}
 		case "smtp_from_email":
 			cfg.FromEmail = r.Value
 		case "smtp_from_name":

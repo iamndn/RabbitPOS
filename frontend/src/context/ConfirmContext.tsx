@@ -2,11 +2,13 @@
 
 import React, { createContext, useContext, useState, useCallback, useRef } from 'react';
 import { ConfirmContextType, ConfirmOptions, ConfirmType } from '@/types/confirm';
+import { useToast } from '@/context/ToastContext';
 import ConfirmModal from '@/components/common/ConfirmModal';
 
 const ConfirmContext = createContext<ConfirmContextType | undefined>(undefined);
 
 export function ConfirmProvider({ children }: { children: React.ReactNode }) {
+  const toast = useToast();
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [options, setOptions] = useState<ConfirmOptions | null>(null);
   const resolverRef = useRef<((value: boolean) => void) | null>(null);
@@ -26,17 +28,14 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
 
   const showAlert = useCallback(
     (title: string, message?: string, type: ConfirmType = 'info'): Promise<void> => {
-      return new Promise<void>((resolve) => {
-        confirm({
-          title,
-          message,
-          type,
-          isAlert: true,
-          confirmText: 'OK',
-        }).then(() => resolve());
+      const toastType =
+        type === 'danger' ? 'error' : type === 'warning' ? 'warning' : type === 'success' ? 'success' : 'info';
+      toast.showToast(toastType, message || title, {
+        title: message ? title : undefined,
       });
+      return Promise.resolve();
     },
-    [confirm]
+    [toast]
   );
 
   const handleConfirm = useCallback(() => {

@@ -76,6 +76,8 @@ func InitDB(cfg *config.Config) (*gorm.DB, error) {
 		&models.PurchaseItem{},
 		&models.RecipeItem{},
 		&models.IdempotencyRecord{},
+		&models.AuditLog{},
+		&models.RevokedToken{},
 	)
 	if err != nil {
 		log.Printf("Warning: Failed during DB auto-migration: %v", err)

@@ -43,9 +43,13 @@ func SetupRouter(cfg *config.Config, db *gorm.DB, emailSvc *services.EmailServic
 	settingCache := cache.NewTTLCache(10 * time.Minute)
 	toppingCache := cache.NewTTLCache(5 * time.Minute)
 
+	// Audit & Rate Limiting Services
+	auditSvc := services.NewAuditService(db)
+	loginRateLimiter := middleware.NewMemoryRateLimiter(5, 1*time.Minute)
+
 	// Instantiate Handlers with TTL Cache instances
 	healthHandler := handlers.NewHealthHandler(db)
-	authHandler := handlers.NewAuthHandler(db, cfg)
+	authHandler := handlers.NewAuthHandler(db, cfg, loginRateLimiter, auditSvc)
 	uploadHandler := handlers.NewUploadHandler()
 	categoryHandler := handlers.NewCategoryHandler(db, catCache)
 	productHandler := handlers.NewProductHandler(db, productCache)
@@ -54,7 +58,7 @@ func SetupRouter(cfg *config.Config, db *gorm.DB, emailSvc *services.EmailServic
 	orderHandler := handlers.NewOrderHandler(db, sheetsSyncSvc, fundCache)
 	txHandler := handlers.NewTransactionHandler(db, sheetsSyncSvc, fundCache)
 	analyticsHandler := handlers.NewAnalyticsHandler(db, emailSvc)
-	settingHandler := handlers.NewSettingHandler(db, emailSvc, settingCache)
+	settingHandler := handlers.NewSettingHandler(db, emailSvc, settingCache, auditSvc)
 	backupHandler := handlers.NewBackupHandler(db, catCache, productCache, fundCache, settingCache, toppingCache)
 	importerHandler := handlers.NewImporterHandler(importerSvc)
 	toppingHandler := handlers.NewToppingHandler(db, toppingCache)
@@ -70,19 +74,19 @@ func SetupRouter(cfg *config.Config, db *gorm.DB, emailSvc *services.EmailServic
 	{
 		// Public Endpoints
 		v1.GET("/health", healthHandler.CheckHealth)
-		v1.POST("/auth/login", authHandler.Login)
+		v1.POST("/auth/login", middleware.LoginRateLimiterMiddleware(loginRateLimiter), authHandler.Login)
 		v1.POST("/auth/setup-password", authHandler.SetupPassword)
 
 		// Authenticated Routes Group
 		authenticated := v1.Group("")
-		authenticated.Use(middleware.AuthMiddleware(cfg.JWTSecret))
+		authenticated.Use(middleware.AuthMiddleware(cfg.JWTSecret, db))
 		{
 			// Auth User Session Routes
 			authenticated.POST("/auth/logout", authHandler.Logout)
 			authenticated.GET("/auth/me", authHandler.GetMe)
 			authenticated.POST("/upload", uploadHandler.UploadImage)
 
-			// Staff & Admin Accessible Endpoints (POS Operations, Settings & Active Promotions View)
+			// Staff & Admin Accessible Endpoints (POS Operations, Store Settings & Active Promotions View)
 			authenticated.GET("/categories", categoryHandler.ListCategories)
 			authenticated.GET("/products", productHandler.ListProducts)
 			authenticated.GET("/products/:id", productHandler.GetProductByID)
@@ -92,9 +96,9 @@ func SetupRouter(cfg *config.Config, db *gorm.DB, emailSvc *services.EmailServic
 			authenticated.GET("/orders", orderHandler.ListOrders)
 			authenticated.GET("/orders/:id", orderHandler.GetOrderByID)
 			authenticated.POST("/orders", orderHandler.CreateOrder)
-			authenticated.POST("/orders/:id/cancel", orderHandler.CancelOrder)
 			authenticated.GET("/vietqr/generate", orderHandler.GetVietQR)
-			authenticated.GET("/settings", settingHandler.GetSettings)
+			authenticated.GET("/settings/store", settingHandler.GetStoreSettings)
+			authenticated.GET("/settings", settingHandler.GetStoreSettings)
 
 			// Toppings: public read (for POS variant selector) + admin write
 			authenticated.GET("/toppings", toppingHandler.ListToppings)
@@ -188,7 +192,12 @@ func SetupRouter(cfg *config.Config, db *gorm.DB, emailSvc *services.EmailServic
 				// On-demand financial email report dispatcher
 				adminOnly.POST("/analytics/send-daily-report-email", analyticsHandler.SendDailyReportEmail)
 
+				// Order Cancellation (Admin Only)
+				adminOnly.POST("/orders/:id/cancel", orderHandler.CancelOrder)
+
 				// Settings Management
+				adminOnly.GET("/settings/admin", settingHandler.GetSettings)
+				adminOnly.GET("/settings", settingHandler.GetSettings)
 				adminOnly.PUT("/settings", settingHandler.UpdateSettings)
 				// SMTP connectivity test
 				adminOnly.POST("/settings/test-smtp", settingHandler.TestSMTP)

@@ -11,6 +11,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
+	"strings"
 )
 
 // ComputeSHA256Checksum serializes data to canonical JSON and computes its SHA-256 hex checksum
@@ -107,4 +109,73 @@ func GenerateSecureToken(byteLength int) (string, error) {
 		return "", err
 	}
 	return hex.EncodeToString(b), nil
+}
+
+// GetSettingsEncryptionKey retrieves the master encryption key from environment
+func GetSettingsEncryptionKey() string {
+	keys := []string{
+		"SETTINGS_ENCRYPTION_KEY",
+		"APP_ENCRYPTION_KEY",
+		"BACKUP_ENCRYPTION_KEY",
+	}
+	for _, k := range keys {
+		if val := os.Getenv(k); val != "" {
+			return val
+		}
+	}
+	// Fallback key for non-production environments
+	return "rabbitpos_default_secret_key_change_in_prod_2026"
+}
+
+// IsSecretEncrypted checks if a setting value is already stored in enc:v1 format
+func IsSecretEncrypted(val string) bool {
+	return strings.HasPrefix(strings.TrimSpace(val), "enc:v1:")
+}
+
+// EncryptSettingSecret encrypts a plaintext secret into an authenticated AEAD envelope format (enc:v1:<nonce>:<ciphertext>)
+func EncryptSettingSecret(plaintext string, secretKey string) (string, error) {
+	trimmed := strings.TrimSpace(plaintext)
+	if trimmed == "" {
+		return "", nil
+	}
+	if IsSecretEncrypted(trimmed) {
+		return trimmed, nil
+	}
+
+	key := DeriveKeyFromSecret(secretKey)
+	ciphertextB64, nonceB64, err := EncryptAESGCM([]byte(trimmed), key)
+	if err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("enc:v1:%s:%s", nonceB64, ciphertextB64), nil
+}
+
+// DecryptSettingSecret decrypts an AEAD envelope string into plaintext.
+// If the input is not encrypted (legacy plain text), it returns the plaintext directly for transparent migration.
+func DecryptSettingSecret(envelope string, secretKey string) (string, error) {
+	trimmed := strings.TrimSpace(envelope)
+	if trimmed == "" {
+		return "", nil
+	}
+	if !IsSecretEncrypted(trimmed) {
+		// Plain text fallback (automatic backward compatibility / transparent migration)
+		return trimmed, nil
+	}
+
+	parts := strings.Split(trimmed, ":")
+	if len(parts) != 4 || parts[0] != "enc" || parts[1] != "v1" {
+		return "", errors.New("malformed encrypted setting envelope format")
+	}
+
+	nonceB64 := parts[2]
+	ciphertextB64 := parts[3]
+	key := DeriveKeyFromSecret(secretKey)
+
+	plaintextBytes, err := DecryptAESGCM(ciphertextB64, nonceB64, key)
+	if err != nil {
+		return "", fmt.Errorf("failed to decrypt setting secret: %w", err)
+	}
+
+	return string(plaintextBytes), nil
 }

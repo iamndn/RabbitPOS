@@ -31,6 +31,7 @@ import { Promotion } from '@/types/promotion';
 import { fetchApi, ApiResponse, getImageUrl } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
 import { useConfirm } from '@/context/ConfirmContext';
+import { useToast } from '@/context/ToastContext';
 import { formatCurrency, SettingsMap } from '@/lib/utils';
 import { CustomTag, DEFAULT_SYSTEM_TAGS, getTagBadgeStyle } from '@/components/products/TagManagerModal';
 
@@ -172,7 +173,7 @@ const ProductCard = React.memo(function ProductCard({
   orderBtnLabel,
   t,
 }: ProductCardProps) {
-  const { showAlert } = useConfirm();
+  const toast = useToast();
   const startingPrice = useMemo(() => {
     return Array.isArray(product.variants) && product.variants.length > 0
       ? Math.min(...product.variants.map((v) => v.retail_price))
@@ -189,11 +190,11 @@ const ProductCard = React.memo(function ProductCard({
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (isSuspended) {
-      showAlert(t('common.info') || 'Thông báo', `${product.name} hiện đang tạm ngưng phục vụ.`, 'warning');
+      toast.warning(`${product.name} hiện đang tạm ngưng phục vụ.`);
       return;
     }
     if (isComingSoon) {
-      showAlert(t('common.info') || 'Thông báo', `${product.name} sắp ra mắt, quý khách vui lòng chờ nhé!`, 'info');
+      toast.info(`${product.name} sắp ra mắt, quý khách vui lòng chờ nhé!`);
       return;
     }
     if (isSingleVariant) {
@@ -313,6 +314,7 @@ const ProductCard = React.memo(function ProductCard({
 export default function PosPage() {
   const { t } = useTranslation();
   const { showAlert } = useConfirm();
+  const toast = useToast();
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [customTags, setCustomTags] = useState<CustomTag[]>([]);
@@ -341,7 +343,6 @@ export default function PosPage() {
   const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState<boolean>(false);
   const [isVietQRModalOpen, setIsVietQRModalOpen] = useState<boolean>(false);
   const [selectedFundId, setSelectedFundId] = useState<number | null>(null);
-  const [orderSuccessMessage, setOrderSuccessMessage] = useState<string | null>(null);
 
   // Receipt Modal State
   const [completedOrder, setCompletedOrder] = useState<CompletedOrderData | null>(null);
@@ -500,11 +501,11 @@ export default function PosPage() {
   // Memoized Cart Handlers
   const handleAddToCart = useCallback((newItem: CartItem) => {
     setCartItems((prev) => [...prev, newItem]);
-    setOrderSuccessMessage(
-      t('pos.added_to_cart', { name: `${newItem.product.name} (${newItem.selectedVariant.variant_name})` })
+    toast.success(
+      t('pos.added_to_cart', { name: `${newItem.product.name} (${newItem.selectedVariant.variant_name})` }),
+      { duration: 2500 }
     );
-    setTimeout(() => setOrderSuccessMessage(null), 3000);
-  }, [t]);
+  }, [t, toast]);
 
   const handleUpdateQty = useCallback((id: string, delta: number) => {
     setCartItems((prev) =>
@@ -652,10 +653,9 @@ export default function PosPage() {
       if (settings?.auto_show_receipt_after_checkout !== 'false') {
         setIsReceiptModalOpen(true);
       }
-      setOrderSuccessMessage(t('pos.order_success', { code: res.data.order_code }));
-      setTimeout(() => setOrderSuccessMessage(null), 5000);
+      toast.success(t('pos.order_success', { code: res.data.order_code }));
     } else {
-      showAlert(t('common.error') || 'Lỗi', t('pos.order_failed', { message: res.message }), 'danger');
+      toast.error(t('pos.order_failed', { message: res.message }));
     }
   };
 
@@ -757,16 +757,6 @@ export default function PosPage() {
   return (
     <AppShell>
       <div className="flex flex-col gap-3 sm:gap-4 max-w-7xl mx-auto w-full max-w-full overflow-x-hidden">
-        {/* Success Toast Banner */}
-        {orderSuccessMessage && (
-          <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold px-4 py-2.5 rounded-xl shadow-sm flex items-center justify-between animate-in fade-in duration-150">
-            <span className="flex items-center gap-1.5">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-              {orderSuccessMessage}
-            </span>
-          </div>
-        )}
-
         {/* ── POS Search Bar (full-width, above 3-col panel) ── */}
         <div className="flex items-center gap-2 w-full">
           <div className="relative flex-1 min-w-0">

@@ -36,18 +36,18 @@ import AppShell from '@/components/AppShell';
 import { fetchApi, uploadImage, getImageUrl, getApiBaseUrl } from '@/lib/api';
 import { SettingsMap, formatCurrency } from '@/lib/utils';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
+import { useToast } from '@/context/ToastContext';
 import ModernSelect from '@/components/common/ModernSelect';
 import ImageCropModal from '@/components/common/ImageCropModal';
 
 export default function SettingsPage() {
   const { t } = useTranslation();
+  const toast = useToast();
   const [activeTab, setActiveTab] = useState<'store' | 'currency' | 'vietqr' | 'email' | 'sheets' | 'backup'>('store');
   const [backupSubTab, setBackupSubTab] = useState<'json_backup' | 'excel_import'>('json_backup');
 
   const [loading, setLoading] = useState<boolean>(true);
   const [saving, setSaving] = useState<boolean>(false);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [logoUploading, setLogoUploading] = useState<boolean>(false);
   const [cropFile, setCropFile] = useState<File | null>(null);
   const [isCropModalOpen, setIsCropModalOpen] = useState<boolean>(false);
@@ -55,18 +55,16 @@ export default function SettingsPage() {
 
   const handleLogoCropComplete = async (croppedFile: File) => {
     setLogoUploading(true);
-    setErrorMessage(null);
     try {
       const res = await uploadImage(croppedFile);
       if (res.status === 'success' && res.data?.url) {
         handleChange('store_logo_url', res.data.url);
-        setToastMessage(t('settings.logo_upload_success') || 'Tải ảnh logo thành công');
-        setTimeout(() => setToastMessage(null), 3000);
+        toast.success(t('settings.logo_upload_success') || 'Tải ảnh logo thành công');
       } else {
-        setErrorMessage(res.message || 'Tải ảnh logo thất bại');
+        toast.error(res.message || 'Tải ảnh logo thất bại');
       }
     } catch (err: any) {
-      setErrorMessage(err?.message || 'Tải ảnh logo thất bại');
+      toast.error(err?.message || 'Tải ảnh logo thất bại');
     } finally {
       setLogoUploading(false);
     }
@@ -135,7 +133,6 @@ export default function SettingsPage() {
 
   const loadSettings = async () => {
     setLoading(true);
-    setErrorMessage(null);
     try {
       const res = await fetchApi<SettingsMap>('/settings');
       if (res.status === 'success' && res.data) {
@@ -144,10 +141,10 @@ export default function SettingsPage() {
           ...res.data,
         }));
       } else {
-        setErrorMessage(res.message || 'Không thể tải thông tin cài đặt');
+        toast.error(res.message || 'Không thể tải thông tin cài đặt');
       }
     } catch (e: any) {
-      setErrorMessage(e.message || 'Không thể kết nối đến máy chủ');
+      toast.error(e.message || 'Không thể kết nối đến máy chủ');
     } finally {
       setLoading(false);
     }
@@ -167,8 +164,6 @@ export default function SettingsPage() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    setErrorMessage(null);
-    setToastMessage(null);
 
     try {
       const res = await fetchApi<SettingsMap>('/settings', {
@@ -181,13 +176,12 @@ export default function SettingsPage() {
           ...prev,
           ...res.data,
         }));
-        setToastMessage(t('settings.save_success'));
-        setTimeout(() => setToastMessage(null), 3500);
+        toast.success(t('settings.save_success'));
       } else {
-        setErrorMessage(res.message || 'Lưu cài đặt thất bại');
+        toast.error(res.message || 'Lưu cài đặt thất bại');
       }
     } catch (e: any) {
-      setErrorMessage(e.message || 'Lưu cài đặt thất bại');
+      toast.error(e.message || 'Lưu cài đặt thất bại');
     } finally {
       setSaving(false);
     }
@@ -196,8 +190,6 @@ export default function SettingsPage() {
   // JSON Export Handler
   const handleExportBackup = async () => {
     setExportingBackup(true);
-    setErrorMessage(null);
-    setToastMessage(null);
     try {
       const res = await fetchApi<any>('/backup/export', { skipCache: true });
       if (res.status === 'success' && res.data) {
@@ -212,13 +204,12 @@ export default function SettingsPage() {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        setToastMessage(t('settings.export_backup_success'));
-        setTimeout(() => setToastMessage(null), 3500);
+        toast.success(t('settings.export_backup_success'));
       } else {
-        setErrorMessage(res.message || 'Tải bản sao lưu thất bại');
+        toast.error(res.message || 'Tải bản sao lưu thất bại');
       }
     } catch (e: any) {
-      setErrorMessage(e.message || 'Tải bản sao lưu thất bại');
+      toast.error(e.message || 'Tải bản sao lưu thất bại');
     } finally {
       setExportingBackup(false);
     }
@@ -230,7 +221,6 @@ export default function SettingsPage() {
     if (!file) return;
     setBackupFile(file);
     setRestoreResult(null);
-    setErrorMessage(null);
     setPreviewingBackup(true);
 
     try {
@@ -252,11 +242,11 @@ export default function SettingsPage() {
       if (json.status === 'success' && json.data) {
         setBackupPreview(json.data);
       } else {
-        setErrorMessage(json.message || 'Kiểm tra file sao lưu thất bại');
+        toast.error(json.message || 'Kiểm tra file sao lưu thất bại');
         setBackupPreview(null);
       }
     } catch (err: any) {
-      setErrorMessage(err.message || 'Kiểm tra file sao lưu thất bại');
+      toast.error(err.message || 'Kiểm tra file sao lưu thất bại');
       setBackupPreview(null);
     } finally {
       setPreviewingBackup(false);
@@ -267,7 +257,6 @@ export default function SettingsPage() {
   const handleExecuteRestore = async () => {
     if (!backupPreview || !backupPreview.restore_token) return;
     setRestoringBackup(true);
-    setErrorMessage(null);
     setShowRestoreModal(false);
 
     try {
@@ -285,15 +274,14 @@ export default function SettingsPage() {
 
       if (res.status === 'success' && res.data) {
         setRestoreResult(res.data);
-        setToastMessage(t('settings.restore_success'));
+        toast.success(t('settings.restore_success'));
         setBackupFile(null);
         setBackupPreview(null);
-        setTimeout(() => setToastMessage(null), 3500);
       } else {
-        setErrorMessage(res.message || 'Phục hồi dữ liệu thất bại');
+        toast.error(res.message || 'Phục hồi dữ liệu thất bại');
       }
     } catch (e: any) {
-      setErrorMessage(e.message || 'Phục hồi dữ liệu thất bại');
+      toast.error(e.message || 'Phục hồi dữ liệu thất bại');
     } finally {
       setRestoringBackup(false);
     }
@@ -302,7 +290,6 @@ export default function SettingsPage() {
   // Excel Template Download Handler
   const handleDownloadTemplate = async () => {
     setDownloadingTemplate(true);
-    setErrorMessage(null);
     try {
       const baseUrl = getApiBaseUrl();
       const token = typeof window !== 'undefined' ? localStorage.getItem('rabbitpos_jwt_token') : null;
@@ -320,7 +307,7 @@ export default function SettingsPage() {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch (e: any) {
-      setErrorMessage(e.message || 'Tải file mẫu thất bại');
+      toast.error(e.message || 'Tải file mẫu thất bại');
     } finally {
       setDownloadingTemplate(false);
     }
@@ -338,8 +325,6 @@ export default function SettingsPage() {
   const handleExecuteImport = async () => {
     if (!importFile) return;
     setImportingData(true);
-    setErrorMessage(null);
-    setToastMessage(null);
     setImportResult(null);
 
     try {
@@ -360,16 +345,15 @@ export default function SettingsPage() {
       const data = await res.json();
       if (res.ok && data.status === 'success' && data.data) {
         setImportResult(data.data);
-        setToastMessage(t('settings.import_success_title'));
-        setTimeout(() => setToastMessage(null), 3500);
+        toast.success(t('settings.import_success_title'));
       } else {
-        setErrorMessage(data.message || 'Nhập dữ liệu thất bại.');
+        toast.error(data.message || 'Nhập dữ liệu thất bại.');
         if (data.data) {
           setImportResult(data.data);
         }
       }
     } catch (e: any) {
-      setErrorMessage(e.message || 'Nhập dữ liệu thất bại.');
+      toast.error(e.message || 'Nhập dữ liệu thất bại.');
     } finally {
       setImportingData(false);
     }
@@ -415,8 +399,7 @@ export default function SettingsPage() {
           message: res.message || t('google_sheets.test_success_msg'),
           details: res.data,
         });
-        setToastMessage(t('google_sheets.test_success_msg'));
-        setTimeout(() => setToastMessage(null), 3500);
+        toast.success(t('google_sheets.test_success_msg'));
       } else {
         setSheetsTestResult({
           type: 'error',
@@ -436,14 +419,12 @@ export default function SettingsPage() {
   // Google Sheets Sync All Now Handler
   const handleSyncSheetsNow = async () => {
     setSyncingSheetsNow(true);
-    setErrorMessage(null);
-    setToastMessage(null);
     try {
       const res = await fetchApi<any>('/settings/sheets/sync-now', {
         method: 'POST',
       });
       if (res.status === 'success') {
-        setToastMessage(t('google_sheets.sync_success_msg'));
+        toast.success(t('google_sheets.sync_success_msg'));
         if (res.data) {
           setForm((prev: any) => ({
             ...prev,
@@ -452,10 +433,9 @@ export default function SettingsPage() {
             google_sheets_last_sync_error: '',
           }));
         }
-        setTimeout(() => setToastMessage(null), 4000);
       } else {
         const errMsg = res.message || t('google_sheets.sync_error_msg', { error: 'Unknown' });
-        setErrorMessage(errMsg);
+        toast.error(errMsg);
         setForm((prev: any) => ({
           ...prev,
           google_sheets_last_sync_status: 'error',
@@ -464,7 +444,7 @@ export default function SettingsPage() {
       }
     } catch (err: any) {
       const errMsg = err.message || t('google_sheets.sync_error_msg', { error: 'Unknown' });
-      setErrorMessage(errMsg);
+      toast.error(errMsg);
     } finally {
       setSyncingSheetsNow(false);
     }
@@ -478,10 +458,9 @@ export default function SettingsPage() {
       const text = await file.text();
       JSON.parse(text); // validate json syntax
       handleChange('google_sheets_service_account_json', text);
-      setToastMessage('Đã tải lên tệp Service Account JSON thành công!');
-      setTimeout(() => setToastMessage(null), 3000);
+      toast.success('Đã tải lên tệp Service Account JSON thành công!');
     } catch {
-      setErrorMessage('Tệp tải lên không phải là JSON hợp lệ.');
+      toast.error('Tệp tải lên không phải là JSON hợp lệ.');
     } finally {
       if (sheetsJsonFileRef.current) sheetsJsonFileRef.current.value = '';
     }
@@ -506,26 +485,6 @@ export default function SettingsPage() {
             </div>
           </div>
         </div>
-
-        {/* Success Toast Banner */}
-        {toastMessage && (
-          <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold px-4 py-3 rounded-2xl shadow-xs flex items-center justify-between animate-in fade-in duration-150">
-            <span className="flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-              {toastMessage}
-            </span>
-          </div>
-        )}
-
-        {/* Error Banner */}
-        {errorMessage && (
-          <div className="bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold px-4 py-3 rounded-2xl shadow-xs flex items-center justify-between animate-in fade-in duration-150">
-            <span className="flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
-              {errorMessage}
-            </span>
-          </div>
-        )}
 
         {loading ? (
           <div className="bg-white p-16 rounded-2xl border border-slate-200 flex flex-col justify-center items-center gap-3">
@@ -982,10 +941,18 @@ export default function SettingsPage() {
                         placeholder="your-email@gmail.com" />
                     </div>
                     <div>
-                      <label className="font-semibold text-slate-700 mb-1.5 block">{t('email_report.smtp_password')}</label>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="font-semibold text-slate-700 block">{t('email_report.smtp_password')}</label>
+                        {form.smtp_password_configured === 'true' && (
+                          <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-md flex items-center gap-1">
+                            <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                            Đã mã hóa & cấu hình
+                          </span>
+                        )}
+                      </div>
                       <input type="password" value={form.smtp_password || ''} onChange={(e) => handleChange('smtp_password', e.target.value)}
                         className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 bg-slate-50/50 hover:bg-white focus:bg-white transition"
-                        placeholder="xxxx xxxx xxxx xxxx" />
+                        placeholder={form.smtp_password_configured === 'true' ? '•••••••• (Để trống để giữ nguyên mật khẩu cũ)' : 'xxxx xxxx xxxx xxxx'} />
                       <p className="text-slate-400 text-[11px] mt-1">{t('email_report.smtp_password_hint')}</p>
                     </div>
                     <div>
@@ -1169,9 +1136,17 @@ export default function SettingsPage() {
                   {/* Service Account JSON Input & File Upload */}
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <label className="font-semibold text-slate-700 block">
-                        {t('google_sheets.service_account_json')} <span className="text-rose-500">*</span>
-                      </label>
+                      <div className="flex items-center gap-2">
+                        <label className="font-semibold text-slate-700 block">
+                          {t('google_sheets.service_account_json')} <span className="text-rose-500">*</span>
+                        </label>
+                        {form.google_sheets_service_account_configured === 'true' && (
+                          <span className="text-[10px] bg-teal-100 text-teal-800 font-bold px-2 py-0.5 rounded-md flex items-center gap-1">
+                            <CheckCircle2 className="w-3 h-3 text-teal-600" />
+                            Đã mã hóa & cấu hình
+                          </span>
+                        )}
+                      </div>
                       <button
                         type="button"
                         onClick={() => sheetsJsonFileRef.current?.click()}

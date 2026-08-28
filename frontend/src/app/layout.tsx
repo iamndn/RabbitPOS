@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { LanguageProvider } from "@/lib/i18n/LanguageContext";
 import { ConfirmProvider } from "@/context/ConfirmContext";
+import { ToastProvider } from "@/context/ToastContext";
 import PWARegister from "@/components/common/PWARegister";
 
 // --- PWA Viewport: Prevents iOS auto-zoom, enables edge-to-edge rendering ---
@@ -73,11 +74,13 @@ export default function RootLayout({
         {/* Register service worker for offline shell caching */}
         <PWARegister />
         <LanguageProvider>
-          <ConfirmProvider>
-            <main className="flex-1 flex flex-col w-full max-w-full md:max-w-7xl mx-auto shadow-sm bg-white min-h-0 overflow-x-hidden">
-              {children}
-            </main>
-          </ConfirmProvider>
+          <ToastProvider>
+            <ConfirmProvider>
+              <main className="flex-1 flex flex-col w-full max-w-full md:max-w-7xl mx-auto shadow-sm bg-white min-h-0 overflow-x-hidden">
+                {children}
+              </main>
+            </ConfirmProvider>
+          </ToastProvider>
         </LanguageProvider>
       </body>
     </html>

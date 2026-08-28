@@ -10,9 +10,10 @@ import (
 )
 
 type JWTClaims struct {
-	UserID   uint            `json:"user_id"`
-	Username string          `json:"username"`
-	Role     models.UserRole `json:"role"`
+	UserID       uint            `json:"user_id"`
+	Username     string          `json:"username"`
+	Role         models.UserRole `json:"role"`
+	TokenVersion int             `json:"token_version"`
 	jwt.RegisteredClaims
 }
 
@@ -28,16 +29,28 @@ func CheckPasswordHash(password, hash string) bool {
 	return err == nil
 }
 
-// GenerateJWT creates a signed JWT string containing user identity & role
-func GenerateJWT(userID uint, username string, role models.UserRole, secret string, expiryHours int) (string, error) {
+// GenerateJWT creates a signed JWT string containing user identity, role, token_version, and unique jti
+func GenerateJWT(userID uint, username string, role models.UserRole, tokenVersion int, secret string, expiryHours int) (string, string, error) {
 	if secret == "" {
-		return "", errors.New("JWT secret cannot be empty")
+		return "", "", errors.New("JWT secret cannot be empty")
 	}
+
+	jti, err := GenerateSecureToken(16)
+	if err != nil {
+		return "", "", err
+	}
+
+	if tokenVersion <= 0 {
+		tokenVersion = 1
+	}
+
 	claims := &JWTClaims{
-		UserID:   userID,
-		Username: username,
-		Role:     role,
+		UserID:       userID,
+		Username:     username,
+		Role:         role,
+		TokenVersion: tokenVersion,
 		RegisteredClaims: jwt.RegisteredClaims{
+			ID:        jti,
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Duration(expiryHours) * time.Hour)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			Subject:   username,
@@ -45,7 +58,12 @@ func GenerateJWT(userID uint, username string, role models.UserRole, secret stri
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString([]byte(secret))
+	tokenStr, err := token.SignedString([]byte(secret))
+	if err != nil {
+		return "", "", err
+	}
+
+	return tokenStr, jti, nil
 }
 
 // ValidateJWT verifies signature and claims of JWT string
