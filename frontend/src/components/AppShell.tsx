@@ -156,7 +156,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     <div className="flex flex-col flex-1 min-h-0 w-full max-w-full overflow-x-hidden bg-slate-50 text-slate-800">
       {/* Top Application Header — pt-safe ensures content clears Notch / Dynamic Island in PWA mode */}
       <header className="sticky top-0 z-50 bg-emerald-900 text-white shadow-md pt-safe w-full">
-        <div className="max-w-7xl mx-auto w-full px-3 sm:px-4 py-2 flex items-center justify-between">
+        <div className="w-full max-w-7xl 2xl:max-w-[1800px] 3xl:max-w-[2400px] 4k:max-w-[3200px] mx-auto px-3 sm:px-4 lg:px-6 2xl:px-8 py-2 flex items-center justify-between">
           {/* Brand Logo, Store Name & App Title */}
           <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
             <Link href="/" className="flex items-center space-x-2 sm:space-x-2.5 font-bold tracking-tight group active:scale-95 transition-transform min-w-0">
@@ -330,7 +330,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       </header>
 
       {/* Main Page Content Area */}
-      <div className="flex-1 flex flex-col min-h-0 overflow-y-auto overflow-x-hidden px-2 py-2 sm:px-4 sm:py-4 md:px-6 md:py-6 pb-24 md:pb-6 w-full max-w-full">{children}</div>
+      <div className="flex-1 flex flex-col min-h-0 overflow-y-auto overflow-x-hidden px-2 py-2 sm:px-4 sm:py-4 md:px-6 md:py-6 2xl:px-8 3xl:px-10 pb-24 md:pb-6 w-full max-w-full">{children}</div>
 
       {/* Mobile Bottom Navigation */}
       <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white border-t border-slate-200 flex justify-around items-center py-1 px-1 sm:px-2 pb-safe shadow-lg w-full max-w-full overflow-hidden">

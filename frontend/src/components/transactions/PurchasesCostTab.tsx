@@ -682,17 +682,17 @@ export default function PurchasesCostTab({
       {activeSubTab === 'profit-recovery' && (
         <div className="space-y-3 sm:space-y-4">
           {/* Toolbar */}
-          <div className="bg-white rounded-2xl sm:rounded-3xl p-3 sm:p-4 border border-slate-200 shadow-2xs space-y-2.5">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-3 sm:p-4 space-y-2.5">
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
               {/* Search Bar */}
               <div className="relative flex-1 min-w-0">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
                   placeholder="Tìm kiếm món, đồ uống, topping..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full h-10 pl-9 pr-20 text-xs font-semibold rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-slate-50/70 focus:bg-white transition"
+                  className="app-input pl-9 pr-24 py-2 text-xs placeholder:text-xs"
                 />
                 {searchQuery ? (
                   <button
@@ -762,155 +762,326 @@ export default function PurchasesCostTab({
           </div>
 
           {loading ? (
-            <div className="flex items-center justify-center py-16 bg-white rounded-3xl border border-slate-200">
+            <div className="flex items-center justify-center py-16 bg-white rounded-2xl border border-slate-200 shadow-sm">
               <RefreshCw className="w-7 h-7 text-emerald-600 animate-spin" />
             </div>
           ) : filteredCostItems.length === 0 ? (
-            <div className="py-14 text-center bg-white rounded-3xl border border-slate-200 text-slate-400 font-semibold text-xs sm:text-sm">
+            <div className="py-14 text-center bg-white rounded-2xl border border-slate-200 shadow-sm text-slate-400 font-semibold text-xs sm:text-sm">
               Không tìm thấy món hoặc topping nào phù hợp
             </div>
           ) : (
-            <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200 shadow-xs overflow-hidden divide-y divide-slate-100">
-              {filteredCostItems.map((item) => {
-                const estCost = pricingBasis === 'latest' ? item.estimated_cogs : item.estimated_cogs_avg;
-                const isExpanded = expandedItemId === `${item.target_type}-${item.target_id}`;
-                const hasRecipe = item.recipe_item_count > 0;
-                const unitProfit = item.retail_price - estCost;
-                const marginPct =
-                  item.retail_price > 0
-                    ? Math.round(((item.retail_price - estCost) / item.retail_price) * 1000) / 10
-                    : 0;
+            <>
+              {/* Desktop View: Table (hidden md:block) */}
+              <div className="hidden md:block bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase tracking-wider font-semibold">
+                      <tr>
+                        <th className="py-3 px-4">Món / Topping</th>
+                        <th className="py-3 px-3">Danh Mục</th>
+                        <th className="py-3 px-3 text-right">Giá Bán Lẻ</th>
+                        <th className="py-3 px-3 text-right">Giá Vốn (COGS)</th>
+                        <th className="py-3 px-3 text-right">Lãi Dự Tính</th>
+                        <th className="py-3 px-3 text-center">Biên Lãi Gộp</th>
+                        <th className="py-3 px-3 text-center">Định Lượng</th>
+                        <th className="py-3 px-4 text-right">Thao Tác</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {filteredCostItems.map((item) => {
+                        const estCost = pricingBasis === 'latest' ? item.estimated_cogs : item.estimated_cogs_avg;
+                        const isExpanded = expandedItemId === `${item.target_type}-${item.target_id}`;
+                        const hasRecipe = item.recipe_item_count > 0;
+                        const unitProfit = item.retail_price - estCost;
+                        const marginPct =
+                          item.retail_price > 0
+                            ? Math.round(((item.retail_price - estCost) / item.retail_price) * 1000) / 10
+                            : 0;
 
-                return (
-                  <div key={`${item.target_type}-${item.target_id}`} className="p-3 sm:p-4 hover:bg-slate-50/60 transition">
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 sm:gap-3">
-                      {/* Product Header Info */}
-                      <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 w-full sm:w-auto">
-                        {item.image_url ? (
-                          <img
-                            src={getImageUrl(item.image_url) || ''}
-                            alt={item.product_name}
-                            className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl object-cover border border-slate-100 shrink-0"
-                          />
-                        ) : (
-                          <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-emerald-50 text-emerald-700 font-black flex items-center justify-center text-xs sm:text-sm border border-emerald-100 shrink-0">
-                            {item.product_name.slice(0, 2).toUpperCase()}
-                          </div>
-                        )}
-
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <h3 className="font-extrabold text-slate-900 text-xs sm:text-sm truncate">
-                              {item.product_name}
-                            </h3>
-                            {item.variant_name && item.variant_name !== 'Mặc định' && (
-                              <span className="text-[9px] sm:text-[10px] font-bold text-indigo-700 bg-indigo-50 px-1.5 py-0.2 rounded-md border border-indigo-100">
-                                {item.variant_name}
-                              </span>
+                        return (
+                          <React.Fragment key={`${item.target_type}-${item.target_id}`}>
+                            <tr className="hover:bg-slate-50 transition">
+                              <td className="py-3 px-4">
+                                <div className="flex items-center gap-2.5">
+                                  {item.image_url ? (
+                                    <img
+                                      src={getImageUrl(item.image_url) || ''}
+                                      alt={item.product_name}
+                                      className="w-9 h-9 rounded-xl object-cover border border-slate-100 shrink-0"
+                                    />
+                                  ) : (
+                                    <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-700 font-black flex items-center justify-center text-xs border border-emerald-100 shrink-0">
+                                      {item.product_name.slice(0, 2).toUpperCase()}
+                                    </div>
+                                  )}
+                                  <div className="min-w-0">
+                                    <div className="font-bold text-slate-900 text-xs sm:text-sm flex items-center gap-1.5">
+                                      <span>{item.product_name}</span>
+                                      {item.variant_name && item.variant_name !== 'Mặc định' && (
+                                        <span className="text-[9px] font-bold text-indigo-700 bg-indigo-50 px-1.5 py-0.2 rounded-md border border-indigo-100">
+                                          {item.variant_name}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="py-3 px-3 text-slate-600 font-medium">
+                                {item.category_name}
+                              </td>
+                              <td className="py-3 px-3 text-right font-bold text-slate-900">
+                                {formatCurrency(item.retail_price, settings)}
+                              </td>
+                              <td className="py-3 px-3 text-right font-black text-slate-900">
+                                {hasRecipe ? (
+                                  <span className="text-slate-900">{formatCurrency(estCost, settings)}</span>
+                                ) : (
+                                  <span className="text-slate-400 font-normal italic">Chưa định lượng</span>
+                                )}
+                              </td>
+                              <td className="py-3 px-3 text-right font-black text-emerald-700">
+                                {hasRecipe ? `+${formatCurrency(unitProfit, settings)}` : '—'}
+                              </td>
+                              <td className="py-3 px-3 text-center">
+                                {hasRecipe ? (
+                                  <span className="inline-flex items-center font-black text-emerald-800 bg-emerald-100/90 border border-emerald-200/80 px-2 py-0.5 rounded-lg text-xs">
+                                    {marginPct}%
+                                  </span>
+                                ) : (
+                                  <span className="text-slate-400">—</span>
+                                )}
+                              </td>
+                              <td className="py-3 px-3 text-center">
+                                {hasRecipe ? (
+                                  <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                                    <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                    {item.recipe_item_count} NL
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
+                                    Chưa BOM
+                                  </span>
+                                )}
+                              </td>
+                              <td className="py-3 px-4 text-right">
+                                <div className="flex items-center justify-end space-x-1.5">
+                                  {hasRecipe && Math.abs(estCost - item.current_cogs) >= 1 && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleApplySingleCost(item)}
+                                      disabled={applyingCostId === `${item.target_type}-${item.target_id}`}
+                                      className="p-1.5 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition active:scale-95 cursor-pointer"
+                                      title="Áp dụng giá vốn tính toán vào Menu bán hàng"
+                                    >
+                                      <CheckCircle2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  )}
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenRecipeEditor(item)}
+                                    className="px-2.5 py-1 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition cursor-pointer flex items-center gap-1"
+                                  >
+                                    <Scale className="w-3.5 h-3.5 text-emerald-700" />
+                                    <span>{hasRecipe ? 'Công thức' : '+ Định lượng'}</span>
+                                  </button>
+                                  {hasRecipe && (
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        setExpandedItemId(
+                                          isExpanded ? null : `${item.target_type}-${item.target_id}`
+                                        )
+                                      }
+                                      className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition cursor-pointer"
+                                      title={isExpanded ? 'Thu gọn' : 'Xem chi tiết định lượng'}
+                                    >
+                                      {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                                    </button>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                            {isExpanded && item.recipe_details && item.recipe_details.length > 0 && (
+                              <tr className="bg-slate-50/70">
+                                <td colSpan={8} className="p-3 px-4 border-t border-slate-100">
+                                  <div className="space-y-1.5">
+                                    <span className="text-[10px] font-bold text-slate-500 uppercase block">
+                                      Chi tiết định lượng nguyên liệu cấu thành:
+                                    </span>
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                                      {item.recipe_details.map((rd) => (
+                                        <div
+                                          key={rd.ingredient_id}
+                                          className="bg-white p-2 rounded-xl border border-slate-200/80 text-xs flex items-center justify-between shadow-2xs"
+                                        >
+                                          <div className="min-w-0 pr-2">
+                                            <span className="font-bold text-slate-800 block truncate">{rd.ingredient_name}</span>
+                                            <span className="text-[10px] text-slate-400 font-semibold">
+                                              {formatQuantityWithUnit(rd.usage_quantity, rd.base_unit || rd.unit)} ×{' '}
+                                              {formatCurrency(rd.effective_unit_cost, settings)}/{rd.base_unit || rd.unit}
+                                            </span>
+                                          </div>
+                                          <span className="font-black text-emerald-800 text-xs shrink-0">
+                                            {formatCurrency(rd.line_cost, settings)}
+                                          </span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                </td>
+                              </tr>
                             )}
-                          </div>
-                          <div className="flex items-center gap-1.5 text-[11px] text-slate-500 font-medium mt-0.5">
-                            <span className="text-slate-400">{item.category_name}</span>
-                            <span>•</span>
-                            <span className="font-bold text-slate-800">
-                              Giá bán: {formatCurrency(item.retail_price, settings)}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
+                          </React.Fragment>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
 
-                      {/* Cost, Margin & Actions */}
-                      <div className="flex items-center gap-2 sm:gap-3 self-stretch sm:self-auto justify-between sm:justify-end pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
-                        <div className="text-left sm:text-right">
-                          <div className="flex items-center gap-1.5 justify-start sm:justify-end">
-                            <span className="text-[10px] text-slate-400 font-bold uppercase">Giá vốn:</span>
-                            <span className="font-black text-slate-900 text-xs sm:text-sm">
-                              {hasRecipe ? formatCurrency(estCost, settings) : 'Chưa định lượng'}
-                            </span>
-                          </div>
-                          {hasRecipe && (
-                            <div className="flex items-center gap-1.5 justify-start sm:justify-end text-[11px] mt-0.5">
-                              <span className="font-bold text-emerald-700">
-                                Lãi: +{formatCurrency(unitProfit, settings)}
-                              </span>
-                              <span className="font-black text-emerald-800 bg-emerald-100 px-1.5 py-0.2 rounded text-[10px]">
-                                {marginPct}%
-                              </span>
+              {/* Mobile View: Cards (md:hidden) */}
+              <div className="md:hidden bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden divide-y divide-slate-100">
+                {filteredCostItems.map((item) => {
+                  const estCost = pricingBasis === 'latest' ? item.estimated_cogs : item.estimated_cogs_avg;
+                  const isExpanded = expandedItemId === `${item.target_type}-${item.target_id}`;
+                  const hasRecipe = item.recipe_item_count > 0;
+                  const unitProfit = item.retail_price - estCost;
+                  const marginPct =
+                    item.retail_price > 0
+                      ? Math.round(((item.retail_price - estCost) / item.retail_price) * 1000) / 10
+                      : 0;
+
+                  return (
+                    <div key={`${item.target_type}-${item.target_id}`} className="p-3 sm:p-4 hover:bg-slate-50/60 transition">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 sm:gap-3">
+                        {/* Product Header Info */}
+                        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 w-full sm:w-auto">
+                          {item.image_url ? (
+                            <img
+                              src={getImageUrl(item.image_url) || ''}
+                              alt={item.product_name}
+                              className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl object-cover border border-slate-100 shrink-0"
+                            />
+                          ) : (
+                            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-emerald-50 text-emerald-700 font-black flex items-center justify-center text-xs sm:text-sm border border-emerald-100 shrink-0">
+                              {item.product_name.slice(0, 2).toUpperCase()}
                             </div>
                           )}
+
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <h3 className="font-extrabold text-slate-900 text-xs sm:text-sm truncate">
+                                {item.product_name}
+                              </h3>
+                              {item.variant_name && item.variant_name !== 'Mặc định' && (
+                                <span className="text-[9px] sm:text-[10px] font-bold text-indigo-700 bg-indigo-50 px-1.5 py-0.2 rounded-md border border-indigo-100">
+                                  {item.variant_name}
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-1.5 text-[11px] text-slate-500 font-medium mt-0.5">
+                              <span className="text-slate-400">{item.category_name}</span>
+                              <span>•</span>
+                              <span className="font-bold text-slate-800">
+                                Giá bán: {formatCurrency(item.retail_price, settings)}
+                              </span>
+                            </div>
+                          </div>
                         </div>
 
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          {hasRecipe && Math.abs(estCost - item.current_cogs) >= 1 && (
-                            <button
-                              type="button"
-                              onClick={() => handleApplySingleCost(item)}
-                              disabled={applyingCostId === `${item.target_type}-${item.target_id}`}
-                              className="p-2 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-xl text-xs font-bold transition active:scale-95 cursor-pointer"
-                              title="Áp dụng giá vốn tính toán vào Menu bán hàng"
-                            >
-                              <CheckCircle2 className="w-4 h-4" />
-                            </button>
-                          )}
-
-                          <button
-                            type="button"
-                            onClick={() => handleOpenRecipeEditor(item)}
-                            className="px-2.5 sm:px-3 py-1.5 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition cursor-pointer flex items-center gap-1"
-                          >
-                            <Scale className="w-3.5 h-3.5 text-emerald-700" />
-                            <span>{hasRecipe ? 'Công thức' : '+ Định lượng'}</span>
-                          </button>
-
-                          {hasRecipe && (
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setExpandedItemId(
-                                  isExpanded ? null : `${item.target_type}-${item.target_id}`
-                                )
-                              }
-                              className="p-2 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 transition cursor-pointer"
-                              title={isExpanded ? 'Thu gọn' : 'Xem chi tiết định lượng'}
-                            >
-                              {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Expandable Recipe Details */}
-                    {isExpanded && item.recipe_details && item.recipe_details.length > 0 && (
-                      <div className="mt-2.5 pt-2.5 border-t border-slate-100 bg-slate-50/80 rounded-2xl p-2.5 sm:p-3 space-y-2">
-                        <span className="text-[10px] font-bold text-slate-500 uppercase block">
-                          Chi tiết định lượng nguyên liệu cấu thành:
-                        </span>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-1.5 sm:gap-2">
-                          {item.recipe_details.map((rd) => (
-                            <div
-                              key={rd.ingredient_id}
-                              className="bg-white p-2 sm:p-2.5 rounded-xl border border-slate-200/70 text-xs flex items-center justify-between shadow-2xs"
-                            >
-                              <div className="min-w-0 pr-2">
-                                <span className="font-bold text-slate-800 block truncate">{rd.ingredient_name}</span>
-                                <span className="text-[10px] text-slate-400 font-semibold">
-                                  {formatQuantityWithUnit(rd.usage_quantity, rd.base_unit || rd.unit)} ×{' '}
-                                  {formatCurrency(rd.effective_unit_cost, settings)}/{rd.base_unit || rd.unit}
+                        {/* Cost, Margin & Actions */}
+                        <div className="flex items-center gap-2 sm:gap-3 self-stretch sm:self-auto justify-between sm:justify-end pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
+                          <div className="text-left sm:text-right">
+                            <div className="flex items-center gap-1.5 justify-start sm:justify-end">
+                              <span className="text-[10px] text-slate-400 font-bold uppercase">Giá vốn:</span>
+                              <span className="font-black text-slate-900 text-xs sm:text-sm">
+                                {hasRecipe ? formatCurrency(estCost, settings) : 'Chưa định lượng'}
+                              </span>
+                            </div>
+                            {hasRecipe && (
+                              <div className="flex items-center gap-1.5 justify-start sm:justify-end text-[11px] mt-0.5">
+                                <span className="font-bold text-emerald-700">
+                                  Lãi: +{formatCurrency(unitProfit, settings)}
+                                </span>
+                                <span className="font-black text-emerald-800 bg-emerald-100 px-1.5 py-0.2 rounded text-[10px]">
+                                  {marginPct}%
                                 </span>
                               </div>
-                              <span className="font-black text-emerald-800 text-xs shrink-0">
-                                {formatCurrency(rd.line_cost, settings)}
-                              </span>
-                            </div>
-                          ))}
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            {hasRecipe && Math.abs(estCost - item.current_cogs) >= 1 && (
+                              <button
+                                type="button"
+                                onClick={() => handleApplySingleCost(item)}
+                                disabled={applyingCostId === `${item.target_type}-${item.target_id}`}
+                                className="p-2 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-xl text-xs font-bold transition active:scale-95 cursor-pointer"
+                                title="Áp dụng giá vốn tính toán vào Menu bán hàng"
+                              >
+                                <CheckCircle2 className="w-4 h-4" />
+                              </button>
+                            )}
+
+                            <button
+                              type="button"
+                              onClick={() => handleOpenRecipeEditor(item)}
+                              className="px-2.5 sm:px-3 py-1.5 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition cursor-pointer flex items-center gap-1"
+                            >
+                              <Scale className="w-3.5 h-3.5 text-emerald-700" />
+                              <span>{hasRecipe ? 'Công thức' : '+ Định lượng'}</span>
+                            </button>
+
+                            {hasRecipe && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setExpandedItemId(
+                                    isExpanded ? null : `${item.target_type}-${item.target_id}`
+                                  )
+                                }
+                                className="p-2 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 transition cursor-pointer"
+                                title={isExpanded ? 'Thu gọn' : 'Xem chi tiết định lượng'}
+                              >
+                                {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+
+                      {/* Expandable Recipe Details */}
+                      {isExpanded && item.recipe_details && item.recipe_details.length > 0 && (
+                        <div className="mt-2.5 pt-2.5 border-t border-slate-100 bg-slate-50/80 rounded-2xl p-2.5 sm:p-3 space-y-2">
+                          <span className="text-[10px] font-bold text-slate-500 uppercase block">
+                            Chi tiết định lượng nguyên liệu cấu thành:
+                          </span>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-1.5 sm:gap-2">
+                            {item.recipe_details.map((rd) => (
+                              <div
+                                key={rd.ingredient_id}
+                                className="bg-white p-2 sm:p-2.5 rounded-xl border border-slate-200/70 text-xs flex items-center justify-between shadow-2xs"
+                              >
+                                <div className="min-w-0 pr-2">
+                                  <span className="font-bold text-slate-800 block truncate">{rd.ingredient_name}</span>
+                                  <span className="text-[10px] text-slate-400 font-semibold">
+                                    {formatQuantityWithUnit(rd.usage_quantity, rd.base_unit || rd.unit)} ×{' '}
+                                    {formatCurrency(rd.effective_unit_cost, settings)}/{rd.base_unit || rd.unit}
+                                  </span>
+                                </div>
+                                <span className="font-black text-emerald-800 text-xs shrink-0">
+                                  {formatCurrency(rd.line_cost, settings)}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </>
           )}
         </div>
       )}
@@ -919,15 +1090,15 @@ export default function PurchasesCostTab({
       {activeSubTab === 'purchase-history' && (
         <div className="space-y-3 sm:space-y-4">
           {/* Toolbar */}
-          <div className="bg-white rounded-2xl sm:rounded-3xl p-3 sm:p-4 border border-slate-200 shadow-2xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
-            <div className="relative flex-1 min-w-0 max-w-lg">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-3 sm:p-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+            <div className="relative flex-1 min-w-0">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 placeholder="Tìm nguyên liệu, quy cách, quỹ chi trả..."
                 value={historySearch}
                 onChange={(e) => setHistorySearch(e.target.value)}
-                className="w-full h-10 pl-9 pr-20 text-xs font-semibold rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-slate-50/70 focus:bg-white transition"
+                className="app-input pl-9 pr-24 py-2 text-xs placeholder:text-xs"
               />
               {historySearch ? (
                 <button
@@ -945,18 +1116,18 @@ export default function PurchasesCostTab({
               )}
             </div>
 
-            <div className="text-xs font-bold text-slate-700 bg-slate-50 sm:bg-transparent p-2 sm:p-0 rounded-xl border sm:border-0 border-slate-100 flex items-center justify-between sm:justify-end gap-1.5">
+            <div className="text-xs font-bold text-slate-700 bg-slate-50 sm:bg-transparent p-2 sm:p-0 rounded-xl border sm:border-0 border-slate-100 flex items-center justify-between sm:justify-end gap-1.5 shrink-0">
               <span className="text-slate-500 font-medium">Tổng tiền đã nhập:</span>
               <span className="text-rose-600 font-black text-sm">{formatCurrency(totalSpend, settings)}</span>
             </div>
           </div>
 
           {loading ? (
-            <div className="flex items-center justify-center py-16 bg-white rounded-3xl border border-slate-200">
+            <div className="flex items-center justify-center py-16 bg-white rounded-2xl border border-slate-200 shadow-sm">
               <RefreshCw className="w-7 h-7 text-emerald-600 animate-spin" />
             </div>
           ) : filteredHistory.length === 0 ? (
-            <div className="py-14 text-center bg-white rounded-3xl border border-slate-200 text-slate-400 font-semibold text-xs sm:text-sm">
+            <div className="py-14 text-center bg-white rounded-2xl border border-slate-200 shadow-sm text-slate-400 font-semibold text-xs sm:text-sm">
               Chưa có lịch sử mua hàng nào được ghi nhận
             </div>
           ) : (
@@ -1032,11 +1203,11 @@ export default function PurchasesCostTab({
               </div>
 
               {/* Desktop View: Table (hidden md:block) */}
-              <div className="hidden md:block bg-white rounded-3xl border border-slate-200 shadow-xs overflow-hidden">
+              <div className="hidden md:block bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs">
-                    <thead>
-                      <tr className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
+                    <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase tracking-wider font-semibold">
+                      <tr>
                         <th className="py-3 px-4">Ngày Nhập</th>
                         <th className="py-3 px-3">Tên Nguyên Liệu</th>
                         <th className="py-3 px-3 text-right">Số Lượng Mua</th>
@@ -1057,7 +1228,7 @@ export default function PurchasesCostTab({
                         const effectivePrice = rec.effective_base_price || rec.base_unit_price || rec.unit_price;
 
                         return (
-                          <tr key={rec.id} className="hover:bg-slate-50/80 transition">
+                          <tr key={rec.id} className="hover:bg-slate-50 transition">
                             <td className="py-3 px-4 font-semibold text-slate-500 whitespace-nowrap">
                               {new Date(rec.created_at).toLocaleDateString('vi-VN', {
                                 day: '2-digit',
@@ -1071,7 +1242,7 @@ export default function PurchasesCostTab({
                             <td className="py-3 px-3 text-right font-black text-slate-800">
                               {pQty} {pUnit}
                             </td>
-                            <td className="py-3 px-3 text-slate-600 font-semibold">{spec}</td>
+                            <td className="py-3 px-3 text-slate-600 font-medium">{spec}</td>
                             <td className="py-3 px-3 text-right font-bold text-slate-800">
                               {formatCurrency(pPrice, settings)}/{pUnit}
                             </td>
@@ -1100,16 +1271,16 @@ export default function PurchasesCostTab({
       {activeSubTab === 'ingredients' && (
         <div className="space-y-3 sm:space-y-4">
           {/* Toolbar */}
-          <div className="bg-white rounded-2xl sm:rounded-3xl p-3 sm:p-4 border border-slate-200 shadow-2xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-3 sm:p-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
             <div className="flex items-center gap-2 flex-1 min-w-0">
-              <div className="relative flex-1 min-w-0 max-w-md">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <div className="relative flex-1 min-w-0">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
                   placeholder="Tìm kiếm nguyên liệu, bao bì..."
                   value={ingSearchQuery}
                   onChange={(e) => setIngSearchQuery(e.target.value)}
-                  className="w-full h-10 pl-9 pr-20 text-xs font-semibold rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-slate-50/70 focus:bg-white transition"
+                  className="app-input pl-9 pr-24 py-2 text-xs placeholder:text-xs"
                 />
                 {ingSearchQuery ? (
                   <button
@@ -1130,7 +1301,7 @@ export default function PurchasesCostTab({
               <select
                 value={ingCategoryFilter}
                 onChange={(e) => setIngCategoryFilter(e.target.value)}
-                className="h-10 px-2.5 rounded-xl border border-slate-200 text-xs font-bold bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 shrink-0"
+                className="app-select w-auto h-9 px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-bold bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 shrink-0"
               >
                 <option value="all">Tất cả phân loại</option>
                 <option value="fruit">Hoa quả tươi</option>
@@ -1143,7 +1314,7 @@ export default function PurchasesCostTab({
             <button
               type="button"
               onClick={handleOpenAddIngredient}
-              className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-extrabold shadow-2xs transition active:scale-95 cursor-pointer shrink-0"
+              className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-extrabold shadow-2xs transition active:scale-95 cursor-pointer shrink-0"
             >
               <Plus className="w-4 h-4" />
               <span>+ Thêm Nguyên Liệu</span>
@@ -1151,11 +1322,11 @@ export default function PurchasesCostTab({
           </div>
 
           {loading ? (
-            <div className="flex items-center justify-center py-16 bg-white rounded-3xl border border-slate-200">
+            <div className="flex items-center justify-center py-16 bg-white rounded-2xl border border-slate-200 shadow-sm">
               <RefreshCw className="w-7 h-7 text-emerald-600 animate-spin" />
             </div>
           ) : filteredIngredients.length === 0 ? (
-            <div className="py-14 text-center bg-white rounded-3xl border border-slate-200 text-slate-400 font-semibold text-xs sm:text-sm">
+            <div className="py-14 text-center bg-white rounded-2xl border border-slate-200 shadow-sm text-slate-400 font-semibold text-xs sm:text-sm">
               Không tìm thấy nguyên liệu nào phù hợp
             </div>
           ) : (
@@ -1246,11 +1417,11 @@ export default function PurchasesCostTab({
               </div>
 
               {/* Desktop View: Table (hidden md:block) */}
-              <div className="hidden md:block bg-white rounded-3xl border border-slate-200 shadow-xs overflow-hidden">
+              <div className="hidden md:block bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs">
-                    <thead>
-                      <tr className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
+                    <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase tracking-wider font-semibold">
+                      <tr>
                         <th className="py-3 px-4">Tên Nguyên Liệu</th>
                         <th className="py-3 px-3">Phân Loại</th>
                         <th className="py-3 px-3">Đơn Vị Cơ Sở (Base Unit)</th>
@@ -1269,7 +1440,7 @@ export default function PurchasesCostTab({
                           : `1 ${baseUnit}`;
 
                         return (
-                          <tr key={ing.id} className="hover:bg-slate-50/80 transition">
+                          <tr key={ing.id} className="hover:bg-slate-50 transition">
                             <td className="py-3 px-4 font-extrabold text-slate-900">{ing.name}</td>
                             <td className="py-3 px-3">
                               <span
@@ -1293,7 +1464,7 @@ export default function PurchasesCostTab({
                                 {baseUnit}
                               </span>
                             </td>
-                            <td className="py-3 px-3 text-slate-600 font-semibold">{defaultSpec}</td>
+                            <td className="py-3 px-3 text-slate-600 font-medium">{defaultSpec}</td>
                             <td className="py-3 px-3 text-right font-bold text-amber-700">
                               {ing.loss_rate > 0 ? `${Math.round(ing.loss_rate * 100)}%` : '0%'}
                             </td>
@@ -1755,51 +1926,52 @@ export default function PurchasesCostTab({
                 Chưa có đợt nhập hàng nào được ghi nhận cho nguyên liệu này
               </div>
             ) : (
-              <div className="divide-y divide-slate-100 space-y-2">
-                {ingHistoryRecords.map((rec) => {
-                  const baseUnit = viewingHistoryIng.base_unit || viewingHistoryIng.unit || 'ml';
-                  const pUnit = rec.purchase_unit || baseUnit;
-                  const pQty = rec.purchase_quantity || rec.quantity;
-                  const pPrice = rec.purchase_unit_price || rec.unit_price;
-                  const spec = rec.conversion_spec || `${pQty} ${pUnit}`;
-                  const effectivePrice = rec.effective_base_price || rec.base_unit_price || rec.unit_price;
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
+                <div className="overflow-x-auto max-h-[55vh]">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase tracking-wider font-semibold sticky top-0">
+                      <tr>
+                        <th className="py-2.5 px-3">Ngày Nhập</th>
+                        <th className="py-2.5 px-3 text-right">Giá Mua</th>
+                        <th className="py-2.5 px-3">Quy Cách</th>
+                        <th className="py-2.5 px-3 text-right">Tổng Tiền</th>
+                        <th className="py-2.5 px-3 text-right">Cost Quy Đổi</th>
+                        <th className="py-2.5 px-3">Quỹ Chi Trả</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {ingHistoryRecords.map((rec) => {
+                        const baseUnit = viewingHistoryIng.base_unit || viewingHistoryIng.unit || 'ml';
+                        const pUnit = rec.purchase_unit || baseUnit;
+                        const pQty = rec.purchase_quantity || rec.quantity;
+                        const pPrice = rec.purchase_unit_price || rec.unit_price;
+                        const spec = rec.conversion_spec || `${pQty} ${pUnit}`;
+                        const effectivePrice = rec.effective_base_price || rec.base_unit_price || rec.unit_price;
 
-                  return (
-                    <div key={rec.id} className="pt-2.5 pb-1 flex items-start justify-between text-xs gap-3">
-                      <div>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-extrabold text-slate-900">
-                            {formatCurrency(pPrice, settings)}/{pUnit}
-                          </span>
-                          <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.2 rounded-md">
-                            Cost quy đổi: {formatCurrency(effectivePrice, settings)}/{baseUnit}
-                          </span>
-                        </div>
-
-                        <div className="text-[11px] text-slate-500 mt-1 space-x-1.5 font-medium flex items-center flex-wrap gap-1">
-                          <span>📅 {new Date(rec.created_at).toLocaleDateString('vi-VN')}</span>
-                          <span>•</span>
-                          <span>Quy cách: <strong>{spec}</strong></span>
-                          {rec.fund_name && (
-                            <>
-                              <span>•</span>
-                              <span>Quỹ: {rec.fund_name}</span>
-                            </>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="text-right shrink-0">
-                        <span className="font-black text-slate-900 text-sm block">
-                          {formatCurrency(rec.subtotal, settings)}
-                        </span>
-                        <span className="text-[10px] text-slate-400">
-                          {formatQuantityWithUnit(rec.total_base_quantity || rec.quantity, baseUnit)}
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })}
+                        return (
+                          <tr key={rec.id} className="hover:bg-slate-50 transition">
+                            <td className="py-2.5 px-3 font-semibold text-slate-500 whitespace-nowrap">
+                              {new Date(rec.created_at).toLocaleDateString('vi-VN')}
+                            </td>
+                            <td className="py-2.5 px-3 text-right font-bold text-slate-900">
+                              {formatCurrency(pPrice, settings)}/{pUnit}
+                            </td>
+                            <td className="py-2.5 px-3 text-slate-600 font-medium">{spec}</td>
+                            <td className="py-2.5 px-3 text-right font-black text-rose-600">
+                              {formatCurrency(rec.subtotal, settings)}
+                            </td>
+                            <td className="py-2.5 px-3 text-right font-extrabold text-emerald-800">
+                              <span className="bg-emerald-50 text-emerald-900 border border-emerald-200 px-1.5 py-0.5 rounded text-[11px]">
+                                {formatCurrency(effectivePrice, settings)}/{baseUnit}
+                              </span>
+                            </td>
+                            <td className="py-2.5 px-3 text-slate-600 font-medium">{rec.fund_name || '—'}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
 

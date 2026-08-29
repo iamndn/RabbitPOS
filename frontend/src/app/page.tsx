@@ -1001,7 +1001,7 @@ export default function PosPage() {
 
   return (
     <AppShell>
-      <div className="flex flex-col gap-3 sm:gap-4 max-w-7xl mx-auto w-full max-w-full overflow-x-hidden">
+      <div className="flex flex-col gap-3 sm:gap-4 w-full max-w-7xl 2xl:max-w-[1800px] 3xl:max-w-[2400px] 4k:max-w-[3200px] mx-auto overflow-x-hidden">
         {/* ── POS Search Bar (full-width, above 3-col panel) ── */}
         <div className="flex items-center gap-2 w-full">
           {/* Network Status Badge */}
@@ -1292,7 +1292,7 @@ export default function PosPage() {
         }`}>
 
           {/* ── Column 1: Category Sidebar — hiện trên mọi màn hình ── */}
-          <div className="w-[34%] sm:w-[24%] lg:w-[20%] xl:w-[18%] shrink-0">
+          <div className="w-[34%] sm:w-[24%] lg:w-[20%] xl:w-[18%] 2xl:w-[15%] 3xl:w-[13%] shrink-0">
             <div
               className="sticky top-2 sm:top-4 bg-white border border-slate-200/80 rounded-xl sm:rounded-2xl p-1.5 sm:p-2 shadow-sm"
               style={{ maxHeight: 'calc(100dvh - 9rem)', overflowY: 'auto' }}
@@ -1315,7 +1315,7 @@ export default function PosPage() {
           {/* ── Columns 2 & 3: Product Grid (Responsive) ── */}
           <div className="flex-1 min-w-0">
             {loading ? (
-              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 3xl:grid-cols-6 4k:grid-cols-8 gap-2 sm:gap-3 2xl:gap-4">
                 {[...Array(8)].map((_, i) => (
                   <div key={i} className="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm animate-pulse space-y-2">
                     <div className="w-full aspect-square bg-slate-200 rounded-xl" />
@@ -1343,7 +1343,7 @@ export default function PosPage() {
                 )}
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 3xl:grid-cols-6 4k:grid-cols-8 gap-2 sm:gap-3 2xl:gap-4">
                 {sortedAndFilteredProducts.map((product) => (
                   <ProductCard
                     key={product.id}
@@ -1362,7 +1362,7 @@ export default function PosPage() {
 
         {/* Mobile & Bottom Sticky Quick Cart Bar - Only visible when cart has items */}
         {cartItems.length > 0 && (
-          <div className="fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom))] md:bottom-4 left-2.5 right-2.5 sm:left-4 sm:right-4 max-w-7xl mx-auto z-30 bg-slate-900/95 backdrop-blur-md text-white p-2.5 sm:p-3 rounded-2xl shadow-2xl border border-slate-800 flex items-center justify-between hardware-accelerated animate-fade-in">
+          <div className="fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom))] md:bottom-4 left-2.5 right-2.5 sm:left-4 sm:right-4 max-w-7xl 2xl:max-w-[1800px] 3xl:max-w-[2400px] 4k:max-w-[3200px] mx-auto z-30 bg-slate-900/95 backdrop-blur-md text-white p-2.5 sm:p-3 rounded-2xl shadow-2xl border border-slate-800 flex items-center justify-between hardware-accelerated animate-fade-in">
             <div
               onClick={() => setIsCartDrawerOpen(true)}
               className="flex items-center space-x-2 sm:space-x-3 cursor-pointer group active:scale-95 transition-transform min-w-0 flex-1 mr-2"

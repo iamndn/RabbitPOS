@@ -60,7 +60,7 @@ export default function PurchasesPage() {
 
   return (
     <AppShell>
-      <div className="space-y-4 sm:space-y-6 max-w-7xl mx-auto w-full max-w-full overflow-x-hidden">
+      <div className="space-y-4 sm:space-y-6 w-full max-w-7xl 2xl:max-w-[1800px] 3xl:max-w-[2400px] 4k:max-w-[3200px] mx-auto overflow-x-hidden">
         <PurchasesCostTab
           refreshTrigger={refreshTrigger}
           onOpenExpenseModal={() => setIsExpenseModalOpen(true)}

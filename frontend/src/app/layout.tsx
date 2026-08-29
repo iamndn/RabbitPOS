@@ -76,7 +76,7 @@ export default function RootLayout({
         <LanguageProvider>
           <ToastProvider>
             <ConfirmProvider>
-              <main className="flex-1 flex flex-col w-full max-w-full md:max-w-7xl mx-auto shadow-sm bg-white min-h-0 overflow-x-hidden">
+              <main className="flex-1 flex flex-col w-full min-h-0 overflow-x-hidden bg-slate-50">
                 {children}
               </main>
             </ConfirmProvider>

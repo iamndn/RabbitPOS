@@ -42,6 +42,10 @@ const config: Config = {
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
+      screens: {
+        '3xl': '1920px',
+        '4k': '2560px',
+      },
     },
   },
   plugins: [],

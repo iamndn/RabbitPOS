@@ -309,7 +309,7 @@ export default function AutoTaggingModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-xs animate-fade-in overflow-y-auto">
-      <div className="bg-white w-full max-w-5xl rounded-t-3xl sm:rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92dvh] sm:max-h-[92vh] pb-safe">
+      <div className="bg-white w-full max-w-5xl 2xl:max-w-6xl 3xl:max-w-7xl rounded-t-3xl sm:rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92dvh] sm:max-h-[92vh] pb-safe">
         {/* Header */}
         <div className="px-4 sm:px-5 py-3.5 sm:py-4 border-b border-slate-200 flex items-center justify-between bg-gradient-to-r from-amber-500/10 via-indigo-500/10 to-transparent shrink-0">
           <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 pr-2">
