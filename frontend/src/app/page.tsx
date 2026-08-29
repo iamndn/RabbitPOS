@@ -177,7 +177,6 @@ interface ProductCardProps {
   onSelect: (product: Product) => void;
   onQuickAdd: (product: Product) => void;
   orderBtnLabel: string;
-  t: (key: string, params?: any) => string;
 }
 
 const ProductCard = React.memo(function ProductCard({
@@ -187,8 +186,8 @@ const ProductCard = React.memo(function ProductCard({
   onSelect,
   onQuickAdd,
   orderBtnLabel,
-  t,
 }: ProductCardProps) {
+  const { t } = useTranslation();
   const toast = useToast();
   const startingPrice = useMemo(() => {
     return Array.isArray(product.variants) && product.variants.length > 0
@@ -998,6 +997,8 @@ export default function PosPage() {
     [safeCartItems]
   );
 
+  const orderBtnLabel = useMemo(() => t('pos.order_button') || 'Gọi món', [t]);
+
   return (
     <AppShell>
       <div className="flex flex-col gap-3 sm:gap-4 max-w-7xl mx-auto w-full max-w-full overflow-x-hidden">
@@ -1351,8 +1352,7 @@ export default function PosPage() {
                     customTags={customTags}
                     onSelect={handleSelectProductForVariant}
                     onQuickAdd={handleQuickAdd}
-                    orderBtnLabel={t('pos.order_button')}
-                    t={t}
+                    orderBtnLabel={orderBtnLabel}
                   />
                 ))}
               </div>

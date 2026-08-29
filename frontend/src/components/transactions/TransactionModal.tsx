@@ -9,13 +9,6 @@ import {
   RotateCcw,
   Sparkles,
   ShoppingBag,
-  Package,
-  Layers,
-  Scale,
-  Percent,
-  ChevronDown,
-  ChevronUp,
-  Info,
 } from 'lucide-react';
 import ModernSelect from '@/components/common/ModernSelect';
 import { formatCurrency } from '@/lib/utils';
@@ -25,7 +18,6 @@ import { Ingredient, IngredientConversionPreset } from '@/types/purchase';
 import { TransactionCategory } from '@/types/transaction_category';
 import {
   COMMON_PURCHASE_UNITS,
-  COMMON_BASE_UNITS,
   calculatePurchaseConversion,
   formatQuantityWithUnit,
 } from '@/lib/unitConversion';
@@ -780,7 +772,7 @@ export default function TransactionModal({
 
               {/* Purchase Items List */}
               {isPurchaseLogging && (
-                <div className="space-y-3 pt-2 border-t border-emerald-200/60 w-full min-w-0">
+                <div className="space-y-2.5 pt-2 border-t border-emerald-200/60 w-full min-w-0">
                   {purchaseItems.map((item, idx) => {
                     const matchedIng = knownIngredients.find(
                       (i) => i.id === item.ingredient_id || i.name.toLowerCase() === item.ingredient_name.toLowerCase()
@@ -797,18 +789,18 @@ export default function TransactionModal({
                     return (
                       <div
                         key={idx}
-                        className="bg-white rounded-2xl p-3 sm:p-3.5 border border-emerald-200/90 shadow-2xs space-y-2.5 transition-all hover:border-emerald-300 w-full max-w-full min-w-0 box-border"
+                        className="bg-white rounded-2xl p-2.5 border border-emerald-200/90 shadow-2xs space-y-2 transition-all hover:border-emerald-300 w-full max-w-full min-w-0 box-border overflow-hidden"
                       >
                         {/* Hàng 1: Chọn nguyên liệu + Danh mục + Nút Xóa */}
-                        <div className="flex items-center gap-2 w-full min-w-0">
-                          <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 w-full min-w-0 overflow-hidden">
+                          <div className="flex-1 min-w-0 overflow-hidden">
                             {item.is_custom_new ? (
-                              <div className="flex items-center gap-1.5 w-full min-w-0">
+                              <div className="flex items-center gap-1 w-full min-w-0">
                                 <input
                                   type="text"
                                   required
                                   autoFocus
-                                  placeholder="Nhập tên nguyên liệu mới..."
+                                  placeholder="Tên nguyên liệu mới..."
                                   value={item.ingredient_name}
                                   onChange={(e) =>
                                     handleItemChange(idx, 'ingredient_name', e.target.value)
@@ -829,9 +821,9 @@ export default function TransactionModal({
                                       return updated;
                                     });
                                   }}
-                                  className="text-[10px] font-bold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-2 py-1.5 rounded-lg border border-emerald-200 shrink-0 cursor-pointer"
+                                  className="text-[10px] font-bold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-2 py-1.5 rounded-lg border border-emerald-200 shrink-0 cursor-pointer whitespace-nowrap"
                                 >
-                                  ↺ Chọn có sẵn
+                                  ↺ Có sẵn
                                 </button>
                               </div>
                             ) : (
@@ -839,9 +831,9 @@ export default function TransactionModal({
                                 required
                                 value={item.ingredient_id || ''}
                                 onChange={(e) => handleSelectIngredient(idx, e.target.value)}
-                                className="w-full min-w-0 h-10 sm:h-9 px-2.5 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+                                className="w-full min-w-0 h-9 px-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
                               >
-                                <option value="">— Chọn nguyên liệu nhập hàng —</option>
+                                <option value="">— Chọn nguyên liệu —</option>
                                 {knownIngredients.map((ing) => (
                                   <option key={ing.id} value={ing.id}>
                                     {ing.name} ({ing.base_unit || ing.unit})
@@ -857,51 +849,49 @@ export default function TransactionModal({
                             )}
                           </div>
 
-                          <div className="flex items-center gap-1 shrink-0">
-                            <select
-                              value={item.category}
-                              onChange={(e) => handleItemChange(idx, 'category', e.target.value)}
-                              className="h-8 px-1.5 border border-slate-200 rounded-lg text-[10px] font-semibold bg-slate-50 text-slate-700 max-w-[105px] truncate"
-                            >
-                              <option value="ingredient">NL / Sữa</option>
-                              <option value="fruit">Hoa quả</option>
-                              <option value="packaging">Bao bì</option>
-                              <option value="other">Khác</option>
-                            </select>
+                          <select
+                            value={item.category}
+                            onChange={(e) => handleItemChange(idx, 'category', e.target.value)}
+                            className="h-9 px-1 border border-slate-200 rounded-lg text-[10px] font-semibold bg-slate-50 text-slate-700 w-[70px] shrink-0"
+                          >
+                            <option value="ingredient">NL/Sữa</option>
+                            <option value="fruit">Hoa quả</option>
+                            <option value="packaging">Bao bì</option>
+                            <option value="other">Khác</option>
+                          </select>
 
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveRow(idx)}
-                              className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition cursor-pointer shrink-0"
-                              title="Xóa dòng này"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveRow(idx)}
+                            className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition cursor-pointer shrink-0"
+                            title="Xóa dòng"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
                         </div>
 
-                        {/* Hàng 2: Quy cách lưu sẵn (Presets Quick Chips) */}
+                        {/* Hàng 2: Preset chips */}
                         {presets.length > 0 && (
-                          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar pt-0.5 w-full min-w-0">
+                          <div className="flex items-center gap-1 overflow-x-auto pb-0.5 no-scrollbar w-full min-w-0">
                             <span className="text-[10px] text-slate-400 font-bold uppercase shrink-0">Quy cách:</span>
                             {presets.map((pr, pIdx) => (
                               <button
                                 key={pIdx}
                                 type="button"
                                 onClick={() => handleApplyPreset(idx, pr)}
-                                className="text-[10px] font-bold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2.5 py-1 rounded-lg transition active:scale-95 shrink-0 cursor-pointer"
+                                className="text-[10px] font-bold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2 py-0.5 rounded-lg transition active:scale-95 shrink-0 cursor-pointer whitespace-nowrap"
                               >
-                                {pr.label || `${pr.purchase_unit} (${pr.pack_qty > 1 ? `${pr.pack_qty}x` : ''}${pr.capacity_qty}${pr.capacity_unit})`}
+                                {pr.label || `${pr.purchase_unit} (${pr.pack_qty > 1 ? `${pr.pack_qty}×` : ''}${pr.capacity_qty}${pr.capacity_unit})`}
                               </button>
                             ))}
                           </div>
                         )}
 
-                        {/* Hàng 3: Số lượng mua & Đơn vị mua */}
-                        <div className="grid grid-cols-2 gap-2 w-full min-w-0 text-xs">
+                        {/* Hàng 3: Số lượng | Đơn vị | Đơn giá — 3 cột compact */}
+                        <div className="grid grid-cols-3 gap-1.5 w-full min-w-0 text-xs">
                           <div>
                             <label className="text-[10px] font-bold text-slate-500 uppercase block mb-0.5">
-                              Số lượng mua *
+                              Số lượng
                             </label>
                             <input
                               type="number"
@@ -917,40 +907,35 @@ export default function TransactionModal({
                                 )
                               }
                               placeholder="2"
-                              className="w-full min-w-0 h-10 sm:h-9 px-2 border border-slate-200 rounded-xl text-xs font-black text-center text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                              className="w-full min-w-0 h-9 px-1.5 border border-slate-200 rounded-xl text-xs font-black text-center text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                             />
                           </div>
 
                           <div>
                             <label className="text-[10px] font-bold text-slate-500 uppercase block mb-0.5">
-                              Đơn vị mua *
+                              Đơn vị
                             </label>
                             <select
                               value={item.purchase_unit}
                               onChange={(e) => handleItemChange(idx, 'purchase_unit', e.target.value)}
-                              className="w-full min-w-0 h-10 sm:h-9 px-2 border border-slate-200 rounded-xl text-xs font-bold bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                              className="w-full min-w-0 h-9 px-1 border border-slate-200 rounded-xl text-xs font-bold bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                             >
                               {COMMON_PURCHASE_UNITS.map((u) => (
-                                <option key={u} value={u}>
-                                  {u}
-                                </option>
+                                <option key={u} value={u}>{u}</option>
                               ))}
                             </select>
                           </div>
-                        </div>
 
-                        {/* Hàng 4: Đơn giá mua & Thành tiền (Hỗ trợ 2 chiều) */}
-                        <div className="grid grid-cols-2 gap-2 w-full min-w-0 text-xs">
                           <div>
                             <label className="text-[10px] font-bold text-slate-500 uppercase block mb-0.5 truncate">
-                              Đơn giá (đ/{item.purchase_unit}) *
+                              Đ/giá ({item.purchase_unit})
                             </label>
                             <input
                               type="number"
                               step="any"
                               min="0"
                               required
-                              placeholder="120.000"
+                              placeholder="120000"
                               value={item.purchase_unit_price === 0 ? '' : item.purchase_unit_price}
                               onChange={(e) =>
                                 handleItemChange(
@@ -959,161 +944,133 @@ export default function TransactionModal({
                                   e.target.value === '' ? 0 : parseFloat(e.target.value)
                                 )
                               }
-                              className="w-full min-w-0 h-10 sm:h-9 px-2 border border-slate-200 rounded-xl text-xs font-black text-right text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                            />
-                          </div>
-
-                          <div>
-                            <label className="text-[10px] font-bold text-emerald-800 uppercase block mb-0.5 truncate">
-                              Thành tiền (đ)
-                            </label>
-                            <input
-                              type="number"
-                              step="any"
-                              min="0"
-                              placeholder="240.000"
-                              value={item.subtotal === 0 ? '' : item.subtotal}
-                              onChange={(e) =>
-                                handleItemChange(
-                                  idx,
-                                  'subtotal',
-                                  e.target.value === '' ? 0 : parseFloat(e.target.value)
-                                )
-                              }
-                              className="w-full min-w-0 h-10 sm:h-9 px-2 border border-emerald-300 bg-emerald-50/40 rounded-xl text-xs font-black text-right text-emerald-950 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                              className="w-full min-w-0 h-9 px-1.5 border border-slate-200 rounded-xl text-xs font-black text-right text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                             />
                           </div>
                         </div>
 
-                        {/* Hàng 5: Quy cách dung tích / đóng gói */}
-                        <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200/80 space-y-1 w-full min-w-0 box-border">
-                          <label className="text-[10px] font-bold text-slate-600 block uppercase">
-                            Quy cách: Mỗi 1 {item.purchase_unit} chứa
-                          </label>
-                          <div className="grid grid-cols-2 gap-2">
-                            <input
-                              type="number"
-                              step="any"
-                              min="0.001"
-                              required
-                              value={item.capacity_qty === 0 ? '' : item.capacity_qty}
-                              onChange={(e) =>
-                                handleItemChange(
-                                  idx,
-                                  'capacity_qty',
-                                  e.target.value === '' ? 0 : parseFloat(e.target.value)
-                                )
-                              }
-                              placeholder="1000"
-                              className="w-full min-w-0 h-9 px-2 border border-slate-200 rounded-lg text-xs font-black text-right bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                            />
-                            <select
-                              value={item.capacity_unit}
-                              onChange={(e) => handleItemChange(idx, 'capacity_unit', e.target.value)}
-                              className="w-full min-w-0 h-9 px-2 border border-slate-200 rounded-lg text-xs font-bold bg-white text-slate-800"
+                        {/* Hàng 4: Quy cách inline — luôn hiển thị */}
+                        <div className="flex items-center gap-1.5 w-full min-w-0 flex-wrap bg-slate-50 rounded-xl px-2 py-1.5 border border-slate-200/80">
+                          <span className="text-[10px] font-bold text-slate-500 shrink-0">
+                            1 {item.purchase_unit} chứa:
+                          </span>
+                          <input
+                            type="number"
+                            step="any"
+                            min="0.001"
+                            required
+                            value={item.capacity_qty === 0 ? '' : item.capacity_qty}
+                            onChange={(e) =>
+                              handleItemChange(
+                                idx,
+                                'capacity_qty',
+                                e.target.value === '' ? 0 : parseFloat(e.target.value)
+                              )
+                            }
+                            placeholder="1000"
+                            className="w-16 h-8 px-1.5 border border-slate-200 rounded-lg text-xs font-black text-right bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                          />
+                          <select
+                            value={item.capacity_unit}
+                            onChange={(e) => handleItemChange(idx, 'capacity_unit', e.target.value)}
+                            className="h-8 px-1 border border-slate-200 rounded-lg text-xs font-bold bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                          >
+                            <option value="ml">ml</option>
+                            <option value="l">Lít</option>
+                            <option value="g">g</option>
+                            <option value="kg">kg</option>
+                            <option value="cái">cái</option>
+                            <option value="quả">quả</option>
+                            <option value="viên">viên</option>
+                            <option value="hộp">hộp</option>
+                            <option value="lon">lon</option>
+                            <option value="gói">gói</option>
+                          </select>
+                          {item.base_unit && item.base_unit !== item.capacity_unit && (
+                            <span className="text-[10px] text-slate-400 font-semibold shrink-0">
+                              → {item.base_unit}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Hàng 5: Toggle buttons + expanded content */}
+                        <div className="space-y-1.5">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const next = !item.is_multi_level;
+                                handleItemChange(idx, 'is_multi_level', next);
+                                if (!next) {
+                                  handleItemChange(idx, 'pack_qty', 1);
+                                  handleItemChange(idx, 'pack_unit', '');
+                                }
+                              }}
+                              className={`text-[11px] font-bold px-2 py-1 rounded-lg border transition cursor-pointer flex items-center gap-1 ${
+                                item.is_multi_level
+                                  ? 'bg-indigo-50 text-indigo-800 border-indigo-300'
+                                  : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100'
+                              }`}
                             >
-                              <option value="ml">ml (mililít)</option>
-                              <option value="l">Lít</option>
-                              <option value="g">g (gam)</option>
-                              <option value="kg">kg (kilôgam)</option>
-                              <option value="cái">cái</option>
-                              <option value="quả">quả / trái</option>
-                              <option value="viên">viên</option>
-                              <option value="hộp">hộp con</option>
-                              <option value="lon">lon</option>
-                              <option value="gói">gói con</option>
-                            </select>
+                              📦 {item.is_multi_level ? '✓ Thùng nhiều gói' : '+ Thùng/gói con'}
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const next = !item.show_loss_input;
+                                handleItemChange(idx, 'show_loss_input', next);
+                                if (!next) {
+                                  handleItemChange(idx, 'loss_rate', 0);
+                                }
+                              }}
+                              className={`text-[11px] font-bold px-2 py-1 rounded-lg border transition cursor-pointer flex items-center gap-1 ${
+                                item.show_loss_input
+                                  ? 'bg-amber-50 text-amber-800 border-amber-300'
+                                  : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100'
+                              }`}
+                            >
+                              📉 {item.show_loss_input ? `✓ Hao hụt ${Math.round(item.loss_rate * 100)}%` : '+ Hao hụt %'}
+                            </button>
                           </div>
-                        </div>
 
-                        {/* Hàng 6: Nút bật tắt Tùy chọn Nâng cao */}
-                        <div className="flex items-center gap-2 flex-wrap pt-0.5">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const next = !item.is_multi_level;
-                              handleItemChange(idx, 'is_multi_level', next);
-                              if (!next) {
-                                handleItemChange(idx, 'pack_qty', 1);
-                                handleItemChange(idx, 'pack_unit', '');
-                              }
-                            }}
-                            className={`text-[11px] font-bold px-2.5 py-1 rounded-lg border transition cursor-pointer ${
-                              item.is_multi_level
-                                ? 'bg-indigo-50 text-indigo-800 border-indigo-300'
-                                : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
-                            }`}
-                          >
-                            📦 {item.is_multi_level ? '✓ Quy cách thùng' : '+ Thùng nhiều gói con'}
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const next = !item.show_loss_input;
-                              handleItemChange(idx, 'show_loss_input', next);
-                              if (!next) {
-                                handleItemChange(idx, 'loss_rate', 0);
-                              }
-                            }}
-                            className={`text-[11px] font-bold px-2.5 py-1 rounded-lg border transition cursor-pointer ${
-                              item.show_loss_input
-                                ? 'bg-amber-50 text-amber-800 border-amber-300'
-                                : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
-                            }`}
-                          >
-                            📉 {item.show_loss_input ? '✓ Hao hụt %' : '+ Hao hụt sơ chế %'}
-                          </button>
-                        </div>
-
-                        {/* Chi tiết Thùng nhiều gói con */}
-                        {item.is_multi_level && (
-                          <div className="p-2.5 bg-indigo-50/60 rounded-xl border border-indigo-200/80 space-y-1.5 text-xs w-full min-w-0 box-border">
-                            <div className="grid grid-cols-2 gap-2">
-                              <div>
-                                <span className="text-[10px] text-indigo-900 font-bold block mb-0.5">
-                                  Số gói trong 1 {item.purchase_unit}:
-                                </span>
-                                <input
-                                  type="number"
-                                  min="1"
-                                  step="1"
-                                  value={item.pack_qty}
-                                  onChange={(e) =>
-                                    handleItemChange(idx, 'pack_qty', parseFloat(e.target.value) || 1)
-                                  }
-                                  placeholder="12"
-                                  className="w-full min-w-0 h-8 px-2 border border-indigo-200 rounded-lg text-xs font-bold text-center bg-white"
-                                />
-                              </div>
-
-                              <div>
-                                <span className="text-[10px] text-indigo-900 font-bold block mb-0.5">
-                                  Tên gói con:
-                                </span>
-                                <input
-                                  type="text"
-                                  value={item.pack_unit}
-                                  onChange={(e) => handleItemChange(idx, 'pack_unit', e.target.value)}
-                                  placeholder="Chai, Hộp, Túi..."
-                                  className="w-full min-w-0 h-8 px-2 border border-indigo-200 rounded-lg text-xs font-bold text-center bg-white"
-                                />
-                              </div>
-                            </div>
-                            <div className="text-[10px] text-indigo-700 font-semibold truncate">
-                              = {item.pack_qty} {item.pack_unit || 'gói'} × {item.capacity_qty} {item.capacity_unit}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Chi tiết Hao hụt */}
-                        {item.show_loss_input && (
-                          <div className="p-2.5 bg-amber-50/70 rounded-xl border border-amber-200 space-y-1 text-xs w-full min-w-0 box-border">
-                            <div className="flex items-center justify-between gap-2">
-                              <span className="text-[11px] font-bold text-amber-900">
-                                Tỷ lệ hao hụt sơ chế (gọt vỏ, rã đông...):
+                          {/* Chi tiết thùng nhiều gói */}
+                          {item.is_multi_level && (
+                            <div className="flex items-center gap-2 flex-wrap bg-indigo-50/60 rounded-xl px-2.5 py-2 border border-indigo-200/80 text-xs">
+                              <span className="text-[11px] font-bold text-indigo-800 shrink-0">
+                                1 {item.purchase_unit} gồm:
                               </span>
-                              <div className="flex items-center gap-1 w-20 shrink-0">
+                              <input
+                                type="number"
+                                min="1"
+                                step="1"
+                                value={item.pack_qty}
+                                onChange={(e) =>
+                                  handleItemChange(idx, 'pack_qty', parseFloat(e.target.value) || 1)
+                                }
+                                placeholder="12"
+                                className="w-14 h-8 px-1.5 border border-indigo-200 rounded-lg text-xs font-bold text-center bg-white"
+                              />
+                              <input
+                                type="text"
+                                value={item.pack_unit}
+                                onChange={(e) => handleItemChange(idx, 'pack_unit', e.target.value)}
+                                placeholder="Chai, Hộp..."
+                                className="w-20 h-8 px-1.5 border border-indigo-200 rounded-lg text-xs font-bold text-center bg-white"
+                              />
+                              <span className="text-[10px] text-indigo-600 font-semibold">
+                                = {item.pack_qty} {item.pack_unit || 'gói'} × {item.capacity_qty}{item.capacity_unit}
+                              </span>
+                            </div>
+                          )}
+
+                          {/* Chi tiết hao hụt */}
+                          {item.show_loss_input && (
+                            <div className="flex items-center gap-2 flex-wrap bg-amber-50/70 rounded-xl px-2.5 py-2 border border-amber-200 text-xs">
+                              <span className="text-[11px] font-bold text-amber-900 flex-1 min-w-0">
+                                Tỷ lệ hao hụt sơ chế:
+                              </span>
+                              <div className="flex items-center gap-1 shrink-0">
                                 <input
                                   type="number"
                                   step="1"
@@ -1124,44 +1081,36 @@ export default function TransactionModal({
                                     const val = parseFloat(e.target.value) || 0;
                                     handleItemChange(idx, 'loss_rate', val / 100);
                                   }}
-                                  className="w-full min-w-0 h-8 px-1 border border-amber-300 rounded-lg text-xs font-black text-center bg-white text-amber-950"
+                                  className="w-14 h-8 px-1.5 border border-amber-300 rounded-lg text-xs font-black text-center bg-white text-amber-950"
                                 />
                                 <span className="font-bold text-amber-800">%</span>
                               </div>
+                              <span className="text-[10px] text-amber-700 font-semibold shrink-0">
+                                Thực dùng: {formatQuantityWithUnit(item.effective_base_quantity, item.base_unit)}
+                              </span>
                             </div>
-                            <div className="text-[10px] text-amber-700">
-                              Lượng dùng thực tế: {formatQuantityWithUnit(item.effective_base_quantity, item.base_unit)}
-                            </div>
-                          </div>
-                        )}
+                          )}
+                        </div>
 
-                        {/* Hàng 7: Smart Real-time Calculation Result Banner */}
-                        <div className="bg-emerald-100/70 rounded-xl p-2.5 border border-emerald-200/90 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1.5 text-xs w-full min-w-0 box-border">
-                          <div className="flex items-center gap-1.5 flex-wrap text-emerald-950 font-bold text-[11px] sm:text-xs min-w-0">
-                            <Sparkles className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
-                            <span className="break-words">
+                        {/* Hàng 6: Summary banner */}
+                        <div className="bg-emerald-100/70 rounded-xl px-2.5 py-2 border border-emerald-200/90 flex items-center justify-between gap-2 text-xs w-full min-w-0 flex-wrap">
+                          <div className="flex items-center gap-1.5 text-emerald-950 font-bold text-[11px] min-w-0 flex-1 flex-wrap">
+                            <Sparkles className="w-3 h-3 text-emerald-700 shrink-0" />
+                            <span className="min-w-0">
                               {item.conversion_spec || `${item.purchase_quantity} ${item.purchase_unit}`} ={' '}
-                              <strong className="text-emerald-900">
-                                {formatQuantityWithUnit(item.total_base_quantity, item.base_unit)}
-                              </strong>
+                              <strong>{formatQuantityWithUnit(item.total_base_quantity, item.base_unit)}</strong>
                             </span>
-                            <span className="text-emerald-400">•</span>
-                            <span>
-                              Tổng: <strong>{formatCurrency(item.subtotal)}</strong>
+                            <span className="text-emerald-400 shrink-0">•</span>
+                            <span className="shrink-0">
+                              Tổng: <strong className="text-emerald-900">{formatCurrency(item.subtotal)}</strong>
                             </span>
                           </div>
 
-                          <div className="self-end sm:self-auto shrink-0">
-                            {item.loss_rate > 0 ? (
-                              <span className="bg-emerald-700 text-white font-black text-[11px] sm:text-xs px-2.5 py-0.5 rounded-lg shadow-2xs">
-                                Cost thực tế: {formatCurrency(item.effective_base_price)}/{item.base_unit}
-                              </span>
-                            ) : (
-                              <span className="bg-emerald-700 text-white font-black text-[11px] sm:text-xs px-2.5 py-0.5 rounded-lg shadow-2xs">
-                                Giá vốn: {formatCurrency(item.base_unit_price)}/{item.base_unit}
-                              </span>
-                            )}
-                          </div>
+                          <span className="bg-emerald-700 text-white font-black text-[11px] px-2 py-0.5 rounded-lg shadow-2xs shrink-0 whitespace-nowrap">
+                            {item.loss_rate > 0
+                              ? `Cost: ${formatCurrency(item.effective_base_price)}/${item.base_unit}`
+                              : `${formatCurrency(item.base_unit_price)}/${item.base_unit}`}
+                          </span>
                         </div>
                       </div>
                     );
