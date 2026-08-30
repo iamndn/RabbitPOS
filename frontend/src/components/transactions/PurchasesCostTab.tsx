@@ -17,6 +17,9 @@ import {
   X,
   PlusCircle,
   Package,
+  Sparkles,
+  Sliders,
+  Calculator,
 } from 'lucide-react';
 import ModernSelect, { ModernSelectOption } from '@/components/common/ModernSelect';
 import { fetchApi, getImageUrl } from '@/lib/api';
@@ -35,6 +38,12 @@ import {
   COMMON_PURCHASE_UNITS,
   formatQuantityWithUnit,
 } from '@/lib/unitConversion';
+import {
+  POPULAR_RECIPE_TEMPLATES,
+  findMatchingRecipeTemplate,
+  mapTemplateToIngredients,
+  RecipeTemplate,
+} from '@/lib/recipeTemplates';
 
 interface Fund {
   id: number;
@@ -79,6 +88,7 @@ export default function PurchasesCostTab({
   // Search & Filters
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'needs_update' | 'low_margin' | 'high_margin' | 'no_recipe'>('all');
   const [historySearch, setHistorySearch] = useState<string>('');
   const [ingSearchQuery, setIngSearchQuery] = useState<string>('');
   const [ingCategoryFilter, setIngCategoryFilter] = useState<string>('all');
@@ -89,6 +99,7 @@ export default function PurchasesCostTab({
   // Recipe Editor Modal State
   const [editingRecipeTarget, setEditingRecipeTarget] = useState<CostComparisonItem | null>(null);
   const [recipeLines, setRecipeLines] = useState<{ ingredient_id: number; usage_quantity: number }[]>([]);
+  const [simulatedPrice, setSimulatedPrice] = useState<number>(0);
   const [savingRecipe, setSavingRecipe] = useState<boolean>(false);
 
   // Ingredient Create / Edit Modal State
@@ -160,6 +171,33 @@ export default function PurchasesCostTab({
     if (propSettings) setSettings(propSettings);
   }, [propSettings]);
 
+  const filterCounts = useMemo(() => {
+    let needsUpdate = 0;
+    let lowMargin = 0;
+    let highMargin = 0;
+    let noRecipe = 0;
+
+    costItems.forEach((item) => {
+      const estCost = pricingBasis === 'latest' ? item.estimated_cogs : item.estimated_cogs_avg;
+      const margin = item.retail_price > 0 ? (item.retail_price - estCost) / item.retail_price : 0;
+      if (item.recipe_item_count === 0) {
+        noRecipe++;
+      } else {
+        if (Math.abs(estCost - item.current_cogs) >= 1) needsUpdate++;
+        if (margin < 0.5) lowMargin++;
+        if (margin >= 0.65) highMargin++;
+      }
+    });
+
+    return {
+      all: costItems.length,
+      needsUpdate,
+      lowMargin,
+      highMargin,
+      noRecipe,
+    };
+  }, [costItems, pricingBasis]);
+
   const categoriesList = useMemo(() => {
     const set = new Set<string>();
     costItems.forEach((item) => {
@@ -189,9 +227,28 @@ export default function PurchasesCostTab({
         item.variant_name.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesCat =
         selectedCategory === 'all' || item.category_name === selectedCategory;
-      return matchesSearch && matchesCat;
+
+      if (!matchesSearch || !matchesCat) return false;
+
+      const estCost = pricingBasis === 'latest' ? item.estimated_cogs : item.estimated_cogs_avg;
+      const margin = item.retail_price > 0 ? (item.retail_price - estCost) / item.retail_price : 0;
+
+      if (statusFilter === 'needs_update') {
+        return item.recipe_item_count > 0 && Math.abs(estCost - item.current_cogs) >= 1;
+      }
+      if (statusFilter === 'low_margin') {
+        return item.retail_price > 0 && margin < 0.5;
+      }
+      if (statusFilter === 'high_margin') {
+        return item.retail_price > 0 && margin >= 0.65;
+      }
+      if (statusFilter === 'no_recipe') {
+        return item.recipe_item_count === 0;
+      }
+
+      return true;
     });
-  }, [costItems, searchQuery, selectedCategory]);
+  }, [costItems, searchQuery, selectedCategory, statusFilter, pricingBasis]);
 
   const filteredHistory = useMemo(() => {
     return allHistory.filter((item) => {
@@ -340,6 +397,7 @@ export default function PurchasesCostTab({
 
   const handleOpenRecipeEditor = async (item: CostComparisonItem) => {
     setEditingRecipeTarget(item);
+    setSimulatedPrice(item.retail_price || 0);
     try {
       const res = await fetchApi<any[]>(`/purchases/recipes/${item.target_type}/${item.target_id}`);
       if (res.status === 'success' && Array.isArray(res.data) && res.data.length > 0) {
@@ -350,11 +408,24 @@ export default function PurchasesCostTab({
           }))
         );
       } else {
-        setRecipeLines([{ ingredient_id: ingredients[0]?.id || 0, usage_quantity: 60 }]);
+        const matched = findMatchingRecipeTemplate(item.product_name, item.category_name);
+        if (matched && ingredients.length > 0) {
+          const mapped = mapTemplateToIngredients(matched, ingredients);
+          setRecipeLines(mapped.map((m) => ({ ingredient_id: m.ingredient_id, usage_quantity: m.usage_quantity })));
+        } else {
+          setRecipeLines([{ ingredient_id: ingredients[0]?.id || 0, usage_quantity: 60 }]);
+        }
       }
     } catch {
       setRecipeLines([{ ingredient_id: ingredients[0]?.id || 0, usage_quantity: 60 }]);
     }
+  };
+
+  const handleApplyPresetTemplate = (template: RecipeTemplate) => {
+    if (ingredients.length === 0) return;
+    const mapped = mapTemplateToIngredients(template, ingredients);
+    setRecipeLines(mapped.map((m) => ({ ingredient_id: m.ingredient_id, usage_quantity: m.usage_quantity })));
+    showToast('success', `Đã nạp công thức mẫu "${template.name}"`);
   };
 
   const handleSaveRecipe = async () => {
@@ -535,12 +606,21 @@ export default function PurchasesCostTab({
     return Math.round(total);
   }, [recipeLines, ingredients, editingRecipeTarget, pricingBasis]);
 
-  const recipeMarginPct = useMemo(() => {
-    if (!editingRecipeTarget || editingRecipeTarget.retail_price <= 0) return 0;
+  const matchedTemplate = useMemo(() => {
+    if (!editingRecipeTarget) return null;
+    return findMatchingRecipeTemplate(editingRecipeTarget.product_name, editingRecipeTarget.category_name);
+  }, [editingRecipeTarget]);
+
+  const simulatedProfit = useMemo(() => {
+    return (simulatedPrice || 0) - recipePreviewCost;
+  }, [simulatedPrice, recipePreviewCost]);
+
+  const simulatedMarginPct = useMemo(() => {
+    if (!simulatedPrice || simulatedPrice <= 0) return 0;
     return (
-      Math.round(((editingRecipeTarget.retail_price - recipePreviewCost) / editingRecipeTarget.retail_price) * 1000) / 10
+      Math.round(((simulatedPrice - recipePreviewCost) / simulatedPrice) * 1000) / 10
     );
-  }, [editingRecipeTarget, recipePreviewCost]);
+  }, [simulatedPrice, recipePreviewCost]);
 
   return (
     <div className="space-y-4 w-full">
@@ -718,6 +798,65 @@ export default function PurchasesCostTab({
                   options={categoryOptions}
                 />
               </div>
+            </div>
+
+            {/* Quick Status Filter Chips */}
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar pt-0.5">
+              <button
+                type="button"
+                onClick={() => setStatusFilter('all')}
+                className={`px-2.5 py-1 rounded-xl text-xs font-extrabold border transition shrink-0 cursor-pointer ${
+                  statusFilter === 'all'
+                    ? 'bg-slate-900 text-white border-slate-900 shadow-2xs'
+                    : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                }`}
+              >
+                Tất cả ({filterCounts.all})
+              </button>
+              <button
+                type="button"
+                onClick={() => setStatusFilter('needs_update')}
+                className={`px-2.5 py-1 rounded-xl text-xs font-extrabold border transition shrink-0 cursor-pointer flex items-center gap-1 ${
+                  statusFilter === 'needs_update'
+                    ? 'bg-amber-600 text-white border-amber-600 shadow-2xs'
+                    : 'bg-amber-50 text-amber-900 border-amber-200/80 hover:bg-amber-100'
+                }`}
+              >
+                ⚠️ Cần cập nhật ({filterCounts.needsUpdate})
+              </button>
+              <button
+                type="button"
+                onClick={() => setStatusFilter('high_margin')}
+                className={`px-2.5 py-1 rounded-xl text-xs font-extrabold border transition shrink-0 cursor-pointer flex items-center gap-1 ${
+                  statusFilter === 'high_margin'
+                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs'
+                    : 'bg-emerald-50 text-emerald-900 border-emerald-200/80 hover:bg-emerald-100'
+                }`}
+              >
+                ✅ Biên lãi cao ≥65% ({filterCounts.highMargin})
+              </button>
+              <button
+                type="button"
+                onClick={() => setStatusFilter('low_margin')}
+                className={`px-2.5 py-1 rounded-xl text-xs font-extrabold border transition shrink-0 cursor-pointer flex items-center gap-1 ${
+                  statusFilter === 'low_margin'
+                    ? 'bg-rose-600 text-white border-rose-600 shadow-2xs'
+                    : 'bg-rose-50 text-rose-900 border-rose-200/80 hover:bg-rose-100'
+                }`}
+              >
+                🔥 Biên lãi thấp &lt;50% ({filterCounts.lowMargin})
+              </button>
+              <button
+                type="button"
+                onClick={() => setStatusFilter('no_recipe')}
+                className={`px-2.5 py-1 rounded-xl text-xs font-extrabold border transition shrink-0 cursor-pointer flex items-center gap-1 ${
+                  statusFilter === 'no_recipe'
+                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-2xs'
+                    : 'bg-indigo-50 text-indigo-900 border-indigo-200/80 hover:bg-indigo-100'
+                }`}
+              >
+                📋 Chưa có BOM ({filterCounts.noRecipe})
+              </button>
             </div>
 
             {/* Pricing Mode Switcher & Sync Button */}
@@ -1537,28 +1676,116 @@ export default function PurchasesCostTab({
               </button>
             </div>
 
-            <div className="bg-emerald-50/90 rounded-2xl p-3.5 border border-emerald-200 flex items-center justify-between text-xs">
-              <div>
-                <span className="text-[10px] font-bold text-emerald-800 uppercase block">Giá vốn tính toán</span>
-                <span className="text-xl font-black text-emerald-950">
-                  {formatCurrency(recipePreviewCost, settings)}
+            {/* 1-Click Recipe Template Preset Bar */}
+            <div className="bg-slate-50 rounded-2xl p-2.5 sm:p-3 border border-slate-200/80 space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[11px] font-extrabold text-slate-700 flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                  <span>Thư Viện Công Thức Món Mẫu F&B</span>
+                </span>
+                <span className="text-[10px] text-slate-400 font-semibold">1-Click nạp định lượng chuẩn</span>
+              </div>
+
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {matchedTemplate && (
+                  <button
+                    type="button"
+                    onClick={() => handleApplyPresetTemplate(matchedTemplate)}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-100 hover:bg-amber-200 text-amber-900 rounded-xl text-xs font-black border border-amber-300 shadow-2xs transition active:scale-95 cursor-pointer"
+                  >
+                    <Sparkles className="w-3 h-3 text-amber-700" />
+                    <span>✨ Gợi ý chuẩn: {matchedTemplate.name}</span>
+                  </button>
+                )}
+
+                <select
+                  onChange={(e) => {
+                    const selected = POPULAR_RECIPE_TEMPLATES.find((t) => t.id === e.target.value);
+                    if (selected) handleApplyPresetTemplate(selected);
+                    e.target.value = '';
+                  }}
+                  defaultValue=""
+                  className="h-7 px-2 border border-slate-200 rounded-lg text-[11px] font-bold text-slate-600 bg-white hover:bg-slate-50 transition cursor-pointer"
+                >
+                  <option value="" disabled>
+                    + Chọn từ 11+ mẫu công thức khác...
+                  </option>
+                  {POPULAR_RECIPE_TEMPLATES.map((tmpl) => (
+                    <option key={tmpl.id} value={tmpl.id}>
+                      [{tmpl.category}] {tmpl.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Interactive Live Cost & Profit Simulator Widget */}
+            <div className="bg-gradient-to-br from-emerald-50/90 to-slate-50 rounded-2xl p-3.5 border border-emerald-200/90 shadow-2xs space-y-2.5">
+              <div className="flex items-center justify-between gap-2 border-b border-emerald-200/50 pb-2">
+                <span className="text-[11px] font-black text-emerald-950 flex items-center gap-1.5">
+                  <Calculator className="w-3.5 h-3.5 text-emerald-700" />
+                  <span>Mô Phỏng Giá Bán & Biên Lợi Nhuận Thực Tế</span>
+                </span>
+                <span
+                  className={`text-[10px] font-black px-2 py-0.5 rounded-full border shadow-2xs ${
+                    simulatedMarginPct >= 65
+                      ? 'bg-emerald-600 text-white border-emerald-700'
+                      : simulatedMarginPct >= 50
+                      ? 'bg-amber-500 text-white border-amber-600'
+                      : 'bg-rose-600 text-white border-rose-700'
+                  }`}
+                >
+                  {simulatedMarginPct >= 65
+                    ? '🟢 Lãi cao (Lý tưởng)'
+                    : simulatedMarginPct >= 50
+                    ? '🟡 Lãi vừa (Tiêu chuẩn)'
+                    : '🔴 Lãi thấp (Cần tăng giá)'}
                 </span>
               </div>
-              <div className="text-right">
-                <span className="text-[10px] font-bold text-slate-500 uppercase block">Giá bán lẻ / Lãi</span>
-                <div className="flex items-center gap-1.5 justify-end">
-                  <span className="font-bold text-slate-800">
-                    {formatCurrency(editingRecipeTarget.retail_price, settings)}
+
+              <div className="grid grid-cols-3 gap-2 text-xs">
+                <div className="bg-white/80 p-2 rounded-xl border border-emerald-100/80">
+                  <span className="text-[10px] font-bold text-slate-500 block">Tiền vốn 1 ly (COGS)</span>
+                  <span className="text-base sm:text-lg font-black text-emerald-950 block mt-0.5">
+                    {formatCurrency(recipePreviewCost, settings)}
                   </span>
-                  <span className="font-black text-emerald-800 bg-emerald-100 px-1.5 py-0.5 rounded">
-                    {recipeMarginPct}%
-                  </span>
+                </div>
+
+                <div className="bg-white/80 p-2 rounded-xl border border-emerald-100/80">
+                  <span className="text-[10px] font-bold text-slate-500 block">Giá bán mô phỏng</span>
+                  <div className="flex items-center gap-1 mt-0.5">
+                    <input
+                      type="number"
+                      step="1000"
+                      min="0"
+                      value={simulatedPrice}
+                      onChange={(e) => setSimulatedPrice(parseFloat(e.target.value) || 0)}
+                      className="w-full h-7 px-1.5 border border-slate-200 rounded-lg text-xs font-black text-slate-900 bg-white"
+                    />
+                  </div>
+                </div>
+
+                <div className="bg-white/80 p-2 rounded-xl border border-emerald-100/80 text-right">
+                  <span className="text-[10px] font-bold text-slate-500 block">Tiền lời / Tỷ suất</span>
+                  <div className="flex items-baseline justify-end gap-1 mt-0.5">
+                    <span className="text-sm sm:text-base font-black text-emerald-900">
+                      {formatCurrency(simulatedProfit, settings)}
+                    </span>
+                    <span className="text-[11px] font-extrabold text-emerald-700">
+                      ({simulatedMarginPct}%)
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
 
+            {/* Recipe Lines */}
             <div className="space-y-2.5">
-              <label className="text-xs font-bold text-slate-700">Định lượng theo Đơn vị cơ sở (Base Unit)</label>
+              <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
+                <span>Định lượng nguyên liệu cho 1 ly</span>
+                <span className="text-[10px] text-slate-400 font-semibold">Tự tính theo giá nhập gần nhất</span>
+              </label>
+
               {recipeLines.map((line, idx) => {
                 const selectedIng = ingredients.find((i) => i.id === line.ingredient_id);
                 const baseUnit = selectedIng?.base_unit || selectedIng?.unit || 'ml';
@@ -1624,6 +1851,7 @@ export default function PurchasesCostTab({
                         setRecipeLines((prev) => prev.filter((_, i) => i !== idx));
                       }}
                       className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition cursor-pointer shrink-0"
+                      title="Xóa nguyên liệu này"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>

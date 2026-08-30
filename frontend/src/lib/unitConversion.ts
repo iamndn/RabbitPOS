@@ -233,3 +233,156 @@ export function formatQuantityWithUnit(qty: number, unit: string): string {
   });
   return `${formattedQty} ${unit || ''}`.trim();
 }
+
+export interface QuickConversionChip {
+  label: string;
+  purchase_unit: string;
+  pack_qty: number;
+  pack_unit: string;
+  capacity_qty: number;
+  capacity_unit: string;
+  loss_rate: number;
+}
+
+/**
+ * Returns smart 1-click preset suggestions based on ingredient category and base unit
+ */
+export function getSuggestedPresets(
+  category: string = 'ingredient',
+  baseUnit: string = 'ml'
+): QuickConversionChip[] {
+  const cat = (category || '').toLowerCase();
+  const bu = (baseUnit || 'ml').toLowerCase();
+
+  if (cat === 'fruit' || bu === 'g' || bu === 'kg') {
+    return [
+      {
+        label: '1 Kg = 1.000 g (Hao hụt 10%)',
+        purchase_unit: 'Kg',
+        pack_qty: 1,
+        pack_unit: '',
+        capacity_qty: 1000,
+        capacity_unit: 'g',
+        loss_rate: 0.1,
+      },
+      {
+        label: '1 Kg = 1.000 g (Không hao hụt)',
+        purchase_unit: 'Kg',
+        pack_qty: 1,
+        pack_unit: '',
+        capacity_qty: 1000,
+        capacity_unit: 'g',
+        loss_rate: 0.0,
+      },
+      {
+        label: '1 Túi = 500 g',
+        purchase_unit: 'Túi',
+        pack_qty: 1,
+        pack_unit: '',
+        capacity_qty: 500,
+        capacity_unit: 'g',
+        loss_rate: 0.0,
+      },
+      {
+        label: '1 Túi = 1.000 g',
+        purchase_unit: 'Túi',
+        pack_qty: 1,
+        pack_unit: '',
+        capacity_qty: 1000,
+        capacity_unit: 'g',
+        loss_rate: 0.0,
+      },
+    ];
+  }
+
+  if (cat === 'packaging' || ['cái', 'ly', 'nắp', 'ống', 'que'].includes(bu)) {
+    return [
+      {
+        label: '1 Thùng = 1.000 Cái',
+        purchase_unit: 'Thùng',
+        pack_qty: 1,
+        pack_unit: '',
+        capacity_qty: 1000,
+        capacity_unit: 'cái',
+        loss_rate: 0.0,
+      },
+      {
+        label: '1 Cây/Lốc = 50 Cái',
+        purchase_unit: 'Cây',
+        pack_qty: 1,
+        pack_unit: '',
+        capacity_qty: 50,
+        capacity_unit: 'cái',
+        loss_rate: 0.0,
+      },
+      {
+        label: '1 Túi = 100 Cái',
+        purchase_unit: 'Túi',
+        pack_qty: 1,
+        pack_unit: '',
+        capacity_qty: 100,
+        capacity_unit: 'cái',
+        loss_rate: 0.0,
+      },
+      {
+        label: '1 Cái chuẩn',
+        purchase_unit: 'Cái',
+        pack_qty: 1,
+        pack_unit: '',
+        capacity_qty: 1,
+        capacity_unit: 'cái',
+        loss_rate: 0.0,
+      },
+    ];
+  }
+
+  // Default: Liquid / Beverage / Milk / Syrup (ml)
+  return [
+    {
+      label: '1 Chai = 1.000 ml',
+      purchase_unit: 'Chai',
+      pack_qty: 1,
+      pack_unit: '',
+      capacity_qty: 1000,
+      capacity_unit: 'ml',
+      loss_rate: 0.0,
+    },
+    {
+      label: '1 Thùng = 12.000 ml',
+      purchase_unit: 'Thùng',
+      pack_qty: 1,
+      pack_unit: '',
+      capacity_qty: 12000,
+      capacity_unit: 'ml',
+      loss_rate: 0.0,
+    },
+    {
+      label: '1 Chai = 500 ml',
+      purchase_unit: 'Chai',
+      pack_qty: 1,
+      pack_unit: '',
+      capacity_qty: 500,
+      capacity_unit: 'ml',
+      loss_rate: 0.0,
+    },
+    {
+      label: '1 Can = 5.000 ml',
+      purchase_unit: 'Can',
+      pack_qty: 1,
+      pack_unit: '',
+      capacity_qty: 5000,
+      capacity_unit: 'ml',
+      loss_rate: 0.0,
+    },
+    {
+      label: '1 Lon/Hộp = 380 g/ml',
+      purchase_unit: 'Lon',
+      pack_qty: 1,
+      pack_unit: '',
+      capacity_qty: 380,
+      capacity_unit: bu === 'g' ? 'g' : 'ml',
+      loss_rate: 0.0,
+    },
+  ];
+}
+

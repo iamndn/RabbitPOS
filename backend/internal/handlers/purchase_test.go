@@ -7,30 +7,12 @@ import (
 	"time"
 
 	"github.com/RabbitPOS/backend/internal/models"
-	"gorm.io/driver/postgres"
+	"github.com/RabbitPOS/backend/internal/testutils"
 	"gorm.io/gorm"
 )
 
 func setupPurchaseTestDB(t *testing.T) *gorm.DB {
-	dsn := "host=localhost user=postgres password=postgres dbname=rabbitpos port=5432 sslmode=disable connect_timeout=1"
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
-	if err != nil {
-		t.Skip("PostgreSQL test database not available, skipping database test:", err)
-		return nil
-	}
-
-	_ = db.AutoMigrate(
-		&models.Category{},
-		&models.Product{},
-		&models.ProductVariant{},
-		&models.Topping{},
-		&models.Ingredient{},
-		&models.PurchaseItem{},
-		&models.RecipeItem{},
-		&models.Transaction{},
-		&models.Fund{},
-	)
-	return db
+	return testutils.GetTestDB(t)
 }
 
 func TestPurchaseUnitConversion_PureMath(t *testing.T) {
@@ -94,7 +76,17 @@ func TestPurchaseUnitConversion_DBIntegration(t *testing.T) {
 	db := setupPurchaseTestDB(t)
 	txTime := time.Now()
 
+	var fund models.Fund
+	if err := db.First(&fund).Error; err != nil {
+		fund = models.Fund{Name: "Quỹ Test Mua Hàng", FundType: models.FundTypeCash, CurrentBalance: 1000000, IsActive: true}
+		if err := db.Create(&fund).Error; err != nil {
+			t.Skip("Cannot create test fund:", err)
+		}
+		defer db.Delete(&fund)
+	}
+
 	testTx := models.Transaction{
+		FundID:          fund.ID,
 		TransactionType: models.TransactionTypeOutflow,
 		Amount:          240000,
 		Category:        "ingredient_purchase",
@@ -133,5 +125,17 @@ func TestPurchaseUnitConversion_DBIntegration(t *testing.T) {
 	}
 	if !strings.Contains(pi.ConversionSpec, "Chai") {
 		t.Errorf("expected conversion spec to contain Chai, got %v", pi.ConversionSpec)
+	}
+
+	if err := recalculateIngredientPrices(db, ingID); err != nil {
+		t.Fatalf("recalculateIngredientPrices failed: %v", err)
+	}
+
+	var updatedIng models.Ingredient
+	if err := db.First(&updatedIng, ingID).Error; err != nil {
+		t.Fatalf("failed to fetch updated ingredient: %v", err)
+	}
+	if updatedIng.LatestPurchasePrice <= 0 {
+		t.Errorf("expected LatestPurchasePrice > 0, got %v", updatedIng.LatestPurchasePrice)
 	}
 }

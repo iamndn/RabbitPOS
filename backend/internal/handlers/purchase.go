@@ -307,7 +307,7 @@ func (h *PurchaseHandler) GetIngredientHistory(c *gin.Context) {
 			funds.name as fund_name, transactions.cashier_name, transactions.description`).
 		Joins("JOIN transactions ON transactions.id = purchase_items.transaction_id").
 		Joins("LEFT JOIN funds ON funds.id = transactions.fund_id").
-		Where("purchase_items.ingredient_id = ? OR LOWER(purchase_items.ingredient_name) = LOWER(?)", id, ingredient.Name).
+		Where("purchase_items.ingredient_id = ?", id).
 		Order("created_at DESC, purchase_items.id DESC").
 		Scan(&history)
 
@@ -351,8 +351,8 @@ func (h *PurchaseHandler) GetAllPurchaseHistory(c *gin.Context) {
 	var records []PurchaseRecord
 	h.db.Table("purchase_items").
 		Select(`purchase_items.id, purchase_items.transaction_id, purchase_items.ingredient_id,
-			COALESCE(ingredients.name, purchase_items.ingredient_name, '') as ingredient_name,
-			COALESCE(ingredients.category, purchase_items.category, 'ingredient') as category,
+			COALESCE(ingredients.name, '') as ingredient_name,
+			COALESCE(ingredients.category, 'ingredient') as category,
 			purchase_items.quantity, purchase_items.unit_price, purchase_items.subtotal,
 			purchase_items.purchase_unit, purchase_items.purchase_quantity, purchase_items.purchase_unit_price,
 			purchase_items.pack_qty, purchase_items.pack_unit, purchase_items.capacity_qty, purchase_items.capacity_unit,

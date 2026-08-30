@@ -535,13 +535,13 @@ func recalculateIngredientPrices(tx *gorm.DB, ingredientID uint) error {
 	var summary CostSummary
 	if err := tx.Model(&models.PurchaseItem{}).
 		Select("COALESCE(SUM(subtotal), 0) AS total_cost, COALESCE(SUM(CASE WHEN effective_base_quantity > 0 THEN effective_base_quantity WHEN total_base_quantity > 0 THEN total_base_quantity ELSE quantity END), 0) AS total_effective_qty, COALESCE(SUM(CASE WHEN total_base_quantity > 0 THEN total_base_quantity ELSE quantity END), 0) AS total_base_qty").
-		Where("ingredient_id = ? OR LOWER(ingredient_name) = LOWER(?)", ingredientID, ingredient.Name).
+		Where("ingredient_id = ?", ingredientID).
 		Scan(&summary).Error; err != nil {
 		return err
 	}
 
 	var latestItem models.PurchaseItem
-	hasLatest := tx.Where("ingredient_id = ? OR LOWER(ingredient_name) = LOWER(?)", ingredientID, ingredient.Name).
+	hasLatest := tx.Where("ingredient_id = ?", ingredientID).
 		Order("created_at DESC, id DESC").
 		Limit(1).
 		Find(&latestItem).RowsAffected > 0

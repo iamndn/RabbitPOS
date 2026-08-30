@@ -1,6 +1,7 @@
 package testutils
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"testing"
@@ -32,7 +33,10 @@ type TestFixtures struct {
 func GetTestDB(t *testing.T) *gorm.DB {
 	dsn := os.Getenv("TEST_DATABASE_URL")
 	if dsn == "" {
-		dsn = "host=localhost user=admin password=password123 dbname=rabbitpos port=5432 sslmode=disable connect_timeout=2"
+		dsn = os.Getenv("DATABASE_URL")
+	}
+	if dsn == "" {
+		dsn = "host=localhost user=admin password=SGsurv9wi7uQRXXniYj0kg1V8TunrUnR dbname=rabbitpos port=5432 sslmode=disable connect_timeout=2"
 	}
 
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
@@ -40,6 +44,18 @@ func GetTestDB(t *testing.T) *gorm.DB {
 	})
 	if err != nil {
 		t.Skipf("PostgreSQL test database not available (%v), skipping database integration test.", err)
+		return nil
+	}
+
+	sqlDB, err := db.DB()
+	if err != nil {
+		t.Skipf("PostgreSQL test database not available (%v), skipping database integration test.", err)
+		return nil
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	if err := sqlDB.PingContext(ctx); err != nil {
+		t.Skipf("PostgreSQL test database ping failed (%v), skipping database integration test.", err)
 		return nil
 	}
 
