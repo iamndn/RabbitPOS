@@ -12,6 +12,7 @@ type RevenueSummary struct {
 	TotalSurcharges         float64 `json:"total_surcharges"`
 	NetRevenue              float64 `json:"net_revenue"`
 	CompletedOrderCount     int64   `json:"completed_order_count"`
+	DiscountedOrderCount    int64   `json:"discounted_order_count"`
 	AverageOrderValue       float64 `json:"average_order_value"`
 	PrevNetRevenue          float64 `json:"prev_net_revenue"`
 	PrevCompletedOrderCount int64   `json:"prev_completed_order_count"`

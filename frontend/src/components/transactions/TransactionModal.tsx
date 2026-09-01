@@ -10,6 +10,10 @@ import {
   Sparkles,
   ShoppingBag,
   Tag,
+  ChevronRight,
+  ChevronLeft,
+  Zap,
+  Settings2,
 } from 'lucide-react';
 import ModernSelect from '@/components/common/ModernSelect';
 import { formatCurrency } from '@/lib/utils';
@@ -56,6 +60,7 @@ export interface PurchaseLineItem {
   is_multi_level?: boolean;
   show_loss_input?: boolean;
   is_expanded?: boolean;
+  is_basic_mode?: boolean;
 }
 
 interface TransactionModalProps {
@@ -79,18 +84,18 @@ interface TransactionModalProps {
 const createDefaultPurchaseItem = (isCustom = false): PurchaseLineItem => ({
   ingredient_name: '',
   category: 'ingredient',
-  base_unit: 'ml',
-  purchase_unit: 'Chai',
+  base_unit: 'kg',
+  purchase_unit: 'Kg',
   purchase_quantity: 1,
   purchase_unit_price: 0,
   pack_qty: 1,
   pack_unit: '',
-  capacity_qty: 1000,
-  capacity_unit: 'ml',
+  capacity_qty: 1,
+  capacity_unit: 'kg',
   loss_rate: 0,
-  total_base_quantity: 1000,
+  total_base_quantity: 1,
   base_unit_price: 0,
-  effective_base_quantity: 1000,
+  effective_base_quantity: 1,
   effective_base_price: 0,
   subtotal: 0,
   conversion_spec: '',
@@ -98,7 +103,21 @@ const createDefaultPurchaseItem = (isCustom = false): PurchaseLineItem => ({
   is_multi_level: false,
   show_loss_input: false,
   is_expanded: false,
+  is_basic_mode: true,
 });
+
+/** Detect whether a purchase item should be in basic or advanced mode */
+const shouldUseBasicMode = (packQty: number, capacityQty: number, purchaseUnit: string, baseUnit: string): boolean => {
+  if (packQty > 1) return false;
+  // If capacity is 1 and units match (or are trivially related), it's basic
+  if (capacityQty === 1) return true;
+  // If purchase unit IS the base unit (kg buying kg, ml buying ml), basic
+  const pu = purchaseUnit.toLowerCase();
+  const bu = baseUnit.toLowerCase();
+  if (pu === bu) return true;
+  // Standard conversions like Kg->g or Lít->ml are advanced
+  return false;
+};
 
 export default function TransactionModal({
   isOpen,
@@ -216,6 +235,7 @@ export default function TransactionModal({
               is_custom_new: !(pi.ingredient_id || pi.ingredient?.id),
               is_multi_level: pPackQty > 1,
               show_loss_input: pLossRate > 0,
+              is_basic_mode: shouldUseBasicMode(pPackQty, pCapQty, pUnit, baseUnit),
             };
           })
         );
@@ -306,6 +326,7 @@ export default function TransactionModal({
           lossRate,
         });
 
+        const isBasic = shouldUseBasicMode(packQty, capacityQty, purchaseUnit, baseUnit);
         updated[index] = {
           ...item,
           ingredient_id: found.id,
@@ -329,6 +350,7 @@ export default function TransactionModal({
           is_custom_new: false,
           is_multi_level: packQty > 1,
           show_loss_input: lossRate > 0,
+          is_basic_mode: isBasic,
         };
         return updated;
       });
@@ -443,6 +465,49 @@ export default function TransactionModal({
       if (field !== 'subtotal') {
         item.subtotal = res.subtotal;
       }
+      item.base_unit_price = res.baseUnitPrice;
+      item.effective_base_quantity = res.effectiveBaseQuantity;
+      item.effective_base_price = res.effectiveBasePrice;
+      item.conversion_spec = res.conversionSpec;
+
+      updated[index] = item;
+      return updated;
+    });
+  };
+
+  const handleToggleBasicMode = (index: number, toBasic: boolean) => {
+    setPurchaseItems((prev) => {
+      const updated = [...prev];
+      const item = { ...updated[index] };
+
+      if (toBasic) {
+        // Switch to basic: reset conversion to 1:1
+        item.is_basic_mode = true;
+        item.pack_qty = 1;
+        item.pack_unit = '';
+        item.capacity_qty = 1;
+        item.capacity_unit = item.purchase_unit;
+        item.loss_rate = 0;
+      } else {
+        // Switch to advanced: keep current values, just expand UI
+        item.is_basic_mode = false;
+      }
+
+      // Recalculate
+      const res = calculatePurchaseConversion({
+        purchaseQty: Number(item.purchase_quantity) || 0,
+        purchaseUnitPrice: Number(item.purchase_unit_price) || 0,
+        purchaseUnit: item.purchase_unit,
+        packQty: Number(item.pack_qty) || 1,
+        packUnit: item.pack_unit,
+        capacityQty: Number(item.capacity_qty) || 1,
+        capacityUnit: item.capacity_unit,
+        baseUnit: item.base_unit || 'kg',
+        lossRate: Number(item.loss_rate) || 0,
+      });
+
+      item.total_base_quantity = res.totalBaseQuantity;
+      item.subtotal = res.subtotal;
       item.base_unit_price = res.baseUnitPrice;
       item.effective_base_quantity = res.effectiveBaseQuantity;
       item.effective_base_price = res.effectiveBasePrice;
@@ -812,12 +877,18 @@ export default function TransactionModal({
                       )
                     );
 
+                    const isBasic = item.is_basic_mode !== false;
+
                     return (
                       <div
                         key={idx}
-                        className="bg-white rounded-2xl p-3 border border-emerald-200/90 shadow-2xs space-y-2.5 transition-all hover:border-emerald-300 w-full max-w-full min-w-0 box-border overflow-hidden"
+                        className={`bg-white rounded-2xl p-3 border shadow-2xs space-y-2.5 transition-all w-full max-w-full min-w-0 box-border overflow-hidden ${
+                          isBasic
+                            ? 'border-slate-200 hover:border-emerald-300'
+                            : 'border-emerald-200/90 hover:border-emerald-300'
+                        }`}
                       >
-                        {/* Hàng 1: Chọn Nguyên Liệu + Phân Loại + Nút Xóa */}
+                        {/* Row 1: Ingredient Select + Category + Mode Toggle + Delete */}
                         <div className="flex items-center gap-1.5 w-full min-w-0">
                           <div className="flex-1 min-w-0">
                             {item.is_custom_new ? (
@@ -875,16 +946,44 @@ export default function TransactionModal({
                             )}
                           </div>
 
-                          <select
-                            value={item.category}
-                            onChange={(e) => handleItemChange(idx, 'category', e.target.value)}
-                            className="h-9 px-1.5 border border-slate-200 rounded-xl text-[10px] font-semibold bg-slate-50 text-slate-700 shrink-0 cursor-pointer"
+                          {!isBasic && (
+                            <select
+                              value={item.category}
+                              onChange={(e) => handleItemChange(idx, 'category', e.target.value)}
+                              className="h-9 px-1.5 border border-slate-200 rounded-xl text-[10px] font-semibold bg-slate-50 text-slate-700 shrink-0 cursor-pointer"
+                            >
+                              <option value="ingredient">NL / Sữa</option>
+                              <option value="fruit">Hoa quả</option>
+                              <option value="packaging">Bao bì</option>
+                              <option value="other">Khác</option>
+                            </select>
+                          )}
+
+                          {/* Mode Toggle Button */}
+                          <button
+                            type="button"
+                            onClick={() => handleToggleBasicMode(idx, !isBasic)}
+                            className={`h-9 px-2 text-[10px] font-bold rounded-xl border transition shrink-0 cursor-pointer flex items-center gap-0.5 whitespace-nowrap ${
+                              isBasic
+                                ? 'text-indigo-700 bg-indigo-50 border-indigo-200 hover:bg-indigo-100'
+                                : 'text-slate-600 bg-slate-50 border-slate-200 hover:bg-slate-100'
+                            }`}
+                            title={isBasic ? 'Chuyển sang chế độ Nâng cao (quy đổi thùng→kg, hao hụt...)' : 'Chuyển về chế độ Cơ bản'}
                           >
-                            <option value="ingredient">NL / Sữa</option>
-                            <option value="fruit">Hoa quả</option>
-                            <option value="packaging">Bao bì</option>
-                            <option value="other">Khác</option>
-                          </select>
+                            {isBasic ? (
+                              <>
+                                <Settings2 className="w-3 h-3" />
+                                <span className="hidden sm:inline">Nâng cao</span>
+                                <ChevronRight className="w-3 h-3" />
+                              </>
+                            ) : (
+                              <>
+                                <ChevronLeft className="w-3 h-3" />
+                                <Zap className="w-3 h-3" />
+                                <span className="hidden sm:inline">Cơ bản</span>
+                              </>
+                            )}
+                          </button>
 
                           <button
                             type="button"
@@ -896,44 +995,11 @@ export default function TransactionModal({
                           </button>
                         </div>
 
-                        {/* Hàng 2: Smart Preset Chips 1-Click (Gợi ý nhanh) */}
-                        {allPresetChips.length > 0 && (
-                          <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 no-scrollbar w-full min-w-0">
-                            <span className="text-[10px] text-slate-400 font-bold uppercase shrink-0 flex items-center gap-0.5">
-                              <Tag className="w-2.5 h-2.5" /> Gợi ý:
-                            </span>
-                            {allPresetChips.slice(0, 5).map((pr, pIdx) => {
-                              const isSelected =
-                                item.purchase_unit.toLowerCase() === pr.purchase_unit.toLowerCase() &&
-                                item.capacity_qty === pr.capacity_qty &&
-                                Math.abs((item.loss_rate || 0) - (pr.loss_rate || 0)) < 0.001;
-
-                              return (
-                                <button
-                                  key={pIdx}
-                                  type="button"
-                                  onClick={() => handleApplyPreset(idx, pr)}
-                                  className={`text-[10px] font-bold px-2 py-0.5 rounded-lg border transition active:scale-95 shrink-0 cursor-pointer whitespace-nowrap ${
-                                    isSelected
-                                      ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs'
-                                      : 'bg-emerald-50 text-emerald-800 border-emerald-200/80 hover:bg-emerald-100'
-                                  }`}
-                                >
-                                  {pr.label}
-                                </button>
-                              );
-                            })}
-                          </div>
-                        )}
-
-                        {/* Hàng 3: 3 Cột Nhập Liệu Trực Quan (Mua -> Dung Tích 1 Đơn Vị -> Thành Tiền) */}
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 w-full min-w-0 text-xs">
-                          {/* Cột 1: Mua (Số lượng & Đơn vị mua) */}
-                          <div className="bg-slate-50 p-2 rounded-xl border border-slate-200 space-y-1">
-                            <label className="text-[10px] font-bold text-slate-500 uppercase block">
-                              1. Mua vào
-                            </label>
-                            <div className="flex items-center gap-1.5">
+                        {/* ===== BASIC MODE: Inline Compact Row ===== */}
+                        {isBasic && (
+                          <>
+                            <div className="flex items-center gap-1.5 w-full min-w-0 flex-wrap">
+                              {/* Quantity */}
                               <input
                                 type="number"
                                 step="any"
@@ -947,125 +1013,258 @@ export default function TransactionModal({
                                     e.target.value === '' ? 0 : parseFloat(e.target.value)
                                   )
                                 }
-                                placeholder="1"
-                                className="w-16 h-8 px-1.5 border border-slate-200 rounded-lg text-xs font-black text-center text-slate-900 bg-white"
+                                placeholder="SL"
+                                className="w-16 h-9 px-2 border border-slate-200 rounded-xl text-xs font-black text-center text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
                               />
+
+                              {/* Purchase Unit */}
                               <select
                                 value={item.purchase_unit}
-                                onChange={(e) => handleItemChange(idx, 'purchase_unit', e.target.value)}
-                                className="flex-1 min-w-0 h-8 px-1.5 border border-slate-200 rounded-lg text-xs font-bold bg-white text-slate-900 cursor-pointer"
+                                onChange={(e) => {
+                                  const newUnit = e.target.value;
+                                  handleItemChange(idx, 'purchase_unit', newUnit);
+                                  // In basic mode, keep capacity_unit = purchase_unit
+                                  handleItemChange(idx, 'capacity_unit', newUnit);
+                                  handleItemChange(idx, 'base_unit', newUnit.toLowerCase());
+                                }}
+                                className="w-20 h-9 px-1.5 border border-slate-200 rounded-xl text-xs font-bold bg-white text-slate-900 cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-500"
                               >
                                 {COMMON_PURCHASE_UNITS.map((u) => (
                                   <option key={u} value={u}>{u}</option>
                                 ))}
                               </select>
-                            </div>
-                          </div>
 
-                          {/* Cột 2: Quy đổi 1 đơn vị (Chứa bao nhiêu ml/g) */}
-                          <div className="bg-slate-50 p-2 rounded-xl border border-slate-200 space-y-1">
-                            <label className="text-[10px] font-bold text-slate-500 uppercase block truncate">
-                              2. Chứa trong 1 {item.purchase_unit}
-                            </label>
-                            <div className="flex items-center gap-1.5">
-                              <input
-                                type="number"
-                                step="any"
-                                min="0.001"
-                                required
-                                value={item.capacity_qty === 0 ? '' : item.capacity_qty}
-                                onChange={(e) =>
-                                  handleItemChange(
-                                    idx,
-                                    'capacity_qty',
-                                    e.target.value === '' ? 0 : parseFloat(e.target.value)
-                                  )
-                                }
-                                placeholder="1000"
-                                className="w-20 h-8 px-1.5 border border-slate-200 rounded-lg text-xs font-black text-right text-slate-900 bg-white"
-                              />
-                              <select
-                                value={item.capacity_unit || item.base_unit || 'ml'}
-                                onChange={(e) => handleItemChange(idx, 'capacity_unit', e.target.value)}
-                                className="flex-1 min-w-0 h-8 px-1 border border-slate-200 rounded-lg text-xs font-bold bg-white text-slate-900 cursor-pointer"
-                              >
-                                <option value="ml">ml</option>
-                                <option value="l">Lít</option>
-                                <option value="g">g</option>
-                                <option value="kg">kg</option>
-                                <option value="cái">cái</option>
-                                <option value="quả">quả</option>
-                                <option value="lon">lon</option>
-                                <option value="hộp">hộp</option>
-                                <option value="gói">gói</option>
-                              </select>
-                            </div>
-                          </div>
+                              <span className="text-slate-400 font-bold text-xs">×</span>
 
-                          {/* Cột 3: Tiền (Thành tiền hóa đơn) */}
-                          <div className="bg-emerald-50/50 p-2 rounded-xl border border-emerald-200 space-y-1">
-                            <div className="flex items-center justify-between">
-                              <label className="text-[10px] font-bold text-emerald-800 uppercase block truncate">
-                                3. Thành tiền
-                              </label>
-                              {item.category === 'fruit' && (
-                                <label className="text-[10px] font-bold text-amber-900 flex items-center gap-1 cursor-pointer">
-                                  <span>Hao hụt:</span>
+                              {/* Unit Price */}
+                              <div className="relative flex-1 min-w-[100px]">
+                                <input
+                                  type="number"
+                                  step="any"
+                                  min="0"
+                                  required
+                                  value={item.purchase_unit_price === 0 ? '' : item.purchase_unit_price}
+                                  onChange={(e) =>
+                                    handleItemChange(
+                                      idx,
+                                      'purchase_unit_price',
+                                      e.target.value === '' ? 0 : parseFloat(e.target.value)
+                                    )
+                                  }
+                                  placeholder="Đơn giá"
+                                  className="w-full h-9 px-2 pr-14 border border-slate-200 rounded-xl text-xs font-black text-right text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                />
+                                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-slate-400 pointer-events-none">
+                                  đ/{item.purchase_unit}
+                                </span>
+                              </div>
+
+                              <span className="text-slate-400 font-bold text-xs">=</span>
+
+                              {/* Subtotal (display) */}
+                              <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2 min-w-[90px] text-right shrink-0">
+                                <div className="text-xs font-black text-emerald-800">
+                                  {formatCurrency(item.subtotal)}
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Basic Mode Cost Summary */}
+                            {item.subtotal > 0 && (
+                              <div className="flex items-center justify-between px-2 py-1 bg-emerald-50/80 rounded-lg border border-emerald-100 text-[11px]">
+                                <div className="flex items-center gap-1.5 text-emerald-900 font-semibold">
+                                  <Zap className="w-3 h-3 text-emerald-600" />
+                                  <span>
+                                    {item.purchase_quantity} {item.purchase_unit} × {formatCurrency(item.purchase_unit_price)} = {formatCurrency(item.subtotal)}
+                                  </span>
+                                </div>
+                                <span className="bg-emerald-700 text-white font-black text-[10px] px-2 py-0.5 rounded-lg shadow-2xs">
+                                  Vốn: {formatCurrency(item.purchase_unit_price)}/{item.purchase_unit}
+                                </span>
+                              </div>
+                            )}
+                          </>
+                        )}
+
+                        {/* ===== ADVANCED MODE: Full 3-Column Conversion Engine ===== */}
+                        {!isBasic && (
+                          <>
+                            {/* Preset Chips */}
+                            {allPresetChips.length > 0 && (
+                              <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 no-scrollbar w-full min-w-0">
+                                <span className="text-[10px] text-slate-400 font-bold uppercase shrink-0 flex items-center gap-0.5">
+                                  <Tag className="w-2.5 h-2.5" /> Gợi ý:
+                                </span>
+                                {allPresetChips.slice(0, 5).map((pr, pIdx) => {
+                                  const isSelected =
+                                    item.purchase_unit.toLowerCase() === pr.purchase_unit.toLowerCase() &&
+                                    item.capacity_qty === pr.capacity_qty &&
+                                    Math.abs((item.loss_rate || 0) - (pr.loss_rate || 0)) < 0.001;
+
+                                  return (
+                                    <button
+                                      key={pIdx}
+                                      type="button"
+                                      onClick={() => {
+                                        handleApplyPreset(idx, pr);
+                                        // Applying a preset switches to advanced automatically
+                                        handleToggleBasicMode(idx, false);
+                                      }}
+                                      className={`text-[10px] font-bold px-2 py-0.5 rounded-lg border transition active:scale-95 shrink-0 cursor-pointer whitespace-nowrap ${
+                                        isSelected
+                                          ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs'
+                                          : 'bg-emerald-50 text-emerald-800 border-emerald-200/80 hover:bg-emerald-100'
+                                      }`}
+                                    >
+                                      {pr.label}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            )}
+
+                            {/* 3-Column Input Grid */}
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 w-full min-w-0 text-xs">
+                              {/* Col 1: Purchase Quantity & Unit */}
+                              <div className="bg-slate-50 p-2 rounded-xl border border-slate-200 space-y-1">
+                                <label className="text-[10px] font-bold text-slate-500 uppercase block">
+                                  1. Mua vào
+                                </label>
+                                <div className="flex items-center gap-1.5">
                                   <input
                                     type="number"
-                                    min="0"
-                                    max="99"
-                                    value={Math.round(item.loss_rate * 100)}
+                                    step="any"
+                                    min="0.001"
+                                    required
+                                    value={item.purchase_quantity === 0 ? '' : item.purchase_quantity}
                                     onChange={(e) =>
-                                      handleItemChange(idx, 'loss_rate', (parseFloat(e.target.value) || 0) / 100)
+                                      handleItemChange(
+                                        idx,
+                                        'purchase_quantity',
+                                        e.target.value === '' ? 0 : parseFloat(e.target.value)
+                                      )
                                     }
-                                    className="w-9 h-5 px-1 border border-amber-300 rounded text-[10px] font-black text-center bg-white text-amber-950"
+                                    placeholder="1"
+                                    className="w-16 h-8 px-1.5 border border-slate-200 rounded-lg text-xs font-black text-center text-slate-900 bg-white"
                                   />
-                                  <span>%</span>
+                                  <select
+                                    value={item.purchase_unit}
+                                    onChange={(e) => handleItemChange(idx, 'purchase_unit', e.target.value)}
+                                    className="flex-1 min-w-0 h-8 px-1.5 border border-slate-200 rounded-lg text-xs font-bold bg-white text-slate-900 cursor-pointer"
+                                  >
+                                    {COMMON_PURCHASE_UNITS.map((u) => (
+                                      <option key={u} value={u}>{u}</option>
+                                    ))}
+                                  </select>
+                                </div>
+                              </div>
+
+                              {/* Col 2: Conversion (capacity per purchase unit) */}
+                              <div className="bg-slate-50 p-2 rounded-xl border border-slate-200 space-y-1">
+                                <label className="text-[10px] font-bold text-slate-500 uppercase block truncate">
+                                  2. Chứa trong 1 {item.purchase_unit}
                                 </label>
-                              )}
+                                <div className="flex items-center gap-1.5">
+                                  <input
+                                    type="number"
+                                    step="any"
+                                    min="0.001"
+                                    required
+                                    value={item.capacity_qty === 0 ? '' : item.capacity_qty}
+                                    onChange={(e) =>
+                                      handleItemChange(
+                                        idx,
+                                        'capacity_qty',
+                                        e.target.value === '' ? 0 : parseFloat(e.target.value)
+                                      )
+                                    }
+                                    placeholder="1000"
+                                    className="w-20 h-8 px-1.5 border border-slate-200 rounded-lg text-xs font-black text-right text-slate-900 bg-white"
+                                  />
+                                  <select
+                                    value={item.capacity_unit || item.base_unit || 'ml'}
+                                    onChange={(e) => handleItemChange(idx, 'capacity_unit', e.target.value)}
+                                    className="flex-1 min-w-0 h-8 px-1 border border-slate-200 rounded-lg text-xs font-bold bg-white text-slate-900 cursor-pointer"
+                                  >
+                                    <option value="ml">ml</option>
+                                    <option value="l">Lít</option>
+                                    <option value="g">g</option>
+                                    <option value="kg">kg</option>
+                                    <option value="cái">cái</option>
+                                    <option value="quả">quả</option>
+                                    <option value="lon">lon</option>
+                                    <option value="hộp">hộp</option>
+                                    <option value="gói">gói</option>
+                                  </select>
+                                </div>
+                              </div>
+
+                              {/* Col 3: Subtotal + Loss Rate */}
+                              <div className="bg-emerald-50/50 p-2 rounded-xl border border-emerald-200 space-y-1">
+                                <div className="flex items-center justify-between">
+                                  <label className="text-[10px] font-bold text-emerald-800 uppercase block truncate">
+                                    3. Thành tiền
+                                  </label>
+                                  {item.category === 'fruit' && (
+                                    <label className="text-[10px] font-bold text-amber-900 flex items-center gap-1 cursor-pointer">
+                                      <span>Hao hụt:</span>
+                                      <input
+                                        type="number"
+                                        min="0"
+                                        max="99"
+                                        value={Math.round(item.loss_rate * 100)}
+                                        onChange={(e) =>
+                                          handleItemChange(idx, 'loss_rate', (parseFloat(e.target.value) || 0) / 100)
+                                        }
+                                        className="w-9 h-5 px-1 border border-amber-300 rounded text-[10px] font-black text-center bg-white text-amber-950"
+                                      />
+                                      <span>%</span>
+                                    </label>
+                                  )}
+                                </div>
+                                <input
+                                  type="number"
+                                  step="any"
+                                  min="0"
+                                  placeholder="0"
+                                  value={item.subtotal === 0 ? '' : item.subtotal}
+                                  onChange={(e) =>
+                                    handleItemChange(
+                                      idx,
+                                      'subtotal',
+                                      e.target.value === '' ? 0 : parseFloat(e.target.value)
+                                    )
+                                  }
+                                  className="w-full h-8 px-2 border border-emerald-300 bg-white rounded-lg text-xs font-black text-right text-emerald-950 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                />
+                              </div>
                             </div>
-                            <input
-                              type="number"
-                              step="any"
-                              min="0"
-                              placeholder="0"
-                              value={item.subtotal === 0 ? '' : item.subtotal}
-                              onChange={(e) =>
-                                handleItemChange(
-                                  idx,
-                                  'subtotal',
-                                  e.target.value === '' ? 0 : parseFloat(e.target.value)
-                                )
-                              }
-                              className="w-full h-8 px-2 border border-emerald-300 bg-white rounded-lg text-xs font-black text-right text-emerald-950 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                            />
-                          </div>
-                        </div>
 
-                        {/* Hàng 4: Dòng tóm tắt giá vốn đơn giản */}
-                        <div className="bg-emerald-50 rounded-xl px-2.5 py-1.5 border border-emerald-200/80 flex items-center justify-between gap-2 text-xs w-full min-w-0 flex-wrap">
-                          <div className="flex items-center gap-1.5 text-emerald-950 font-bold text-[11px] min-w-0 flex-1 flex-wrap">
-                            <Sparkles className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
-                            <span className="min-w-0">
-                              {item.purchase_quantity} {item.purchase_unit} ={' '}
-                              <strong>{formatQuantityWithUnit(item.total_base_quantity, item.base_unit)}</strong>
-                              {item.loss_rate > 0 && (
-                                <span className="text-amber-800 text-[10px] ml-1 font-semibold">
-                                  (Thực dùng: {formatQuantityWithUnit(item.effective_base_quantity, item.base_unit)})
+                            {/* Advanced Cost Summary */}
+                            <div className="bg-emerald-50 rounded-xl px-2.5 py-1.5 border border-emerald-200/80 flex items-center justify-between gap-2 text-xs w-full min-w-0 flex-wrap">
+                              <div className="flex items-center gap-1.5 text-emerald-950 font-bold text-[11px] min-w-0 flex-1 flex-wrap">
+                                <Sparkles className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+                                <span className="min-w-0">
+                                  {item.purchase_quantity} {item.purchase_unit} ={' '}
+                                  <strong>{formatQuantityWithUnit(item.total_base_quantity, item.base_unit)}</strong>
+                                  {item.loss_rate > 0 && (
+                                    <span className="text-amber-800 text-[10px] ml-1 font-semibold">
+                                      (Thực dùng: {formatQuantityWithUnit(item.effective_base_quantity, item.base_unit)})
+                                    </span>
+                                  )}
                                 </span>
-                              )}
-                            </span>
-                          </div>
+                              </div>
 
-                          <div className="flex items-center gap-2 shrink-0">
-                            <span className="bg-emerald-700 text-white font-black text-[10px] px-2 py-0.5 rounded-lg shadow-2xs shrink-0 whitespace-nowrap">
-                              {item.loss_rate > 0
-                                ? `Vốn: ${formatCurrency(item.effective_base_price)}/${item.base_unit}`
-                                : `Vốn: ${formatCurrency(item.base_unit_price)}/${item.base_unit}`}
-                            </span>
-                          </div>
-                        </div>
+                              <div className="flex items-center gap-2 shrink-0">
+                                <span className="bg-emerald-700 text-white font-black text-[10px] px-2 py-0.5 rounded-lg shadow-2xs shrink-0 whitespace-nowrap">
+                                  {item.loss_rate > 0
+                                    ? `Vốn: ${formatCurrency(item.effective_base_price)}/${item.base_unit}`
+                                    : `Vốn: ${formatCurrency(item.base_unit_price)}/${item.base_unit}`}
+                                </span>
+                              </div>
+                            </div>
+                          </>
+                        )}
                       </div>
                     );
                   })}

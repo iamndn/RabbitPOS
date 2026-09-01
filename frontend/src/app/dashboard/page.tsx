@@ -34,6 +34,7 @@ import {
 import AppShell from '@/components/AppShell';
 import AllProductsRankingModal from '@/components/dashboard/AllProductsRankingModal';
 import ProductSalesPerformanceSection from '@/components/dashboard/ProductSalesPerformanceSection';
+import WaterfallReconciliationWidget from '@/components/dashboard/WaterfallReconciliationWidget';
 import EmailReportModal from '@/components/common/EmailReportModal';
 import ModernDateRangePicker, { DatePeriod, computeDateRange, getLocalDateStr } from '@/components/common/ModernDateRangePicker';
 import { fetchApi } from '@/lib/api';
@@ -516,6 +517,15 @@ export default function DashboardPage() {
                 </div>
               </div>
             </div>
+
+            {/* Waterfall Reconciliation Widget */}
+            <WaterfallReconciliationWidget
+              revSummary={revSummary}
+              settings={settings}
+              from={revenueData?.from || customFrom}
+              to={revenueData?.to || customTo}
+              periodName={period}
+            />
 
             {/* Revenue Trend Chart & Payment Methods Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

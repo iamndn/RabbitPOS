@@ -8,6 +8,7 @@ export interface RevenueSummary {
   total_surcharges: number;
   net_revenue: number;
   completed_order_count: number;
+  discounted_order_count: number;
   average_order_value: number;
   prev_net_revenue: number;
   prev_completed_order_count: number;

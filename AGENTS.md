@@ -16,12 +16,12 @@ Tài liệu này quy định các quy chuẩn bắt buộc để các Agent khi 
 1. **Kiểm tra build Backend**:
    ```bash
    # Trong thư mục /opt/RabbitPOS/backend
-   go build -mod=readonly -o /dev/null ./cmd/server ./internal/...
+   GOPROXY=off GOSUMDB=off go build -mod=readonly -o /dev/null ./cmd/server ./internal/...
    ```
 2. **Chạy Unit Test Backend**:
    ```bash
    # Chạy test trong internal/handlers hoặc package cụ thể
-   go test -mod=readonly -v ./internal/handlers -run "TestPurchaseUnitConversion_PureMath"
+   GOPROXY=off GOSUMDB=off go test -mod=readonly -v ./internal/handlers -run "TestPurchaseUnitConversion_PureMath"
    ```
 
 ---

@@ -203,14 +203,15 @@ func (h *AnalyticsHandler) GetRevenueAnalytics(c *gin.Context) {
 
 	// 1. Current Period Summary (completed orders only)
 	type OrderSummaryResult struct {
-		GrossSales          float64
-		ManualDiscount      float64
-		PromotionDiscount   float64
-		PlatformDiscount    float64
-		ShippingFee         float64
-		Surcharge           float64
-		NetRevenue          float64
-		CompletedOrderCount int64
+		GrossSales           float64
+		ManualDiscount       float64
+		PromotionDiscount    float64
+		PlatformDiscount     float64
+		ShippingFee          float64
+		Surcharge            float64
+		NetRevenue           float64
+		CompletedOrderCount  int64
+		DiscountedOrderCount int64
 	}
 
 	var currSummary OrderSummaryResult
@@ -223,7 +224,8 @@ func (h *AnalyticsHandler) GetRevenueAnalytics(c *gin.Context) {
 			COALESCE(SUM(shipping_fee), 0) as shipping_fee,
 			COALESCE(SUM(surcharge), 0) as surcharge,
 			COALESCE(SUM(total_amount), 0) as net_revenue,
-			COUNT(id) as completed_order_count
+			COUNT(id) as completed_order_count,
+			COUNT(CASE WHEN discount_amount > 0 OR promotion_discount > 0 OR platform_fee_discount > 0 THEN 1 END) as discounted_order_count
 		`).
 		Where("status = ? AND created_at BETWEEN ? AND ?", models.OrderStatusCompleted, startTime, endTime).
 		Scan(&currSummary)
@@ -264,6 +266,7 @@ func (h *AnalyticsHandler) GetRevenueAnalytics(c *gin.Context) {
 		TotalSurcharges:         currSummary.Surcharge,
 		NetRevenue:              currSummary.NetRevenue,
 		CompletedOrderCount:     currSummary.CompletedOrderCount,
+		DiscountedOrderCount:    currSummary.DiscountedOrderCount,
 		AverageOrderValue:       aov,
 		PrevNetRevenue:          prevSummary.NetRevenue,
 		PrevCompletedOrderCount: prevSummary.CompletedOrderCount,

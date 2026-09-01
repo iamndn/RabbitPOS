@@ -109,3 +109,24 @@ export function matchTransactionCategory(
 
   return false;
 }
+
+/**
+ * Format date and time string in Vietnamese locale
+ */
+export function formatDateTime(dateStr?: string | null): string {
+  if (!dateStr) return '—';
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return String(dateStr);
+    return d.toLocaleString('vi-VN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  } catch {
+    return String(dateStr);
+  }
+}
+

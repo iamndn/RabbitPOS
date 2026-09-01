@@ -49,6 +49,40 @@ func (h *OrderHandler) ListOrders(c *gin.Context) {
 		query = query.Where("status = ?", status)
 	}
 
+	if hasDiscount := c.Query("has_discount"); hasDiscount == "true" {
+		query = query.Where("discount_amount > 0 OR promotion_discount > 0 OR platform_fee_discount > 0")
+	}
+
+	if fromStr := c.Query("from"); fromStr != "" {
+		loc, _ := time.LoadLocation("Asia/Ho_Chi_Minh")
+		if loc == nil {
+			loc = time.Local
+		}
+		if t, err := time.ParseInLocation("2006-01-02", fromStr, loc); err == nil {
+			query = query.Where("created_at >= ?", t)
+		} else if t, err := time.Parse(time.RFC3339, fromStr); err == nil {
+			query = query.Where("created_at >= ?", t)
+		}
+	}
+
+	if toStr := c.Query("to"); toStr != "" {
+		loc, _ := time.LoadLocation("Asia/Ho_Chi_Minh")
+		if loc == nil {
+			loc = time.Local
+		}
+		if t, err := time.ParseInLocation("2006-01-02", toStr, loc); err == nil {
+			endOfDay := time.Date(t.Year(), t.Month(), t.Day(), 23, 59, 59, 999999999, loc)
+			query = query.Where("created_at <= ?", endOfDay)
+		} else if t, err := time.Parse(time.RFC3339, toStr); err == nil {
+			query = query.Where("created_at <= ?", t)
+		}
+	}
+
+	if search := strings.TrimSpace(c.Query("search")); search != "" {
+		searchParam := "%" + search + "%"
+		query = query.Where("order_code ILIKE ? OR cashier_name ILIKE ? OR created_by ILIKE ? OR note ILIKE ?", searchParam, searchParam, searchParam, searchParam)
+	}
+
 	pageStr := c.Query("page")
 	pageSizeStr := c.Query("page_size")
 

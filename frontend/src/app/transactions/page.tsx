@@ -162,7 +162,18 @@ interface Transaction {
   category: string;
   amount: number;
   reference_order_id?: number;
-  reference_order?: { id?: number; order_code: string; status?: string };
+  reference_order?: {
+    id?: number;
+    order_code: string;
+    status?: string;
+    subtotal?: number;
+    discount_amount?: number;
+    promotion_discount?: number;
+    platform_fee_discount?: number;
+    shipping_fee?: number;
+    surcharge?: number;
+    total_amount?: number;
+  };
   description: string;
   created_by: string;
   cashier_name?: string;
@@ -1688,9 +1699,18 @@ export default function TransactionsPage() {
                             <td className="py-3 px-4 text-slate-700">
                               <div>{tx.description}</div>
                               {tx.reference_order?.order_code && (
-                                <span className="mt-0.5 inline-block font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded text-[11px]">
-                                  {tx.reference_order.order_code}
-                                </span>
+                                <div className="mt-1 flex items-center gap-1.5 flex-wrap">
+                                  <span className="font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded text-[11px]">
+                                    {tx.reference_order.order_code}
+                                  </span>
+                                  {((tx.reference_order.discount_amount || 0) + (tx.reference_order.promotion_discount || 0) + (tx.reference_order.platform_fee_discount || 0)) > 0 && (
+                                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold bg-rose-50 text-rose-700 border border-rose-200 px-1.5 py-0.5 rounded">
+                                      <span>Món: {formatCurrency(tx.reference_order.subtotal || 0, settings)}</span>
+                                      <span className="font-bold text-rose-600">- Giảm: {formatCurrency((tx.reference_order.discount_amount || 0) + (tx.reference_order.promotion_discount || 0) + (tx.reference_order.platform_fee_discount || 0), settings)}</span>
+                                      <span className="text-emerald-700 font-extrabold">= Quỹ: +{formatCurrency(tx.amount, settings)}</span>
+                                    </span>
+                                  )}
+                                </div>
                               )}
                               {tx.purchase_items && tx.purchase_items.length > 0 && (
                                 <div className="mt-1 flex flex-wrap gap-1">
@@ -1776,12 +1796,21 @@ export default function TransactionsPage() {
                         </div>
 
                         {tx.description && (
-                          <div className="text-xs text-slate-700">
+                          <div className="text-xs text-slate-700 space-y-1">
                             <div>{tx.description}</div>
                             {tx.reference_order?.order_code && (
-                              <span className="mt-0.5 inline-block font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded text-[11px]">
-                                {tx.reference_order.order_code}
-                              </span>
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded text-[11px]">
+                                  {tx.reference_order.order_code}
+                                </span>
+                                {((tx.reference_order.discount_amount || 0) + (tx.reference_order.promotion_discount || 0) + (tx.reference_order.platform_fee_discount || 0)) > 0 && (
+                                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold bg-rose-50 text-rose-700 border border-rose-200 px-1.5 py-0.5 rounded">
+                                    <span>Món: {formatCurrency(tx.reference_order.subtotal || 0, settings)}</span>
+                                    <span className="font-bold text-rose-600">- Giảm: {formatCurrency((tx.reference_order.discount_amount || 0) + (tx.reference_order.promotion_discount || 0) + (tx.reference_order.platform_fee_discount || 0), settings)}</span>
+                                    <span className="text-emerald-700 font-extrabold">= Quỹ: +{formatCurrency(tx.amount, settings)}</span>
+                                  </span>
+                                )}
+                              </div>
                             )}
                             {tx.purchase_items && tx.purchase_items.length > 0 && (
                               <div className="mt-1 flex flex-wrap gap-1">
@@ -2132,14 +2161,53 @@ export default function TransactionsPage() {
                               {/* Expanded Order Items Row */}
                             {isExpanded && (
                               <tr className="bg-slate-50/70">
-                                <td colSpan={8} className="p-4 border-t border-slate-100">
-                                  <div className="space-y-3">
+                                <td colSpan={8} className="p-4 border-t border-slate-100 space-y-3">
+                                  {/* Financial Formula Breakdown Bar */}
+                                  <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-2xs flex flex-wrap items-center justify-between gap-2.5">
+                                    <div className="flex items-center gap-2 flex-wrap text-xs">
+                                      <span className="font-extrabold text-slate-500 uppercase text-[10px] tracking-wider">
+                                        💡 Đối soát thu tiền:
+                                      </span>
+                                      <div className="flex items-center gap-1.5 font-medium text-slate-700 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200">
+                                        <span>Tổng giá món:</span>
+                                        <span className="font-extrabold text-slate-900">{formatCurrency(order.subtotal, settings)}</span>
+                                      </div>
+                                      {((order.discount_amount || 0) + (order.promotion_discount || 0) + (order.platform_fee_discount || 0)) > 0 && (
+                                        <>
+                                          <span className="text-rose-500 font-black text-sm">-</span>
+                                          <div className="flex items-center gap-1.5 font-medium text-rose-700 bg-rose-50 px-2.5 py-1 rounded-lg border border-rose-200">
+                                            <span>Giảm giá & KM:</span>
+                                            <span className="font-extrabold">-{formatCurrency((order.discount_amount || 0) + (order.promotion_discount || 0) + (order.platform_fee_discount || 0), settings)}</span>
+                                          </div>
+                                        </>
+                                      )}
+                                      {((order.shipping_fee || 0) + (order.surcharge || 0)) > 0 && (
+                                        <>
+                                          <span className="text-cyan-600 font-black text-sm">+</span>
+                                          <div className="flex items-center gap-1.5 font-medium text-cyan-800 bg-cyan-50 px-2.5 py-1 rounded-lg border border-cyan-200">
+                                            <span>Phí ship/Phụ thu:</span>
+                                            <span className="font-extrabold">+{formatCurrency((order.shipping_fee || 0) + (order.surcharge || 0), settings)}</span>
+                                          </div>
+                                        </>
+                                      )}
+                                      <span className="text-slate-400 font-black text-sm">=</span>
+                                      <div className="flex items-center gap-1.5 font-black text-emerald-800 bg-emerald-50 px-3 py-1 rounded-lg border-2 border-emerald-300 shadow-2xs">
+                                        <span>Tiền vào quỹ két:</span>
+                                        <span className="text-emerald-700 text-sm font-black">+{formatCurrency(order.total_amount, settings)}</span>
+                                      </div>
+                                    </div>
+                                    <div className="text-[11px] text-slate-500 font-medium">
+                                      Quỹ nhận: <span className="font-bold text-slate-800">{order.fund?.name || (funds.find((f) => f.id === order.fund_id)?.name ?? '—')}</span>
+                                    </div>
+                                  </div>
+
+                                  <div className="space-y-2">
                                     <div className="flex items-center justify-between text-xs text-slate-500">
                                       <span className="font-semibold text-slate-700 uppercase tracking-wider">
                                         {t('tx.order_items_detail') || 'Chi tiết món'} ({items.length} mặt hàng)
                                       </span>
                                       {order.note && (
-                                        <span className="text-slate-500 italic">
+                                        <span className="text-amber-900 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md italic">
                                           Ghi chú: {order.note}
                                         </span>
                                       )}
@@ -2260,7 +2328,34 @@ export default function TransactionsPage() {
 
                         {/* Expandable items on mobile */}
                         {isExpanded && (
-                          <div className="pt-2 border-t border-slate-100 space-y-2 text-xs">
+                          <div className="pt-2 border-t border-slate-100 space-y-2.5 text-xs">
+                            {/* Mobile Financial Formula Breakdown */}
+                            <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 space-y-1.5">
+                              <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                                💡 Đối soát thu tiền:
+                              </div>
+                              <div className="flex justify-between items-center text-[11px] text-slate-600">
+                                <span>Tổng tiền món:</span>
+                                <span className="font-semibold text-slate-900">{formatCurrency(order.subtotal, settings)}</span>
+                              </div>
+                              {((order.discount_amount || 0) + (order.promotion_discount || 0) + (order.platform_fee_discount || 0)) > 0 && (
+                                <div className="flex justify-between items-center text-[11px] text-rose-600">
+                                  <span>- Giảm giá & KM:</span>
+                                  <span className="font-bold">-{formatCurrency((order.discount_amount || 0) + (order.promotion_discount || 0) + (order.platform_fee_discount || 0), settings)}</span>
+                                </div>
+                              )}
+                              {((order.shipping_fee || 0) + (order.surcharge || 0)) > 0 && (
+                                <div className="flex justify-between items-center text-[11px] text-cyan-700">
+                                  <span>+ Phí ship/Phụ thu:</span>
+                                  <span className="font-bold">+{formatCurrency((order.shipping_fee || 0) + (order.surcharge || 0), settings)}</span>
+                                </div>
+                              )}
+                              <div className="flex justify-between items-center text-xs font-black text-emerald-700 pt-1 border-t border-slate-200">
+                                <span>= Tiền vào quỹ két:</span>
+                                <span className="text-sm">+{formatCurrency(order.total_amount, settings)}</span>
+                              </div>
+                            </div>
+
                             <div className="font-semibold text-slate-600 text-[11px] uppercase tracking-wider">
                               Chi tiết món:
                             </div>
@@ -2291,6 +2386,11 @@ export default function TransactionsPage() {
                                 </div>
                               ))}
                             </div>
+                            {order.note && (
+                              <div className="text-[11px] text-amber-900 bg-amber-50 p-2 rounded-lg border border-amber-200 italic">
+                                Ghi chú: {order.note}
+                              </div>
+                            )}
                             {isCancelled && order.cancel_reason && (
                               <div className="text-xs text-rose-600 bg-rose-50 p-2 rounded-lg border border-rose-100">
                                 Lý do hủy: {order.cancel_reason}
