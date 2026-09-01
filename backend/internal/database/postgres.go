@@ -22,9 +22,24 @@ func InitDB(cfg *config.Config) (*gorm.DB, error) {
 		logLevel = logger.Info
 	}
 
+	// PrepareStmt must be false for PgBouncer / Supabase Transaction Pooler (port 6543)
+	prepareStmt := false
+	if cfg.DBHost == "localhost" || cfg.DBHost == "postgres" {
+		if cfg.DBPort == "5432" {
+			prepareStmt = true
+		}
+	}
+
 	gormConfig := &gorm.Config{
 		Logger:      logger.Default.LogMode(logLevel),
-		PrepareStmt: true,
+		PrepareStmt: prepareStmt,
+	}
+
+	// PreferSimpleProtocol disables implicit prepared statement cache in pgx (critical for PgBouncer / Supabase pooler)
+	preferSimpleProtocol := !prepareStmt
+	pgConfig := postgres.Config{
+		DSN:                  dsn,
+		PreferSimpleProtocol: preferSimpleProtocol,
 	}
 
 	var db *gorm.DB
@@ -32,7 +47,7 @@ func InitDB(cfg *config.Config) (*gorm.DB, error) {
 
 	// Retry connection up to 5 times for containerized startup synchronization
 	for i := 1; i <= 5; i++ {
-		db, err = gorm.Open(postgres.Open(dsn), gormConfig)
+		db, err = gorm.Open(postgres.New(pgConfig), gormConfig)
 		if err == nil {
 			break
 		}

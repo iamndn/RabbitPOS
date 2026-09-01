@@ -123,7 +123,7 @@ func (h *VariantHandler) UpdateVariant(c *gin.Context) {
 	models.SendSuccess(c, http.StatusOK, variant, "Variant updated successfully")
 }
 
-// DeleteVariant deletes a variant record
+// DeleteVariant deletes a variant record safely (or soft-deactivates if past orders exist)
 func (h *VariantHandler) DeleteVariant(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
@@ -142,9 +142,33 @@ func (h *VariantHandler) DeleteVariant(c *gin.Context) {
 		return
 	}
 
-	if err := h.db.Delete(&variant).Error; err != nil {
-		models.SendInternalErrorLogged(c, "Failed to delete variant", err)
-		return
+	// Check if this variant has existing order items referencing it
+	var orderItemCount int64
+	h.db.Model(&models.OrderItem{}).Where("product_variant_id = ?", variant.ID).Count(&orderItemCount)
+
+	if orderItemCount > 0 {
+		// Check if there is another sibling variant with the same name under this product (duplicate)
+		var siblingVariant models.ProductVariant
+		errSibling := h.db.Where("product_id = ? AND variant_name = ? AND id != ?", variant.ProductID, variant.VariantName, variant.ID).First(&siblingVariant).Error
+		if errSibling == nil && siblingVariant.ID > 0 {
+			// Duplicate found: safely re-link order_items to sibling variant and delete duplicate
+			_ = h.db.Transaction(func(tx *gorm.DB) error {
+				tx.Model(&models.OrderItem{}).Where("product_variant_id = ?", variant.ID).Update("product_variant_id", siblingVariant.ID)
+				tx.Model(&models.RecipeItem{}).Where("product_variant_id = ?", variant.ID).Update("product_variant_id", siblingVariant.ID)
+				return tx.Delete(&variant).Error
+			})
+		} else {
+			// Sold variant with no duplicate: soft deactivate to preserve order history integrity
+			variant.IsActive = false
+			_ = h.db.Save(&variant)
+		}
+	} else {
+		// Clean delete if no orders exist
+		_ = h.db.Where("product_variant_id = ?", variant.ID).Delete(&models.RecipeItem{})
+		if err := h.db.Delete(&variant).Error; err != nil {
+			models.SendInternalErrorLogged(c, "Failed to delete variant", err)
+			return
+		}
 	}
 
 	if h.cache != nil {

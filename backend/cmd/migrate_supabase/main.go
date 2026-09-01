@@ -8,7 +8,6 @@ import (
 	"github.com/RabbitPOS/backend/internal/models"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 	"gorm.io/gorm/logger"
 )
 
@@ -27,40 +26,32 @@ func main() {
 
 	// 2. Target DB (Supabase Cloud PostgreSQL)
 	targetDSN := "host=aws-0-ap-south-1.pooler.supabase.com port=6543 user=postgres.sezvflianhlphfgbzpso password=gCmqznenLnHqRMrbajTFasx3tPrZJMjF dbname=postgres sslmode=require TimeZone=Asia/Ho_Chi_Minh"
-	dstDB, err := gorm.Open(postgres.Open(targetDSN), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Warn),
+	dstDB, err := gorm.Open(postgres.New(postgres.Config{
+		DSN:                  targetDSN,
+		PreferSimpleProtocol: true,
+	}), &gorm.Config{
+		Logger:      logger.Default.LogMode(logger.Warn),
+		PrepareStmt: false,
 	})
 	if err != nil {
 		log.Fatalf("❌ Failed to connect to TARGET database (Supabase): %v", err)
 	}
 	log.Println("✅ Connected to TARGET database (Supabase Cloud)")
 
-	// 3. Auto-migrate schema on target first
-	err = dstDB.AutoMigrate(
-		&models.Category{},
-		&models.Product{},
-		&models.ProductVariant{},
-		&models.VariantGroup{},
-		&models.Fund{},
-		&models.Promotion{},
-		&models.Order{},
-		&models.OrderItem{},
-		&models.Transaction{},
-		&models.TransactionCategoryItem{},
-		&models.Setting{},
-		&models.User{},
-		&models.AuditLog{},
-		&models.IdempotencyRecord{},
-		&models.RevokedToken{},
-		&models.Topping{},
-		&models.Ingredient{},
-		&models.RecipeItem{},
-		&models.PurchaseItem{},
-	)
-	if err != nil {
-		log.Fatalf("❌ AutoMigrate on Supabase failed: %v", err)
+	// 3. Truncate existing seed tables on Supabase before copying live data
+	log.Println("🧹 Truncating target tables on Supabase for clean data replication...")
+	truncateSQL := `
+		TRUNCATE TABLE 
+			audit_logs, idempotency_records, revoked_tokens,
+			recipe_items, purchase_items, order_items, transactions,
+			orders, toppings, product_variants, variant_groups, products,
+			ingredients, promotions, transaction_categories, funds, categories, settings, users
+		CASCADE;
+	`
+	if err := dstDB.Exec(truncateSQL).Error; err != nil {
+		log.Printf("⚠️ Truncate notice (may be empty tables): %v", err)
 	}
-	log.Println("✅ Schema verified on Supabase")
+	log.Println("✅ Target tables ready for migration")
 
 	// Helper for copying slices in chunks
 	copyTable := func(tableName string, fetchAndInsert func() (int64, error)) {
@@ -81,7 +72,7 @@ func main() {
 			return 0, err
 		}
 		if len(items) > 0 {
-			if err := dstDB.Clauses(clause.OnConflict{UpdateAll: true}).CreateInBatches(items, 100).Error; err != nil {
+			if err := dstDB.CreateInBatches(items, 100).Error; err != nil {
 				return 0, err
 			}
 		}
@@ -95,7 +86,7 @@ func main() {
 			return 0, err
 		}
 		if len(items) > 0 {
-			if err := dstDB.Clauses(clause.OnConflict{UpdateAll: true}).CreateInBatches(items, 100).Error; err != nil {
+			if err := dstDB.CreateInBatches(items, 100).Error; err != nil {
 				return 0, err
 			}
 		}
@@ -109,7 +100,7 @@ func main() {
 			return 0, err
 		}
 		if len(items) > 0 {
-			if err := dstDB.Clauses(clause.OnConflict{UpdateAll: true}).CreateInBatches(items, 100).Error; err != nil {
+			if err := dstDB.CreateInBatches(items, 100).Error; err != nil {
 				return 0, err
 			}
 		}
@@ -123,7 +114,7 @@ func main() {
 			return 0, err
 		}
 		if len(items) > 0 {
-			if err := dstDB.Clauses(clause.OnConflict{UpdateAll: true}).CreateInBatches(items, 100).Error; err != nil {
+			if err := dstDB.CreateInBatches(items, 100).Error; err != nil {
 				return 0, err
 			}
 		}
@@ -137,7 +128,7 @@ func main() {
 			return 0, err
 		}
 		if len(items) > 0 {
-			if err := dstDB.Clauses(clause.OnConflict{UpdateAll: true}).CreateInBatches(items, 100).Error; err != nil {
+			if err := dstDB.CreateInBatches(items, 100).Error; err != nil {
 				return 0, err
 			}
 		}
@@ -151,7 +142,7 @@ func main() {
 			return 0, err
 		}
 		if len(items) > 0 {
-			if err := dstDB.Clauses(clause.OnConflict{UpdateAll: true}).CreateInBatches(items, 100).Error; err != nil {
+			if err := dstDB.CreateInBatches(items, 100).Error; err != nil {
 				return 0, err
 			}
 		}
@@ -165,7 +156,7 @@ func main() {
 			return 0, err
 		}
 		if len(items) > 0 {
-			if err := dstDB.Clauses(clause.OnConflict{UpdateAll: true}).CreateInBatches(items, 100).Error; err != nil {
+			if err := dstDB.CreateInBatches(items, 100).Error; err != nil {
 				return 0, err
 			}
 		}
@@ -179,7 +170,7 @@ func main() {
 			return 0, err
 		}
 		if len(items) > 0 {
-			if err := dstDB.Clauses(clause.OnConflict{UpdateAll: true}).CreateInBatches(items, 100).Error; err != nil {
+			if err := dstDB.CreateInBatches(items, 100).Error; err != nil {
 				return 0, err
 			}
 		}
@@ -193,7 +184,7 @@ func main() {
 			return 0, err
 		}
 		if len(items) > 0 {
-			if err := dstDB.Clauses(clause.OnConflict{UpdateAll: true}).CreateInBatches(items, 100).Error; err != nil {
+			if err := dstDB.CreateInBatches(items, 100).Error; err != nil {
 				return 0, err
 			}
 		}
@@ -207,7 +198,7 @@ func main() {
 			return 0, err
 		}
 		if len(items) > 0 {
-			if err := dstDB.Clauses(clause.OnConflict{UpdateAll: true}).CreateInBatches(items, 100).Error; err != nil {
+			if err := dstDB.CreateInBatches(items, 100).Error; err != nil {
 				return 0, err
 			}
 		}
@@ -221,7 +212,7 @@ func main() {
 			return 0, err
 		}
 		if len(items) > 0 {
-			if err := dstDB.Clauses(clause.OnConflict{UpdateAll: true}).CreateInBatches(items, 100).Error; err != nil {
+			if err := dstDB.CreateInBatches(items, 100).Error; err != nil {
 				return 0, err
 			}
 		}
@@ -235,7 +226,7 @@ func main() {
 			return 0, err
 		}
 		if len(items) > 0 {
-			if err := dstDB.Clauses(clause.OnConflict{UpdateAll: true}).CreateInBatches(items, 100).Error; err != nil {
+			if err := dstDB.CreateInBatches(items, 100).Error; err != nil {
 				return 0, err
 			}
 		}
@@ -249,7 +240,7 @@ func main() {
 			return 0, err
 		}
 		if len(items) > 0 {
-			if err := dstDB.Clauses(clause.OnConflict{UpdateAll: true}).CreateInBatches(items, 100).Error; err != nil {
+			if err := dstDB.CreateInBatches(items, 100).Error; err != nil {
 				return 0, err
 			}
 		}
@@ -263,7 +254,7 @@ func main() {
 			return 0, err
 		}
 		if len(items) > 0 {
-			if err := dstDB.Clauses(clause.OnConflict{UpdateAll: true}).CreateInBatches(items, 100).Error; err != nil {
+			if err := dstDB.CreateInBatches(items, 100).Error; err != nil {
 				return 0, err
 			}
 		}
@@ -277,7 +268,7 @@ func main() {
 			return 0, err
 		}
 		if len(items) > 0 {
-			if err := dstDB.Clauses(clause.OnConflict{UpdateAll: true}).CreateInBatches(items, 100).Error; err != nil {
+			if err := dstDB.CreateInBatches(items, 100).Error; err != nil {
 				return 0, err
 			}
 		}
@@ -291,7 +282,7 @@ func main() {
 			return 0, err
 		}
 		if len(items) > 0 {
-			if err := dstDB.Clauses(clause.OnConflict{UpdateAll: true}).CreateInBatches(items, 100).Error; err != nil {
+			if err := dstDB.CreateInBatches(items, 100).Error; err != nil {
 				return 0, err
 			}
 		}
@@ -305,7 +296,7 @@ func main() {
 			return 0, err
 		}
 		if len(items) > 0 {
-			if err := dstDB.Clauses(clause.OnConflict{UpdateAll: true}).CreateInBatches(items, 100).Error; err != nil {
+			if err := dstDB.CreateInBatches(items, 100).Error; err != nil {
 				return 0, err
 			}
 		}

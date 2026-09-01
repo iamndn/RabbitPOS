@@ -380,6 +380,18 @@ export default function ProductsPage() {
         }),
       });
       if (res.status === 'success') {
+        // Delete removed variants that existed previously
+        const originalVariantIds = (editingProduct.variants || []).map((v) => v.id).filter(Boolean);
+        const currentVariantIds = formVariants.map((v) => v.id).filter(Boolean);
+        const deletedVariantIds = originalVariantIds.filter((id) => !currentVariantIds.includes(id));
+        for (const delId of deletedVariantIds) {
+          try {
+            await fetchApi(`/variants/${delId}`, { method: 'DELETE' });
+          } catch (delErr) {
+            console.warn('Failed to delete variant', delId, delErr);
+          }
+        }
+
         // Also update/create variants
         for (const v of formVariants) {
           if (v.id) {
