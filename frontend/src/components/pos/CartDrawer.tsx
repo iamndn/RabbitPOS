@@ -29,6 +29,7 @@ import { useTranslation } from '@/lib/i18n/LanguageContext';
 import { fetchApi } from '@/lib/api';
 import { formatCurrency, SettingsMap } from '@/lib/utils';
 import ModernSelect from '@/components/common/ModernSelect';
+import HorizontalScroller from '@/components/common/HorizontalScroller';
 
 interface Props {
   isOpen: boolean;
@@ -528,7 +529,11 @@ export default function CartDrawer({
                 />
 
                 {/* Quick Presets */}
-                <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5">
+                <HorizontalScroller
+                  className="gap-1 py-0.5"
+                  scrollAmount={150}
+                  arrowSize="sm"
+                >
                   <button
                     type="button"
                     onClick={() => onOrderCreatedAtChange?.(null)}
@@ -570,7 +575,7 @@ export default function CartDrawer({
                   >
                     {t('pos.order_time_yesterday')}
                   </button>
-                </div>
+                </HorizontalScroller>
               </div>
             </div>
 

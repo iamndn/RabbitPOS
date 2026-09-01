@@ -39,6 +39,7 @@ import { useTranslation } from '@/lib/i18n/LanguageContext';
 import { useToast } from '@/context/ToastContext';
 import ModernSelect from '@/components/common/ModernSelect';
 import ImageCropModal from '@/components/common/ImageCropModal';
+import HorizontalScroller from '@/components/common/HorizontalScroller';
 
 export default function SettingsPage() {
   const { t } = useTranslation();
@@ -494,7 +495,12 @@ export default function SettingsPage() {
         ) : (
           <form onSubmit={handleSave} className="space-y-6">
             {/* Main Tab Navigation Bar (5 Main Tabs) */}
-            <div className="bg-slate-100/90 p-1.5 rounded-2xl border border-slate-200/80 flex space-x-1.5 overflow-x-auto scrollbar-none">
+            <HorizontalScroller
+              wrapperClassName="bg-slate-100/90 p-1.5 rounded-2xl border border-slate-200/80"
+              className="space-x-1.5 py-0.5"
+              scrollAmount={220}
+              arrowSize="sm"
+            >
               {/* Tab 1: Store */}
               <button
                 type="button"
@@ -578,7 +584,7 @@ export default function SettingsPage() {
                 <Database className={`w-4 h-4 ${activeTab === 'backup' ? 'text-violet-600' : 'text-slate-400'}`} />
                 <span>{t('settings.tab_backup')}</span>
               </button>
-            </div>
+            </HorizontalScroller>
 
             {/* TAB 1: Store Information */}
             {activeTab === 'store' && (

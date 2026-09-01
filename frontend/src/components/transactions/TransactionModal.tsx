@@ -16,6 +16,7 @@ import {
   Settings2,
 } from 'lucide-react';
 import ModernSelect from '@/components/common/ModernSelect';
+import HorizontalScroller from '@/components/common/HorizontalScroller';
 import { formatCurrency } from '@/lib/utils';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
 import { fetchApi } from '@/lib/api';
@@ -141,8 +142,8 @@ export default function TransactionModal({
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Itemized Purchases Mode (Default ON for new outflows)
-  const [isPurchaseLogging, setIsPurchaseLogging] = useState<boolean>(true);
+  // Itemized Purchases Mode (Default OFF)
+  const [isPurchaseLogging, setIsPurchaseLogging] = useState<boolean>(false);
   const [purchaseItems, setPurchaseItems] = useState<PurchaseLineItem[]>([
     createDefaultPurchaseItem(false),
   ]);
@@ -256,7 +257,7 @@ export default function TransactionModal({
       setModalAmount(0);
       setModalDescription('');
       setModalCreatedAt(null);
-      setIsPurchaseLogging(true);
+      setIsPurchaseLogging(false);
       setPurchaseItems([createDefaultPurchaseItem(false)]);
     }
   }, [isOpen, initialData, funds, txCategories]);
@@ -786,16 +787,7 @@ export default function TransactionModal({
               <ModernSelect
                 value={modalCategory}
                 onChange={(val) => {
-                  const catVal = String(val);
-                  setModalCategory(catVal);
-                  const isPurchaseCat =
-                    catVal === 'ingredient_purchase' ||
-                    catVal.toLowerCase().includes('nguyên liệu') ||
-                    catVal.toLowerCase().includes('hàng hóa') ||
-                    catVal.toLowerCase().includes('purchase');
-                  if (isPurchaseCat && modalType === 'outflow') {
-                    setIsPurchaseLogging(true);
-                  }
+                  setModalCategory(String(val));
                 }}
                 options={categoryOptions}
               />
@@ -1091,35 +1083,41 @@ export default function TransactionModal({
                           <>
                             {/* Preset Chips */}
                             {allPresetChips.length > 0 && (
-                              <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 no-scrollbar w-full min-w-0">
+                              <div className="flex items-center gap-1.5 w-full min-w-0">
                                 <span className="text-[10px] text-slate-400 font-bold uppercase shrink-0 flex items-center gap-0.5">
                                   <Tag className="w-2.5 h-2.5" /> Gợi ý:
                                 </span>
-                                {allPresetChips.slice(0, 5).map((pr, pIdx) => {
-                                  const isSelected =
-                                    item.purchase_unit.toLowerCase() === pr.purchase_unit.toLowerCase() &&
-                                    item.capacity_qty === pr.capacity_qty &&
-                                    Math.abs((item.loss_rate || 0) - (pr.loss_rate || 0)) < 0.001;
+                                <HorizontalScroller
+                                  className="gap-1.5 py-0.5"
+                                  scrollAmount={150}
+                                  arrowSize="sm"
+                                >
+                                  {allPresetChips.map((pr, pIdx) => {
+                                    const isSelected =
+                                      item.purchase_unit.toLowerCase() === pr.purchase_unit.toLowerCase() &&
+                                      item.capacity_qty === pr.capacity_qty &&
+                                      Math.abs((item.loss_rate || 0) - (pr.loss_rate || 0)) < 0.001;
 
-                                  return (
-                                    <button
-                                      key={pIdx}
-                                      type="button"
-                                      onClick={() => {
-                                        handleApplyPreset(idx, pr);
-                                        // Applying a preset switches to advanced automatically
-                                        handleToggleBasicMode(idx, false);
-                                      }}
-                                      className={`text-[10px] font-bold px-2 py-0.5 rounded-lg border transition active:scale-95 shrink-0 cursor-pointer whitespace-nowrap ${
-                                        isSelected
-                                          ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs'
-                                          : 'bg-emerald-50 text-emerald-800 border-emerald-200/80 hover:bg-emerald-100'
-                                      }`}
-                                    >
-                                      {pr.label}
-                                    </button>
-                                  );
-                                })}
+                                    return (
+                                      <button
+                                        key={pIdx}
+                                        type="button"
+                                        onClick={() => {
+                                          handleApplyPreset(idx, pr);
+                                          // Applying a preset switches to advanced automatically
+                                          handleToggleBasicMode(idx, false);
+                                        }}
+                                        className={`text-[10px] font-bold px-2 py-0.5 rounded-lg border transition active:scale-95 shrink-0 cursor-pointer whitespace-nowrap ${
+                                          isSelected
+                                            ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs'
+                                            : 'bg-emerald-50 text-emerald-800 border-emerald-200/80 hover:bg-emerald-100'
+                                        }`}
+                                      >
+                                        {pr.label}
+                                      </button>
+                                    );
+                                  })}
+                                </HorizontalScroller>
                               </div>
                             )}
 

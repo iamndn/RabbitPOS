@@ -135,6 +135,10 @@ button, a, input, select, textarea, [role="button"] {
   }
 
   /* Custom thin scrollbar for long scrollable dropdowns/tables */
+  .custom-scrollbar {
+    scrollbar-width: thin !important;
+    scrollbar-color: #cbd5e1 transparent !important;
+  }
   .custom-scrollbar::-webkit-scrollbar {
     width: 5px;
     height: 5px;

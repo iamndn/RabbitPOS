@@ -45,6 +45,7 @@ import EmailReportModal from '@/components/common/EmailReportModal';
 import ReceiptModal, { CompletedOrderData } from '@/components/pos/ReceiptModal';
 import ModernDateRangePicker, { DatePeriod, computeDateRange, getLocalMonthStr, getLocalDateStr, toLocalDateStr } from '@/components/common/ModernDateRangePicker';
 import ModernSelect from '@/components/common/ModernSelect';
+import HorizontalScroller from '@/components/common/HorizontalScroller';
 import { fetchApi } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
 import { useConfirm } from '@/context/ConfirmContext';
@@ -1078,7 +1079,12 @@ export default function TransactionsPage() {
 
         {/* Sticky Tab Navigation Bar: 3 Tabs (Ledger, Orders, Funds) */}
         <div className="sticky top-14 z-30 bg-slate-50 pt-1 pb-2 border-b border-slate-200/80">
-          <div className="flex space-x-1 sm:space-x-2 bg-slate-200/70 p-1 rounded-2xl overflow-x-auto no-scrollbar">
+          <HorizontalScroller
+            wrapperClassName="bg-slate-200/70 p-1 rounded-2xl"
+            className="space-x-1 sm:space-x-2"
+            scrollAmount={200}
+            arrowSize="sm"
+          >
             {/* TAB 1: Financial Ledger */}
             <button
               type="button"
@@ -1129,7 +1135,7 @@ export default function TransactionsPage() {
                 {safeFunds.length}
               </span>
             </button>
-          </div>
+          </HorizontalScroller>
         </div>
 
         {/* ── TAB 2: FINANCIAL LEDGER TRANSACTIONS ──────────────────────── */}

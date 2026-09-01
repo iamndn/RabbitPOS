@@ -22,6 +22,7 @@ import {
   Calculator,
 } from 'lucide-react';
 import ModernSelect, { ModernSelectOption } from '@/components/common/ModernSelect';
+import HorizontalScroller from '@/components/common/HorizontalScroller';
 import { fetchApi, getImageUrl } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
 import { formatCurrency, SettingsMap } from '@/lib/utils';
@@ -710,7 +711,12 @@ export default function PurchasesCostTab({
         </div>
 
         {/* 3 Streamlined Sub-Tabs */}
-        <div className="flex items-center gap-1 sm:gap-2 border-b border-slate-100 pt-1 overflow-x-auto no-scrollbar">
+        <HorizontalScroller
+          wrapperClassName="border-b border-slate-100 pt-1"
+          className="gap-1 sm:gap-2"
+          scrollAmount={200}
+          arrowSize="sm"
+        >
           <button
             type="button"
             onClick={() => setActiveSubTab('profit-recovery')}
@@ -755,7 +761,7 @@ export default function PurchasesCostTab({
               {ingredients.length}
             </span>
           </button>
-        </div>
+        </HorizontalScroller>
       </div>
 
       {/* ── TAB 1: PROFIT MARGIN & MENU RECOVERY ───────────────────────────────── */}
@@ -801,7 +807,11 @@ export default function PurchasesCostTab({
             </div>
 
             {/* Quick Status Filter Chips */}
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar pt-0.5">
+            <HorizontalScroller
+              className="gap-1.5 py-0.5"
+              scrollAmount={180}
+              arrowSize="sm"
+            >
               <button
                 type="button"
                 onClick={() => setStatusFilter('all')}
@@ -857,7 +867,7 @@ export default function PurchasesCostTab({
               >
                 📋 Chưa có BOM ({filterCounts.noRecipe})
               </button>
-            </div>
+            </HorizontalScroller>
 
             {/* Pricing Mode Switcher & Sync Button */}
             <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-100">
@@ -2155,7 +2165,7 @@ export default function PurchasesCostTab({
               </div>
             ) : (
               <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
-                <div className="overflow-x-auto max-h-[55vh]">
+                <div className="overflow-x-auto max-h-[55vh] custom-scrollbar">
                   <table className="w-full text-left text-xs">
                     <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase tracking-wider font-semibold sticky top-0">
                       <tr>

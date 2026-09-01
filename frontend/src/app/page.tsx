@@ -122,7 +122,7 @@ const CategorySidebar = React.memo(function CategorySidebar({
   allLabel,
 }: CategorySidebarProps) {
   return (
-    <div className="flex flex-col gap-1 overflow-y-auto overscroll-contain pr-0.5 sm:pr-1 scrollbar-none no-scrollbar">
+    <div className="flex flex-col gap-1 overflow-y-auto overscroll-contain pr-0.5 sm:pr-1 custom-scrollbar">
       {/* Tất cả */}
       <button
         onClick={() => onSelectCategory(null)}
