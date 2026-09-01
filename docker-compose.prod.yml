@@ -43,11 +43,12 @@ services:
     restart: always
     environment:
       PORT: ${BACKEND_PORT:-8080}
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_USER: ${POSTGRES_USER:?POSTGRES_USER_is_required}
-      DB_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD_is_required}
-      DB_NAME: ${POSTGRES_DB:-rabbitpos}
+      DB_HOST: ${DB_HOST:-postgres}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_USER: ${DB_USER:-${POSTGRES_USER:?DB_USER_is_required}}
+      DB_PASSWORD: ${DB_PASSWORD:-${POSTGRES_PASSWORD:?DB_PASSWORD_is_required}}
+      DB_NAME: ${DB_NAME:-${POSTGRES_DB:-postgres}}
+      DB_SSLMODE: ${DB_SSLMODE:-disable}
       APP_ENV: production
       CORS_ORIGIN: ${CORS_ORIGIN:-https://rabbitpos.ndnworks.com,https://rabbitpos-api.ndnworks.com,http://localhost:3000,http://10.0.0.10:3000}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-https://rabbitpos.ndnworks.com,https://rabbitpos-api.ndnworks.com,http://localhost:3000,http://10.0.0.10:3000}

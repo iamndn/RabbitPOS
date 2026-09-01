@@ -13,11 +13,13 @@ import (
 // Config holds all backend configuration values
 type Config struct {
 	Port               string
+	DatabaseURL        string
 	DBHost             string
 	DBPort             string
 	DBUser             string
 	DBPassword         string
 	DBName             string
+	DBSSLMode          string
 	AppEnv             string
 	JWTSecret          string
 	JWTExpiryHours     int
@@ -55,22 +57,33 @@ func (c *Config) IsProduction() bool {
 
 // LoadConfig initializes configuration from environment variables or .env file
 func LoadConfig() (*Config, error) {
-	// Attempt to load .env files based on APP_ENV; ignore errors if not present
+	// Attempt to load .env files based on APP_ENV; load all matching files
+	envFiles := []string{
+		".env", "../.env", "../../.env",
+		".env.development", "../.env.development", "../../.env.development",
+		".env.production", "../.env.production", "../../.env.production",
+	}
 	appEnvVal := os.Getenv("APP_ENV")
 	if appEnvVal == "production" {
-		_ = godotenv.Load(".env.production", "../.env.production", ".env", "../.env")
-	} else if appEnvVal == "development" {
-		_ = godotenv.Load(".env.development", "../.env.development", ".env", "../.env")
-	} else {
-		_ = godotenv.Load(".env.development", ".env.production", ".env", "../.env")
+		envFiles = []string{
+			".env", "../.env", "../../.env",
+			".env.production", "../.env.production", "../../.env.production",
+		}
+	}
+	for _, f := range envFiles {
+		if _, err := os.Stat(f); err == nil {
+			_ = godotenv.Overload(f)
+		}
 	}
 
 	port := getEnv("PORT", "8080")
+	databaseURL := getEnv("DATABASE_URL", "")
 	dbHost := getEnv("DB_HOST", "localhost")
 	dbPort := getEnv("DB_PORT", "5432")
 	dbUser := getEnv("DB_USER", "postgres")
 	dbPassword := getEnv("DB_PASSWORD", "postgres")
 	dbName := getEnv("DB_NAME", "rabbitpos")
+	dbSSLMode := getEnv("DB_SSLMODE", "disable")
 	appEnv := getEnv("APP_ENV", "development")
 
 	// JWT secret: no hardcoded fallback — empty string forces validation below
@@ -125,11 +138,13 @@ func LoadConfig() (*Config, error) {
 
 	cfg := &Config{
 		Port:                   port,
+		DatabaseURL:            databaseURL,
 		DBHost:                 dbHost,
 		DBPort:                 dbPort,
 		DBUser:                 dbUser,
 		DBPassword:             dbPassword,
 		DBName:                 dbName,
+		DBSSLMode:              dbSSLMode,
 		AppEnv:                 appEnv,
 		JWTSecret:              jwtSecret,
 		JWTExpiryHours:         jwtExpiryHours,
@@ -195,8 +210,15 @@ func (c *Config) validateSecurity() error {
 
 // GetDSN returns PostgreSQL Connection Data Source Name
 func (c *Config) GetDSN() string {
-	return fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable TimeZone=Asia/Ho_Chi_Minh",
-		c.DBHost, c.DBUser, c.DBPassword, c.DBName, c.DBPort)
+	if c.DatabaseURL != "" {
+		return c.DatabaseURL
+	}
+	sslMode := c.DBSSLMode
+	if sslMode == "" {
+		sslMode = "disable"
+	}
+	return fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s TimeZone=Asia/Ho_Chi_Minh",
+		c.DBHost, c.DBUser, c.DBPassword, c.DBName, c.DBPort, sslMode)
 }
 
 func getEnv(key, fallback string) string {
