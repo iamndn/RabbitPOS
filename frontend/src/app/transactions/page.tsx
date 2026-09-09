@@ -415,6 +415,10 @@ export default function TransactionsPage() {
   const [cancelWithRefund, setCancelWithRefund] = useState<boolean>(true);
   const [cancelLoading, setCancelLoading] = useState<boolean>(false);
 
+  // Modal State: Delete Order
+  const [deletingOrder, setDeletingOrder] = useState<OrderApi | null>(null);
+  const [deleteOrderLoading, setDeleteOrderLoading] = useState<boolean>(false);
+
   // Expanded Order Items Row
   const [expandedOrderId, setExpandedOrderId] = useState<number | null>(null);
 
@@ -725,6 +729,22 @@ export default function TransactionsPage() {
       loadData();
     } else {
       showAlert(t('common.error') || 'Lỗi', res.message || 'Failed to delete transaction', 'danger');
+    }
+  };
+
+  const handleConfirmDeleteOrder = async () => {
+    if (!deletingOrder) return;
+    setDeleteOrderLoading(true);
+    const res = await fetchApi<{ id: number; order_code: string }>(`/orders/${deletingOrder.id}`, {
+      method: 'DELETE',
+    });
+    setDeleteOrderLoading(false);
+    if (res.status === 'success') {
+      setDeletingOrder(null);
+      showAlert(t('common.success') || 'Thành công', `Đã xóa vĩnh viễn đơn hàng #${deletingOrder.order_code}`, 'success');
+      loadData();
+    } else {
+      showAlert(t('common.error') || 'Lỗi', res.message || 'Không thể xóa đơn hàng', 'danger');
     }
   };
 
@@ -1753,9 +1773,20 @@ export default function TransactionsPage() {
                                   </button>
                                 </div>
                               ) : (
-                                <span className="text-[10px] text-slate-400 font-medium px-2 py-0.5 bg-slate-100 rounded">
-                                  {t('tx.system_auto') || 'Tự động'}
-                                </span>
+                                <div className="flex items-center justify-center space-x-1.5">
+                                  {tx.reference_order_id ? (
+                                    <button
+                                      onClick={() => setDeletingTransaction(tx)}
+                                      title="Xóa giao dịch & đơn hàng"
+                                      className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
+                                  ) : null}
+                                  <span className="text-[10px] text-slate-400 font-medium px-2 py-0.5 bg-slate-100 rounded">
+                                    {t('tx.system_auto') || 'Tự động'}
+                                  </span>
+                                </div>
                               )}
                             </td>
                           </tr>
@@ -1857,9 +1888,20 @@ export default function TransactionsPage() {
                               </button>
                             </div>
                           ) : (
-                            <span className="text-[10px] text-slate-400 font-medium px-2 py-0.5 bg-slate-100 rounded">
-                              {t('tx.system_auto') || 'Tự động'}
-                            </span>
+                            <div className="flex items-center gap-1">
+                              {tx.reference_order_id ? (
+                                <button
+                                  onClick={() => setDeletingTransaction(tx)}
+                                  className="p-1.5 text-slate-400 hover:text-rose-600 bg-slate-100 hover:bg-rose-50 rounded-lg transition cursor-pointer"
+                                  title="Xóa giao dịch & đơn hàng"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              ) : null}
+                              <span className="text-[10px] text-slate-400 font-medium px-2 py-0.5 bg-slate-100 rounded">
+                                {t('tx.system_auto') || 'Tự động'}
+                              </span>
+                            </div>
                           )}
                         </div>
                       </div>
@@ -2161,6 +2203,13 @@ export default function TransactionsPage() {
                                       <Ban className="w-4 h-4" />
                                     </button>
                                   )}
+                                  <button
+                                    onClick={() => setDeletingOrder(order)}
+                                    title="Xóa vĩnh viễn đơn hàng"
+                                    className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
                                 </div>
                               </td>
                             </tr>
@@ -2441,6 +2490,14 @@ export default function TransactionsPage() {
                                 <span>Hủy đơn</span>
                               </button>
                             )}
+                            <button
+                              type="button"
+                              onClick={() => setDeletingOrder(order)}
+                              className="px-2.5 py-1 text-[11px] font-bold text-slate-500 hover:text-rose-600 bg-slate-100 hover:bg-rose-50 rounded-lg flex items-center gap-1 transition cursor-pointer"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                              <span>Xóa</span>
+                            </button>
                           </div>
                         </div>
                       </div>
@@ -2843,6 +2900,18 @@ export default function TransactionsPage() {
               </div>
             </div>
 
+            {deletingTransaction.reference_order_id && (
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-2xl text-xs text-amber-900 space-y-1">
+                <div className="font-bold flex items-center gap-1.5">
+                  <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                  <span>Giao dịch đơn hàng tự động #{deletingTransaction.reference_order?.order_code || deletingTransaction.reference_order_id}</span>
+                </div>
+                <p className="text-[11px] text-amber-800">
+                  Xác nhận xóa sẽ xóa đồng thời đơn hàng và tất cả các bút toán thu/chi liên quan, đồng thời hoàn tác số dư quỹ thanh toán tương ứng.
+                </p>
+              </div>
+            )}
+
             <div className="p-3 bg-slate-50 rounded-2xl space-y-1.5 text-xs text-slate-700 border border-slate-100">
               <div className="flex justify-between">
                 <span className="text-slate-500">{t('tx.fund')}:</span>
@@ -2882,6 +2951,87 @@ export default function TransactionsPage() {
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 {deleteLoading ? (t('common.loading') || 'Đang xử lý...') : (t('common.delete') || 'Xóa giao dịch')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Order Confirmation Modal */}
+      {deletingOrder && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 max-w-md w-full shadow-2xl border border-slate-100 space-y-4 animate-in slide-in-from-bottom-6 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200 pb-safe sm:pb-6">
+            <div className="flex items-center space-x-3 text-rose-600">
+              <div className="p-3 bg-rose-50 rounded-2xl shrink-0">
+                <AlertTriangle className="w-6 h-6" />
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-base font-bold text-slate-900 truncate">
+                  Xác nhận xóa vĩnh viễn đơn hàng
+                </h3>
+                <p className="text-xs text-slate-500 truncate">
+                  Đơn #{deletingOrder.order_code}
+                </p>
+              </div>
+            </div>
+
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-2xl text-xs text-amber-900 space-y-1">
+              <div className="font-bold flex items-center gap-1.5">
+                <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                <span>Cảnh báo hoàn tác dữ liệu</span>
+              </div>
+              <p className="text-[11px] text-amber-800">
+                Hành động này sẽ xóa hoàn toàn đơn hàng #{deletingOrder.order_code}, các chi tiết món và các giao dịch thu/chi liên quan trong Sổ thu chi. Số dư quỹ thanh toán sẽ được hoàn tác chính xác.
+              </p>
+            </div>
+
+            <div className="p-3 bg-slate-50 rounded-2xl space-y-1.5 text-xs text-slate-700 border border-slate-100">
+              <div className="flex justify-between">
+                <span className="text-slate-500">Mã đơn hàng:</span>
+                <span className="font-bold text-indigo-600 font-mono">{deletingOrder.order_code}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Thời gian:</span>
+                <span className="font-medium text-slate-700">{formatDateTime(deletingOrder.created_at)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Thu ngân:</span>
+                <span className="font-semibold text-slate-800">{deletingOrder.cashier_name || deletingOrder.created_by || '—'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Quỹ thanh toán:</span>
+                <span className="font-semibold text-slate-800">{deletingOrder.fund?.name || (funds.find((f) => f.id === deletingOrder.fund_id)?.name ?? '—')}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Trạng thái:</span>
+                <span className={`font-bold ${deletingOrder.status === 'cancelled' ? 'text-rose-600' : 'text-emerald-600'}`}>
+                  {deletingOrder.status === 'cancelled' ? 'Đã hủy' : 'Hoàn thành'}
+                </span>
+              </div>
+              <div className="flex justify-between pt-1 border-t border-slate-200">
+                <span className="text-slate-600 font-semibold">Tổng số tiền:</span>
+                <span className="font-extrabold text-rose-600 text-sm">
+                  {formatCurrency(deletingOrder.total_amount, settings)}
+                </span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end sm:space-x-2 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setDeletingOrder(null)}
+                className="w-full sm:w-auto px-4 py-2.5 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition cursor-pointer text-center justify-center flex items-center"
+              >
+                {t('common.cancel') || 'Hủy'}
+              </button>
+              <button
+                type="button"
+                disabled={deleteOrderLoading}
+                onClick={handleConfirmDeleteOrder}
+                className="w-full sm:w-auto px-5 py-2.5 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow-xs transition disabled:opacity-50 flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                {deleteOrderLoading ? (t('common.loading') || 'Đang xử lý...') : 'Xóa vĩnh viễn'}
               </button>
             </div>
           </div>

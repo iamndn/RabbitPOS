@@ -497,7 +497,7 @@ export default function PurchasesCostTab({
         parsedPresets = typeof ing.saved_conversions === 'string'
           ? JSON.parse(ing.saved_conversions)
           : ing.saved_conversions;
-      } catch {}
+      } catch { }
     }
     setIngFormPresets(parsedPresets);
     setIsIngredientModalOpen(true);
@@ -628,11 +628,10 @@ export default function PurchasesCostTab({
       {/* Toast Alert */}
       {toast && (
         <div
-          className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-2xl shadow-xl border flex items-center gap-2 text-xs font-bold transition-all animate-in slide-in-from-top duration-200 ${
-            toast.type === 'success'
-              ? 'bg-emerald-50 text-emerald-900 border-emerald-200'
-              : 'bg-rose-50 text-rose-900 border-rose-200'
-          }`}
+          className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-2xl shadow-xl border flex items-center gap-2 text-xs font-bold transition-all animate-in slide-in-from-top duration-200 ${toast.type === 'success'
+            ? 'bg-emerald-50 text-emerald-900 border-emerald-200'
+            : 'bg-rose-50 text-rose-900 border-rose-200'
+            }`}
         >
           {toast.type === 'success' ? (
             <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
@@ -649,7 +648,7 @@ export default function PurchasesCostTab({
           <div className="space-y-1">
             <h1 className="text-xl sm:text-2xl font-black text-slate-900 flex items-center gap-2.5">
               <Scale className="w-6 h-6 text-emerald-700 shrink-0" />
-              <span>Quản Lý Mua Hàng & Lợi Nhuận Thu Hồi</span>
+              <span>Quản Lý Mua Hàng</span>
             </h1>
             <p className="text-xs sm:text-sm text-slate-500 font-medium">
               Theo dõi biến động giá nguyên liệu, định lượng BOM công thức và kiểm soát biên lợi nhuận thực tế
@@ -720,27 +719,25 @@ export default function PurchasesCostTab({
           <button
             type="button"
             onClick={() => setActiveSubTab('profit-recovery')}
-            className={`pb-2.5 sm:pb-3 px-2.5 sm:px-3 text-xs sm:text-sm font-extrabold flex items-center gap-1.5 sm:gap-2 border-b-2 transition shrink-0 cursor-pointer ${
-              activeSubTab === 'profit-recovery'
-                ? 'border-emerald-700 text-emerald-800'
-                : 'border-transparent text-slate-500 hover:text-slate-900'
-            }`}
+            className={`pb-2.5 sm:pb-3 px-2.5 sm:px-3 text-xs sm:text-sm font-extrabold flex items-center gap-1.5 sm:gap-2 border-b-2 transition shrink-0 cursor-pointer ${activeSubTab === 'profit-recovery'
+              ? 'border-emerald-700 text-emerald-800'
+              : 'border-transparent text-slate-500 hover:text-slate-900'
+              }`}
           >
             <TrendingUp className="w-4 h-4 shrink-0" />
-            <span>Lợi Nhuận & Giá Vốn Món</span>
+            <span>Định Lượng Món</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveSubTab('purchase-history')}
-            className={`pb-2.5 sm:pb-3 px-2.5 sm:px-3 text-xs sm:text-sm font-extrabold flex items-center gap-1.5 sm:gap-2 border-b-2 transition shrink-0 cursor-pointer ${
-              activeSubTab === 'purchase-history'
-                ? 'border-emerald-700 text-emerald-800'
-                : 'border-transparent text-slate-500 hover:text-slate-900'
-            }`}
+            className={`pb-2.5 sm:pb-3 px-2.5 sm:px-3 text-xs sm:text-sm font-extrabold flex items-center gap-1.5 sm:gap-2 border-b-2 transition shrink-0 cursor-pointer ${activeSubTab === 'purchase-history'
+              ? 'border-emerald-700 text-emerald-800'
+              : 'border-transparent text-slate-500 hover:text-slate-900'
+              }`}
           >
             <History className="w-4 h-4 shrink-0" />
-            <span>Lịch Sử Mua Hàng & Giá Cả</span>
+            <span>Lịch Sử Mua Hàng</span>
             <span className="bg-slate-100 text-slate-700 text-[10px] font-bold px-1.5 py-0.2 rounded-full">
               {allHistory.length}
             </span>
@@ -749,14 +746,13 @@ export default function PurchasesCostTab({
           <button
             type="button"
             onClick={() => setActiveSubTab('ingredients')}
-            className={`pb-2.5 sm:pb-3 px-2.5 sm:px-3 text-xs sm:text-sm font-extrabold flex items-center gap-1.5 sm:gap-2 border-b-2 transition shrink-0 cursor-pointer ${
-              activeSubTab === 'ingredients'
-                ? 'border-emerald-700 text-emerald-800'
-                : 'border-transparent text-slate-500 hover:text-slate-900'
-            }`}
+            className={`pb-2.5 sm:pb-3 px-2.5 sm:px-3 text-xs sm:text-sm font-extrabold flex items-center gap-1.5 sm:gap-2 border-b-2 transition shrink-0 cursor-pointer ${activeSubTab === 'ingredients'
+              ? 'border-emerald-700 text-emerald-800'
+              : 'border-transparent text-slate-500 hover:text-slate-900'
+              }`}
           >
             <Package className="w-4 h-4 shrink-0" />
-            <span>Bảng Giá Nguyên Liệu</span>
+            <span>Giá Nguyên Liệu</span>
             <span className="bg-slate-100 text-slate-700 text-[10px] font-bold px-1.5 py-0.2 rounded-full">
               {ingredients.length}
             </span>
@@ -815,55 +811,50 @@ export default function PurchasesCostTab({
               <button
                 type="button"
                 onClick={() => setStatusFilter('all')}
-                className={`px-2.5 py-1 rounded-xl text-xs font-extrabold border transition shrink-0 cursor-pointer ${
-                  statusFilter === 'all'
-                    ? 'bg-slate-900 text-white border-slate-900 shadow-2xs'
-                    : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
-                }`}
+                className={`px-2.5 py-1 rounded-xl text-xs font-extrabold border transition shrink-0 cursor-pointer ${statusFilter === 'all'
+                  ? 'bg-slate-900 text-white border-slate-900 shadow-2xs'
+                  : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                  }`}
               >
                 Tất cả ({filterCounts.all})
               </button>
               <button
                 type="button"
                 onClick={() => setStatusFilter('needs_update')}
-                className={`px-2.5 py-1 rounded-xl text-xs font-extrabold border transition shrink-0 cursor-pointer flex items-center gap-1 ${
-                  statusFilter === 'needs_update'
-                    ? 'bg-amber-600 text-white border-amber-600 shadow-2xs'
-                    : 'bg-amber-50 text-amber-900 border-amber-200/80 hover:bg-amber-100'
-                }`}
+                className={`px-2.5 py-1 rounded-xl text-xs font-extrabold border transition shrink-0 cursor-pointer flex items-center gap-1 ${statusFilter === 'needs_update'
+                  ? 'bg-amber-600 text-white border-amber-600 shadow-2xs'
+                  : 'bg-amber-50 text-amber-900 border-amber-200/80 hover:bg-amber-100'
+                  }`}
               >
                 ⚠️ Cần cập nhật ({filterCounts.needsUpdate})
               </button>
               <button
                 type="button"
                 onClick={() => setStatusFilter('high_margin')}
-                className={`px-2.5 py-1 rounded-xl text-xs font-extrabold border transition shrink-0 cursor-pointer flex items-center gap-1 ${
-                  statusFilter === 'high_margin'
-                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs'
-                    : 'bg-emerald-50 text-emerald-900 border-emerald-200/80 hover:bg-emerald-100'
-                }`}
+                className={`px-2.5 py-1 rounded-xl text-xs font-extrabold border transition shrink-0 cursor-pointer flex items-center gap-1 ${statusFilter === 'high_margin'
+                  ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs'
+                  : 'bg-emerald-50 text-emerald-900 border-emerald-200/80 hover:bg-emerald-100'
+                  }`}
               >
                 ✅ Biên lãi cao ≥65% ({filterCounts.highMargin})
               </button>
               <button
                 type="button"
                 onClick={() => setStatusFilter('low_margin')}
-                className={`px-2.5 py-1 rounded-xl text-xs font-extrabold border transition shrink-0 cursor-pointer flex items-center gap-1 ${
-                  statusFilter === 'low_margin'
-                    ? 'bg-rose-600 text-white border-rose-600 shadow-2xs'
-                    : 'bg-rose-50 text-rose-900 border-rose-200/80 hover:bg-rose-100'
-                }`}
+                className={`px-2.5 py-1 rounded-xl text-xs font-extrabold border transition shrink-0 cursor-pointer flex items-center gap-1 ${statusFilter === 'low_margin'
+                  ? 'bg-rose-600 text-white border-rose-600 shadow-2xs'
+                  : 'bg-rose-50 text-rose-900 border-rose-200/80 hover:bg-rose-100'
+                  }`}
               >
                 🔥 Biên lãi thấp &lt;50% ({filterCounts.lowMargin})
               </button>
               <button
                 type="button"
                 onClick={() => setStatusFilter('no_recipe')}
-                className={`px-2.5 py-1 rounded-xl text-xs font-extrabold border transition shrink-0 cursor-pointer flex items-center gap-1 ${
-                  statusFilter === 'no_recipe'
-                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-2xs'
-                    : 'bg-indigo-50 text-indigo-900 border-indigo-200/80 hover:bg-indigo-100'
-                }`}
+                className={`px-2.5 py-1 rounded-xl text-xs font-extrabold border transition shrink-0 cursor-pointer flex items-center gap-1 ${statusFilter === 'no_recipe'
+                  ? 'bg-indigo-600 text-white border-indigo-600 shadow-2xs'
+                  : 'bg-indigo-50 text-indigo-900 border-indigo-200/80 hover:bg-indigo-100'
+                  }`}
               >
                 📋 Chưa có BOM ({filterCounts.noRecipe})
               </button>
@@ -875,11 +866,10 @@ export default function PurchasesCostTab({
                 <button
                   type="button"
                   onClick={() => setPricingBasis('latest')}
-                  className={`px-2.5 sm:px-3 py-1.5 rounded-lg transition cursor-pointer text-xs ${
-                    pricingBasis === 'latest'
-                      ? 'bg-white text-emerald-900 shadow-xs font-extrabold'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
+                  className={`px-2.5 sm:px-3 py-1.5 rounded-lg transition cursor-pointer text-xs ${pricingBasis === 'latest'
+                    ? 'bg-white text-emerald-900 shadow-xs font-extrabold'
+                    : 'text-slate-600 hover:text-slate-900'
+                    }`}
                   title="Tính theo giá quy đổi đợt nhập gần nhất"
                 >
                   ⚡ Giá đợt gần nhất
@@ -887,11 +877,10 @@ export default function PurchasesCostTab({
                 <button
                   type="button"
                   onClick={() => setPricingBasis('average')}
-                  className={`px-2.5 sm:px-3 py-1.5 rounded-lg transition cursor-pointer text-xs ${
-                    pricingBasis === 'average'
-                      ? 'bg-white text-emerald-900 shadow-xs font-extrabold'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
+                  className={`px-2.5 sm:px-3 py-1.5 rounded-lg transition cursor-pointer text-xs ${pricingBasis === 'average'
+                    ? 'bg-white text-emerald-900 shadow-xs font-extrabold'
+                    : 'text-slate-600 hover:text-slate-900'
+                    }`}
                   title="Tính theo giá quy đổi bình quân các lần nhập"
                 >
                   📊 Giá bình quân
@@ -1505,19 +1494,18 @@ export default function PurchasesCostTab({
                           </div>
                         </div>
                         <span
-                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${
-                            ing.category === 'fruit'
-                              ? 'bg-amber-50 text-amber-800 border-amber-200'
-                              : ing.category === 'packaging'
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${ing.category === 'fruit'
+                            ? 'bg-amber-50 text-amber-800 border-amber-200'
+                            : ing.category === 'packaging'
                               ? 'bg-blue-50 text-blue-800 border-blue-200'
                               : 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                          }`}
+                            }`}
                         >
                           {ing.category === 'fruit'
                             ? 'Hoa quả'
                             : ing.category === 'packaging'
-                            ? 'Bao bì'
-                            : 'Nguyên liệu'}
+                              ? 'Bao bì'
+                              : 'Nguyên liệu'}
                         </span>
                       </div>
 
@@ -1593,19 +1581,18 @@ export default function PurchasesCostTab({
                             <td className="py-3 px-4 font-extrabold text-slate-900">{ing.name}</td>
                             <td className="py-3 px-3">
                               <span
-                                className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-                                  ing.category === 'fruit'
-                                    ? 'bg-amber-50 text-amber-800 border-amber-200'
-                                    : ing.category === 'packaging'
+                                className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${ing.category === 'fruit'
+                                  ? 'bg-amber-50 text-amber-800 border-amber-200'
+                                  : ing.category === 'packaging'
                                     ? 'bg-blue-50 text-blue-800 border-blue-200'
                                     : 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                                }`}
+                                  }`}
                               >
                                 {ing.category === 'fruit'
                                   ? 'Hoa quả'
                                   : ing.category === 'packaging'
-                                  ? 'Bao bì'
-                                  : 'Nguyên liệu'}
+                                    ? 'Bao bì'
+                                    : 'Nguyên liệu'}
                               </span>
                             </td>
                             <td className="py-3 px-3 font-bold text-emerald-900">
@@ -1737,19 +1724,18 @@ export default function PurchasesCostTab({
                   <span>Mô Phỏng Giá Bán & Biên Lợi Nhuận Thực Tế</span>
                 </span>
                 <span
-                  className={`text-[10px] font-black px-2 py-0.5 rounded-full border shadow-2xs ${
-                    simulatedMarginPct >= 65
-                      ? 'bg-emerald-600 text-white border-emerald-700'
-                      : simulatedMarginPct >= 50
+                  className={`text-[10px] font-black px-2 py-0.5 rounded-full border shadow-2xs ${simulatedMarginPct >= 65
+                    ? 'bg-emerald-600 text-white border-emerald-700'
+                    : simulatedMarginPct >= 50
                       ? 'bg-amber-500 text-white border-amber-600'
                       : 'bg-rose-600 text-white border-rose-700'
-                  }`}
+                    }`}
                 >
                   {simulatedMarginPct >= 65
                     ? '🟢 Lãi cao (Lý tưởng)'
                     : simulatedMarginPct >= 50
-                    ? '🟡 Lãi vừa (Tiêu chuẩn)'
-                    : '🔴 Lãi thấp (Cần tăng giá)'}
+                      ? '🟡 Lãi vừa (Tiêu chuẩn)'
+                      : '🔴 Lãi thấp (Cần tăng giá)'}
                 </span>
               </div>
 

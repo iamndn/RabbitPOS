@@ -60,7 +60,7 @@ export default function WaterfallReconciliationWidget({
             </div>
             <div>
               <h3 className="font-extrabold text-sm sm:text-base text-slate-900 flex items-center gap-2">
-                <span>Cầu Nối Đối Soát Doanh Thu vs Thực Thu Quỹ</span>
+                <span>Đối Soát Doanh Thu vs Thực Thu</span>
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
                   <CheckCircle2 className="w-3 h-3" />
                   Khớp Sổ Thu Chi

@@ -695,6 +695,92 @@ func (h *OrderHandler) CancelOrder(c *gin.Context) {
 	models.SendSuccess(c, http.StatusOK, order, "Order cancelled successfully")
 }
 
+// DeleteOrder permanently deletes an order, cleans up associated financial transactions,
+// reverts fund balances accordingly, and deletes related order items.
+func (h *OrderHandler) DeleteOrder(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		models.SendError(c, http.StatusBadRequest, "Invalid order ID")
+		return
+	}
+
+	var order models.Order
+	if err := h.db.First(&order, id).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			models.SendError(c, http.StatusNotFound, "Order not found")
+			return
+		}
+		models.SendInternalErrorLogged(c, "Failed to find order", err)
+		return
+	}
+
+	err = h.db.Transaction(func(tx *gorm.DB) error {
+		// 1. Find all transactions linked to this order
+		var linkedTxs []models.Transaction
+		if err := tx.Where("reference_order_id = ?", order.ID).Find(&linkedTxs).Error; err != nil {
+			return err
+		}
+
+		// 2. Revert fund balance for each linked transaction and delete transaction
+		for _, ltx := range linkedTxs {
+			if ltx.TransactionType == models.TransactionTypeInflow {
+				// Revert inflow: deduct amount from fund
+				if err := tx.Model(&models.Fund{}).Where("id = ?", ltx.FundID).
+					Update("current_balance", gorm.Expr("current_balance - ?", ltx.Amount)).Error; err != nil {
+					return err
+				}
+			} else if ltx.TransactionType == models.TransactionTypeOutflow {
+				// Revert outflow: add amount back to fund
+				if err := tx.Model(&models.Fund{}).Where("id = ?", ltx.FundID).
+					Update("current_balance", gorm.Expr("current_balance + ?", ltx.Amount)).Error; err != nil {
+					return err
+				}
+			}
+
+			// Delete any purchase items linked to transaction (safety check)
+			if err := tx.Where("transaction_id = ?", ltx.ID).Delete(&models.PurchaseItem{}).Error; err != nil {
+				return err
+			}
+
+			// Delete the transaction
+			if err := tx.Delete(&ltx).Error; err != nil {
+				return err
+			}
+		}
+
+		// 3. Delete order items
+		if err := tx.Where("order_id = ?", order.ID).Delete(&models.OrderItem{}).Error; err != nil {
+			return err
+		}
+
+		// 4. Delete idempotency record if any
+		if order.IdempotencyKey != nil && *order.IdempotencyKey != "" {
+			if err := tx.Where("key = ?", *order.IdempotencyKey).Delete(&models.IdempotencyRecord{}).Error; err != nil {
+				return err
+			}
+		}
+
+		// 5. Delete order record
+		if err := tx.Delete(&order).Error; err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		models.SendInternalErrorLogged(c, "Failed to delete order", err)
+		return
+	}
+
+	if h.fundCache != nil {
+		h.fundCache.Invalidate("funds:list")
+	}
+
+	models.SendSuccess(c, http.StatusOK, gin.H{"id": order.ID, "order_code": order.OrderCode}, "Order deleted successfully")
+}
+
 // GetVietQR generates Napas 247 VietQR payload & image URL for bank transfers
 func (h *OrderHandler) GetVietQR(c *gin.Context) {
 	orderCode := c.Query("order_code")

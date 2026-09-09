@@ -192,8 +192,9 @@ func SetupRouter(cfg *config.Config, db *gorm.DB, emailSvc *services.EmailServic
 				// On-demand financial email report dispatcher
 				adminOnly.POST("/analytics/send-daily-report-email", analyticsHandler.SendDailyReportEmail)
 
-				// Order Cancellation (Admin Only)
+				// Order Cancellation & Deletion (Admin Only)
 				adminOnly.POST("/orders/:id/cancel", orderHandler.CancelOrder)
+				adminOnly.DELETE("/orders/:id", orderHandler.DeleteOrder)
 
 				// Settings Management
 				adminOnly.GET("/settings/admin", settingHandler.GetSettings)

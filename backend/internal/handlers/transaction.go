@@ -729,13 +729,73 @@ func (h *TransactionHandler) DeleteTransaction(c *gin.Context) {
 		return
 	}
 
-	// Guard: Do not allow deleting transactions linked to sales orders or reconciliation variances
-	if existingTx.ReferenceOrderID != nil {
-		models.SendError(c, http.StatusForbidden, "Cannot delete transactions linked to sales orders")
-		return
-	}
+	// Guard: Do not allow deleting balance audit reconciliation transactions
 	if existingTx.Category == models.CategoryReconciliationVariance {
 		models.SendError(c, http.StatusForbidden, "Cannot delete balance audit reconciliation transactions")
+		return
+	}
+
+	// If transaction is linked to a sales order, delete the sales order and all its linked transactions
+	if existingTx.ReferenceOrderID != nil {
+		orderID := *existingTx.ReferenceOrderID
+		var order models.Order
+		err = h.db.Transaction(func(tx *gorm.DB) error {
+			// Find all transactions linked to this order
+			var linkedTxs []models.Transaction
+			if err := tx.Where("reference_order_id = ?", orderID).Find(&linkedTxs).Error; err != nil {
+				return err
+			}
+
+			// Revert fund balance for each linked transaction and delete transaction
+			for _, ltx := range linkedTxs {
+				if ltx.TransactionType == models.TransactionTypeInflow {
+					if err := tx.Model(&models.Fund{}).Where("id = ?", ltx.FundID).
+						Update("current_balance", gorm.Expr("current_balance - ?", ltx.Amount)).Error; err != nil {
+						return err
+					}
+				} else if ltx.TransactionType == models.TransactionTypeOutflow {
+					if err := tx.Model(&models.Fund{}).Where("id = ?", ltx.FundID).
+						Update("current_balance", gorm.Expr("current_balance + ?", ltx.Amount)).Error; err != nil {
+						return err
+					}
+				}
+
+				if err := tx.Where("transaction_id = ?", ltx.ID).Delete(&models.PurchaseItem{}).Error; err != nil {
+					return err
+				}
+				if err := tx.Delete(&ltx).Error; err != nil {
+					return err
+				}
+			}
+
+			// Delete order items & order if found
+			if err := tx.First(&order, orderID).Error; err == nil {
+				if err := tx.Where("order_id = ?", order.ID).Delete(&models.OrderItem{}).Error; err != nil {
+					return err
+				}
+				if order.IdempotencyKey != nil && *order.IdempotencyKey != "" {
+					if err := tx.Where("key = ?", *order.IdempotencyKey).Delete(&models.IdempotencyRecord{}).Error; err != nil {
+						return err
+					}
+				}
+				if err := tx.Delete(&order).Error; err != nil {
+					return err
+				}
+			}
+
+			return nil
+		})
+
+		if err != nil {
+			models.SendInternalErrorLogged(c, "Failed to delete order and linked transactions", err)
+			return
+		}
+
+		if h.fundCache != nil {
+			h.fundCache.Invalidate("funds:list")
+		}
+
+		models.SendSuccess(c, http.StatusOK, gin.H{"id": existingTx.ID, "deleted_order_id": orderID}, "Order transaction deleted successfully")
 		return
 	}
 

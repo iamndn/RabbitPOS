@@ -3,6 +3,7 @@ package handlers
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -29,6 +30,7 @@ func setupOrderTestRouter(handler *OrderHandler, role string, username string, u
 		c.Next()
 	})
 	router.POST("/api/v1/orders", handler.CreateOrder)
+	router.DELETE("/api/v1/orders/:id", handler.DeleteOrder)
 	return router
 }
 
@@ -425,5 +427,174 @@ func TestOrder_Admin_PriceOverride_Success(t *testing.T) {
 		if resp.Data.Items[0].OriginalUnitPrice != fixtures.Variant.RetailPrice {
 			t.Errorf("Expected item.OriginalUnitPrice to be %.0f, got %.0f", fixtures.Variant.RetailPrice, resp.Data.Items[0].OriginalUnitPrice)
 		}
+	}
+}
+
+func TestOrder_DeleteOrder_SuccessAndFundReversion(t *testing.T) {
+	db := testutils.GetTestDB(t)
+	_ = testutils.CleanTables(db)
+	fixtures, err := testutils.SeedMinimalFixtures(db)
+	if err != nil {
+		t.Fatalf("Failed to seed fixtures: %v", err)
+	}
+
+	handler := NewOrderHandler(db, nil, nil)
+	router := setupOrderTestRouter(handler, "admin", "admin_boss", 1)
+
+	initialBalance := fixtures.CashFund.CurrentBalance
+
+	// 1. Create an order
+	payload := models.CreateOrderRequest{
+		FundID: fixtures.CashFund.ID,
+		Items: []models.CreateOrderItemRequest{
+			{
+				ProductVariantID: fixtures.Variant.ID,
+				Quantity:         2,
+			},
+		},
+	}
+	bodyBytes, _ := json.Marshal(payload)
+	req, _ := http.NewRequest("POST", "/api/v1/orders", bytes.NewBuffer(bodyBytes))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusCreated {
+		t.Fatalf("Order creation failed: %s", w.Body.String())
+	}
+
+	var createResp struct {
+		Data models.Order `json:"data"`
+	}
+	_ = json.Unmarshal(w.Body.Bytes(), &createResp)
+	orderID := createResp.Data.ID
+
+	// Check that fund balance increased
+	var fundAfterCreate models.Fund
+	db.First(&fundAfterCreate, fixtures.CashFund.ID)
+	expectedAfterCreate := initialBalance + (fixtures.Variant.RetailPrice * 2)
+	if fundAfterCreate.CurrentBalance != expectedAfterCreate {
+		t.Fatalf("Fund balance expected %.0f, got %.0f", expectedAfterCreate, fundAfterCreate.CurrentBalance)
+	}
+
+	// 2. Delete the order
+	deleteReq, _ := http.NewRequest("DELETE", fmt.Sprintf("/api/v1/orders/%d", orderID), nil)
+	wDelete := httptest.NewRecorder()
+	router.ServeHTTP(wDelete, deleteReq)
+
+	if wDelete.Code != http.StatusOK {
+		t.Fatalf("Order deletion failed with status %d: %s", wDelete.Code, wDelete.Body.String())
+	}
+
+	// 3. Verify order is deleted
+	var deletedOrder models.Order
+	if err := db.First(&deletedOrder, orderID).Error; err == nil {
+		t.Errorf("Expected order %d to be deleted, but still found in DB", orderID)
+	}
+
+	// 4. Verify order items are deleted
+	var itemsCount int64
+	db.Model(&models.OrderItem{}).Where("order_id = ?", orderID).Count(&itemsCount)
+	if itemsCount != 0 {
+		t.Errorf("Expected 0 order items, found %d", itemsCount)
+	}
+
+	// 5. Verify linked transaction is deleted
+	var txCount int64
+	db.Model(&models.Transaction{}).Where("reference_order_id = ?", orderID).Count(&txCount)
+	if txCount != 0 {
+		t.Errorf("Expected 0 linked transactions, found %d", txCount)
+	}
+
+	// 6. Verify fund balance reverted back to initialBalance
+	var fundAfterDelete models.Fund
+	db.First(&fundAfterDelete, fixtures.CashFund.ID)
+	if fundAfterDelete.CurrentBalance != initialBalance {
+		t.Errorf("Fund balance not reverted correctly! Expected %.0f, got %.0f", initialBalance, fundAfterDelete.CurrentBalance)
+	}
+}
+
+func TestTransaction_DeleteSalesTransaction_DeletesOrderAndRevertsFund(t *testing.T) {
+	db := testutils.GetTestDB(t)
+	_ = testutils.CleanTables(db)
+	fixtures, err := testutils.SeedMinimalFixtures(db)
+	if err != nil {
+		t.Fatalf("Failed to seed fixtures: %v", err)
+	}
+
+	orderHandler := NewOrderHandler(db, nil, nil)
+	txHandler := NewTransactionHandler(db, nil, nil)
+
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	router.Use(func(c *gin.Context) {
+		c.Set("role", "admin")
+		c.Set("username", "admin_boss")
+		c.Set("user_id", uint(1))
+		c.Next()
+	})
+	router.POST("/api/v1/orders", orderHandler.CreateOrder)
+	router.DELETE("/api/v1/transactions/:id", txHandler.DeleteTransaction)
+
+	initialBalance := fixtures.CashFund.CurrentBalance
+
+	// 1. Create an order
+	payload := models.CreateOrderRequest{
+		FundID: fixtures.CashFund.ID,
+		Items: []models.CreateOrderItemRequest{
+			{
+				ProductVariantID: fixtures.Variant.ID,
+				Quantity:         1,
+			},
+		},
+	}
+	bodyBytes, _ := json.Marshal(payload)
+	req, _ := http.NewRequest("POST", "/api/v1/orders", bytes.NewBuffer(bodyBytes))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusCreated {
+		t.Fatalf("Order creation failed: %s", w.Body.String())
+	}
+
+	var createResp struct {
+		Data models.Order `json:"data"`
+	}
+	_ = json.Unmarshal(w.Body.Bytes(), &createResp)
+	orderID := createResp.Data.ID
+
+	// Find the sales transaction created for this order
+	var salesTx models.Transaction
+	if err := db.Where("reference_order_id = ?", orderID).First(&salesTx).Error; err != nil {
+		t.Fatalf("Failed to find sales transaction for order %d: %v", orderID, err)
+	}
+
+	// 2. Delete the sales transaction via DELETE /api/v1/transactions/:id
+	deleteTxReq, _ := http.NewRequest("DELETE", fmt.Sprintf("/api/v1/transactions/%d", salesTx.ID), nil)
+	wDeleteTx := httptest.NewRecorder()
+	router.ServeHTTP(wDeleteTx, deleteTxReq)
+
+	if wDeleteTx.Code != http.StatusOK {
+		t.Fatalf("Transaction deletion failed with status %d: %s", wDeleteTx.Code, wDeleteTx.Body.String())
+	}
+
+	// 3. Verify the transaction is deleted
+	var deletedTx models.Transaction
+	if err := db.First(&deletedTx, salesTx.ID).Error; err == nil {
+		t.Errorf("Expected transaction %d to be deleted", salesTx.ID)
+	}
+
+	// 4. Verify the order is also deleted
+	var deletedOrder models.Order
+	if err := db.First(&deletedOrder, orderID).Error; err == nil {
+		t.Errorf("Expected linked order %d to be deleted", orderID)
+	}
+
+	// 5. Verify fund balance reverted
+	var fundAfter models.Fund
+	db.First(&fundAfter, fixtures.CashFund.ID)
+	if fundAfter.CurrentBalance != initialBalance {
+		t.Errorf("Fund balance not reverted! Expected %.0f, got %.0f", initialBalance, fundAfter.CurrentBalance)
 	}
 }
