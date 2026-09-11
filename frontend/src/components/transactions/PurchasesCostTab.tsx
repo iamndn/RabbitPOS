@@ -24,6 +24,9 @@ import {
   Calculator,
   Filter,
   RotateCcw,
+  Calendar,
+  ArrowUpDown,
+  Wallet,
 } from 'lucide-react';
 import ModernSelect, { ModernSelectOption } from '@/components/common/ModernSelect';
 import HorizontalScroller from '@/components/common/HorizontalScroller';
@@ -90,16 +93,26 @@ export default function PurchasesCostTab({
   const [settings, setSettings] = useState<SettingsMap | null>(propSettings || null);
   const [loading, setLoading] = useState<boolean>(true);
 
-  // Search & Filters
+  // Search & Filters - Tab 1: Định Lượng Món
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'needs_update' | 'low_margin' | 'high_margin' | 'no_recipe'>('all');
+  const [costSortBy, setCostSortBy] = useState<'default' | 'diff_desc' | 'margin_asc' | 'margin_desc' | 'price_desc' | 'name_asc'>('default');
   const [isCostFilterModalOpen, setIsCostFilterModalOpen] = useState<boolean>(false);
+
+  // Search & Filters - Tab 2: Nhập Hàng / Lịch Sử Giá
   const [historySearch, setHistorySearch] = useState<string>('');
   const [historyFundFilter, setHistoryFundFilter] = useState<string>('all');
+  const [historyDateFilter, setHistoryDateFilter] = useState<'all' | 'today' | '7days' | '30days' | 'this_month'>('all');
+  const [historyCategoryFilter, setHistoryCategoryFilter] = useState<string>('all');
+  const [historySortBy, setHistorySortBy] = useState<'date_desc' | 'date_asc' | 'amount_desc' | 'amount_asc'>('date_desc');
   const [isHistoryFilterModalOpen, setIsHistoryFilterModalOpen] = useState<boolean>(false);
+
+  // Search & Filters - Tab 3: Giá Nguyên Liệu
   const [ingSearchQuery, setIngSearchQuery] = useState<string>('');
   const [ingCategoryFilter, setIngCategoryFilter] = useState<string>('all');
+  const [ingLossFilter, setIngLossFilter] = useState<'all' | 'has_loss' | 'no_loss'>('all');
+  const [ingSortBy, setIngSortBy] = useState<'name_asc' | 'price_desc' | 'price_asc' | 'loss_desc'>('name_asc');
   const [isIngFilterModalOpen, setIsIngFilterModalOpen] = useState<boolean>(false);
 
   // Expanded Recipe Details Card/Row
@@ -246,7 +259,7 @@ export default function PurchasesCostTab({
   }, [categoriesList, costItems]);
 
   const filteredCostItems = useMemo(() => {
-    return costItems.filter((item) => {
+    let list = costItems.filter((item) => {
       const matchesSearch =
         item.product_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.variant_name.toLowerCase().includes(searchQuery.toLowerCase());
@@ -273,7 +286,39 @@ export default function PurchasesCostTab({
 
       return true;
     });
-  }, [costItems, searchQuery, selectedCategory, statusFilter, pricingBasis]);
+
+    if (costSortBy === 'diff_desc') {
+      list = [...list].sort((a, b) => {
+        const estA = pricingBasis === 'latest' ? a.estimated_cogs : a.estimated_cogs_avg;
+        const estB = pricingBasis === 'latest' ? b.estimated_cogs : b.estimated_cogs_avg;
+        const diffA = Math.abs(estA - a.current_cogs);
+        const diffB = Math.abs(estB - b.current_cogs);
+        return diffB - diffA;
+      });
+    } else if (costSortBy === 'margin_asc') {
+      list = [...list].sort((a, b) => {
+        const estA = pricingBasis === 'latest' ? a.estimated_cogs : a.estimated_cogs_avg;
+        const estB = pricingBasis === 'latest' ? b.estimated_cogs : b.estimated_cogs_avg;
+        const marginA = a.retail_price > 0 ? (a.retail_price - estA) / a.retail_price : 0;
+        const marginB = b.retail_price > 0 ? (b.retail_price - estB) / b.retail_price : 0;
+        return marginA - marginB;
+      });
+    } else if (costSortBy === 'margin_desc') {
+      list = [...list].sort((a, b) => {
+        const estA = pricingBasis === 'latest' ? a.estimated_cogs : a.estimated_cogs_avg;
+        const estB = pricingBasis === 'latest' ? b.estimated_cogs : b.estimated_cogs_avg;
+        const marginA = a.retail_price > 0 ? (a.retail_price - estA) / a.retail_price : 0;
+        const marginB = b.retail_price > 0 ? (b.retail_price - estB) / b.retail_price : 0;
+        return marginB - marginA;
+      });
+    } else if (costSortBy === 'price_desc') {
+      list = [...list].sort((a, b) => b.retail_price - a.retail_price);
+    } else if (costSortBy === 'name_asc') {
+      list = [...list].sort((a, b) => a.product_name.localeCompare(b.product_name));
+    }
+
+    return list;
+  }, [costItems, searchQuery, selectedCategory, statusFilter, costSortBy, pricingBasis]);
 
   const historyFundsList = useMemo(() => {
     const set = new Set<string>();
@@ -283,32 +328,118 @@ export default function PurchasesCostTab({
     return Array.from(set);
   }, [allHistory]);
 
+  const historyCategoriesList = useMemo(() => {
+    const set = new Set<string>();
+    allHistory.forEach((h) => {
+      if (h.category) set.add(h.category);
+    });
+    return Array.from(set);
+  }, [allHistory]);
+
   const filteredHistory = useMemo(() => {
-    return allHistory.filter((item) => {
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const startOf7Days = startOfToday - 7 * 24 * 60 * 60 * 1000;
+    const startOf30Days = startOfToday - 30 * 24 * 60 * 60 * 1000;
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+
+    let list = allHistory.filter((item) => {
       if (historyFundFilter !== 'all') {
         const matchesFund =
           (item.fund_name || '').toLowerCase() === historyFundFilter.toLowerCase();
         if (!matchesFund) return false;
       }
+
+      if (historyCategoryFilter !== 'all') {
+        if ((item.category || '').toLowerCase() !== historyCategoryFilter.toLowerCase()) {
+          return false;
+        }
+      }
+
+      if (historyDateFilter !== 'all' && item.created_at) {
+        const itemTime = new Date(item.created_at).getTime();
+        if (historyDateFilter === 'today' && itemTime < startOfToday) return false;
+        if (historyDateFilter === '7days' && itemTime < startOf7Days) return false;
+        if (historyDateFilter === '30days' && itemTime < startOf30Days) return false;
+        if (historyDateFilter === 'this_month' && itemTime < startOfMonth) return false;
+      }
+
       const q = historySearch.toLowerCase().trim();
       if (!q) return true;
       return (
         (item.ingredient_name || '').toLowerCase().includes(q) ||
         (item.conversion_spec || '').toLowerCase().includes(q) ||
         (item.purchase_unit || '').toLowerCase().includes(q) ||
-        (item.fund_name || '').toLowerCase().includes(q)
+        (item.fund_name || '').toLowerCase().includes(q) ||
+        (item.cashier_name || '').toLowerCase().includes(q)
       );
     });
-  }, [allHistory, historySearch, historyFundFilter]);
+
+    if (historySortBy === 'date_desc') {
+      list = [...list].sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+    } else if (historySortBy === 'date_asc') {
+      list = [...list].sort(
+        (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      );
+    } else if (historySortBy === 'amount_desc') {
+      list = [...list].sort((a, b) => (b.subtotal || 0) - (a.subtotal || 0));
+    } else if (historySortBy === 'amount_asc') {
+      list = [...list].sort((a, b) => (a.subtotal || 0) - (b.subtotal || 0));
+    }
+
+    return list;
+  }, [allHistory, historySearch, historyFundFilter, historyDateFilter, historyCategoryFilter, historySortBy]);
+
+  const filteredHistorySpend = useMemo(() => {
+    return filteredHistory.reduce((acc, h) => acc + (Number(h.subtotal) || 0), 0);
+  }, [filteredHistory]);
 
   const filteredIngredients = useMemo(() => {
-    return ingredients.filter((ing) => {
+    let list = ingredients.filter((ing) => {
       const matchesSearch = ing.name.toLowerCase().includes(ingSearchQuery.toLowerCase());
       const matchesCat =
         ingCategoryFilter === 'all' || ing.category === ingCategoryFilter;
-      return matchesSearch && matchesCat;
+      if (!matchesSearch || !matchesCat) return false;
+
+      if (ingLossFilter === 'has_loss') {
+        if ((ing.loss_rate || 0) <= 0) return false;
+      } else if (ingLossFilter === 'no_loss') {
+        if ((ing.loss_rate || 0) > 0) return false;
+      }
+
+      return true;
     });
-  }, [ingredients, ingSearchQuery, ingCategoryFilter]);
+
+    if (ingSortBy === 'name_asc') {
+      list = [...list].sort((a, b) => a.name.localeCompare(b.name));
+    } else if (ingSortBy === 'price_desc') {
+      list = [...list].sort((a, b) => (b.latest_purchase_price || 0) - (a.latest_purchase_price || 0));
+    } else if (ingSortBy === 'price_asc') {
+      list = [...list].sort((a, b) => (a.latest_purchase_price || 0) - (b.latest_purchase_price || 0));
+    } else if (ingSortBy === 'loss_desc') {
+      list = [...list].sort((a, b) => (b.loss_rate || 0) - (a.loss_rate || 0));
+    }
+
+    return list;
+  }, [ingredients, ingSearchQuery, ingCategoryFilter, ingLossFilter, ingSortBy]);
+
+  const costActiveFilterCount =
+    (selectedCategory !== 'all' ? 1 : 0) +
+    (statusFilter !== 'all' ? 1 : 0) +
+    (costSortBy !== 'default' ? 1 : 0);
+
+  const historyActiveFilterCount =
+    (historyFundFilter !== 'all' ? 1 : 0) +
+    (historyDateFilter !== 'all' ? 1 : 0) +
+    (historyCategoryFilter !== 'all' ? 1 : 0) +
+    (historySortBy !== 'date_desc' ? 1 : 0);
+
+  const ingActiveFilterCount =
+    (ingCategoryFilter !== 'all' ? 1 : 0) +
+    (ingLossFilter !== 'all' ? 1 : 0) +
+    (ingSortBy !== 'name_asc' ? 1 : 0);
 
   const metrics = useMemo(() => {
     const totalItems = costItems.length;
@@ -851,7 +982,7 @@ export default function PurchasesCostTab({
               }`}
           >
             <History className="w-4 h-4 shrink-0" />
-            <span>Lịch Sử Mua Hàng</span>
+            <span>Nhập Hàng & Lịch Sử Giá</span>
             <span className="bg-slate-100 text-slate-700 text-[10px] font-bold px-1.5 py-0.2 rounded-full">
               {allHistory.length}
             </span>
@@ -911,16 +1042,16 @@ export default function PurchasesCostTab({
                 type="button"
                 onClick={() => setIsCostFilterModalOpen(true)}
                 className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer shadow-2xs ${
-                  selectedCategory !== 'all' || statusFilter !== 'all'
+                  costActiveFilterCount > 0
                     ? 'bg-emerald-800 text-white shadow-sm ring-2 ring-emerald-600/30 font-extrabold'
                     : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
                 }`}
               >
                 <Filter className="w-4 h-4" />
                 <span>Bộ lọc</span>
-                {(selectedCategory !== 'all' || statusFilter !== 'all') && (
+                {costActiveFilterCount > 0 && (
                   <span className="w-5 h-5 rounded-full bg-emerald-600 text-white text-[10px] font-extrabold flex items-center justify-center">
-                    {(selectedCategory !== 'all' ? 1 : 0) + (statusFilter !== 'all' ? 1 : 0)}
+                    {costActiveFilterCount}
                   </span>
                 )}
               </button>
@@ -967,7 +1098,7 @@ export default function PurchasesCostTab({
             </div>
 
             {/* Active Filter Chips (if any filter is selected) */}
-            {(selectedCategory !== 'all' || statusFilter !== 'all') && (
+            {costActiveFilterCount > 0 && (
               <div className="flex flex-wrap items-center gap-1.5 text-xs pt-2 border-t border-slate-100">
                 <span className="text-slate-400 font-semibold text-[11px]">Đang lọc:</span>
                 {selectedCategory !== 'all' && (
@@ -1005,11 +1136,36 @@ export default function PurchasesCostTab({
                     </button>
                   </span>
                 )}
+                {costSortBy !== 'default' && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-indigo-50 text-indigo-800 border border-indigo-200 rounded-lg font-bold text-xs">
+                    <span>
+                      📶 Sắp xếp:{' '}
+                      {costSortBy === 'diff_desc'
+                        ? 'Chênh lệch COGS cao'
+                        : costSortBy === 'margin_asc'
+                        ? 'Biên lãi thấp nhất'
+                        : costSortBy === 'margin_desc'
+                        ? 'Biên lãi cao nhất'
+                        : costSortBy === 'price_desc'
+                        ? 'Giá bán cao nhất'
+                        : 'Tên món (A-Z)'}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setCostSortBy('default')}
+                      className="hover:text-indigo-950 p-0.5 rounded cursor-pointer"
+                      title="Hủy sắp xếp"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                )}
                 <button
                   type="button"
                   onClick={() => {
                     setSelectedCategory('all');
                     setStatusFilter('all');
+                    setCostSortBy('default');
                   }}
                   className="text-[11px] font-bold text-rose-600 hover:text-rose-800 hover:underline ml-1 cursor-pointer"
                 >
@@ -1238,6 +1394,42 @@ export default function PurchasesCostTab({
                       </button>
                     </div>
                   </div>
+
+                  {/* Divider */}
+                  <hr className="border-slate-100" />
+
+                  {/* Section 4: Sắp Xếp */}
+                  <div>
+                    <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-2">
+                      📶 Sắp Xếp Theo
+                    </label>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      {[
+                        { key: 'default', label: 'Mặc định' },
+                        { key: 'diff_desc', label: 'Chênh lệch COGS cao' },
+                        { key: 'margin_asc', label: 'Biên lãi thấp nhất' },
+                        { key: 'margin_desc', label: 'Biên lãi cao nhất' },
+                        { key: 'price_desc', label: 'Giá bán cao nhất' },
+                        { key: 'name_asc', label: 'Tên món (A-Z)' },
+                      ].map((s) => {
+                        const isSelected = costSortBy === s.key;
+                        return (
+                          <button
+                            key={s.key}
+                            type="button"
+                            onClick={() => setCostSortBy(s.key as any)}
+                            className={`p-2.5 rounded-xl border text-xs font-bold transition text-left cursor-pointer ${
+                              isSelected
+                                ? 'bg-emerald-800 text-white border-emerald-800 shadow-xs'
+                                : 'bg-white text-slate-700 hover:bg-slate-50 border-slate-200'
+                            }`}
+                          >
+                            {s.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
 
                 {/* Modal Footer */}
@@ -1247,6 +1439,7 @@ export default function PurchasesCostTab({
                     onClick={() => {
                       setSelectedCategory('all');
                       setStatusFilter('all');
+                      setCostSortBy('default');
                     }}
                     className="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-800 transition cursor-pointer"
                   >
@@ -1621,62 +1814,143 @@ export default function PurchasesCostTab({
                   )}
                 </div>
 
-                {/* Button Bộ Lọc Quỹ Chi Trả */}
+                {/* Button Bộ Lọc Gộp (Filter Button) */}
                 <button
                   type="button"
                   onClick={() => setIsHistoryFilterModalOpen(true)}
                   className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer shadow-2xs ${
-                    historyFundFilter !== 'all'
+                    historyActiveFilterCount > 0
                       ? 'bg-emerald-800 text-white shadow-sm ring-2 ring-emerald-600/30 font-extrabold'
                       : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
                   }`}
                 >
                   <Filter className="w-4 h-4" />
                   <span>Bộ lọc</span>
-                  {historyFundFilter !== 'all' && (
+                  {historyActiveFilterCount > 0 && (
                     <span className="w-5 h-5 rounded-full bg-emerald-600 text-white text-[10px] font-extrabold flex items-center justify-center">
-                      1
+                      {historyActiveFilterCount}
                     </span>
                   )}
                 </button>
               </div>
 
               <div className="text-xs font-bold text-slate-700 bg-slate-50 sm:bg-transparent p-2 sm:p-0 rounded-xl border sm:border-0 border-slate-100 flex items-center justify-between sm:justify-end gap-1.5 shrink-0">
-                <span className="text-slate-500 font-medium">Tổng tiền đã nhập:</span>
-                <span className="text-rose-600 font-black text-sm">{formatCurrency(totalSpend, settings)}</span>
+                <span className="text-slate-500 font-medium">Tổng tiền theo bộ lọc:</span>
+                <span className="text-rose-600 font-black text-sm">{formatCurrency(filteredHistorySpend, settings)}</span>
+                {historyActiveFilterCount > 0 && (
+                  <span className="text-[10px] text-slate-400 font-normal hidden lg:inline">
+                    (Gốc: {formatCurrency(totalSpend, settings)})
+                  </span>
+                )}
               </div>
             </div>
 
-            {/* Active Filter Chips */}
-            {historyFundFilter !== 'all' && (
+            {/* Active Filter Chips for Purchase History */}
+            {historyActiveFilterCount > 0 && (
               <div className="flex flex-wrap items-center gap-1.5 text-xs pt-2 border-t border-slate-100">
                 <span className="text-slate-400 font-semibold text-[11px]">Đang lọc:</span>
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-lg font-bold text-xs">
-                  <span>💳 Quỹ chi: {historyFundFilter}</span>
-                  <button
-                    type="button"
-                    onClick={() => setHistoryFundFilter('all')}
-                    className="hover:text-emerald-950 p-0.5 rounded cursor-pointer"
-                    title="Xóa lọc quỹ"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </span>
+
+                {historyDateFilter !== 'all' && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-indigo-50 text-indigo-800 border border-indigo-200 rounded-lg font-bold text-xs">
+                    <span>
+                      📅 Thời gian:{' '}
+                      {historyDateFilter === 'today'
+                        ? 'Hôm nay'
+                        : historyDateFilter === '7days'
+                        ? '7 ngày qua'
+                        : historyDateFilter === '30days'
+                        ? '30 ngày qua'
+                        : 'Tháng này'}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setHistoryDateFilter('all')}
+                      className="hover:text-indigo-950 p-0.5 rounded cursor-pointer"
+                      title="Xóa lọc thời gian"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                )}
+
+                {historyCategoryFilter !== 'all' && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-50 text-amber-800 border border-amber-200 rounded-lg font-bold text-xs">
+                    <span>
+                      🏷️ Loại:{' '}
+                      {historyCategoryFilter === 'fruit'
+                        ? 'Hoa quả tươi'
+                        : historyCategoryFilter === 'ingredient'
+                        ? 'Nguyên liệu/Sữa'
+                        : historyCategoryFilter === 'packaging'
+                        ? 'Bao bì/Ly nắp'
+                        : 'Khác'}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setHistoryCategoryFilter('all')}
+                      className="hover:text-amber-950 p-0.5 rounded cursor-pointer"
+                      title="Xóa lọc phân loại"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                )}
+
+                {historyFundFilter !== 'all' && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-lg font-bold text-xs">
+                    <span>💳 Quỹ: {historyFundFilter}</span>
+                    <button
+                      type="button"
+                      onClick={() => setHistoryFundFilter('all')}
+                      className="hover:text-emerald-950 p-0.5 rounded cursor-pointer"
+                      title="Xóa lọc quỹ"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                )}
+
+                {historySortBy !== 'date_desc' && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 text-slate-800 border border-slate-200 rounded-lg font-bold text-xs">
+                    <span>
+                      📶 Sắp xếp:{' '}
+                      {historySortBy === 'date_asc'
+                        ? 'Cũ nhất trước'
+                        : historySortBy === 'amount_desc'
+                        ? 'Số tiền cao nhất'
+                        : 'Số tiền thấp nhất'}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setHistorySortBy('date_desc')}
+                      className="hover:text-slate-950 p-0.5 rounded cursor-pointer"
+                      title="Hủy sắp xếp"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                )}
+
                 <button
                   type="button"
-                  onClick={() => setHistoryFundFilter('all')}
+                  onClick={() => {
+                    setHistoryDateFilter('all');
+                    setHistoryCategoryFilter('all');
+                    setHistoryFundFilter('all');
+                    setHistorySortBy('date_desc');
+                  }}
                   className="text-[11px] font-bold text-rose-600 hover:text-rose-800 hover:underline ml-1 cursor-pointer"
                 >
-                  Xóa bộ lọc
+                  Xóa tất cả
                 </button>
               </div>
             )}
           </div>
 
-          {/* Popup Filter Modal cho Lịch Sử Mua Hàng */}
+          {/* Popup Filter Modal cho Lịch Sử Nhập Hàng */}
           {isHistoryFilterModalOpen && (
             <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-150">
-              <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-lg w-full p-4 sm:p-6 shadow-2xl space-y-4 max-h-[92dvh] sm:max-h-[85vh] flex flex-col animate-in slide-in-from-bottom-6 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200 pb-safe sm:pb-6 border border-slate-100">
+              <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-xl w-full p-4 sm:p-6 shadow-2xl space-y-4 max-h-[92dvh] sm:max-h-[85vh] flex flex-col animate-in slide-in-from-bottom-6 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200 pb-safe sm:pb-6 border border-slate-100">
                 {/* Header */}
                 <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                   <div className="flex items-center gap-2">
@@ -1685,7 +1959,7 @@ export default function PurchasesCostTab({
                     </div>
                     <div>
                       <h3 className="font-extrabold text-base text-slate-900">Bộ Lọc Lịch Sử Nhập Hàng</h3>
-                      <p className="text-xs text-slate-400">Lọc theo quỹ chi trả và nguồn tiền thanh toán</p>
+                      <p className="text-xs text-slate-400">Lọc theo thời gian, phân loại nguyên liệu và quỹ chi trả</p>
                     </div>
                   </div>
                   <button
@@ -1699,6 +1973,77 @@ export default function PurchasesCostTab({
 
                 {/* Content */}
                 <div className="flex-1 overflow-y-auto space-y-4 pr-1 text-xs">
+                  {/* Section 1: Khoảng Thời Gian */}
+                  <div>
+                    <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-2">
+                      📅 Khoảng Thời Gian
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {[
+                        { key: 'all', label: 'Tất cả thời gian' },
+                        { key: 'today', label: 'Hôm nay' },
+                        { key: '7days', label: '7 ngày qua' },
+                        { key: '30days', label: '30 ngày qua' },
+                        { key: 'this_month', label: 'Tháng này' },
+                      ].map((item) => {
+                        const isSelected = historyDateFilter === item.key;
+                        return (
+                          <button
+                            key={item.key}
+                            type="button"
+                            onClick={() => setHistoryDateFilter(item.key as any)}
+                            className={`px-3.5 py-2 rounded-xl font-bold transition cursor-pointer shadow-2xs ${
+                              isSelected
+                                ? 'bg-emerald-800 text-white shadow-sm font-black ring-2 ring-emerald-600/30'
+                                : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+                            }`}
+                          >
+                            {item.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Divider */}
+                  <hr className="border-slate-100" />
+
+                  {/* Section 2: Phân Loại Nguyên Liệu */}
+                  <div>
+                    <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-2">
+                      🏷️ Phân Loại Nguyên Liệu
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {[
+                        { key: 'all', label: 'Tất cả phân loại' },
+                        { key: 'fruit', label: '🍎 Hoa quả tươi' },
+                        { key: 'ingredient', label: '🥛 Nguyên liệu / Sữa' },
+                        { key: 'packaging', label: '🥤 Bao bì / Ly nắp' },
+                        { key: 'other', label: '📦 Khác' },
+                      ].map((cat) => {
+                        const isSelected = historyCategoryFilter === cat.key;
+                        return (
+                          <button
+                            key={cat.key}
+                            type="button"
+                            onClick={() => setHistoryCategoryFilter(cat.key as any)}
+                            className={`px-3.5 py-2 rounded-xl font-bold transition cursor-pointer shadow-2xs ${
+                              isSelected
+                                ? 'bg-emerald-800 text-white shadow-sm font-black ring-2 ring-emerald-600/30'
+                                : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+                            }`}
+                          >
+                            {cat.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Divider */}
+                  <hr className="border-slate-100" />
+
+                  {/* Section 3: Quỹ Tiền Chi Trả */}
                   <div>
                     <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-2">
                       💳 Quỹ Tiền Chi Trả ({historyFundsList.length})
@@ -1749,16 +2094,55 @@ export default function PurchasesCostTab({
                       })}
                     </div>
                   </div>
+
+                  {/* Divider */}
+                  <hr className="border-slate-100" />
+
+                  {/* Section 4: Sắp Xếp */}
+                  <div>
+                    <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-2">
+                      📶 Sắp Xếp Theo
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {[
+                        { key: 'date_desc', label: '🕒 Mới nhất trước' },
+                        { key: 'date_asc', label: '📅 Cũ nhất trước' },
+                        { key: 'amount_desc', label: '💰 Tiền nhập cao nhất' },
+                        { key: 'amount_asc', label: '🪙 Tiền nhập thấp nhất' },
+                      ].map((item) => {
+                        const isSelected = historySortBy === item.key;
+                        return (
+                          <button
+                            key={item.key}
+                            type="button"
+                            onClick={() => setHistorySortBy(item.key as any)}
+                            className={`p-2.5 rounded-xl border text-xs font-bold transition text-left cursor-pointer ${
+                              isSelected
+                                ? 'bg-emerald-800 text-white border-emerald-800 shadow-xs'
+                                : 'bg-white text-slate-700 hover:bg-slate-50 border-slate-200'
+                            }`}
+                          >
+                            {item.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
 
                 {/* Footer */}
                 <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-3">
                   <button
                     type="button"
-                    onClick={() => setHistoryFundFilter('all')}
+                    onClick={() => {
+                      setHistoryDateFilter('all');
+                      setHistoryCategoryFilter('all');
+                      setHistoryFundFilter('all');
+                      setHistorySortBy('date_desc');
+                    }}
                     className="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-800 transition cursor-pointer"
                   >
-                    Đặt lại
+                    Đặt lại bộ lọc
                   </button>
                   <button
                     type="button"
@@ -1953,16 +2337,16 @@ export default function PurchasesCostTab({
                 type="button"
                 onClick={() => setIsIngFilterModalOpen(true)}
                 className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer shadow-2xs ${
-                  ingCategoryFilter !== 'all'
+                  ingActiveFilterCount > 0
                     ? 'bg-emerald-800 text-white shadow-sm ring-2 ring-emerald-600/30 font-extrabold'
                     : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
                 }`}
               >
                 <Filter className="w-4 h-4" />
                 <span>Bộ lọc</span>
-                {ingCategoryFilter !== 'all' && (
+                {ingActiveFilterCount > 0 && (
                   <span className="w-5 h-5 rounded-full bg-emerald-600 text-white text-[10px] font-extrabold flex items-center justify-center">
-                    1
+                    {ingActiveFilterCount}
                   </span>
                 )}
               </button>
@@ -1979,32 +2363,76 @@ export default function PurchasesCostTab({
           </div>
 
           {/* Active Filter Chips cho Nguyên Liệu */}
-          {ingCategoryFilter !== 'all' && (
+          {ingActiveFilterCount > 0 && (
             <div className="flex flex-wrap items-center gap-1.5 text-xs pt-2 border-t border-slate-100 bg-white rounded-2xl border border-slate-200 shadow-sm p-3">
               <span className="text-slate-400 font-semibold text-[11px]">Đang lọc:</span>
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-lg font-bold text-xs">
-                <span>
-                  🏷️ Phân loại:{' '}
-                  {ingCategoryFilter === 'fruit'
-                    ? '🍎 Hoa quả tươi'
-                    : ingCategoryFilter === 'ingredient'
-                    ? '🥛 Nguyên liệu / Sữa'
-                    : ingCategoryFilter === 'packaging'
-                    ? '🥤 Bao bì / Ly nắp'
-                    : '📦 Khác'}
+              {ingCategoryFilter !== 'all' && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-lg font-bold text-xs">
+                  <span>
+                    🏷️ Phân loại:{' '}
+                    {ingCategoryFilter === 'fruit'
+                      ? '🍎 Hoa quả tươi'
+                      : ingCategoryFilter === 'ingredient'
+                      ? '🥛 Nguyên liệu / Sữa'
+                      : ingCategoryFilter === 'packaging'
+                      ? '🥤 Bao bì / Ly nắp'
+                      : '📦 Khác'}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setIngCategoryFilter('all')}
+                    className="hover:text-emerald-950 p-0.5 rounded cursor-pointer"
+                    title="Xóa lọc phân loại"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
                 </span>
-                <button
-                  type="button"
-                  onClick={() => setIngCategoryFilter('all')}
-                  className="hover:text-emerald-950 p-0.5 rounded cursor-pointer"
-                  title="Xóa lọc phân loại"
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              </span>
+              )}
+
+              {ingLossFilter !== 'all' && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-50 text-amber-800 border border-amber-200 rounded-lg font-bold text-xs">
+                  <span>
+                    ⚖️ Hao hụt: {ingLossFilter === 'has_loss' ? 'Có hao hụt (>0%)' : 'Không hao hụt (0%)'}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setIngLossFilter('all')}
+                    className="hover:text-amber-950 p-0.5 rounded cursor-pointer"
+                    title="Xóa lọc hao hụt"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              )}
+
+              {ingSortBy !== 'name_asc' && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-indigo-50 text-indigo-800 border border-indigo-200 rounded-lg font-bold text-xs">
+                  <span>
+                    📶 Sắp xếp:{' '}
+                    {ingSortBy === 'price_desc'
+                      ? 'Giá cao nhất'
+                      : ingSortBy === 'price_asc'
+                      ? 'Giá thấp nhất'
+                      : 'Hao hụt cao nhất'}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setIngSortBy('name_asc')}
+                    className="hover:text-indigo-950 p-0.5 rounded cursor-pointer"
+                    title="Hủy sắp xếp"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              )}
+
               <button
                 type="button"
-                onClick={() => setIngCategoryFilter('all')}
+                onClick={() => {
+                  setIngCategoryFilter('all');
+                  setIngLossFilter('all');
+                  setIngSortBy('name_asc');
+                }}
                 className="text-[11px] font-bold text-rose-600 hover:text-rose-800 hover:underline ml-1 cursor-pointer"
               >
                 Xóa tất cả
@@ -2015,7 +2443,7 @@ export default function PurchasesCostTab({
           {/* Popup Filter Modal cho Quản Lý Nguyên Liệu */}
           {isIngFilterModalOpen && (
             <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-150">
-              <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-md w-full p-4 sm:p-6 shadow-2xl space-y-4 max-h-[92dvh] sm:max-h-[85vh] flex flex-col animate-in slide-in-from-bottom-6 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200 pb-safe sm:pb-6 border border-slate-100">
+              <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-lg w-full p-4 sm:p-6 shadow-2xl space-y-4 max-h-[92dvh] sm:max-h-[85vh] flex flex-col animate-in slide-in-from-bottom-6 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200 pb-safe sm:pb-6 border border-slate-100">
                 {/* Modal Header */}
                 <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                   <div className="flex items-center gap-2">
@@ -2024,7 +2452,7 @@ export default function PurchasesCostTab({
                     </div>
                     <div>
                       <h3 className="font-extrabold text-base text-slate-900">Bộ Lọc Nguyên Liệu</h3>
-                      <p className="text-xs text-slate-400">Lọc theo phân loại nguyên vật liệu, hoa quả, bao bì</p>
+                      <p className="text-xs text-slate-400">Lọc theo phân loại nguyên vật liệu, hao hụt và giá nhập</p>
                     </div>
                   </div>
                   <button
@@ -2038,6 +2466,7 @@ export default function PurchasesCostTab({
 
                 {/* Content */}
                 <div className="flex-1 overflow-y-auto space-y-4 pr-1 text-xs">
+                  {/* Section 1: Phân Loại Nguyên Liệu */}
                   <div>
                     <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-2">
                       🏷️ Phân Loại Nguyên Liệu
@@ -2078,23 +2507,94 @@ export default function PurchasesCostTab({
                       })}
                     </div>
                   </div>
+
+                  {/* Divider */}
+                  <hr className="border-slate-100" />
+
+                  {/* Section 2: Trạng Thái Hao Hụt */}
+                  <div>
+                    <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-2">
+                      ⚖️ Trạng Thái Hao Hụt
+                    </label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { key: 'all', label: 'Tất cả' },
+                        { key: 'has_loss', label: 'Có hao hụt (>0%)' },
+                        { key: 'no_loss', label: 'Không hao hụt (0%)' },
+                      ].map((item) => {
+                        const isSelected = ingLossFilter === item.key;
+                        return (
+                          <button
+                            key={item.key}
+                            type="button"
+                            onClick={() => setIngLossFilter(item.key as any)}
+                            className={`p-2.5 rounded-xl border text-xs font-bold transition text-center cursor-pointer ${
+                              isSelected
+                                ? 'bg-emerald-800 text-white border-emerald-800 shadow-xs'
+                                : 'bg-white text-slate-700 hover:bg-slate-50 border-slate-200'
+                            }`}
+                          >
+                            {item.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Divider */}
+                  <hr className="border-slate-100" />
+
+                  {/* Section 3: Sắp Xếp */}
+                  <div>
+                    <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-2">
+                      📶 Sắp Xếp Theo
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {[
+                        { key: 'name_asc', label: '🔤 Tên nguyên liệu (A-Z)' },
+                        { key: 'price_desc', label: '💰 Giá quy đổi cao nhất' },
+                        { key: 'price_asc', label: '🪙 Giá quy đổi thấp nhất' },
+                        { key: 'loss_desc', label: '📉 Tỷ lệ hao hụt cao nhất' },
+                      ].map((item) => {
+                        const isSelected = ingSortBy === item.key;
+                        return (
+                          <button
+                            key={item.key}
+                            type="button"
+                            onClick={() => setIngSortBy(item.key as any)}
+                            className={`p-2.5 rounded-xl border text-xs font-bold transition text-left cursor-pointer ${
+                              isSelected
+                                ? 'bg-emerald-800 text-white border-emerald-800 shadow-xs'
+                                : 'bg-white text-slate-700 hover:bg-slate-50 border-slate-200'
+                            }`}
+                          >
+                            {item.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
 
                 {/* Footer */}
                 <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-3">
                   <button
                     type="button"
-                    onClick={() => setIngCategoryFilter('all')}
+                    onClick={() => {
+                      setIngCategoryFilter('all');
+                      setIngLossFilter('all');
+                      setIngSortBy('name_asc');
+                    }}
                     className="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-800 transition cursor-pointer"
                   >
-                    Xóa bộ lọc
+                    Đặt lại bộ lọc
                   </button>
                   <button
                     type="button"
                     onClick={() => setIsIngFilterModalOpen(false)}
-                    className="px-5 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl font-extrabold text-xs shadow-md transition cursor-pointer"
+                    className="px-5 py-2 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl text-xs font-extrabold shadow-sm transition active:scale-95 cursor-pointer"
                   >
-                    Đóng
+                    Áp dụng ({filteredIngredients.length} nguyên liệu)
                   </button>
                 </div>
               </div>
