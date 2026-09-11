@@ -16,12 +16,12 @@ Tài liệu này quy định các quy chuẩn bắt buộc để các Agent khi 
 1. **Kiểm tra build Backend**:
    ```bash
    # Trong thư mục /opt/RabbitPOS/backend
-   GOPROXY=off GOSUMDB=off go build -mod=readonly -o /dev/null ./cmd/server ./internal/...
+   GOFLAGS='-mod=readonly' GOPROXY=off GOSUMDB=off go build -o /dev/null ./cmd/server
    ```
 2. **Chạy Unit Test Backend**:
    ```bash
    # Chạy test trong internal/handlers hoặc package cụ thể
-   GOPROXY=off GOSUMDB=off go test -mod=readonly -v ./internal/handlers -run "TestPurchaseUnitConversion_PureMath"
+   GOFLAGS='-mod=readonly' GOPROXY=off GOSUMDB=off go test -v ./internal/handlers -run "TestPurchaseUnitConversion_PureMath"
    ```
 
 ---
@@ -36,7 +36,8 @@ Tài liệu này quy định các quy chuẩn bắt buộc để các Agent khi 
 1. **Kiểm tra Type và Syntax (nhanh nhất, 0 side-effect)**:
    ```bash
    # Trong thư mục /opt/RabbitPOS/frontend
-   npx tsc --noEmit
+   npx --no-install tsc --noEmit
+   # hoặc: ./node_modules/.bin/tsc --noEmit
    ```
 2. **Khi cần build frontend**:
    ```bash

@@ -149,21 +149,20 @@ func InitDB(cfg *config.Config) (*gorm.DB, error) {
 
 // seedUsers manages initial accounts and ensures legacy default accounts are removed.
 func seedUsers(db *gorm.DB, cfg *config.Config) {
-	// Remove legacy default accounts 'admin' and 'staff' if they exist
-	if result := db.Where("username IN ?", []string{"admin", "staff"}).Delete(&models.User{}); result.Error == nil && result.RowsAffected > 0 {
-		log.Printf("[SEED] Removed %d legacy default user account(s) (admin/staff).", result.RowsAffected)
+	// Remove legacy default accounts 'admin', 'staff' and removed account 'DAT' if they exist
+	if result := db.Where("username IN ?", []string{"admin", "staff", "DAT", "dat"}).Delete(&models.User{}); result.Error == nil && result.RowsAffected > 0 {
+		log.Printf("[SEED] Removed %d legacy / deleted user account(s).", result.RowsAffected)
 	}
 
-	// Mandatory cashier accounts: NDN, NHUNG, DAT
+	// Mandatory cashier accounts: NDN, NHUNG
 	// These are seeded with needs_password_setup=true — users MUST change their password on first login.
-	// Temporary password is the username itself (lowercase) — e.g. "ndn", "nhung", "dat"
+	// Temporary password is the username itself (lowercase) — e.g. "ndn", "nhung"
 	mandatoryCashiers := []struct {
 		Username string
 		TempPass string
 	}{
 		{"NDN", "ndn"},
 		{"NHUNG", "nhung"},
-		{"DAT", "dat"},
 	}
 
 	for _, cashier := range mandatoryCashiers {

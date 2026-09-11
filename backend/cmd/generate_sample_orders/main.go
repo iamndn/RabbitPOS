@@ -39,8 +39,8 @@ func main() {
 	sampleData := [][]string{
 		{"ORD-20260821-0001", nowStr1, "completed", "Cà Phê Muối", "Size M", "2", "25000", "Trân Châu Trắng 3Q", "8000", "0", "0", "0", "58000", "Tiền mặt", "NDN", "Ít ngọt ít đá"},
 		{"ORD-20260821-0002", nowStr2, "completed", "Trà Đào Cam Sả", "Size L", "1", "42000", "Thạch Đào Giòn", "8000", "5000", "0", "0", "45000", "Chuyển khoản", "NHUNG", "Khách mang về"},
-		{"ORD-20260821-0003", nowStr3, "completed", "Trà Sữa Oolong Nướng", "Size L", "2", "38000", "Trân Châu Trắng 3Q, Kem Cheese Macchiato", "18000", "10000", "15000", "0", "99000", "Chuyển khoản", "DAT", "Giao qua Grab - Ít đường"},
-		{"ORD-20260821-0003", nowStr3, "completed", "Bánh Croissant Bơ Tỏi", "Mặc định", "1", "28000", "", "0", "0", "0", "0", "99000", "Chuyển khoản", "DAT", "Hâm nóng bánh"},
+		{"ORD-20260821-0003", nowStr3, "completed", "Trà Sữa Oolong Nướng", "Size L", "2", "38000", "Trân Châu Trắng 3Q, Kem Cheese Macchiato", "18000", "10000", "15000", "0", "99000", "Chuyển khoản", "NHUNG", "Giao qua Grab - Ít đường"},
+		{"ORD-20260821-0003", nowStr3, "completed", "Bánh Croissant Bơ Tỏi", "Mặc định", "1", "28000", "", "0", "0", "0", "0", "99000", "Chuyển khoản", "NHUNG", "Hâm nóng bánh"},
 		{"ORD-20260821-0004", nowStr4, "completed", "Sinh Tố Bơ Sáp", "Size L", "1", "48000", "", "0", "0", "0", "0", "48000", "Tiền mặt", "NDN", "Không đường chua ngọt"},
 	}
 

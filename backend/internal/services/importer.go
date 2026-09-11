@@ -181,7 +181,7 @@ func (s *ImporterService) GenerateExcelTemplate() ([]byte, error) {
 	sampleTransactions := [][]interface{}{
 		{nowStr, "Thu", "Nạp tiền đầu ca", 500000, "Tiền mặt", "NDN", "Tiền thối két đầu ngày"},
 		{nowStr, "Chi", "Mua nguyên vật liệu", 250000, "Tiền mặt", "NHUNG", "Mua hoa quả tươi chợ sớm"},
-		{nowStr, "Chi", "Tiền đá viên", 40000, "Tiền mặt", "DAT", "2 bao đá bi"},
+		{nowStr, "Chi", "Tiền đá viên", 40000, "Tiền mặt", "NDN", "2 bao đá bi"},
 	}
 	for rowIdx, row := range sampleTransactions {
 		for colIdx, val := range row {

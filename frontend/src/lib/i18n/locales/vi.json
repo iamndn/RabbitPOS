@@ -420,10 +420,14 @@
     "no_summary_data": "Chưa có dữ liệu đối soát số dư trong tháng được chọn."
   },
   "dashboard": {
-    "title": "Báo cáo Doanh thu",
+    "title": "Báo cáo Kinh doanh",
     "subtitle": "Báo cáo chuyên sâu doanh thu, phân tích lãi lỗ (P&L), giá vốn COGS và xếp hạng menu của Thỏ Juice & Coffee.",
+    "tab_overview": "Tổng quan",
     "tab_revenue": "Doanh thu",
     "tab_profit": "Lợi nhuận",
+    "kpi_total_items_sold": "Số cốc bán ra",
+    "kpi_items_sold_desc": "Tổng số lượng ly/cốc/món nước đã phục vụ thành công trong kỳ.",
+    "items_sold_unit": "cốc",
     "period_today": "Hôm nay",
     "period_yesterday": "Hôm qua",
     "period_week": "Tuần này",

@@ -34,7 +34,6 @@ interface EmailReportModalProps {
 const DEFAULT_RECIPIENTS = [
   'nhanhdn.jfw@gmail.com',
   'candynhung754@gmail.com',
-  '150498tranquangdat@gmail.com',
 ];
 
 export default function EmailReportModal({

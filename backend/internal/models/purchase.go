@@ -111,8 +111,9 @@ type CreateOrUpdateIngredientRequest struct {
 	BaseUnit            string   `json:"base_unit"`
 	LossRate            float64  `json:"loss_rate"`
 	YieldRate           float64  `json:"yield_rate"`
-	LatestPurchasePrice *float64 `json:"latest_purchase_price"`
-	DefaultPurchaseUnit string   `json:"default_purchase_unit"`
+	LatestPurchasePrice  *float64 `json:"latest_purchase_price"`
+	AveragePurchasePrice *float64 `json:"average_purchase_price"`
+	DefaultPurchaseUnit  string   `json:"default_purchase_unit"`
 	DefaultPackQty      float64  `json:"default_pack_qty"`
 	DefaultPackUnit     string   `json:"default_pack_unit"`
 	DefaultCapacityQty  float64  `json:"default_capacity_qty"`

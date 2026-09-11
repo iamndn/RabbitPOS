@@ -13,12 +13,15 @@ type RevenueSummary struct {
 	NetRevenue              float64 `json:"net_revenue"`
 	CompletedOrderCount     int64   `json:"completed_order_count"`
 	DiscountedOrderCount    int64   `json:"discounted_order_count"`
+	TotalItemsSold          int64   `json:"total_items_sold"`
 	AverageOrderValue       float64 `json:"average_order_value"`
 	PrevNetRevenue          float64 `json:"prev_net_revenue"`
 	PrevCompletedOrderCount int64   `json:"prev_completed_order_count"`
+	PrevTotalItemsSold      int64   `json:"prev_total_items_sold"`
 	PrevAverageOrderValue   float64 `json:"prev_average_order_value"`
 	RevenueDeltaPct         float64 `json:"revenue_delta_pct"`
 	OrdersDeltaPct          float64 `json:"orders_delta_pct"`
+	ItemsDeltaPct           float64 `json:"items_delta_pct"`
 	AOVDeltaPct             float64 `json:"aov_delta_pct"`
 }
 
@@ -28,6 +31,7 @@ type RevenueTimelinePoint struct {
 	GrossSales  float64 `json:"gross_sales"`
 	Discounts   float64 `json:"discounts"`
 	OrdersCount int64   `json:"orders_count"`
+	ItemsCount  int64   `json:"items_count"`
 }
 
 type PaymentMethodBreakdown struct {

@@ -72,25 +72,25 @@ function orderApiToReceiptData(order: OrderApi, products: Product[], funds: Fund
       if (it.selected_toppings && typeof it.selected_toppings === 'string') {
         selectedToppings = JSON.parse(it.selected_toppings);
       }
-    } catch {}
+    } catch { }
 
     const variant: ProductVariant = it.variant
       ? {
-          id: it.variant.id,
-          product_id: it.variant.product_id,
-          variant_name: it.variant.variant_name,
-          retail_price: it.variant.retail_price,
-          cogs_price: it.variant.cogs_price ?? 0,
-          sku: it.variant.sku || '',
-        }
+        id: it.variant.id,
+        product_id: it.variant.product_id,
+        variant_name: it.variant.variant_name,
+        retail_price: it.variant.retail_price,
+        cogs_price: it.variant.cogs_price ?? 0,
+        sku: it.variant.sku || '',
+      }
       : {
-          id: it.product_variant_id,
-          product_id: 0,
-          variant_name: 'Tiêu chuẩn',
-          retail_price: it.unit_price,
-          cogs_price: 0,
-          sku: '',
-        };
+        id: it.product_variant_id,
+        product_id: 0,
+        variant_name: 'Tiêu chuẩn',
+        retail_price: it.unit_price,
+        cogs_price: 0,
+        sku: '',
+      };
 
     const product: Product = {
       id: it.variant?.product_id || 0,
@@ -305,7 +305,7 @@ export default function TransactionsPage() {
           if (parsed.orderStatusFilter !== undefined) setOrderStatusFilter(parsed.orderStatusFilter);
           if (parsed.selectedFundId !== undefined) setSelectedFundId(parsed.selectedFundId);
         }
-      } catch {}
+      } catch { }
       setIsFilterInitialized(true);
     }
   }, []);
@@ -352,7 +352,7 @@ export default function TransactionsPage() {
             orderStatusFilter,
           })
         );
-      } catch {}
+      } catch { }
     }
   }, [isFilterInitialized, selectedFundId, selectedType, selectedCategory, period, customFrom, customTo, orderStatusFilter]);
 
@@ -1109,14 +1109,13 @@ export default function TransactionsPage() {
             <button
               type="button"
               onClick={() => handleTabChange('ledger')}
-              className={`flex-1 min-w-[130px] py-2 px-3 text-xs sm:text-sm font-bold rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
-                activeTab === 'ledger'
+              className={`flex-1 min-w-[130px] py-2 px-3 text-xs sm:text-sm font-bold rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${activeTab === 'ledger'
                   ? 'bg-white text-emerald-900 shadow-sm font-extrabold'
                   : 'text-slate-600 hover:text-slate-900'
-              }`}
+                }`}
             >
               <TrendingUp className="w-4 h-4 text-indigo-600 shrink-0" />
-              <span>{t('tx.tab_ledger') || '💸 Sổ thu chi'}</span>
+              <span>{t('tx.tab_ledger') || '💸 Sổ thu/chi'}</span>
               <span className="bg-slate-100 text-slate-600 text-[10px] sm:text-xs px-1.5 py-0.2 rounded-full font-bold">
                 {safeTransactions.length}
               </span>
@@ -1126,11 +1125,10 @@ export default function TransactionsPage() {
             <button
               type="button"
               onClick={() => handleTabChange('orders')}
-              className={`flex-1 min-w-[130px] py-2 px-3 text-xs sm:text-sm font-bold rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
-                activeTab === 'orders'
+              className={`flex-1 min-w-[130px] py-2 px-3 text-xs sm:text-sm font-bold rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${activeTab === 'orders'
                   ? 'bg-white text-amber-900 shadow-sm font-extrabold'
                   : 'text-slate-600 hover:text-slate-900'
-              }`}
+                }`}
             >
               <Receipt className="w-4 h-4 text-amber-600 shrink-0" />
               <span>{t('tx.tab_orders') || '🧾 Lịch sử đơn hàng'}</span>
@@ -1143,11 +1141,10 @@ export default function TransactionsPage() {
             <button
               type="button"
               onClick={() => handleTabChange('funds')}
-              className={`flex-1 min-w-[130px] py-2 px-3 text-xs sm:text-sm font-bold rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
-                activeTab === 'funds'
+              className={`flex-1 min-w-[130px] py-2 px-3 text-xs sm:text-sm font-bold rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${activeTab === 'funds'
                   ? 'bg-white text-emerald-900 shadow-sm font-extrabold'
                   : 'text-slate-600 hover:text-slate-900'
-              }`}
+                }`}
             >
               <Wallet className="w-4 h-4 text-emerald-600 shrink-0" />
               <span>{t('tx.tab_funds') || '💳 Quản lý quỹ'}</span>
@@ -1230,11 +1227,10 @@ export default function TransactionsPage() {
                         key={fi.id}
                         type="button"
                         onClick={() => setSelectedFundId(isSelected ? null : fi.id)}
-                        className={`px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition cursor-pointer shadow-2xs active:scale-95 ${
-                          isSelected
+                        className={`px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition cursor-pointer shadow-2xs active:scale-95 ${isSelected
                             ? 'bg-emerald-700 text-white shadow-xs ring-2 ring-emerald-500/30'
                             : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200'
-                        }`}
+                          }`}
                         title={`Bấm để ${isSelected ? 'bỏ lọc' : 'lọc riêng'} quỹ ${fi.name}`}
                       >
                         <span className={isSelected ? 'text-emerald-100' : 'text-slate-500 font-semibold'}>{fi.name}:</span>
@@ -1387,11 +1383,10 @@ export default function TransactionsPage() {
               <button
                 type="button"
                 onClick={() => setIsLedgerFilterModalOpen(true)}
-                className={`px-3.5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer shadow-2xs ${
-                  selectedFundId !== null || selectedType !== 'all' || selectedCategory !== 'all'
+                className={`px-3.5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer shadow-2xs ${selectedFundId !== null || selectedType !== 'all' || selectedCategory !== 'all'
                     ? 'bg-emerald-800 text-white shadow-sm ring-2 ring-emerald-600/30 font-extrabold'
                     : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
-                }`}
+                  }`}
               >
                 <Filter className="w-4 h-4" />
                 <span>Bộ lọc</span>
@@ -1480,16 +1475,14 @@ export default function TransactionsPage() {
                         <button
                           type="button"
                           onClick={() => setSelectedFundId(null)}
-                          className={`px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs ${
-                            selectedFundId === null
+                          className={`px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs ${selectedFundId === null
                               ? 'bg-indigo-700 text-white shadow-sm font-black ring-2 ring-indigo-500/30'
                               : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
-                          }`}
+                            }`}
                         >
                           <span>Tất cả nguồn tiền</span>
-                          <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                            selectedFundId === null ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600'
-                          }`}>
+                          <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${selectedFundId === null ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600'
+                            }`}>
                             {safeTransactions.length}
                           </span>
                         </button>
@@ -1501,17 +1494,15 @@ export default function TransactionsPage() {
                               key={f.id}
                               type="button"
                               onClick={() => setSelectedFundId(isSelected ? null : f.id)}
-                              className={`px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs ${
-                                isSelected
+                              className={`px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs ${isSelected
                                   ? 'bg-indigo-700 text-white shadow-sm font-black ring-2 ring-indigo-500/30'
                                   : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
-                              }`}
+                                }`}
                             >
                               <Wallet className="w-3.5 h-3.5 text-indigo-500" />
                               <span>{f.name}</span>
-                              <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                                isSelected ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600'
-                              }`}>
+                              <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${isSelected ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600'
+                                }`}>
                                 {count}
                               </span>
                             </button>
@@ -1532,11 +1523,10 @@ export default function TransactionsPage() {
                         <button
                           type="button"
                           onClick={() => setSelectedType('all')}
-                          className={`px-3.5 py-2 rounded-xl font-bold transition whitespace-nowrap cursor-pointer shadow-2xs ${
-                            selectedType === 'all'
+                          className={`px-3.5 py-2 rounded-xl font-bold transition whitespace-nowrap cursor-pointer shadow-2xs ${selectedType === 'all'
                               ? 'bg-white text-slate-900 border-2 border-slate-800 shadow-xs'
                               : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
-                          }`}
+                            }`}
                         >
                           <span>{t('tx.filter_all_types') || 'Tất cả loại'}</span>
                           <span className="ml-1 text-[10px] opacity-75">({safeTransactions.length})</span>
@@ -1544,11 +1534,10 @@ export default function TransactionsPage() {
                         <button
                           type="button"
                           onClick={() => setSelectedType('inflow')}
-                          className={`px-3.5 py-2 rounded-xl font-bold transition whitespace-nowrap cursor-pointer flex items-center gap-1 shadow-2xs ${
-                            selectedType === 'inflow'
+                          className={`px-3.5 py-2 rounded-xl font-bold transition whitespace-nowrap cursor-pointer flex items-center gap-1 shadow-2xs ${selectedType === 'inflow'
                               ? 'bg-emerald-600 text-white shadow-xs'
                               : 'bg-white text-emerald-700 hover:bg-emerald-50 border border-emerald-200'
-                          }`}
+                            }`}
                         >
                           <span className="w-2 h-2 rounded-full bg-emerald-400" />
                           <span>{t('tx.type_inflow') || 'Khoản thu (+)'}</span>
@@ -1557,11 +1546,10 @@ export default function TransactionsPage() {
                         <button
                           type="button"
                           onClick={() => setSelectedType('outflow')}
-                          className={`px-3.5 py-2 rounded-xl font-bold transition whitespace-nowrap cursor-pointer flex items-center gap-1 shadow-2xs ${
-                            selectedType === 'outflow'
+                          className={`px-3.5 py-2 rounded-xl font-bold transition whitespace-nowrap cursor-pointer flex items-center gap-1 shadow-2xs ${selectedType === 'outflow'
                               ? 'bg-rose-600 text-white shadow-xs'
                               : 'bg-white text-rose-700 hover:bg-rose-50 border border-rose-200'
-                          }`}
+                            }`}
                         >
                           <span className="w-2 h-2 rounded-full bg-rose-400" />
                           <span>{t('tx.type_outflow') || 'Khoản chi (-)'}</span>
@@ -1582,17 +1570,15 @@ export default function TransactionsPage() {
                         <button
                           type="button"
                           onClick={() => setSelectedCategory('all')}
-                          className={`px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs ${
-                            selectedCategory === 'all'
+                          className={`px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs ${selectedCategory === 'all'
                               ? 'bg-slate-900 text-white font-extrabold shadow-sm ring-1 ring-slate-700'
                               : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
-                          }`}
+                            }`}
                         >
                           <span>{t('tx.filter_all_categories') || 'Tất cả danh mục'}</span>
                           <span
-                            className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                              selectedCategory === 'all' ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-600'
-                            }`}
+                            className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${selectedCategory === 'all' ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-600'
+                              }`}
                           >
                             {safeTransactions.filter((tx) => selectedType === 'all' || tx.transaction_type === selectedType).length}
                           </span>
@@ -1600,11 +1586,11 @@ export default function TransactionsPage() {
                         {(txCategories.length > 0
                           ? txCategories
                           : [
-                              { id: 1, name: t('tx.cat_sale') || 'Doanh thu bán hàng', code: 'sale', type: 'inflow' as const },
-                              { id: 2, name: t('tx.cat_ingredient') || 'Mua nguyên liệu', code: 'ingredient_purchase', type: 'outflow' as const },
-                              { id: 3, name: t('tx.cat_utility') || 'Chi phí vận hành', code: 'utility_bill', type: 'outflow' as const },
-                              { id: 4, name: t('tx.cat_reconciliation') || 'Chênh lệch đối soát', code: 'reconciliation_variance', type: 'both' as const },
-                            ]
+                            { id: 1, name: t('tx.cat_sale') || 'Doanh thu bán hàng', code: 'sale', type: 'inflow' as const },
+                            { id: 2, name: t('tx.cat_ingredient') || 'Mua nguyên liệu', code: 'ingredient_purchase', type: 'outflow' as const },
+                            { id: 3, name: t('tx.cat_utility') || 'Chi phí vận hành', code: 'utility_bill', type: 'outflow' as const },
+                            { id: 4, name: t('tx.cat_reconciliation') || 'Chênh lệch đối soát', code: 'reconciliation_variance', type: 'both' as const },
+                          ]
                         )
                           .filter((c) => selectedType === 'all' || c.type === selectedType || c.type === 'both')
                           .map((cat) => {
@@ -1620,22 +1606,19 @@ export default function TransactionsPage() {
                                 key={cat.id}
                                 type="button"
                                 onClick={() => setSelectedCategory(isSelected ? 'all' : catCode)}
-                                className={`px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs ${
-                                  isSelected
+                                className={`px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs ${isSelected
                                     ? 'bg-slate-900 text-white font-extrabold shadow-sm ring-1 ring-slate-700'
                                     : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
-                                }`}
+                                  }`}
                               >
                                 <span
-                                  className={`w-1.5 h-1.5 rounded-full ${
-                                    cat.type === 'inflow' ? 'bg-emerald-500' : cat.type === 'outflow' ? 'bg-rose-500' : 'bg-indigo-500'
-                                  }`}
+                                  className={`w-1.5 h-1.5 rounded-full ${cat.type === 'inflow' ? 'bg-emerald-500' : cat.type === 'outflow' ? 'bg-rose-500' : 'bg-indigo-500'
+                                    }`}
                                 />
                                 <span>{cat.name}</span>
                                 <span
-                                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                                    isSelected ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-600'
-                                  }`}
+                                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${isSelected ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-600'
+                                    }`}
                                 >
                                   {count}
                                 </span>
@@ -1814,11 +1797,10 @@ export default function TransactionsPage() {
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex items-center gap-2 flex-wrap">
                             <span
-                              className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold flex items-center gap-1 ${
-                                isInflow
+                              className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold flex items-center gap-1 ${isInflow
                                   ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                                   : 'bg-rose-50 text-rose-700 border border-rose-200'
-                              }`}
+                                }`}
                             >
                               {isInflow ? <ArrowDownLeft className="w-3.5 h-3.5" /> : <ArrowUpRight className="w-3.5 h-3.5" />}
                               {isInflow ? t('tx.type_inflow') : t('tx.type_outflow')}
@@ -1973,11 +1955,10 @@ export default function TransactionsPage() {
               <button
                 type="button"
                 onClick={() => setIsOrderFilterModalOpen(true)}
-                className={`px-3.5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer shadow-2xs ${
-                  orderStatusFilter !== 'all'
+                className={`px-3.5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer shadow-2xs ${orderStatusFilter !== 'all'
                     ? 'bg-amber-700 text-white shadow-sm ring-2 ring-amber-500/30 font-extrabold'
                     : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
-                }`}
+                  }`}
               >
                 <Filter className="w-4 h-4" />
                 <span>Bộ lọc</span>
@@ -2041,11 +2022,10 @@ export default function TransactionsPage() {
                         <button
                           type="button"
                           onClick={() => setOrderStatusFilter('all')}
-                          className={`px-3.5 py-2 rounded-xl font-bold transition whitespace-nowrap cursor-pointer shadow-2xs ${
-                            orderStatusFilter === 'all'
+                          className={`px-3.5 py-2 rounded-xl font-bold transition whitespace-nowrap cursor-pointer shadow-2xs ${orderStatusFilter === 'all'
                               ? 'bg-white text-slate-900 border-2 border-slate-800 shadow-xs'
                               : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
-                          }`}
+                            }`}
                         >
                           <span>{t('tx.filter_all_order_status') || 'Tất cả trạng thái'}</span>
                           <span className="ml-1 text-[10px] opacity-75">({safeOrders.length})</span>
@@ -2053,11 +2033,10 @@ export default function TransactionsPage() {
                         <button
                           type="button"
                           onClick={() => setOrderStatusFilter('completed')}
-                          className={`px-3.5 py-2 rounded-xl font-bold transition whitespace-nowrap cursor-pointer flex items-center gap-1 shadow-2xs ${
-                            orderStatusFilter === 'completed'
+                          className={`px-3.5 py-2 rounded-xl font-bold transition whitespace-nowrap cursor-pointer flex items-center gap-1 shadow-2xs ${orderStatusFilter === 'completed'
                               ? 'bg-emerald-600 text-white shadow-xs'
                               : 'bg-white text-emerald-700 hover:bg-emerald-50 border border-emerald-200'
-                          }`}
+                            }`}
                         >
                           <span className="w-2 h-2 rounded-full bg-emerald-400" />
                           <span>{t('tx.order_status_completed') || 'Hoàn thành'}</span>
@@ -2066,11 +2045,10 @@ export default function TransactionsPage() {
                         <button
                           type="button"
                           onClick={() => setOrderStatusFilter('cancelled')}
-                          className={`px-3.5 py-2 rounded-xl font-bold transition whitespace-nowrap cursor-pointer flex items-center gap-1 shadow-2xs ${
-                            orderStatusFilter === 'cancelled'
+                          className={`px-3.5 py-2 rounded-xl font-bold transition whitespace-nowrap cursor-pointer flex items-center gap-1 shadow-2xs ${orderStatusFilter === 'cancelled'
                               ? 'bg-rose-600 text-white shadow-xs'
                               : 'bg-white text-rose-700 hover:bg-rose-50 border border-rose-200'
-                          }`}
+                            }`}
                         >
                           <span className="w-2 h-2 rounded-full bg-rose-400" />
                           <span>{t('tx.order_status_cancelled') || 'Đã hủy'}</span>
@@ -2135,9 +2113,8 @@ export default function TransactionsPage() {
                         return (
                           <React.Fragment key={order.id}>
                             <tr
-                              className={`hover:bg-slate-50 transition cursor-pointer ${
-                                isCancelled ? 'opacity-60 bg-rose-50/20' : ''
-                              } ${isExpanded ? 'bg-indigo-50/20' : ''}`}
+                              className={`hover:bg-slate-50 transition cursor-pointer ${isCancelled ? 'opacity-60 bg-rose-50/20' : ''
+                                } ${isExpanded ? 'bg-indigo-50/20' : ''}`}
                               onClick={() => setExpandedOrderId(isExpanded ? null : order.id)}
                             >
                               <td className="py-3 px-4 font-mono font-bold text-indigo-600">
@@ -2213,7 +2190,7 @@ export default function TransactionsPage() {
                                 </div>
                               </td>
                             </tr>
-                              {/* Expanded Order Items Row */}
+                            {/* Expanded Order Items Row */}
                             {isExpanded && (
                               <tr className="bg-slate-50/70">
                                 <td colSpan={8} className="p-4 border-t border-slate-100 space-y-3">
@@ -2334,9 +2311,8 @@ export default function TransactionsPage() {
                     return (
                       <div
                         key={order.id}
-                        className={`p-3.5 space-y-2.5 transition ${
-                          isCancelled ? 'bg-rose-50/20' : 'bg-white'
-                        }`}
+                        className={`p-3.5 space-y-2.5 transition ${isCancelled ? 'bg-rose-50/20' : 'bg-white'
+                          }`}
                       >
                         <div
                           className="flex items-center justify-between cursor-pointer"
@@ -2782,15 +2758,15 @@ export default function TransactionsPage() {
         initialData={
           editingTransaction
             ? {
-                id: editingTransaction.id,
-                fund_id: editingTransaction.fund_id,
-                transaction_type: editingTransaction.transaction_type,
-                category: editingTransaction.category,
-                amount: editingTransaction.amount,
-                description: editingTransaction.description,
-                created_at: editingTransaction.created_at,
-                purchase_items: editingTransaction.purchase_items,
-              }
+              id: editingTransaction.id,
+              fund_id: editingTransaction.fund_id,
+              transaction_type: editingTransaction.transaction_type,
+              category: editingTransaction.category,
+              amount: editingTransaction.amount,
+              description: editingTransaction.description,
+              created_at: editingTransaction.created_at,
+              purchase_items: editingTransaction.purchase_items,
+            }
             : null
         }
       />

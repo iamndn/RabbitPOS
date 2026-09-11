@@ -130,3 +130,20 @@ export interface IngredientHistoryRecord {
   cashier_name?: string;
   description?: string;
 }
+
+export interface CreateOrUpdateIngredientRequest {
+  name: string;
+  category: string;
+  unit: string;
+  base_unit: string;
+  loss_rate: number;
+  yield_rate?: number;
+  latest_purchase_price: number;
+  average_purchase_price?: number;
+  default_purchase_unit?: string;
+  default_pack_qty?: number;
+  default_pack_unit?: string;
+  default_capacity_qty?: number;
+  default_capacity_unit?: string;
+  saved_conversions?: string;
+}

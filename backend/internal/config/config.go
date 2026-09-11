@@ -117,7 +117,7 @@ func LoadConfig() (*Config, error) {
 	smtpPassword := getEnv("SMTP_PASSWORD", "")
 	smtpFromEmail := getEnv("SMTP_FROM_EMAIL", "")
 	smtpFromName := getEnv("SMTP_FROM_NAME", "Thỏ Juice & Coffee - RabbitPOS")
-	reportRecipients := getEnv("REPORT_RECIPIENT_EMAILS", "nhanhdn.jfw@gmail.com,candynhung754@gmail.com,150498tranquangdat@gmail.com")
+	reportRecipients := getEnv("REPORT_RECIPIENT_EMAILS", "nhanhdn.jfw@gmail.com,candynhung754@gmail.com")
 	enableDailyReport, _ := strconv.ParseBool(getEnv("ENABLE_DAILY_EMAIL_REPORT", "true"))
 	dailyReportTime := getEnv("DAILY_REPORT_TIME", "22:30")
 

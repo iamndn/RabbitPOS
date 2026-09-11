@@ -9,12 +9,15 @@ export interface RevenueSummary {
   net_revenue: number;
   completed_order_count: number;
   discounted_order_count: number;
+  total_items_sold?: number;
   average_order_value: number;
   prev_net_revenue: number;
   prev_completed_order_count: number;
+  prev_total_items_sold?: number;
   prev_average_order_value: number;
   revenue_delta_pct: number;
   orders_delta_pct: number;
+  items_delta_pct?: number;
   aov_delta_pct: number;
 }
 
@@ -24,6 +27,7 @@ export interface RevenueTimelinePoint {
   gross_sales: number;
   discounts: number;
   orders_count: number;
+  items_count?: number;
 }
 
 export interface PaymentMethodBreakdown {

@@ -422,8 +422,12 @@
   "dashboard": {
     "title": "Business & BI Executive Analytics",
     "subtitle": "Comprehensive sales revenue, profit and loss breakdown (P&L), COGS, and menu rankings for Thỏ Juice & Coffee.",
+    "tab_overview": "Overview",
     "tab_revenue": "Sales Revenue",
     "tab_profit": "Profit & Loss (P&L)",
+    "kpi_total_items_sold": "Total Cups / Items Sold",
+    "kpi_items_sold_desc": "Total cups/drinks successfully served during this period.",
+    "items_sold_unit": "cups",
     "period_today": "Today",
     "period_yesterday": "Yesterday",
     "period_week": "This Week",

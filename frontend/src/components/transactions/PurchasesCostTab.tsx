@@ -18,8 +18,12 @@ import {
   PlusCircle,
   Package,
   Sparkles,
+  Check,
+  Settings2,
   Sliders,
   Calculator,
+  Filter,
+  RotateCcw,
 } from 'lucide-react';
 import ModernSelect, { ModernSelectOption } from '@/components/common/ModernSelect';
 import HorizontalScroller from '@/components/common/HorizontalScroller';
@@ -90,9 +94,13 @@ export default function PurchasesCostTab({
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'needs_update' | 'low_margin' | 'high_margin' | 'no_recipe'>('all');
+  const [isCostFilterModalOpen, setIsCostFilterModalOpen] = useState<boolean>(false);
   const [historySearch, setHistorySearch] = useState<string>('');
+  const [historyFundFilter, setHistoryFundFilter] = useState<string>('all');
+  const [isHistoryFilterModalOpen, setIsHistoryFilterModalOpen] = useState<boolean>(false);
   const [ingSearchQuery, setIngSearchQuery] = useState<string>('');
   const [ingCategoryFilter, setIngCategoryFilter] = useState<string>('all');
+  const [isIngFilterModalOpen, setIsIngFilterModalOpen] = useState<boolean>(false);
 
   // Expanded Recipe Details Card/Row
   const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
@@ -106,11 +114,13 @@ export default function PurchasesCostTab({
   // Ingredient Create / Edit Modal State
   const [isIngredientModalOpen, setIsIngredientModalOpen] = useState<boolean>(false);
   const [editingIngredient, setEditingIngredient] = useState<Ingredient | null>(null);
+  const [ingFormMode, setIngFormMode] = useState<'basic' | 'advanced'>('basic');
   const [ingFormName, setIngFormName] = useState<string>('');
   const [ingFormCategory, setIngFormCategory] = useState<string>('fruit');
   const [ingFormBaseUnit, setIngFormBaseUnit] = useState<string>('ml');
   const [ingFormLossRate, setIngFormLossRate] = useState<number>(0.0);
   const [ingFormPrice, setIngFormPrice] = useState<number>(0);
+  const [ingFormAvgPrice, setIngFormAvgPrice] = useState<number>(0);
   const [ingFormDefaultPurchaseUnit, setIngFormDefaultPurchaseUnit] = useState<string>('Chai');
   const [ingFormDefaultPackQty, setIngFormDefaultPackQty] = useState<number>(1);
   const [ingFormDefaultPackUnit, setIngFormDefaultPackUnit] = useState<string>('');
@@ -118,6 +128,20 @@ export default function PurchasesCostTab({
   const [ingFormDefaultCapacityUnit, setIngFormDefaultCapacityUnit] = useState<string>('ml');
   const [ingFormPresets, setIngFormPresets] = useState<IngredientConversionPreset[]>([]);
   const [savingIngredient, setSavingIngredient] = useState<boolean>(false);
+
+  // Inline Quick-Edit State for Ingredient Table & Cards
+  const [inlineEditId, setInlineEditId] = useState<number | null>(null);
+  const [inlineForm, setInlineForm] = useState<{
+    id: number;
+    name: string;
+    category: string;
+    base_unit: string;
+    default_spec_str: string;
+    loss_rate_pct: number;
+    latest_price: number;
+    avg_price: number;
+  } | null>(null);
+  const [savingInlineId, setSavingInlineId] = useState<number | null>(null);
 
   // Single Ingredient History Modal State
   const [viewingHistoryIng, setViewingHistoryIng] = useState<Ingredient | null>(null);
@@ -251,8 +275,21 @@ export default function PurchasesCostTab({
     });
   }, [costItems, searchQuery, selectedCategory, statusFilter, pricingBasis]);
 
+  const historyFundsList = useMemo(() => {
+    const set = new Set<string>();
+    allHistory.forEach((h) => {
+      if (h.fund_name) set.add(h.fund_name);
+    });
+    return Array.from(set);
+  }, [allHistory]);
+
   const filteredHistory = useMemo(() => {
     return allHistory.filter((item) => {
+      if (historyFundFilter !== 'all') {
+        const matchesFund =
+          (item.fund_name || '').toLowerCase() === historyFundFilter.toLowerCase();
+        if (!matchesFund) return false;
+      }
       const q = historySearch.toLowerCase().trim();
       if (!q) return true;
       return (
@@ -262,7 +299,7 @@ export default function PurchasesCostTab({
         (item.fund_name || '').toLowerCase().includes(q)
       );
     });
-  }, [allHistory, historySearch]);
+  }, [allHistory, historySearch, historyFundFilter]);
 
   const filteredIngredients = useMemo(() => {
     return ingredients.filter((ing) => {
@@ -463,11 +500,13 @@ export default function PurchasesCostTab({
 
   const handleOpenAddIngredient = () => {
     setEditingIngredient(null);
+    setIngFormMode('basic');
     setIngFormName('');
     setIngFormCategory('fruit');
     setIngFormBaseUnit('ml');
     setIngFormLossRate(0.0);
     setIngFormPrice(0);
+    setIngFormAvgPrice(0);
     setIngFormDefaultPurchaseUnit('Chai');
     setIngFormDefaultPackQty(1);
     setIngFormDefaultPackUnit('');
@@ -485,6 +524,7 @@ export default function PurchasesCostTab({
     setIngFormBaseUnit(baseUnit);
     setIngFormLossRate(ing.loss_rate || 0.0);
     setIngFormPrice(ing.latest_purchase_price || 0);
+    setIngFormAvgPrice(ing.average_purchase_price || 0);
     setIngFormDefaultPurchaseUnit(ing.default_purchase_unit || (baseUnit === 'ml' ? 'Chai' : baseUnit === 'g' ? 'Túi' : 'Cái'));
     setIngFormDefaultPackQty(ing.default_pack_qty || 1);
     setIngFormDefaultPackUnit(ing.default_pack_unit || '');
@@ -500,6 +540,13 @@ export default function PurchasesCostTab({
       } catch { }
     }
     setIngFormPresets(parsedPresets);
+
+    const isAdvanced = !!(
+      (ing.default_purchase_unit && ing.default_purchase_unit.toLowerCase() !== baseUnit.toLowerCase()) ||
+      (ing.default_capacity_qty && ing.default_capacity_qty > 1 && ing.default_capacity_unit !== baseUnit) ||
+      (parsedPresets && parsedPresets.length > 0)
+    );
+    setIngFormMode(isAdvanced ? 'advanced' : 'basic');
     setIsIngredientModalOpen(true);
   };
 
@@ -509,19 +556,22 @@ export default function PurchasesCostTab({
 
     setSavingIngredient(true);
     try {
-      const payload = {
+      const isBasic = ingFormMode === 'basic';
+      const baseUnit = ingFormBaseUnit.trim();
+      const payload: any = {
         name: ingFormName.trim(),
         category: ingFormCategory,
-        base_unit: ingFormBaseUnit.trim(),
-        unit: ingFormBaseUnit.trim(),
+        base_unit: baseUnit,
+        unit: baseUnit,
         loss_rate: Number(ingFormLossRate) || 0,
         latest_purchase_price: Number(ingFormPrice) || 0,
-        default_purchase_unit: ingFormDefaultPurchaseUnit.trim(),
-        default_pack_qty: Number(ingFormDefaultPackQty) || 1,
-        default_pack_unit: ingFormDefaultPackUnit.trim(),
-        default_capacity_qty: Number(ingFormDefaultCapacityQty) || 1,
-        default_capacity_unit: ingFormDefaultCapacityUnit.trim(),
-        saved_conversions: JSON.stringify(ingFormPresets),
+        average_purchase_price: Number(ingFormAvgPrice) || 0,
+        default_purchase_unit: isBasic ? baseUnit : ingFormDefaultPurchaseUnit.trim(),
+        default_pack_qty: isBasic ? 1 : Number(ingFormDefaultPackQty) || 1,
+        default_pack_unit: isBasic ? '' : ingFormDefaultPackUnit.trim(),
+        default_capacity_qty: isBasic ? 1 : Number(ingFormDefaultCapacityQty) || 1,
+        default_capacity_unit: isBasic ? baseUnit : ingFormDefaultCapacityUnit.trim(),
+        saved_conversions: isBasic ? '[]' : JSON.stringify(ingFormPresets),
       };
 
       if (editingIngredient) {
@@ -555,6 +605,70 @@ export default function PurchasesCostTab({
       showToast('error', 'Không thể kết nối máy chủ');
     } finally {
       setSavingIngredient(false);
+    }
+  };
+
+  const handleStartInlineEdit = (ing: Ingredient) => {
+    const baseUnit = ing.base_unit || ing.unit || 'ml';
+    setInlineEditId(ing.id);
+    setInlineForm({
+      id: ing.id,
+      name: ing.name,
+      category: ing.category || 'fruit',
+      base_unit: baseUnit,
+      default_spec_str: ing.default_purchase_unit || baseUnit,
+      loss_rate_pct: Math.round((ing.loss_rate || 0) * 100),
+      latest_price: ing.latest_purchase_price || 0,
+      avg_price: ing.average_purchase_price || 0,
+    });
+  };
+
+  const handleCancelInlineEdit = () => {
+    setInlineEditId(null);
+    setInlineForm(null);
+  };
+
+  const handleSaveInlineEdit = async () => {
+    if (!inlineForm || !inlineForm.name.trim()) return;
+    setSavingInlineId(inlineForm.id);
+    try {
+      const orig = ingredients.find((i) => i.id === inlineForm.id);
+      const payload: any = {
+        name: inlineForm.name.trim(),
+        category: inlineForm.category,
+        base_unit: inlineForm.base_unit.trim(),
+        unit: inlineForm.base_unit.trim(),
+        loss_rate: (Number(inlineForm.loss_rate_pct) || 0) / 100,
+        latest_purchase_price: Number(inlineForm.latest_price) || 0,
+        average_purchase_price: Number(inlineForm.avg_price) || 0,
+        default_purchase_unit: inlineForm.default_spec_str.trim() || inlineForm.base_unit.trim(),
+      };
+      if (orig) {
+        payload.default_pack_qty = orig.default_pack_qty || 1;
+        payload.default_pack_unit = orig.default_pack_unit || '';
+        payload.default_capacity_qty = orig.default_capacity_qty || 1;
+        payload.default_capacity_unit = orig.default_capacity_unit || inlineForm.base_unit.trim();
+        payload.saved_conversions = typeof orig.saved_conversions === 'string'
+          ? orig.saved_conversions
+          : JSON.stringify(orig.saved_conversions || []);
+      }
+      const res = await fetchApi(`/purchases/ingredients/${inlineForm.id}`, {
+        method: 'PUT',
+        body: JSON.stringify(payload),
+      });
+      if (res.status === 'success') {
+        showToast('success', `Đã lưu "${inlineForm.name}" thành công`);
+        setInlineEditId(null);
+        setInlineForm(null);
+        loadData();
+        if (onDataChanged) onDataChanged();
+      } else {
+        showToast('error', res.message || 'Lỗi khi cập nhật nguyên liệu');
+      }
+    } catch {
+      showToast('error', 'Không thể kết nối máy chủ');
+    } finally {
+      setSavingInlineId(null);
     }
   };
 
@@ -765,9 +879,9 @@ export default function PurchasesCostTab({
         <div className="space-y-3 sm:space-y-4">
           {/* Toolbar */}
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-3 sm:p-4 space-y-2.5">
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+            <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-2.5">
               {/* Search Bar */}
-              <div className="relative flex-1 min-w-0">
+              <div className="relative flex-1 min-w-[200px]">
                 <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
@@ -792,112 +906,363 @@ export default function PurchasesCostTab({
                 )}
               </div>
 
-              {/* Category Filter on Mobile & Desktop */}
-              <div className="w-full sm:w-48 shrink-0">
-                <ModernSelect
-                  value={selectedCategory}
-                  onChange={(val) => setSelectedCategory(String(val))}
-                  options={categoryOptions}
-                />
-              </div>
-            </div>
+              {/* Button Mở Bộ Lọc Gộp (Filter Button) */}
+              <button
+                type="button"
+                onClick={() => setIsCostFilterModalOpen(true)}
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer shadow-2xs ${
+                  selectedCategory !== 'all' || statusFilter !== 'all'
+                    ? 'bg-emerald-800 text-white shadow-sm ring-2 ring-emerald-600/30 font-extrabold'
+                    : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+                }`}
+              >
+                <Filter className="w-4 h-4" />
+                <span>Bộ lọc</span>
+                {(selectedCategory !== 'all' || statusFilter !== 'all') && (
+                  <span className="w-5 h-5 rounded-full bg-emerald-600 text-white text-[10px] font-extrabold flex items-center justify-center">
+                    {(selectedCategory !== 'all' ? 1 : 0) + (statusFilter !== 'all' ? 1 : 0)}
+                  </span>
+                )}
+              </button>
 
-            {/* Quick Status Filter Chips */}
-            <HorizontalScroller
-              className="gap-1.5 py-0.5"
-              scrollAmount={180}
-              arrowSize="sm"
-            >
-              <button
-                type="button"
-                onClick={() => setStatusFilter('all')}
-                className={`px-2.5 py-1 rounded-xl text-xs font-extrabold border transition shrink-0 cursor-pointer ${statusFilter === 'all'
-                  ? 'bg-slate-900 text-white border-slate-900 shadow-2xs'
-                  : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
-                  }`}
-              >
-                Tất cả ({filterCounts.all})
-              </button>
-              <button
-                type="button"
-                onClick={() => setStatusFilter('needs_update')}
-                className={`px-2.5 py-1 rounded-xl text-xs font-extrabold border transition shrink-0 cursor-pointer flex items-center gap-1 ${statusFilter === 'needs_update'
-                  ? 'bg-amber-600 text-white border-amber-600 shadow-2xs'
-                  : 'bg-amber-50 text-amber-900 border-amber-200/80 hover:bg-amber-100'
-                  }`}
-              >
-                ⚠️ Cần cập nhật ({filterCounts.needsUpdate})
-              </button>
-              <button
-                type="button"
-                onClick={() => setStatusFilter('high_margin')}
-                className={`px-2.5 py-1 rounded-xl text-xs font-extrabold border transition shrink-0 cursor-pointer flex items-center gap-1 ${statusFilter === 'high_margin'
-                  ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs'
-                  : 'bg-emerald-50 text-emerald-900 border-emerald-200/80 hover:bg-emerald-100'
-                  }`}
-              >
-                ✅ Biên lãi cao ≥65% ({filterCounts.highMargin})
-              </button>
-              <button
-                type="button"
-                onClick={() => setStatusFilter('low_margin')}
-                className={`px-2.5 py-1 rounded-xl text-xs font-extrabold border transition shrink-0 cursor-pointer flex items-center gap-1 ${statusFilter === 'low_margin'
-                  ? 'bg-rose-600 text-white border-rose-600 shadow-2xs'
-                  : 'bg-rose-50 text-rose-900 border-rose-200/80 hover:bg-rose-100'
-                  }`}
-              >
-                🔥 Biên lãi thấp &lt;50% ({filterCounts.lowMargin})
-              </button>
-              <button
-                type="button"
-                onClick={() => setStatusFilter('no_recipe')}
-                className={`px-2.5 py-1 rounded-xl text-xs font-extrabold border transition shrink-0 cursor-pointer flex items-center gap-1 ${statusFilter === 'no_recipe'
-                  ? 'bg-indigo-600 text-white border-indigo-600 shadow-2xs'
-                  : 'bg-indigo-50 text-indigo-900 border-indigo-200/80 hover:bg-indigo-100'
-                  }`}
-              >
-                📋 Chưa có BOM ({filterCounts.noRecipe})
-              </button>
-            </HorizontalScroller>
-
-            {/* Pricing Mode Switcher & Sync Button */}
-            <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-100">
-              <div className="flex items-center bg-slate-100 p-1 rounded-xl text-xs font-bold">
+              {/* Pricing Mode Switcher */}
+              <div className="flex items-center bg-slate-100 p-1 rounded-xl text-xs font-bold shrink-0">
                 <button
                   type="button"
                   onClick={() => setPricingBasis('latest')}
-                  className={`px-2.5 sm:px-3 py-1.5 rounded-lg transition cursor-pointer text-xs ${pricingBasis === 'latest'
-                    ? 'bg-white text-emerald-900 shadow-xs font-extrabold'
-                    : 'text-slate-600 hover:text-slate-900'
-                    }`}
+                  className={`px-2.5 sm:px-3 py-1.5 rounded-lg transition cursor-pointer text-xs ${
+                    pricingBasis === 'latest'
+                      ? 'bg-white text-emerald-900 shadow-xs font-extrabold'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
                   title="Tính theo giá quy đổi đợt nhập gần nhất"
                 >
-                  ⚡ Giá đợt gần nhất
+                  ⚡ Gần nhất
                 </button>
                 <button
                   type="button"
                   onClick={() => setPricingBasis('average')}
-                  className={`px-2.5 sm:px-3 py-1.5 rounded-lg transition cursor-pointer text-xs ${pricingBasis === 'average'
-                    ? 'bg-white text-emerald-900 shadow-xs font-extrabold'
-                    : 'text-slate-600 hover:text-slate-900'
-                    }`}
+                  className={`px-2.5 sm:px-3 py-1.5 rounded-lg transition cursor-pointer text-xs ${
+                    pricingBasis === 'average'
+                      ? 'bg-white text-emerald-900 shadow-xs font-extrabold'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
                   title="Tính theo giá quy đổi bình quân các lần nhập"
                 >
-                  📊 Giá bình quân
+                  📊 Bình quân
                 </button>
               </div>
 
+              {/* Bulk Apply Sync Button */}
               <button
                 type="button"
                 onClick={handleBulkApplyAll}
                 disabled={bulkApplying}
-                className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-extrabold shadow-2xs transition active:scale-95 cursor-pointer ml-auto"
+                className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-extrabold shadow-2xs transition active:scale-95 cursor-pointer shrink-0 ml-auto sm:ml-0"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${bulkApplying ? 'animate-spin' : ''}`} />
-                <span>Đồng bộ giá vốn Menu</span>
+                <span className="hidden sm:inline">Đồng bộ giá vốn Menu</span>
+                <span className="sm:hidden">Đồng bộ</span>
               </button>
             </div>
+
+            {/* Active Filter Chips (if any filter is selected) */}
+            {(selectedCategory !== 'all' || statusFilter !== 'all') && (
+              <div className="flex flex-wrap items-center gap-1.5 text-xs pt-2 border-t border-slate-100">
+                <span className="text-slate-400 font-semibold text-[11px]">Đang lọc:</span>
+                {selectedCategory !== 'all' && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-lg font-bold text-xs">
+                    <span>📂 Danh mục: {selectedCategory}</span>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedCategory('all')}
+                      className="hover:text-emerald-950 p-0.5 rounded cursor-pointer"
+                      title="Xóa lọc danh mục"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                )}
+                {statusFilter !== 'all' && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-50 text-amber-900 border border-amber-200 rounded-lg font-bold text-xs">
+                    <span>
+                      🎯 Trạng thái:{' '}
+                      {statusFilter === 'needs_update'
+                        ? '⚠️ Cần cập nhật'
+                        : statusFilter === 'high_margin'
+                        ? '✅ Biên lãi cao ≥65%'
+                        : statusFilter === 'low_margin'
+                        ? '🔥 Biên lãi thấp <50%'
+                        : '📋 Chưa có BOM'}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setStatusFilter('all')}
+                      className="hover:text-amber-950 p-0.5 rounded cursor-pointer"
+                      title="Xóa lọc trạng thái"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedCategory('all');
+                    setStatusFilter('all');
+                  }}
+                  className="text-[11px] font-bold text-rose-600 hover:text-rose-800 hover:underline ml-1 cursor-pointer"
+                >
+                  Xóa tất cả
+                </button>
+              </div>
+            )}
           </div>
+
+          {/* Popup Filter Modal cho Định Lượng Món */}
+          {isCostFilterModalOpen && (
+            <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-150">
+              <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-xl w-full p-4 sm:p-6 shadow-2xl space-y-4 max-h-[92dvh] sm:max-h-[85vh] flex flex-col animate-in slide-in-from-bottom-6 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200 pb-safe sm:pb-6 border border-slate-100">
+                {/* Modal Header */}
+                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                  <div className="flex items-center gap-2">
+                    <div className="p-2 bg-emerald-50 text-emerald-800 rounded-xl">
+                      <Filter className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="font-extrabold text-base text-slate-900">Bộ Lọc Định Lượng Món</h3>
+                      <p className="text-xs text-slate-400">Lọc theo danh mục món và trạng thái biên lợi nhuận BOM</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsCostFilterModalOpen(false)}
+                    className="p-1.5 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition cursor-pointer"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                {/* Modal Scrollable Content */}
+                <div className="flex-1 overflow-y-auto space-y-4 pr-1 text-xs">
+                  {/* Section 1: Danh Mục Món */}
+                  <div>
+                    <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-2">
+                      📂 Danh Mục Món ({categoriesList.length})
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedCategory('all')}
+                        className={`px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs ${
+                          selectedCategory === 'all'
+                            ? 'bg-emerald-800 text-white shadow-sm font-black ring-2 ring-emerald-600/30'
+                            : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+                        }`}
+                      >
+                        <span>Tất cả danh mục</span>
+                        <span
+                          className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                            selectedCategory === 'all' ? 'bg-emerald-700 text-white' : 'bg-slate-100 text-slate-600'
+                          }`}
+                        >
+                          {costItems.length}
+                        </span>
+                      </button>
+                      {categoriesList.map((cat) => {
+                        const count = costItems.filter((i) => i.category_name === cat).length;
+                        const isSelected = selectedCategory === cat;
+                        return (
+                          <button
+                            key={cat}
+                            type="button"
+                            onClick={() => setSelectedCategory(isSelected ? 'all' : cat)}
+                            className={`px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs ${
+                              isSelected
+                                ? 'bg-emerald-800 text-white shadow-sm font-black ring-2 ring-emerald-600/30'
+                                : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+                            }`}
+                          >
+                            <span>{cat}</span>
+                            <span
+                              className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                                isSelected ? 'bg-emerald-700 text-white' : 'bg-slate-100 text-slate-600'
+                              }`}
+                            >
+                              {count}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Divider */}
+                  <hr className="border-slate-100" />
+
+                  {/* Section 2: Trạng Thái Biên Lãi & BOM */}
+                  <div>
+                    <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-2">
+                      🎯 Trạng Thái Biên Lãi & BOM
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setStatusFilter('all')}
+                        className={`px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs ${
+                          statusFilter === 'all'
+                            ? 'bg-slate-900 text-white font-extrabold shadow-sm ring-1 ring-slate-700'
+                            : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+                        }`}
+                      >
+                        <span>Tất cả</span>
+                        <span
+                          className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                            statusFilter === 'all' ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-600'
+                          }`}
+                        >
+                          {filterCounts.all}
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setStatusFilter('needs_update')}
+                        className={`px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs ${
+                          statusFilter === 'needs_update'
+                            ? 'bg-amber-600 text-white font-extrabold shadow-sm ring-2 ring-amber-400/40'
+                            : 'bg-amber-50/70 text-amber-900 hover:bg-amber-100 border border-amber-200'
+                        }`}
+                      >
+                        <span>⚠️ Cần cập nhật</span>
+                        <span
+                          className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                            statusFilter === 'needs_update' ? 'bg-amber-700 text-white' : 'bg-amber-200/80 text-amber-900'
+                          }`}
+                        >
+                          {filterCounts.needsUpdate}
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setStatusFilter('high_margin')}
+                        className={`px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs ${
+                          statusFilter === 'high_margin'
+                            ? 'bg-emerald-600 text-white font-extrabold shadow-sm ring-2 ring-emerald-400/40'
+                            : 'bg-emerald-50/70 text-emerald-900 hover:bg-emerald-100 border border-emerald-200'
+                        }`}
+                      >
+                        <span>✅ Biên lãi cao ≥65%</span>
+                        <span
+                          className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                            statusFilter === 'high_margin' ? 'bg-emerald-700 text-white' : 'bg-emerald-200/80 text-emerald-900'
+                          }`}
+                        >
+                          {filterCounts.highMargin}
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setStatusFilter('low_margin')}
+                        className={`px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs ${
+                          statusFilter === 'low_margin'
+                            ? 'bg-rose-600 text-white font-extrabold shadow-sm ring-2 ring-rose-400/40'
+                            : 'bg-rose-50/70 text-rose-900 hover:bg-rose-100 border border-rose-200'
+                        }`}
+                      >
+                        <span>🔥 Biên lãi thấp &lt;50%</span>
+                        <span
+                          className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                            statusFilter === 'low_margin' ? 'bg-rose-700 text-white' : 'bg-rose-200/80 text-rose-900'
+                          }`}
+                        >
+                          {filterCounts.lowMargin}
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setStatusFilter('no_recipe')}
+                        className={`px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs ${
+                          statusFilter === 'no_recipe'
+                            ? 'bg-indigo-600 text-white font-extrabold shadow-sm ring-2 ring-indigo-400/40'
+                            : 'bg-indigo-50/70 text-indigo-900 hover:bg-indigo-100 border border-indigo-200'
+                        }`}
+                      >
+                        <span>📋 Chưa có BOM</span>
+                        <span
+                          className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                            statusFilter === 'no_recipe' ? 'bg-indigo-700 text-white' : 'bg-indigo-200/80 text-indigo-900'
+                          }`}
+                        >
+                          {filterCounts.noRecipe}
+                        </span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Divider */}
+                  <hr className="border-slate-100" />
+
+                  {/* Section 3: Phương Pháp Tính Giá Vốn */}
+                  <div>
+                    <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-2">
+                      ⚡ Phương Pháp Tính Giá Vốn (COGS)
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setPricingBasis('latest')}
+                        className={`p-3 rounded-xl border text-left transition cursor-pointer ${
+                          pricingBasis === 'latest'
+                            ? 'border-emerald-600 bg-emerald-50/70 ring-1 ring-emerald-600'
+                            : 'border-slate-200 hover:border-slate-300'
+                        }`}
+                      >
+                        <div className="font-extrabold text-xs text-slate-900 flex items-center gap-1.5">
+                          <span>⚡ Giá gần nhất</span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 mt-1">Tính theo giá quy đổi đợt nhập nguyên liệu gần đây nhất</p>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPricingBasis('average')}
+                        className={`p-3 rounded-xl border text-left transition cursor-pointer ${
+                          pricingBasis === 'average'
+                            ? 'border-emerald-600 bg-emerald-50/70 ring-1 ring-emerald-600'
+                            : 'border-slate-200 hover:border-slate-300'
+                        }`}
+                      >
+                        <div className="font-extrabold text-xs text-slate-900 flex items-center gap-1.5">
+                          <span>📊 Giá bình quân (BQ)</span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 mt-1">Tính theo giá quy đổi bình quân gia quyền các đợt nhập</p>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Modal Footer */}
+                <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedCategory('all');
+                      setStatusFilter('all');
+                    }}
+                    className="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-800 transition cursor-pointer"
+                  >
+                    Đặt lại bộ lọc
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsCostFilterModalOpen(false)}
+                    className="px-5 py-2 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl text-xs font-extrabold shadow-sm transition active:scale-95 cursor-pointer"
+                  >
+                    Áp dụng ({filteredCostItems.length} món)
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {loading ? (
             <div className="flex items-center justify-center py-16 bg-white rounded-2xl border border-slate-200 shadow-sm">
@@ -1228,37 +1593,184 @@ export default function PurchasesCostTab({
       {activeSubTab === 'purchase-history' && (
         <div className="space-y-3 sm:space-y-4">
           {/* Toolbar */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-3 sm:p-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
-            <div className="relative flex-1 min-w-0">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                placeholder="Tìm nguyên liệu, quy cách, quỹ chi trả..."
-                value={historySearch}
-                onChange={(e) => setHistorySearch(e.target.value)}
-                className="app-input pl-9 pr-24 py-2 text-xs placeholder:text-xs"
-              />
-              {historySearch ? (
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-3 sm:p-4 space-y-2.5">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                <div className="relative flex-1 min-w-0">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    placeholder="Tìm nguyên liệu, quy cách, quỹ chi trả..."
+                    value={historySearch}
+                    onChange={(e) => setHistorySearch(e.target.value)}
+                    className="app-input pl-9 pr-24 py-2 text-xs placeholder:text-xs"
+                  />
+                  {historySearch ? (
+                    <button
+                      type="button"
+                      onClick={() => setHistorySearch('')}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition cursor-pointer"
+                      title="Xóa tìm kiếm"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  ) : (
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-md pointer-events-none">
+                      {filteredHistory.length} đợt
+                    </span>
+                  )}
+                </div>
+
+                {/* Button Bộ Lọc Quỹ Chi Trả */}
                 <button
                   type="button"
-                  onClick={() => setHistorySearch('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition cursor-pointer"
-                  title="Xóa tìm kiếm"
+                  onClick={() => setIsHistoryFilterModalOpen(true)}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer shadow-2xs ${
+                    historyFundFilter !== 'all'
+                      ? 'bg-emerald-800 text-white shadow-sm ring-2 ring-emerald-600/30 font-extrabold'
+                      : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+                  }`}
                 >
-                  <X className="w-3.5 h-3.5" />
+                  <Filter className="w-4 h-4" />
+                  <span>Bộ lọc</span>
+                  {historyFundFilter !== 'all' && (
+                    <span className="w-5 h-5 rounded-full bg-emerald-600 text-white text-[10px] font-extrabold flex items-center justify-center">
+                      1
+                    </span>
+                  )}
                 </button>
-              ) : (
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-md pointer-events-none">
-                  {filteredHistory.length} đợt
-                </span>
-              )}
+              </div>
+
+              <div className="text-xs font-bold text-slate-700 bg-slate-50 sm:bg-transparent p-2 sm:p-0 rounded-xl border sm:border-0 border-slate-100 flex items-center justify-between sm:justify-end gap-1.5 shrink-0">
+                <span className="text-slate-500 font-medium">Tổng tiền đã nhập:</span>
+                <span className="text-rose-600 font-black text-sm">{formatCurrency(totalSpend, settings)}</span>
+              </div>
             </div>
 
-            <div className="text-xs font-bold text-slate-700 bg-slate-50 sm:bg-transparent p-2 sm:p-0 rounded-xl border sm:border-0 border-slate-100 flex items-center justify-between sm:justify-end gap-1.5 shrink-0">
-              <span className="text-slate-500 font-medium">Tổng tiền đã nhập:</span>
-              <span className="text-rose-600 font-black text-sm">{formatCurrency(totalSpend, settings)}</span>
-            </div>
+            {/* Active Filter Chips */}
+            {historyFundFilter !== 'all' && (
+              <div className="flex flex-wrap items-center gap-1.5 text-xs pt-2 border-t border-slate-100">
+                <span className="text-slate-400 font-semibold text-[11px]">Đang lọc:</span>
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-lg font-bold text-xs">
+                  <span>💳 Quỹ chi: {historyFundFilter}</span>
+                  <button
+                    type="button"
+                    onClick={() => setHistoryFundFilter('all')}
+                    className="hover:text-emerald-950 p-0.5 rounded cursor-pointer"
+                    title="Xóa lọc quỹ"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setHistoryFundFilter('all')}
+                  className="text-[11px] font-bold text-rose-600 hover:text-rose-800 hover:underline ml-1 cursor-pointer"
+                >
+                  Xóa bộ lọc
+                </button>
+              </div>
+            )}
           </div>
+
+          {/* Popup Filter Modal cho Lịch Sử Mua Hàng */}
+          {isHistoryFilterModalOpen && (
+            <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-150">
+              <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-lg w-full p-4 sm:p-6 shadow-2xl space-y-4 max-h-[92dvh] sm:max-h-[85vh] flex flex-col animate-in slide-in-from-bottom-6 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200 pb-safe sm:pb-6 border border-slate-100">
+                {/* Header */}
+                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                  <div className="flex items-center gap-2">
+                    <div className="p-2 bg-emerald-50 text-emerald-800 rounded-xl">
+                      <Filter className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="font-extrabold text-base text-slate-900">Bộ Lọc Lịch Sử Nhập Hàng</h3>
+                      <p className="text-xs text-slate-400">Lọc theo quỹ chi trả và nguồn tiền thanh toán</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsHistoryFilterModalOpen(false)}
+                    className="p-1.5 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition cursor-pointer"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                {/* Content */}
+                <div className="flex-1 overflow-y-auto space-y-4 pr-1 text-xs">
+                  <div>
+                    <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-2">
+                      💳 Quỹ Tiền Chi Trả ({historyFundsList.length})
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setHistoryFundFilter('all')}
+                        className={`px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs ${
+                          historyFundFilter === 'all'
+                            ? 'bg-emerald-800 text-white shadow-sm font-black ring-2 ring-emerald-600/30'
+                            : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+                        }`}
+                      >
+                        <span>Tất cả quỹ</span>
+                        <span
+                          className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                            historyFundFilter === 'all' ? 'bg-emerald-700 text-white' : 'bg-slate-100 text-slate-600'
+                          }`}
+                        >
+                          {allHistory.length}
+                        </span>
+                      </button>
+                      {historyFundsList.map((fName) => {
+                        const count = allHistory.filter((h) => h.fund_name === fName).length;
+                        const isSelected = historyFundFilter === fName;
+                        return (
+                          <button
+                            key={fName}
+                            type="button"
+                            onClick={() => setHistoryFundFilter(isSelected ? 'all' : fName)}
+                            className={`px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs ${
+                              isSelected
+                                ? 'bg-emerald-800 text-white shadow-sm font-black ring-2 ring-emerald-600/30'
+                                : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+                            }`}
+                          >
+                            <span>{fName}</span>
+                            <span
+                              className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                                isSelected ? 'bg-emerald-700 text-white' : 'bg-slate-100 text-slate-600'
+                              }`}
+                            >
+                              {count}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Footer */}
+                <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setHistoryFundFilter('all')}
+                    className="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-800 transition cursor-pointer"
+                  >
+                    Đặt lại
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsHistoryFilterModalOpen(false)}
+                    className="px-5 py-2 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl text-xs font-extrabold shadow-sm transition active:scale-95 cursor-pointer"
+                  >
+                    Áp dụng ({filteredHistory.length} đợt)
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {loading ? (
             <div className="flex items-center justify-center py-16 bg-white rounded-2xl border border-slate-200 shadow-sm">
@@ -1436,17 +1948,24 @@ export default function PurchasesCostTab({
                 )}
               </div>
 
-              <select
-                value={ingCategoryFilter}
-                onChange={(e) => setIngCategoryFilter(e.target.value)}
-                className="app-select w-auto h-9 px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-bold bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 shrink-0"
+              {/* Button Mở Bộ Lọc Gộp (Filter Button) */}
+              <button
+                type="button"
+                onClick={() => setIsIngFilterModalOpen(true)}
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer shadow-2xs ${
+                  ingCategoryFilter !== 'all'
+                    ? 'bg-emerald-800 text-white shadow-sm ring-2 ring-emerald-600/30 font-extrabold'
+                    : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+                }`}
               >
-                <option value="all">Tất cả phân loại</option>
-                <option value="fruit">Hoa quả tươi</option>
-                <option value="ingredient">Nguyên liệu / Sữa</option>
-                <option value="packaging">Bao bì / Ly nắp</option>
-                <option value="other">Khác</option>
-              </select>
+                <Filter className="w-4 h-4" />
+                <span>Bộ lọc</span>
+                {ingCategoryFilter !== 'all' && (
+                  <span className="w-5 h-5 rounded-full bg-emerald-600 text-white text-[10px] font-extrabold flex items-center justify-center">
+                    1
+                  </span>
+                )}
+              </button>
             </div>
 
             <button
@@ -1458,6 +1977,129 @@ export default function PurchasesCostTab({
               <span>+ Thêm Nguyên Liệu</span>
             </button>
           </div>
+
+          {/* Active Filter Chips cho Nguyên Liệu */}
+          {ingCategoryFilter !== 'all' && (
+            <div className="flex flex-wrap items-center gap-1.5 text-xs pt-2 border-t border-slate-100 bg-white rounded-2xl border border-slate-200 shadow-sm p-3">
+              <span className="text-slate-400 font-semibold text-[11px]">Đang lọc:</span>
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-lg font-bold text-xs">
+                <span>
+                  🏷️ Phân loại:{' '}
+                  {ingCategoryFilter === 'fruit'
+                    ? '🍎 Hoa quả tươi'
+                    : ingCategoryFilter === 'ingredient'
+                    ? '🥛 Nguyên liệu / Sữa'
+                    : ingCategoryFilter === 'packaging'
+                    ? '🥤 Bao bì / Ly nắp'
+                    : '📦 Khác'}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setIngCategoryFilter('all')}
+                  className="hover:text-emerald-950 p-0.5 rounded cursor-pointer"
+                  title="Xóa lọc phân loại"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+              <button
+                type="button"
+                onClick={() => setIngCategoryFilter('all')}
+                className="text-[11px] font-bold text-rose-600 hover:text-rose-800 hover:underline ml-1 cursor-pointer"
+              >
+                Xóa tất cả
+              </button>
+            </div>
+          )}
+
+          {/* Popup Filter Modal cho Quản Lý Nguyên Liệu */}
+          {isIngFilterModalOpen && (
+            <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-150">
+              <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-md w-full p-4 sm:p-6 shadow-2xl space-y-4 max-h-[92dvh] sm:max-h-[85vh] flex flex-col animate-in slide-in-from-bottom-6 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200 pb-safe sm:pb-6 border border-slate-100">
+                {/* Modal Header */}
+                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                  <div className="flex items-center gap-2">
+                    <div className="p-2 bg-emerald-50 text-emerald-800 rounded-xl">
+                      <Filter className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="font-extrabold text-base text-slate-900">Bộ Lọc Nguyên Liệu</h3>
+                      <p className="text-xs text-slate-400">Lọc theo phân loại nguyên vật liệu, hoa quả, bao bì</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsIngFilterModalOpen(false)}
+                    className="p-1.5 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition cursor-pointer"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                {/* Content */}
+                <div className="flex-1 overflow-y-auto space-y-4 pr-1 text-xs">
+                  <div>
+                    <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-2">
+                      🏷️ Phân Loại Nguyên Liệu
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {[
+                        { key: 'all', label: 'Tất cả phân loại', icon: '📋', count: ingredients.length },
+                        { key: 'fruit', label: 'Hoa quả tươi', icon: '🍎', count: ingredients.filter((i) => i.category === 'fruit').length },
+                        { key: 'ingredient', label: 'Nguyên liệu / Sữa', icon: '🥛', count: ingredients.filter((i) => i.category === 'ingredient').length },
+                        { key: 'packaging', label: 'Bao bì / Ly nắp', icon: '🥤', count: ingredients.filter((i) => i.category === 'packaging').length },
+                        { key: 'other', label: 'Khác', icon: '📦', count: ingredients.filter((i) => i.category === 'other').length },
+                      ].map((cat) => {
+                        const isSelected = ingCategoryFilter === cat.key;
+                        return (
+                          <button
+                            key={cat.key}
+                            type="button"
+                            onClick={() => setIngCategoryFilter(cat.key)}
+                            className={`p-3 rounded-2xl border text-left transition flex items-center justify-between cursor-pointer ${
+                              isSelected
+                                ? 'border-emerald-600 bg-emerald-50 text-emerald-950 font-bold ring-2 ring-emerald-600/30'
+                                : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                            }`}
+                          >
+                            <span className="flex items-center gap-2">
+                              <span>{cat.icon}</span>
+                              <span className="font-bold">{cat.label}</span>
+                            </span>
+                            <span
+                              className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                                isSelected ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600'
+                              }`}
+                            >
+                              {cat.count}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Footer */}
+                <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setIngCategoryFilter('all')}
+                    className="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-800 transition cursor-pointer"
+                  >
+                    Xóa bộ lọc
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsIngFilterModalOpen(false)}
+                    className="px-5 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl font-extrabold text-xs shadow-md transition cursor-pointer"
+                  >
+                    Đóng
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {loading ? (
             <div className="flex items-center justify-center py-16 bg-white rounded-2xl border border-slate-200 shadow-sm">
@@ -1476,6 +2118,137 @@ export default function PurchasesCostTab({
                   const defaultSpec = ing.default_purchase_unit
                     ? `${ing.default_purchase_unit} (${ing.default_pack_qty && ing.default_pack_qty > 1 ? `${ing.default_pack_qty}x ` : ''}${ing.default_capacity_qty || 1000}${ing.default_capacity_unit || baseUnit})`
                     : `1 ${baseUnit}`;
+                  const isInline = inlineEditId === ing.id;
+
+                  if (isInline && inlineForm) {
+                    return (
+                      <div
+                        key={ing.id}
+                        className="bg-emerald-50/50 rounded-2xl border-2 border-emerald-500 p-3 sm:p-4 shadow-md space-y-3"
+                      >
+                        <div className="flex items-center justify-between border-b border-emerald-200 pb-2">
+                          <span className="text-xs font-black text-emerald-900 flex items-center gap-1.5">
+                            <Edit className="w-3.5 h-3.5 text-emerald-700" />
+                            <span>Chỉnh sửa nhanh nguyên liệu</span>
+                          </span>
+                          <span className="text-[10px] text-emerald-700 font-bold bg-white px-2 py-0.5 rounded border border-emerald-300">
+                            ID #{ing.id}
+                          </span>
+                        </div>
+
+                        <div className="space-y-2 text-xs">
+                          <div>
+                            <label className="text-[11px] font-bold text-slate-700 block mb-0.5">Tên nguyên liệu *</label>
+                            <input
+                              type="text"
+                              value={inlineForm.name}
+                              onChange={(e) => setInlineForm({ ...inlineForm, name: e.target.value })}
+                              className="w-full h-8 px-2.5 border border-slate-300 rounded-xl font-bold bg-white focus:ring-2 focus:ring-emerald-500"
+                            />
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="text-[10px] font-bold text-slate-600 block mb-0.5">Phân loại</label>
+                              <select
+                                value={inlineForm.category}
+                                onChange={(e) => setInlineForm({ ...inlineForm, category: e.target.value })}
+                                className="w-full h-8 px-2 border border-slate-300 rounded-xl bg-white font-medium"
+                              >
+                                <option value="fruit">Hoa quả tươi</option>
+                                <option value="ingredient">Nguyên liệu</option>
+                                <option value="packaging">Bao bì</option>
+                                <option value="other">Khác</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label className="text-[10px] font-bold text-slate-600 block mb-0.5">Đơn vị cơ sở</label>
+                              <select
+                                value={inlineForm.base_unit}
+                                onChange={(e) => setInlineForm({ ...inlineForm, base_unit: e.target.value })}
+                                className="w-full h-8 px-2 border border-slate-300 rounded-xl bg-white font-bold text-emerald-950"
+                              >
+                                {COMMON_BASE_UNITS.map((u) => (
+                                  <option key={u.value} value={u.value}>{u.label}</option>
+                                ))}
+                              </select>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="text-[10px] font-bold text-slate-600 block mb-0.5">Quy cách mặc định</label>
+                              <input
+                                type="text"
+                                value={inlineForm.default_spec_str}
+                                onChange={(e) => setInlineForm({ ...inlineForm, default_spec_str: e.target.value })}
+                                placeholder={`VD: 1 ${inlineForm.base_unit}`}
+                                className="w-full h-8 px-2 border border-slate-300 rounded-xl bg-white"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-[10px] font-bold text-slate-600 block mb-0.5">Hao hụt (%)</label>
+                              <div className="relative w-full">
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max="99"
+                                  value={inlineForm.loss_rate_pct}
+                                  onChange={(e) => setInlineForm({ ...inlineForm, loss_rate_pct: parseFloat(e.target.value) || 0 })}
+                                  className="w-full h-8 pr-5 pl-2 border border-slate-300 rounded-xl text-center font-bold bg-white"
+                                />
+                                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 font-bold">%</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="text-[10px] font-bold text-slate-600 block mb-0.5">Giá gần nhất (đ)</label>
+                              <input
+                                type="number"
+                                min="0"
+                                step="any"
+                                value={inlineForm.latest_price === 0 ? '' : inlineForm.latest_price}
+                                onChange={(e) => setInlineForm({ ...inlineForm, latest_price: parseFloat(e.target.value) || 0 })}
+                                className="w-full h-8 px-2 border border-slate-300 rounded-xl text-right font-extrabold text-emerald-700 bg-white"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-[10px] font-bold text-slate-600 block mb-0.5">Giá BQ (đ)</label>
+                              <input
+                                type="number"
+                                min="0"
+                                step="any"
+                                value={inlineForm.avg_price === 0 ? '' : inlineForm.avg_price}
+                                onChange={(e) => setInlineForm({ ...inlineForm, avg_price: parseFloat(e.target.value) || 0 })}
+                                className="w-full h-8 px-2 border border-slate-300 rounded-xl text-right font-bold text-slate-700 bg-white"
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-end gap-2 pt-2 border-t border-emerald-200">
+                          <button
+                            type="button"
+                            onClick={handleCancelInlineEdit}
+                            className="px-3 py-1.5 text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition cursor-pointer"
+                          >
+                            Hủy
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleSaveInlineEdit}
+                            disabled={savingInlineId === ing.id}
+                            className="px-4 py-1.5 text-xs font-extrabold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-xs transition cursor-pointer flex items-center gap-1"
+                          >
+                            <Check className="w-3.5 h-3.5" />
+                            <span>{savingInlineId === ing.id ? 'Đang lưu...' : 'Lưu'}</span>
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  }
 
                   return (
                     <div
@@ -1509,35 +2282,51 @@ export default function PurchasesCostTab({
                         </span>
                       </div>
 
-                      <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200/80 flex items-center justify-between text-xs">
+                      <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200/80 grid grid-cols-3 gap-2 text-xs">
                         <div>
                           <span className="text-[10px] font-semibold text-slate-400 block">Giá gần nhất</span>
-                          <span className="font-extrabold text-emerald-700 text-sm">
-                            {formatCurrency(ing.latest_purchase_price, settings)}/{baseUnit}
+                          <span className="font-extrabold text-emerald-700 text-xs">
+                            {formatCurrency(ing.latest_purchase_price, settings)}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] font-semibold text-slate-400 block">Giá BQ</span>
+                          <span className="font-bold text-slate-700 text-xs">
+                            {formatCurrency(ing.average_purchase_price, settings)}
                           </span>
                         </div>
                         <div className="text-right">
-                          <span className="text-[10px] font-semibold text-slate-400 block">Quy cách mặc định</span>
-                          <span className="font-bold text-slate-700">{defaultSpec}</span>
+                          <span className="text-[10px] font-semibold text-slate-400 block">Quy cách</span>
+                          <span className="font-bold text-slate-700 text-[11px] truncate block">{defaultSpec}</span>
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-end gap-2 pt-1 border-t border-slate-100">
+                      <div className="flex items-center justify-end gap-1.5 pt-1 border-t border-slate-100">
                         <button
                           type="button"
                           onClick={() => handleOpenIngredientHistory(ing)}
-                          className="px-2.5 py-1.5 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+                          className="px-2 py-1.5 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+                          title="Lịch sử giá"
                         >
                           <History className="w-3.5 h-3.5" />
                           <span>Lịch sử</span>
                         </button>
                         <button
                           type="button"
-                          onClick={() => handleOpenEditIngredient(ing)}
-                          className="px-2.5 py-1.5 text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+                          onClick={() => handleStartInlineEdit(ing)}
+                          className="px-2.5 py-1.5 text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+                          title="Sửa nhanh các thông số"
                         >
                           <Edit className="w-3.5 h-3.5" />
-                          <span>Sửa</span>
+                          <span>Sửa nhanh</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEditIngredient(ing)}
+                          className="p-1.5 text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl text-xs font-bold transition cursor-pointer"
+                          title="Chỉnh sửa nâng cao trong modal"
+                        >
+                          <Settings2 className="w-4 h-4" />
                         </button>
                         <button
                           type="button"
@@ -1559,14 +2348,14 @@ export default function PurchasesCostTab({
                   <table className="w-full text-left text-xs">
                     <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase tracking-wider font-semibold">
                       <tr>
-                        <th className="py-3 px-4">Tên Nguyên Liệu</th>
-                        <th className="py-3 px-3">Phân Loại</th>
-                        <th className="py-3 px-3">Đơn Vị Cơ Sở (Base Unit)</th>
+                        <th className="py-3 px-3">Tên Nguyên Liệu</th>
+                        <th className="py-3 px-2 w-28">Phân Loại</th>
+                        <th className="py-3 px-2 w-28">Đơn Vị Cơ Sở</th>
                         <th className="py-3 px-3">Quy Cách Mặc Định</th>
-                        <th className="py-3 px-3 text-right">Hao Hụt (%)</th>
+                        <th className="py-3 px-2 text-right w-24">Hao Hụt (%)</th>
                         <th className="py-3 px-3 text-right">Giá Quy Đổi Gần Nhất</th>
                         <th className="py-3 px-3 text-right">Giá Quy Đổi BQ</th>
-                        <th className="py-3 px-4 text-center">Thao Tác</th>
+                        <th className="py-3 px-3 text-center w-36">Thao Tác</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
@@ -1575,11 +2364,115 @@ export default function PurchasesCostTab({
                         const defaultSpec = ing.default_purchase_unit
                           ? `${ing.default_purchase_unit} (${ing.default_pack_qty && ing.default_pack_qty > 1 ? `${ing.default_pack_qty}x ` : ''}${ing.default_capacity_qty || 1000}${ing.default_capacity_unit || baseUnit})`
                           : `1 ${baseUnit}`;
+                        const isInline = inlineEditId === ing.id;
+
+                        if (isInline && inlineForm) {
+                          return (
+                            <tr key={ing.id} className="bg-emerald-50/40 border-y-2 border-emerald-400">
+                              <td className="py-2 px-3">
+                                <input
+                                  type="text"
+                                  required
+                                  value={inlineForm.name}
+                                  onChange={(e) => setInlineForm({ ...inlineForm, name: e.target.value })}
+                                  className="w-full h-8 px-2 border border-slate-300 rounded-lg text-xs font-bold bg-white focus:ring-2 focus:ring-emerald-500"
+                                />
+                              </td>
+                              <td className="py-2 px-2">
+                                <select
+                                  value={inlineForm.category}
+                                  onChange={(e) => setInlineForm({ ...inlineForm, category: e.target.value })}
+                                  className="w-full h-8 px-1 border border-slate-300 rounded-lg text-[11px] font-semibold bg-white"
+                                >
+                                  <option value="fruit">Hoa quả</option>
+                                  <option value="ingredient">Nguyên liệu</option>
+                                  <option value="packaging">Bao bì</option>
+                                  <option value="other">Khác</option>
+                                </select>
+                              </td>
+                              <td className="py-2 px-2">
+                                <select
+                                  value={inlineForm.base_unit}
+                                  onChange={(e) => setInlineForm({ ...inlineForm, base_unit: e.target.value })}
+                                  className="w-full h-8 px-1 border border-slate-300 rounded-lg text-xs font-bold bg-white text-emerald-950"
+                                >
+                                  {COMMON_BASE_UNITS.map((u) => (
+                                    <option key={u.value} value={u.value}>{u.label}</option>
+                                  ))}
+                                </select>
+                              </td>
+                              <td className="py-2 px-2">
+                                <input
+                                  type="text"
+                                  value={inlineForm.default_spec_str}
+                                  onChange={(e) => setInlineForm({ ...inlineForm, default_spec_str: e.target.value })}
+                                  placeholder={`VD: 1 ${inlineForm.base_unit}`}
+                                  className="w-full h-8 px-2 border border-slate-300 rounded-lg text-xs bg-white"
+                                />
+                              </td>
+                              <td className="py-2 px-2 text-right">
+                                <div className="relative inline-block w-20">
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    max="99"
+                                    value={inlineForm.loss_rate_pct}
+                                    onChange={(e) => setInlineForm({ ...inlineForm, loss_rate_pct: parseFloat(e.target.value) || 0 })}
+                                    className="w-full h-8 pr-5 pl-1 border border-slate-300 rounded-lg text-xs font-bold text-center bg-white"
+                                  />
+                                  <span className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 font-bold">%</span>
+                                </div>
+                              </td>
+                              <td className="py-2 px-2 text-right">
+                                <input
+                                  type="number"
+                                  min="0"
+                                  step="any"
+                                  value={inlineForm.latest_price === 0 ? '' : inlineForm.latest_price}
+                                  onChange={(e) => setInlineForm({ ...inlineForm, latest_price: parseFloat(e.target.value) || 0 })}
+                                  className="w-24 h-8 px-2 border border-slate-300 rounded-lg text-xs font-extrabold text-right text-emerald-700 bg-white"
+                                />
+                              </td>
+                              <td className="py-2 px-2 text-right">
+                                <input
+                                  type="number"
+                                  min="0"
+                                  step="any"
+                                  value={inlineForm.avg_price === 0 ? '' : inlineForm.avg_price}
+                                  onChange={(e) => setInlineForm({ ...inlineForm, avg_price: parseFloat(e.target.value) || 0 })}
+                                  className="w-24 h-8 px-2 border border-slate-300 rounded-lg text-xs font-bold text-right text-slate-700 bg-white"
+                                />
+                              </td>
+                              <td className="py-2 px-3 text-center">
+                                <div className="flex items-center justify-center space-x-1.5">
+                                  <button
+                                    type="button"
+                                    onClick={handleSaveInlineEdit}
+                                    disabled={savingInlineId === ing.id}
+                                    className="px-2.5 py-1 text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition active:scale-95 cursor-pointer shadow-xs flex items-center gap-1 font-bold text-[11px]"
+                                    title="Lưu thay đổi"
+                                  >
+                                    <Check className="w-3.5 h-3.5" />
+                                    <span>Lưu</span>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={handleCancelInlineEdit}
+                                    className="p-1 text-slate-500 bg-slate-100 hover:bg-slate-200 rounded-lg transition active:scale-95 cursor-pointer"
+                                    title="Hủy"
+                                  >
+                                    <X className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        }
 
                         return (
                           <tr key={ing.id} className="hover:bg-slate-50 transition">
-                            <td className="py-3 px-4 font-extrabold text-slate-900">{ing.name}</td>
-                            <td className="py-3 px-3">
+                            <td className="py-3 px-3 font-extrabold text-slate-900">{ing.name}</td>
+                            <td className="py-3 px-2">
                               <span
                                 className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${ing.category === 'fruit'
                                   ? 'bg-amber-50 text-amber-800 border-amber-200'
@@ -1595,13 +2488,13 @@ export default function PurchasesCostTab({
                                     : 'Nguyên liệu'}
                               </span>
                             </td>
-                            <td className="py-3 px-3 font-bold text-emerald-900">
+                            <td className="py-3 px-2 font-bold text-emerald-900">
                               <span className="bg-emerald-50 text-emerald-800 px-2 py-0.5 rounded-md border border-emerald-200">
                                 {baseUnit}
                               </span>
                             </td>
                             <td className="py-3 px-3 text-slate-600 font-medium">{defaultSpec}</td>
-                            <td className="py-3 px-3 text-right font-bold text-amber-700">
+                            <td className="py-3 px-2 text-right font-bold text-amber-700">
                               {ing.loss_rate > 0 ? `${Math.round(ing.loss_rate * 100)}%` : '0%'}
                             </td>
                             <td className="py-3 px-3 text-right font-extrabold text-emerald-700">
@@ -1610,7 +2503,7 @@ export default function PurchasesCostTab({
                             <td className="py-3 px-3 text-right font-bold text-slate-600">
                               {formatCurrency(ing.average_purchase_price, settings)}/{baseUnit}
                             </td>
-                            <td className="py-3 px-4 text-center">
+                            <td className="py-3 px-3 text-center">
                               <div className="flex items-center justify-center space-x-1.5">
                                 <button
                                   type="button"
@@ -1622,11 +2515,19 @@ export default function PurchasesCostTab({
                                 </button>
                                 <button
                                   type="button"
-                                  onClick={() => handleOpenEditIngredient(ing)}
-                                  className="p-1.5 text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition active:scale-95 cursor-pointer"
-                                  title="Chỉnh sửa nguyên liệu"
+                                  onClick={() => handleStartInlineEdit(ing)}
+                                  className="p-1.5 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition active:scale-95 cursor-pointer"
+                                  title="Sửa nhanh trực tiếp các thông số"
                                 >
                                   <Edit className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenEditIngredient(ing)}
+                                  className="p-1.5 text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition active:scale-95 cursor-pointer"
+                                  title="Chỉnh sửa nâng cao trong modal"
+                                >
+                                  <Settings2 className="w-3.5 h-3.5" />
                                 </button>
                                 <button
                                   type="button"
@@ -1910,13 +2811,41 @@ export default function PurchasesCostTab({
               </button>
             </div>
 
+            {/* Mode Switcher */}
+            <div className="flex bg-slate-100 p-1 rounded-2xl gap-1">
+              <button
+                type="button"
+                onClick={() => setIngFormMode('basic')}
+                className={`flex-1 py-1.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                  ingFormMode === 'basic'
+                    ? 'bg-white text-emerald-800 shadow-xs border border-emerald-200'
+                    : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                <span>🌱 Chế độ Cơ bản</span>
+                <span className="text-[10px] font-normal opacity-75 hidden sm:inline">(Không cần quy cách)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setIngFormMode('advanced')}
+                className={`flex-1 py-1.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                  ingFormMode === 'advanced'
+                    ? 'bg-white text-indigo-800 shadow-xs border border-indigo-200'
+                    : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                <span>⚙️ Chế độ Nâng cao</span>
+                <span className="text-[10px] font-normal opacity-75 hidden sm:inline">(Quy cách & Quy đổi)</span>
+              </button>
+            </div>
+
             <form onSubmit={handleSaveIngredient} className="space-y-3.5 text-xs">
               <div>
                 <label className="text-xs font-bold text-slate-700 block mb-1">Tên Nguyên Liệu / Vật Tư *</label>
                 <input
                   type="text"
                   required
-                  placeholder="VD: Cốt cà phê, Sữa đặc, Sữa tươi, Ly 500ml..."
+                  placeholder="VD: Cốt cà phê, Sữa đặc, Sữa tươi, Ly 500ml, Chanh tươi..."
                   value={ingFormName}
                   onChange={(e) => setIngFormName(e.target.value)}
                   className="w-full h-9.5 px-3 border border-slate-200 rounded-xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500"
@@ -1959,7 +2888,7 @@ export default function PurchasesCostTab({
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-bold text-slate-700 block mb-1">
-                    Giá quy đổi cơ sở (đ/{ingFormBaseUnit})
+                    Giá quy đổi gần nhất (đ/{ingFormBaseUnit})
                   </label>
                   <input
                     type="number"
@@ -1968,132 +2897,165 @@ export default function PurchasesCostTab({
                     placeholder="VD: 120"
                     value={ingFormPrice === 0 ? '' : ingFormPrice}
                     onChange={(e) => setIngFormPrice(parseFloat(e.target.value) || 0)}
-                    className="w-full h-9 px-3 border border-slate-200 rounded-xl text-xs font-bold text-right focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    className="w-full h-9 px-3 border border-slate-200 rounded-xl text-xs font-extrabold text-right text-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   />
                 </div>
 
                 <div>
                   <label className="text-xs font-bold text-slate-700 block mb-1">
-                    Tỷ Lệ Hao Hụt (%)
+                    Giá quy đổi bình quân (BQ) (đ/{ingFormBaseUnit})
                   </label>
-                  <div className="relative w-full">
-                    <input
-                      type="number"
-                      step="1"
-                      min="0"
-                      max="99"
-                      value={Math.round(ingFormLossRate * 100)}
-                      onChange={(e) => {
-                        const val = parseFloat(e.target.value) || 0;
-                        setIngFormLossRate(val / 100);
-                      }}
-                      className="w-full h-9 pr-6 pl-2 border border-slate-200 rounded-xl text-xs font-black text-center"
-                    />
-                    <span className="absolute right-2 top-1/2 -translate-y-1/2 font-bold text-slate-400">%</span>
-                  </div>
+                  <input
+                    type="number"
+                    min="0"
+                    step="any"
+                    placeholder="VD: 115"
+                    value={ingFormAvgPrice === 0 ? '' : ingFormAvgPrice}
+                    onChange={(e) => setIngFormAvgPrice(parseFloat(e.target.value) || 0)}
+                    className="w-full h-9 px-3 border border-slate-200 rounded-xl text-xs font-bold text-right text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
                 </div>
               </div>
 
-              <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 space-y-2.5">
-                <span className="text-[11px] font-bold text-slate-700 block">
-                  Quy Cách Mua Hàng Mặc Định:
-                </span>
-                <div className="grid grid-cols-3 gap-2">
-                  <div>
-                    <span className="text-[10px] text-slate-400 font-bold block mb-0.5">Đơn vị mua</span>
-                    <select
-                      value={ingFormDefaultPurchaseUnit}
-                      onChange={(e) => setIngFormDefaultPurchaseUnit(e.target.value)}
-                      className="w-full h-8 px-1.5 border border-slate-200 rounded-lg text-xs font-bold bg-white"
-                    >
-                      {COMMON_PURCHASE_UNITS.map((u) => (
-                        <option key={u} value={u}>
-                          {u}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <span className="text-[10px] text-slate-400 font-bold block mb-0.5">Chứa (số lượng)</span>
-                    <input
-                      type="number"
-                      value={ingFormDefaultCapacityQty}
-                      onChange={(e) => setIngFormDefaultCapacityQty(parseFloat(e.target.value) || 1)}
-                      className="w-full h-8 px-1.5 border border-slate-200 rounded-lg text-xs font-black text-center bg-white"
-                    />
-                  </div>
-
-                  <div>
-                    <span className="text-[10px] text-slate-400 font-bold block mb-0.5">Đơn vị con</span>
-                    <select
-                      value={ingFormDefaultCapacityUnit}
-                      onChange={(e) => setIngFormDefaultCapacityUnit(e.target.value)}
-                      className="w-full h-8 px-1.5 border border-slate-200 rounded-lg text-xs font-bold bg-white"
-                    >
-                      <option value="ml">ml</option>
-                      <option value="l">Lít</option>
-                      <option value="g">g</option>
-                      <option value="kg">kg</option>
-                      <option value="cái">cái</option>
-                      <option value="quả">quả</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-emerald-50/60 p-3 rounded-2xl border border-emerald-200/80 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-emerald-950">
-                    Các quy cách mua hàng lưu sẵn (Presets):
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIngFormPresets((prev) => [
-                        ...prev,
-                        {
-                          label: `${ingFormDefaultPurchaseUnit} (${ingFormDefaultCapacityQty}${ingFormDefaultCapacityUnit})`,
-                          purchase_unit: ingFormDefaultPurchaseUnit,
-                          pack_qty: 1,
-                          pack_unit: '',
-                          capacity_qty: ingFormDefaultCapacityQty,
-                          capacity_unit: ingFormDefaultCapacityUnit,
-                        },
-                      ]);
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">
+                  Tỷ Lệ Hao Hụt (%)
+                </label>
+                <div className="relative w-full">
+                  <input
+                    type="number"
+                    step="1"
+                    min="0"
+                    max="99"
+                    value={Math.round(ingFormLossRate * 100)}
+                    onChange={(e) => {
+                      const val = parseFloat(e.target.value) || 0;
+                      setIngFormLossRate(val / 100);
                     }}
-                    className="text-[10px] font-bold text-emerald-800 bg-white hover:bg-emerald-100 px-2 py-0.5 rounded-md border border-emerald-300 transition cursor-pointer"
-                  >
-                    + Thêm quy cách
-                  </button>
+                    className="w-full h-9 pr-7 pl-3 border border-slate-200 rounded-xl text-xs font-black text-center"
+                  />
+                  <span className="absolute right-2.5 top-1/2 -translate-y-1/2 font-bold text-slate-400">%</span>
                 </div>
-
-                {ingFormPresets.length === 0 ? (
-                  <p className="text-[10px] text-slate-500 italic">
-                    Chưa có quy cách lưu sẵn. Hệ thống sẽ tự động lưu khi nhập hàng.
-                  </p>
-                ) : (
-                  <div className="space-y-1.5">
-                    {ingFormPresets.map((pr, pIdx) => (
-                      <div
-                        key={pIdx}
-                        className="bg-white p-2 rounded-xl border border-emerald-200 text-xs flex items-center justify-between gap-2"
-                      >
-                        <span className="font-bold text-emerald-900">
-                          {pr.purchase_unit} ({pr.pack_qty > 1 ? `${pr.pack_qty}x ` : ''}{pr.capacity_qty}{pr.capacity_unit})
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => setIngFormPresets((prev) => prev.filter((_, idx) => idx !== pIdx))}
-                          className="p-1 text-slate-400 hover:text-rose-600 rounded-md transition cursor-pointer"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                <p className="text-[10px] text-slate-400 mt-1">
+                  Tỷ lệ hao hụt khi sơ chế / pha chế (vd: 5% cho hoa quả gọt vỏ, bỏ hạt).
+                </p>
               </div>
+
+              {/* Mode Specific Section */}
+              {ingFormMode === 'basic' ? (
+                <div className="p-3 bg-emerald-50/70 rounded-2xl border border-emerald-200/90 text-emerald-900 text-xs flex items-start gap-2.5">
+                  <Sparkles className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold block">Chế độ cơ bản kích hoạt</span>
+                    <span className="text-[11px] text-emerald-800/90 leading-relaxed block mt-0.5">
+                      Quy cách mua hàng tự động mặc định theo 1 {ingFormBaseUnit}. Bạn không cần cấu hình tỷ lệ đóng gói thùng, chai, lon phức tạp.
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 space-y-2.5">
+                    <span className="text-[11px] font-bold text-slate-700 block">
+                      Quy Cách Mua Hàng Mặc Định:
+                    </span>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div>
+                        <span className="text-[10px] text-slate-400 font-bold block mb-0.5">Đơn vị mua</span>
+                        <select
+                          value={ingFormDefaultPurchaseUnit}
+                          onChange={(e) => setIngFormDefaultPurchaseUnit(e.target.value)}
+                          className="w-full h-8 px-1.5 border border-slate-200 rounded-lg text-xs font-bold bg-white"
+                        >
+                          {COMMON_PURCHASE_UNITS.map((u) => (
+                            <option key={u} value={u}>
+                              {u}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <span className="text-[10px] text-slate-400 font-bold block mb-0.5">Chứa (số lượng)</span>
+                        <input
+                          type="number"
+                          value={ingFormDefaultCapacityQty}
+                          onChange={(e) => setIngFormDefaultCapacityQty(parseFloat(e.target.value) || 1)}
+                          className="w-full h-8 px-1.5 border border-slate-200 rounded-lg text-xs font-black text-center bg-white"
+                        />
+                      </div>
+
+                      <div>
+                        <span className="text-[10px] text-slate-400 font-bold block mb-0.5">Đơn vị con</span>
+                        <select
+                          value={ingFormDefaultCapacityUnit}
+                          onChange={(e) => setIngFormDefaultCapacityUnit(e.target.value)}
+                          className="w-full h-8 px-1.5 border border-slate-200 rounded-lg text-xs font-bold bg-white"
+                        >
+                          <option value="ml">ml</option>
+                          <option value="l">Lít</option>
+                          <option value="g">g</option>
+                          <option value="kg">kg</option>
+                          <option value="cái">cái</option>
+                          <option value="quả">quả</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-emerald-50/60 p-3 rounded-2xl border border-emerald-200/80 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold text-emerald-950">
+                        Các quy cách mua hàng lưu sẵn (Presets):
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIngFormPresets((prev) => [
+                            ...prev,
+                            {
+                              label: `${ingFormDefaultPurchaseUnit} (${ingFormDefaultCapacityQty}${ingFormDefaultCapacityUnit})`,
+                              purchase_unit: ingFormDefaultPurchaseUnit,
+                              pack_qty: 1,
+                              pack_unit: '',
+                              capacity_qty: ingFormDefaultCapacityQty,
+                              capacity_unit: ingFormDefaultCapacityUnit,
+                            },
+                          ]);
+                        }}
+                        className="text-[10px] font-bold text-emerald-800 bg-white hover:bg-emerald-100 px-2 py-0.5 rounded-md border border-emerald-300 transition cursor-pointer"
+                      >
+                        + Thêm quy cách
+                      </button>
+                    </div>
+
+                    {ingFormPresets.length === 0 ? (
+                      <p className="text-[10px] text-slate-500 italic">
+                        Chưa có quy cách lưu sẵn. Hệ thống sẽ tự động lưu khi nhập hàng.
+                      </p>
+                    ) : (
+                      <div className="space-y-1.5">
+                        {ingFormPresets.map((pr, pIdx) => (
+                          <div
+                            key={pIdx}
+                            className="bg-white p-2 rounded-xl border border-emerald-200 text-xs flex items-center justify-between gap-2"
+                          >
+                            <span className="font-bold text-emerald-900">
+                              {pr.purchase_unit} ({pr.pack_qty > 1 ? `${pr.pack_qty}x ` : ''}{pr.capacity_qty}{pr.capacity_unit})
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => setIngFormPresets((prev) => prev.filter((_, idx) => idx !== pIdx))}
+                              className="p-1 text-slate-400 hover:text-rose-600 rounded-md transition cursor-pointer"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
 
               <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2 pb-safe">
                 <button

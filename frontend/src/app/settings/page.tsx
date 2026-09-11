@@ -89,7 +89,7 @@ export default function SettingsPage() {
     smtp_password: '',
     smtp_from_email: '',
     smtp_from_name: 'Thỏ Juice & Coffee - RabbitPOS',
-    report_recipient_emails: 'nhanhdn.jfw@gmail.com,candynhung754@gmail.com,150498tranquangdat@gmail.com',
+    report_recipient_emails: 'nhanhdn.jfw@gmail.com,candynhung754@gmail.com',
     enable_daily_email_report: 'true',
     daily_report_time: '22:30',
     google_sheets_sync_enabled: 'false',

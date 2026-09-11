@@ -110,6 +110,11 @@ func (h *PurchaseHandler) CreateIngredient(c *gin.Context) {
 		initPrice = *req.LatestPurchasePrice
 	}
 
+	avgPrice := initPrice
+	if req.AveragePurchasePrice != nil && *req.AveragePurchasePrice >= 0 {
+		avgPrice = *req.AveragePurchasePrice
+	}
+
 	ingredient := models.Ingredient{
 		Name:                 name,
 		Category:             category,
@@ -124,7 +129,7 @@ func (h *PurchaseHandler) CreateIngredient(c *gin.Context) {
 		DefaultCapacityUnit:  strings.TrimSpace(req.DefaultCapacityUnit),
 		SavedConversions:     savedConversions,
 		LatestPurchasePrice:  initPrice,
-		AveragePurchasePrice: initPrice,
+		AveragePurchasePrice: avgPrice,
 		CreatedAt:            time.Now(),
 		UpdatedAt:            time.Now(),
 	}
@@ -193,6 +198,9 @@ func (h *PurchaseHandler) UpdateIngredient(c *gin.Context) {
 		if ingredient.AveragePurchasePrice == 0 {
 			ingredient.AveragePurchasePrice = *req.LatestPurchasePrice
 		}
+	}
+	if req.AveragePurchasePrice != nil && *req.AveragePurchasePrice >= 0 {
+		ingredient.AveragePurchasePrice = *req.AveragePurchasePrice
 	}
 
 	if req.DefaultPurchaseUnit != "" {

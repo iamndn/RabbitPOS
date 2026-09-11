@@ -3,7 +3,7 @@
 ## Phase 1: Core Data, Catalog & Auth Setup (Completed)
 - **Database:** PostgreSQL schemas for `categories`, `products`, `product_variants`, `funds`, `users`.
 - **Features:**
-  - First-time password setup workflow for seeded cashier accounts (`NDN`, `NHUNG`, `DAT`).
+  - First-time password setup workflow for seeded cashier accounts (`NDN`, `NHUNG`).
   - Cashier identification stamped into orders and transactions (`cashier_id`, `cashier_name`).
   - Store logo upload and system branding settings.
   - Fix for leading zero and backspace sticking input glitch.

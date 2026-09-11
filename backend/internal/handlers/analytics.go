@@ -240,6 +240,23 @@ func (h *AnalyticsHandler) GetRevenueAnalytics(c *gin.Context) {
 		Where("status = ? AND created_at BETWEEN ? AND ?", models.OrderStatusCompleted, prevStartTime, prevEndTime).
 		Scan(&prevSummary)
 
+	// Items sold calculations (total cups/units sold)
+	var currItemsSold int64
+	h.db.Table("order_items").
+		Joins("JOIN orders ON orders.id = order_items.order_id").
+		Where("orders.status = ? AND orders.created_at BETWEEN ? AND ?", models.OrderStatusCompleted, startTime, endTime).
+		Select("COALESCE(SUM(order_items.quantity), 0)").
+		Scan(&currItemsSold)
+
+	var prevItemsSold int64
+	h.db.Table("order_items").
+		Joins("JOIN orders ON orders.id = order_items.order_id").
+		Where("orders.status = ? AND orders.created_at BETWEEN ? AND ?", models.OrderStatusCompleted, prevStartTime, prevEndTime).
+		Select("COALESCE(SUM(order_items.quantity), 0)").
+		Scan(&prevItemsSold)
+
+	itemsDelta := calculateDelta(float64(currItemsSold), float64(prevItemsSold))
+
 	totalDiscounts := currSummary.ManualDiscount + currSummary.PromotionDiscount + currSummary.PlatformDiscount
 
 	var aov float64 = 0
@@ -267,12 +284,15 @@ func (h *AnalyticsHandler) GetRevenueAnalytics(c *gin.Context) {
 		NetRevenue:              currSummary.NetRevenue,
 		CompletedOrderCount:     currSummary.CompletedOrderCount,
 		DiscountedOrderCount:    currSummary.DiscountedOrderCount,
+		TotalItemsSold:          currItemsSold,
 		AverageOrderValue:       aov,
 		PrevNetRevenue:          prevSummary.NetRevenue,
 		PrevCompletedOrderCount: prevSummary.CompletedOrderCount,
+		PrevTotalItemsSold:      prevItemsSold,
 		PrevAverageOrderValue:   prevAov,
 		RevenueDeltaPct:         revenueDelta,
 		OrdersDeltaPct:          ordersDelta,
+		ItemsDeltaPct:           itemsDelta,
 		AOVDeltaPct:             aovDelta,
 	}
 
@@ -328,6 +348,30 @@ func (h *AnalyticsHandler) GetRevenueAnalytics(c *gin.Context) {
 	_ = groupFormat
 	timeline := make([]models.RevenueTimelinePoint, 0)
 	h.db.Raw(timelineQuery, startTime, endTime).Scan(&timeline)
+
+	// Attach items_count to timeline points
+	type TimelineItemCount struct {
+		Date       string
+		ItemsCount int64
+	}
+	var timelineItems []TimelineItemCount
+	timelineItemQuery := fmt.Sprintf(`
+		SELECT 
+			TO_CHAR(orders.created_at AT TIME ZONE 'Asia/Ho_Chi_Minh', '%s') as date,
+			COALESCE(SUM(order_items.quantity), 0) as items_count
+		FROM order_items
+		JOIN orders ON orders.id = order_items.order_id
+		WHERE orders.status = 'completed' AND orders.created_at BETWEEN ? AND ?
+		GROUP BY TO_CHAR(orders.created_at AT TIME ZONE 'Asia/Ho_Chi_Minh', '%s')
+	`, groupFormat, groupFormat)
+	h.db.Raw(timelineItemQuery, startTime, endTime).Scan(&timelineItems)
+	itemMap := make(map[string]int64, len(timelineItems))
+	for _, it := range timelineItems {
+		itemMap[it.Date] = it.ItemsCount
+	}
+	for i := range timeline {
+		timeline[i].ItemsCount = itemMap[timeline[i].Date]
+	}
 
 	// 4. Payment Methods Breakdown
 	type PaymentMethodRaw struct {
