@@ -785,9 +785,11 @@ func (s *SheetsSyncService) SyncAllToGoogleSheets() error {
 	var operatingExpenses, otherInflow float64
 	for _, tx := range transactions {
 		if tx.CreatedAt.After(firstOfMonth) || tx.CreatedAt.Equal(firstOfMonth) {
-			if tx.TransactionType == models.TransactionTypeOutflow && tx.Category != models.CategoryReconciliationVariance {
+			isReconciliation := tx.Category == models.CategoryReconciliationVariance || tx.Category == "reconciliation_variance" || tx.Category == "Chênh lệch đối soát két"
+			isRefund := tx.Category == models.CategoryOrderRefund || tx.Category == "order_refund" || tx.Category == "Hủy đơn / Trả hàng"
+			if tx.TransactionType == models.TransactionTypeOutflow && !isReconciliation && !isRefund {
 				operatingExpenses += tx.Amount
-			} else if tx.TransactionType == models.TransactionTypeInflow && tx.Category != models.CategorySale && tx.Category != models.CategoryReconciliationVariance {
+			} else if tx.TransactionType == models.TransactionTypeInflow && tx.Category != models.CategorySale && !isReconciliation && !isRefund {
 				otherInflow += tx.Amount
 			}
 		}

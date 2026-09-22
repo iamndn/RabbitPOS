@@ -726,7 +726,7 @@ export default function TransactionsPage() {
     setDeleteLoading(false);
     if (res.status === 'success') {
       setDeletingTransaction(null);
-      loadData();
+      await loadData();
     } else {
       showAlert(t('common.error') || 'Lỗi', res.message || 'Failed to delete transaction', 'danger');
     }
@@ -742,7 +742,7 @@ export default function TransactionsPage() {
     if (res.status === 'success') {
       setDeletingOrder(null);
       showAlert(t('common.success') || 'Thành công', `Đã xóa vĩnh viễn đơn hàng #${deletingOrder.order_code}`, 'success');
-      loadData();
+      await loadData();
     } else {
       showAlert(t('common.error') || 'Lỗi', res.message || 'Không thể xóa đơn hàng', 'danger');
     }
@@ -958,13 +958,14 @@ export default function TransactionsPage() {
     return false;
   };
 
-  // Exclude cancelled order inflows from totalInflow
+  // Exclude cancelled order inflows and refund outflows from operational totals
+  // so that cancelled/refunded orders net to 0 and do not cause negative net cash flow or distorted expense cards
   const totalInflow = filteredTransactions
     .filter((tx) => tx.transaction_type === 'inflow' && !isTxFromCancelledOrder(tx))
     .reduce((acc, tx) => acc + (Number(tx.amount) || 0), 0);
 
   const totalOutflow = filteredTransactions
-    .filter((tx) => tx.transaction_type === 'outflow')
+    .filter((tx) => tx.transaction_type === 'outflow' && !isTxFromCancelledOrder(tx))
     .reduce((acc, tx) => acc + (Number(tx.amount) || 0), 0);
 
   const netCashFlow = totalInflow - totalOutflow;

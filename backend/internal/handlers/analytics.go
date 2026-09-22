@@ -473,11 +473,20 @@ func (h *AnalyticsHandler) GetProfitAnalytics(c *gin.Context) {
 		Select("COALESCE(SUM(product_variants.cogs_price * order_items.quantity), 0)").
 		Scan(&totalCogs)
 
-	// 3. Current Operating Expenses (outflow transactions excluding reconciliation variances)
+	excludedOutflowCats := []interface{}{
+		models.CategoryReconciliationVariance,
+		"reconciliation_variance",
+		"chênh lệch đối soát két",
+		models.CategoryOrderRefund,
+		"order_refund",
+		"Hủy đơn / Trả hàng",
+	}
+
+	// 3. Current Operating Expenses (outflow transactions excluding reconciliation variances and order refunds)
 	var operatingExpenses float64 = 0
 	h.db.Model(&models.Transaction{}).
-		Where("transaction_type = ? AND category != ? AND created_at BETWEEN ? AND ?",
-			models.TransactionTypeOutflow, models.CategoryReconciliationVariance, startTime, endTime).
+		Where("transaction_type = ? AND category NOT IN (?) AND created_at BETWEEN ? AND ?",
+			models.TransactionTypeOutflow, excludedOutflowCats, startTime, endTime).
 		Select("COALESCE(SUM(amount), 0)").
 		Scan(&operatingExpenses)
 
@@ -516,8 +525,8 @@ func (h *AnalyticsHandler) GetProfitAnalytics(c *gin.Context) {
 		Scan(&prevCogs)
 
 	h.db.Model(&models.Transaction{}).
-		Where("transaction_type = ? AND category != ? AND created_at BETWEEN ? AND ?",
-			models.TransactionTypeOutflow, models.CategoryReconciliationVariance, prevStartTime, prevEndTime).
+		Where("transaction_type = ? AND category NOT IN (?) AND created_at BETWEEN ? AND ?",
+			models.TransactionTypeOutflow, excludedOutflowCats, prevStartTime, prevEndTime).
 		Select("COALESCE(SUM(amount), 0)").
 		Scan(&prevExpenses)
 
@@ -576,8 +585,8 @@ func (h *AnalyticsHandler) GetProfitAnalytics(c *gin.Context) {
 		expense_daily AS (
 			SELECT 
 				TO_CHAR(created_at AT TIME ZONE 'Asia/Ho_Chi_Minh', '%s') as dt,
-				COALESCE(SUM(CASE WHEN transaction_type = 'outflow' AND category != 'reconciliation_variance' THEN amount ELSE 0 END), 0) as exp,
-				COALESCE(SUM(CASE WHEN transaction_type = 'inflow' AND reference_order_id IS NULL AND category != 'reconciliation_variance' THEN amount ELSE 0 END), 0) as inf
+				COALESCE(SUM(CASE WHEN transaction_type = 'outflow' AND category NOT IN ('reconciliation_variance', 'chênh lệch đối soát két', 'order_refund', 'Hủy đơn / Trả hàng') THEN amount ELSE 0 END), 0) as exp,
+				COALESCE(SUM(CASE WHEN transaction_type = 'inflow' AND reference_order_id IS NULL AND category NOT IN ('reconciliation_variance', 'chênh lệch đối soát két', 'order_refund', 'Hủy đơn / Trả hàng') THEN amount ELSE 0 END), 0) as inf
 			FROM transactions
 			WHERE created_at BETWEEN ? AND ?
 			GROUP BY TO_CHAR(created_at AT TIME ZONE 'Asia/Ho_Chi_Minh', '%s')
@@ -786,9 +795,18 @@ func (h *AnalyticsHandler) GetDashboardMetrics(c *gin.Context) {
 		Select("COALESCE(SUM(product_variants.cogs_price * order_items.quantity), 0)").
 		Scan(&totalCogs)
 
+	excludedOutflowCats := []interface{}{
+		models.CategoryReconciliationVariance,
+		"reconciliation_variance",
+		"chênh lệch đối soát két",
+		models.CategoryOrderRefund,
+		"order_refund",
+		"Hủy đơn / Trả hàng",
+	}
+
 	var totalOutflow float64 = 0
 	h.db.Model(&models.Transaction{}).
-		Where("transaction_type = ? AND created_at BETWEEN ? AND ?", models.TransactionTypeOutflow, startDate, endDate).
+		Where("transaction_type = ? AND category NOT IN (?) AND created_at BETWEEN ? AND ?", models.TransactionTypeOutflow, excludedOutflowCats, startDate, endDate).
 		Select("COALESCE(SUM(amount), 0)").
 		Scan(&totalOutflow)
 

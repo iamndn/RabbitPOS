@@ -243,11 +243,11 @@ func (h *FundHandler) GetCashierShiftSummary(c *gin.Context) {
 			cashierName, models.TransactionTypeOutflow, startTime, endTime).
 		Select("COALESCE(SUM(amount), 0)").Scan(&totalOutflows)
 
-	// Count orders attributed to this cashier in the date range
+	// Count completed orders attributed to this cashier in the date range
 	var orderCount int64
 	h.db.Model(&models.Order{}).
-		Where("cashier_name = ? AND created_at >= ? AND created_at < ?",
-			cashierName, startTime, endTime).
+		Where("cashier_name = ? AND status = ? AND created_at >= ? AND created_at < ?",
+			cashierName, models.OrderStatusCompleted, startTime, endTime).
 		Count(&orderCount)
 
 	// Find shift start and end times from transactions
