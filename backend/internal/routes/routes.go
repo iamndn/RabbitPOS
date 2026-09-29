@@ -171,6 +171,11 @@ func SetupRouter(cfg *config.Config, db *gorm.DB, emailSvc *services.EmailServic
 
 				// Fund Reconciliation & Periodic Balance Summary
 				adminOnly.POST("/funds/:id/reconcile", fundHandler.ReconcileFund)
+				adminOnly.PUT("/funds/:id/reconcile", fundHandler.UpdateReconciliation)
+				adminOnly.DELETE("/funds/:id/reconcile/latest", fundHandler.DeleteLatestReconciliation)
+				adminOnly.DELETE("/funds/:id/reconcile", fundHandler.DeleteLatestReconciliation)
+				adminOnly.POST("/funds/:id/reconcile/restore", fundHandler.RestorePreviousReconciliation)
+				adminOnly.GET("/funds/:id/reconcile/history", fundHandler.GetReconciliationHistory)
 				adminOnly.GET("/funds/period-summary", fundHandler.GetPeriodSummary)
 
 				// Financial Ledger Transactions & Category Breakdown

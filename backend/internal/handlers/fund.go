@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"net/http"
@@ -137,6 +138,7 @@ func (h *FundHandler) ReconcileFund(c *gin.Context) {
 	}
 
 	err = h.db.Transaction(func(tx *gorm.DB) error {
+		var reconcileTx *models.Transaction
 		// Log variance transaction if there is a discrepancy
 		if variance != 0 {
 			var txType models.TransactionType
@@ -153,7 +155,7 @@ func (h *FundHandler) ReconcileFund(c *gin.Context) {
 				desc = fmt.Sprintf("Fund Reconciliation Deficit Variance (-%.2f). %s", -variance, req.Notes)
 			}
 
-			reconcileTx := models.Transaction{
+			reconcileTx = &models.Transaction{
 				FundID:          fund.ID,
 				TransactionType: txType,
 				Category:        models.CategoryReconciliationVariance,
@@ -162,13 +164,30 @@ func (h *FundHandler) ReconcileFund(c *gin.Context) {
 				CreatedBy:       createdBy,
 			}
 
-			if err := tx.Create(&reconcileTx).Error; err != nil {
+			if err := tx.Create(reconcileTx).Error; err != nil {
 				return err
 			}
 		}
 
 		// Update Fund Current Balance to match Actual Count
 		if err := tx.Model(&fund).Update("current_balance", actualBalance).Error; err != nil {
+			return err
+		}
+
+		// Record FundReconciliation audit entry
+		recRecord := models.FundReconciliation{
+			FundID:             fund.ID,
+			TheoreticalBalance: theoreticalBalance,
+			ActualBalance:      actualBalance,
+			Variance:           variance,
+			Notes:              req.Notes,
+			CreatedBy:          createdBy,
+			Status:             models.ReconciliationStatusActive,
+		}
+		if reconcileTx != nil {
+			recRecord.TransactionID = &reconcileTx.ID
+		}
+		if err := tx.Create(&recRecord).Error; err != nil {
 			return err
 		}
 
@@ -193,6 +212,522 @@ func (h *FundHandler) ReconcileFund(c *gin.Context) {
 		"actual_balance":      actualBalance,
 		"variance":            variance,
 	}, "Fund balance reconciled successfully")
+}
+
+// UpdateReconciliation updates the actual counted balance of the most recent reconciliation and adjusts fund balance
+func (h *FundHandler) UpdateReconciliation(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		models.SendError(c, http.StatusBadRequest, "Invalid fund ID")
+		return
+	}
+
+	var fund models.Fund
+	if err := h.db.First(&fund, id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			models.SendError(c, http.StatusNotFound, "Fund not found")
+			return
+		}
+		models.SendInternalError(c, "Failed to retrieve fund details")
+		return
+	}
+
+	var req models.UpdateReconcileRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		models.SendError(c, http.StatusBadRequest, "Invalid request payload: "+err.Error())
+		return
+	}
+
+	// 1. Try to find the latest active/updated FundReconciliation record
+	var rec models.FundReconciliation
+	hasRecRecord := false
+	if err := h.db.Where("fund_id = ? AND status IN (?, ?)", fund.ID, models.ReconciliationStatusActive, models.ReconciliationStatusUpdated).
+		Order("id desc").First(&rec).Error; err == nil {
+		hasRecRecord = true
+	}
+
+	// 2. Also check latest reconciliation transaction
+	reconcileCategories := []string{
+		string(models.CategoryReconciliationVariance),
+		"reconciliation_variance",
+		"chênh lệch đối soát",
+		"chênh lệch đối soát két",
+		"Chênh lệch đối soát",
+		"Chênh lệch đối soát két",
+	}
+	var latestTx models.Transaction
+	hasTx := false
+	if err := h.db.Where("fund_id = ? AND category IN (?)", fund.ID, reconcileCategories).
+		Order("id desc").First(&latestTx).Error; err == nil {
+		hasTx = true
+	}
+
+	if !hasRecRecord && !hasTx {
+		models.SendError(c, http.StatusNotFound, "Không tìm thấy lệnh đối soát nào đang hoạt động để cập nhật")
+		return
+	}
+
+	// Calculate theoretical balance T0 and old actual balance
+	var theoreticalBalance float64
+	var oldActual float64
+	var oldVariance float64
+
+	if hasRecRecord {
+		theoreticalBalance = rec.TheoreticalBalance
+		oldActual = rec.ActualBalance
+		oldVariance = rec.Variance
+		if !hasTx && rec.TransactionID != nil {
+			_ = h.db.First(&latestTx, *rec.TransactionID).Error
+			if latestTx.ID > 0 {
+				hasTx = true
+			}
+		}
+	} else {
+		oldVariance = latestTx.Amount
+		if latestTx.TransactionType == models.TransactionTypeOutflow {
+			oldVariance = -latestTx.Amount
+		}
+		theoreticalBalance = fund.CurrentBalance - oldVariance
+		oldActual = fund.CurrentBalance
+	}
+
+	newActual := req.ActualBalance
+	newVariance := newActual - theoreticalBalance
+	balanceDelta := newActual - oldActual
+
+	oldFundBalance := fund.CurrentBalance
+	newFundBalance := oldFundBalance + balanceDelta
+
+	err = h.db.Transaction(func(tx *gorm.DB) error {
+		// 1. Update Fund current_balance by the difference
+		if balanceDelta != 0 {
+			if err := tx.Model(&fund).Update("current_balance", gorm.Expr("current_balance + ?", balanceDelta)).Error; err != nil {
+				return err
+			}
+		}
+
+		// 2. Update, create, or delete the variance Transaction
+		var desc string
+		var txType models.TransactionType
+		var txAmount float64
+
+		if newVariance > 0 {
+			txType = models.TransactionTypeInflow
+			txAmount = newVariance
+			desc = fmt.Sprintf("Fund Reconciliation Surplus Variance (+%.2f). Actual count: %.0f (updated). %s", newVariance, newActual, req.Notes)
+		} else if newVariance < 0 {
+			txType = models.TransactionTypeOutflow
+			txAmount = -newVariance
+			desc = fmt.Sprintf("Fund Reconciliation Deficit Variance (-%.2f). Actual count: %.0f (updated). %s", -newVariance, newActual, req.Notes)
+		}
+
+		if hasTx && latestTx.ID > 0 {
+			if newVariance == 0 {
+				if err := tx.Delete(&latestTx).Error; err != nil {
+					return err
+				}
+				if hasRecRecord {
+					rec.TransactionID = nil
+				}
+			} else {
+				updates := map[string]interface{}{
+					"transaction_type": txType,
+					"amount":           txAmount,
+					"description":      desc,
+				}
+				if err := tx.Model(&latestTx).Updates(updates).Error; err != nil {
+					return err
+				}
+			}
+		} else if newVariance != 0 {
+			newTx := models.Transaction{
+				FundID:          fund.ID,
+				TransactionType: txType,
+				Category:        models.CategoryReconciliationVariance,
+				Amount:          txAmount,
+				Description:     desc,
+				CreatedBy:       "manager",
+			}
+			if err := tx.Create(&newTx).Error; err != nil {
+				return err
+			}
+			if hasRecRecord {
+				rec.TransactionID = &newTx.ID
+			}
+		}
+
+		// 3. Update or create FundReconciliation record
+		prevAct := oldActual
+		prevVar := oldVariance
+		if hasRecRecord {
+			rec.PreviousActual = &prevAct
+			rec.PreviousVariance = &prevVar
+			rec.ActualBalance = newActual
+			rec.Variance = newVariance
+			if req.Notes != "" {
+				rec.Notes = req.Notes
+			}
+			rec.Status = models.ReconciliationStatusUpdated
+			if err := tx.Save(&rec).Error; err != nil {
+				return err
+			}
+		} else {
+			newRec := models.FundReconciliation{
+				FundID:             fund.ID,
+				TheoreticalBalance: theoreticalBalance,
+				ActualBalance:      newActual,
+				Variance:           newVariance,
+				Notes:              req.Notes,
+				CreatedBy:          "manager",
+				Status:             models.ReconciliationStatusUpdated,
+				PreviousActual:     &prevAct,
+				PreviousVariance:   &prevVar,
+			}
+			if hasTx && latestTx.ID > 0 && newVariance != 0 {
+				newRec.TransactionID = &latestTx.ID
+			}
+			if err := tx.Create(&newRec).Error; err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		models.SendInternalErrorLogged(c, "Failed to update reconciliation", err)
+		return
+	}
+
+	if h.cache != nil {
+		h.cache.Invalidate(fundsCacheKey)
+	}
+
+	_ = h.db.First(&fund, id)
+
+	models.SendSuccess(c, http.StatusOK, gin.H{
+		"fund_id":                 fund.ID,
+		"fund_name":               fund.Name,
+		"theoretical_balance":     theoreticalBalance,
+		"previous_actual_balance": oldActual,
+		"new_actual_balance":      newActual,
+		"previous_variance":       oldVariance,
+		"new_variance":            newVariance,
+		"balance_delta":           balanceDelta,
+		"previous_fund_balance":   oldFundBalance,
+		"updated_fund_balance":    newFundBalance,
+		"notes":                   req.Notes,
+	}, "Đã cập nhật đối soát thực tế và điều chỉnh số dư két thành công")
+}
+
+// DeleteLatestReconciliation finds and deletes the most recent reconciliation transaction for a fund and reverts its balance
+func (h *FundHandler) DeleteLatestReconciliation(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		models.SendError(c, http.StatusBadRequest, "Invalid fund ID")
+		return
+	}
+
+	var fund models.Fund
+	if err := h.db.First(&fund, id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			models.SendError(c, http.StatusNotFound, "Fund not found")
+			return
+		}
+		models.SendInternalError(c, "Failed to retrieve fund details")
+		return
+	}
+
+	reconcileCategories := []string{
+		string(models.CategoryReconciliationVariance),
+		"reconciliation_variance",
+		"chênh lệch đối soát",
+		"chênh lệch đối soát két",
+		"Chênh lệch đối soát",
+		"Chênh lệch đối soát két",
+	}
+
+	var latestTx models.Transaction
+	hasTx := false
+	if err := h.db.Where("fund_id = ? AND category IN (?)", fund.ID, reconcileCategories).
+		Order("id desc").First(&latestTx).Error; err == nil {
+		hasTx = true
+	}
+
+	var activeRec models.FundReconciliation
+	hasRec := false
+	if err := h.db.Where("fund_id = ? AND status IN (?, ?)", fund.ID, models.ReconciliationStatusActive, models.ReconciliationStatusUpdated).
+		Order("id desc").First(&activeRec).Error; err == nil {
+		hasRec = true
+	}
+
+	if !hasTx && !hasRec {
+		models.SendError(c, http.StatusNotFound, "Không tìm thấy giao dịch đối soát nào cho quỹ này")
+		return
+	}
+
+	oldBalance := fund.CurrentBalance
+
+	err = h.db.Transaction(func(tx *gorm.DB) error {
+		var variance float64
+		now := time.Now()
+		if hasRec {
+			if err := tx.Model(&activeRec).Updates(map[string]interface{}{
+				"status":         models.ReconciliationStatusReverted,
+				"transaction_id": nil,
+				"reverted_at":    &now,
+			}).Error; err != nil {
+				return err
+			}
+		}
+
+		if hasTx {
+			if latestTx.TransactionType == models.TransactionTypeInflow {
+				variance = latestTx.Amount
+				if err := tx.Model(&fund).Update("current_balance", gorm.Expr("current_balance - ?", latestTx.Amount)).Error; err != nil {
+					return err
+				}
+			} else {
+				variance = -latestTx.Amount
+				if err := tx.Model(&fund).Update("current_balance", gorm.Expr("current_balance + ?", latestTx.Amount)).Error; err != nil {
+					return err
+				}
+			}
+
+			// Clear foreign key reference if any other reconciliation record pointed to latestTx
+			_ = tx.Model(&models.FundReconciliation{}).
+				Where("transaction_id = ?", latestTx.ID).
+				Updates(map[string]interface{}{
+					"transaction_id": nil,
+					"status":         models.ReconciliationStatusReverted,
+					"reverted_at":    &now,
+				}).Error
+
+			if err := tx.Delete(&latestTx).Error; err != nil {
+				return err
+			}
+		} else if hasRec {
+			variance = activeRec.Variance
+			if variance != 0 {
+				if err := tx.Model(&fund).Update("current_balance", gorm.Expr("current_balance - ?", variance)).Error; err != nil {
+					return err
+				}
+			}
+		}
+
+		if !hasRec && hasTx {
+			revertedRec := models.FundReconciliation{
+				FundID:             fund.ID,
+				TheoreticalBalance: oldBalance - variance,
+				ActualBalance:      oldBalance,
+				Variance:           variance,
+				Notes:              latestTx.Description,
+				CreatedBy:          latestTx.CreatedBy,
+				Status:             models.ReconciliationStatusReverted,
+				RevertedAt:         &now,
+			}
+			_ = tx.Create(&revertedRec).Error
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		models.SendInternalErrorLogged(c, "Failed to revert reconciliation transaction", err)
+		return
+	}
+
+	if h.cache != nil {
+		h.cache.Invalidate(fundsCacheKey)
+	}
+
+	// Fetch updated fund
+	_ = h.db.First(&fund, id)
+
+	models.SendSuccess(c, http.StatusOK, gin.H{
+		"deleted_transaction_id": latestTx.ID,
+		"fund_id":                fund.ID,
+		"fund_name":              fund.Name,
+		"reverted_amount":        latestTx.Amount,
+		"transaction_type":       latestTx.TransactionType,
+		"previous_balance":       oldBalance,
+		"restored_balance":       fund.CurrentBalance,
+	}, "Đã xóa giao dịch đối soát gần nhất và hoàn tác số dư quỹ thành công")
+}
+
+// RestorePreviousReconciliation restores the most recently reverted reconciliation for a fund
+func (h *FundHandler) RestorePreviousReconciliation(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		models.SendError(c, http.StatusBadRequest, "Invalid fund ID")
+		return
+	}
+
+	var fund models.Fund
+	if err := h.db.First(&fund, id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			models.SendError(c, http.StatusNotFound, "Fund not found")
+			return
+		}
+		models.SendInternalError(c, "Failed to retrieve fund details")
+		return
+	}
+
+	// Find the most recently reverted reconciliation
+	var revertedRec models.FundReconciliation
+	if err := h.db.Where("fund_id = ? AND status = ?", fund.ID, models.ReconciliationStatusReverted).
+		Order("id desc").First(&revertedRec).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			models.SendError(c, http.StatusNotFound, "Không có lệnh đối soát đã hủy nào để khôi phục cho quỹ này")
+			return
+		}
+		models.SendInternalErrorLogged(c, "Failed to find reverted reconciliation", err)
+		return
+	}
+
+	// Verify no active reconciliation was made after this reverted one
+	var newerActiveCount int64
+	h.db.Model(&models.FundReconciliation{}).
+		Where("fund_id = ? AND status IN (?, ?) AND id > ?", fund.ID, models.ReconciliationStatusActive, models.ReconciliationStatusUpdated, revertedRec.ID).
+		Count(&newerActiveCount)
+	if newerActiveCount > 0 {
+		models.SendError(c, http.StatusBadRequest, "Không thể khôi phục: Đã có lệnh đối soát mới hơn đang hoạt động trên quỹ này")
+		return
+	}
+
+	oldBalance := fund.CurrentBalance
+	variance := revertedRec.Variance
+
+	err = h.db.Transaction(func(tx *gorm.DB) error {
+		// Re-apply variance to fund current balance
+		if variance != 0 {
+			if err := tx.Model(&fund).Update("current_balance", gorm.Expr("current_balance + ?", variance)).Error; err != nil {
+				return err
+			}
+
+			// Re-create variance transaction
+			var txType models.TransactionType
+			var txAmount float64
+			var desc string
+			if variance > 0 {
+				txType = models.TransactionTypeInflow
+				txAmount = variance
+				desc = fmt.Sprintf("Fund Reconciliation Surplus Variance (+%.2f) [Restored]. %s", variance, revertedRec.Notes)
+			} else {
+				txType = models.TransactionTypeOutflow
+				txAmount = -variance
+				desc = fmt.Sprintf("Fund Reconciliation Deficit Variance (-%.2f) [Restored]. %s", -variance, revertedRec.Notes)
+			}
+
+			reconcileTx := models.Transaction{
+				FundID:          fund.ID,
+				TransactionType: txType,
+				Category:        models.CategoryReconciliationVariance,
+				Amount:          txAmount,
+				Description:     desc,
+				CreatedBy:       revertedRec.CreatedBy,
+			}
+			if err := tx.Create(&reconcileTx).Error; err != nil {
+				return err
+			}
+			revertedRec.TransactionID = &reconcileTx.ID
+		}
+
+		// Set status back to active
+		revertedRec.Status = models.ReconciliationStatusActive
+		revertedRec.RevertedAt = nil
+		if err := tx.Save(&revertedRec).Error; err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		models.SendInternalErrorLogged(c, "Failed to restore reconciliation", err)
+		return
+	}
+
+	if h.cache != nil {
+		h.cache.Invalidate(fundsCacheKey)
+	}
+
+	_ = h.db.First(&fund, id)
+
+	models.SendSuccess(c, http.StatusOK, gin.H{
+		"reconciliation_id":  revertedRec.ID,
+		"fund_id":            fund.ID,
+		"fund_name":          fund.Name,
+		"restored_variance":  variance,
+		"previous_balance":   oldBalance,
+		"new_balance":        fund.CurrentBalance,
+		"actual_balance":     revertedRec.ActualBalance,
+	}, "Đã khôi phục lệnh đối soát trước đó và cập nhật lại số dư két thành công")
+}
+
+// GetReconciliationHistory returns recent reconciliation audit logs for a fund
+func (h *FundHandler) GetReconciliationHistory(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		models.SendError(c, http.StatusBadRequest, "Invalid fund ID")
+		return
+	}
+
+	var fund models.Fund
+	if err := h.db.First(&fund, id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			models.SendError(c, http.StatusNotFound, "Fund not found")
+			return
+		}
+		models.SendInternalError(c, "Failed to retrieve fund details")
+		return
+	}
+
+	var records []models.FundReconciliation
+	_ = h.db.Preload("Transaction").Where("fund_id = ?", fund.ID).
+		Order("id desc").Limit(20).Find(&records).Error
+
+	// If no FundReconciliation records exist yet, fallback to finding reconciliation transactions
+	if len(records) == 0 {
+		reconcileCategories := []string{
+			string(models.CategoryReconciliationVariance),
+			"reconciliation_variance",
+			"chênh lệch đối soát",
+			"chênh lệch đối soát két",
+			"Chênh lệch đối soát",
+			"Chênh lệch đối soát két",
+		}
+		var txs []models.Transaction
+		_ = h.db.Where("fund_id = ? AND category IN (?)", fund.ID, reconcileCategories).
+			Order("id desc").Limit(20).Find(&txs).Error
+
+		for _, tx := range txs {
+			var variance float64 = tx.Amount
+			if tx.TransactionType == models.TransactionTypeOutflow {
+				variance = -tx.Amount
+			}
+			recID := tx.ID
+			records = append(records, models.FundReconciliation{
+				ID:                 recID,
+				FundID:             fund.ID,
+				TheoreticalBalance: fund.CurrentBalance - variance,
+				ActualBalance:      fund.CurrentBalance,
+				Variance:           variance,
+				Notes:              tx.Description,
+				CreatedBy:          tx.CreatedBy,
+				TransactionID:      &recID,
+				Status:             models.ReconciliationStatusActive,
+				CreatedAt:          tx.CreatedAt,
+				UpdatedAt:          tx.CreatedAt,
+			})
+		}
+	}
+
+	models.SendSuccess(c, http.StatusOK, records, "Reconciliation history retrieved successfully")
 }
 
 // GetCashierShiftSummary returns financial totals for a specific cashier's shift

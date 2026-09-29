@@ -729,10 +729,34 @@ func (h *TransactionHandler) DeleteTransaction(c *gin.Context) {
 		return
 	}
 
-	// Guard: Do not allow deleting balance audit reconciliation transactions
-	if existingTx.Category == models.CategoryReconciliationVariance {
-		models.SendError(c, http.StatusForbidden, "Cannot delete balance audit reconciliation transactions")
-		return
+	// For balance audit reconciliation transactions, only allow deleting the MOST RECENT one for this fund
+	isReconciliation := existingTx.Category == models.CategoryReconciliationVariance ||
+		existingTx.Category == "reconciliation_variance" ||
+		existingTx.Category == "chênh lệch đối soát" ||
+		existingTx.Category == "chênh lệch đối soát két" ||
+		existingTx.Category == "Chênh lệch đối soát" ||
+		existingTx.Category == "Chênh lệch đối soát két"
+
+	if isReconciliation {
+		var newerReconcileCount int64
+		reconcileCategories := []string{
+			string(models.CategoryReconciliationVariance),
+			"reconciliation_variance",
+			"chênh lệch đối soát",
+			"chênh lệch đối soát két",
+			"Chênh lệch đối soát",
+			"Chênh lệch đối soát két",
+		}
+		if err := h.db.Model(&models.Transaction{}).
+			Where("fund_id = ? AND category IN (?) AND id > ?", existingTx.FundID, reconcileCategories, existingTx.ID).
+			Count(&newerReconcileCount).Error; err != nil {
+			models.SendInternalErrorLogged(c, "Failed to verify reconciliation transaction order", err)
+			return
+		}
+		if newerReconcileCount > 0 {
+			models.SendError(c, http.StatusBadRequest, "Chỉ có thể xóa giao dịch đối soát gần nhất của quỹ này để bảo toàn tính nhất quán số dư sổ quỹ")
+			return
+		}
 	}
 
 	// If transaction is linked to a sales order, delete the sales order and all its linked transactions
@@ -823,7 +847,17 @@ func (h *TransactionHandler) DeleteTransaction(c *gin.Context) {
 			affectedIngredientIDs[oi.IngredientID] = true
 		}
 
-		// 3. Delete purchase items and transaction record
+		// 3. Clear any reconciliation records linked to this transaction
+		now := time.Now()
+		_ = tx.Model(&models.FundReconciliation{}).
+			Where("transaction_id = ?", existingTx.ID).
+			Updates(map[string]interface{}{
+				"transaction_id": nil,
+				"status":         models.ReconciliationStatusReverted,
+				"reverted_at":    &now,
+			}).Error
+
+		// 4. Delete purchase items and transaction record
 		if err := tx.Where("transaction_id = ?", existingTx.ID).Delete(&models.PurchaseItem{}).Error; err != nil {
 			return err
 		}

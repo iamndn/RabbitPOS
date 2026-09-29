@@ -88,12 +88,14 @@ func AutoMigrateAll(db *gorm.DB) error {
 		&models.IdempotencyRecord{},
 		&models.AuditLog{},
 		&models.RevokedToken{},
+		&models.FundReconciliation{},
 	)
 }
 
 // CleanTables deletes all records from all tables in reverse dependency order
 func CleanTables(db *gorm.DB) error {
 	tables := []string{
+		"fund_reconciliations",
 		"audit_logs",
 		"revoked_tokens",
 		"idempotency_records",
