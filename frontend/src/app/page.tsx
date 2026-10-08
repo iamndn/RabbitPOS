@@ -540,6 +540,7 @@ export default function PosPage() {
           setCartItems(cachedCart.items);
           if (cachedCart.orderNote) setOrderNote(cachedCart.orderNote);
           if (cachedCart.discountAmount) setDiscountAmount(cachedCart.discountAmount);
+          if (cachedCart.platformFeeDiscount) setPlatformFeeDiscount(cachedCart.platformFeeDiscount);
           if (cachedCart.selectedPromotion) setSelectedPromotion(cachedCart.selectedPromotion);
           if (cachedCart.shippingFee) setShippingFee(cachedCart.shippingFee);
           if (cachedCart.surcharge) setSurcharge(cachedCart.surcharge);
@@ -551,6 +552,10 @@ export default function PosPage() {
           const parsed = JSON.parse(savedCart);
           if (parsed.cartItems && Array.isArray(parsed.cartItems) && parsed.cartItems.length > 0) {
             setCartItems(parsed.cartItems);
+            if (parsed.discountAmount) setDiscountAmount(parsed.discountAmount);
+            if (parsed.platformFeeDiscount) setPlatformFeeDiscount(parsed.platformFeeDiscount);
+            if (parsed.shippingFee) setShippingFee(parsed.shippingFee);
+            if (parsed.surcharge) setSurcharge(parsed.surcharge);
           } else {
             localStorage.removeItem('rabbitpos_active_cart');
           }
@@ -582,6 +587,10 @@ export default function PosPage() {
           'rabbitpos_active_cart',
           JSON.stringify({
             cartItems,
+            discountAmount,
+            platformFeeDiscount,
+            shippingFee,
+            surcharge,
           })
         );
       } else {
@@ -804,6 +813,7 @@ export default function PosPage() {
           promotion_id: selectedPromotion ? selectedPromotion.id : undefined,
           note: orderNote || undefined,
           manual_discount: discountAmount > 0 ? discountAmount : undefined,
+          platform_fee_discount: platformFeeDiscount > 0 ? platformFeeDiscount : undefined,
           shipping_fee: shippingFee > 0 ? shippingFee : undefined,
           surcharge: surcharge > 0 ? surcharge : undefined,
           created_at: orderCreatedAt || undefined,
@@ -813,6 +823,7 @@ export default function PosPage() {
             topping_ids: (item.selectedToppings || []).map((t) => t.id),
             notes: item.notes || '',
             is_gift: !!item.isGift,
+            price_override: item.unitPrice !== item.selectedVariant.retail_price ? item.unitPrice : undefined,
           })),
         },
         display_snapshot: {
@@ -820,8 +831,10 @@ export default function PosPage() {
           items: orderCartSnapshot,
           subtotal: cartSubtotal,
           discount: discountAmount,
+          manual_discount: discountAmount,
           promotion_discount: promotionDiscount,
           promotion_name: selectedPromotion?.name || undefined,
+          platform_fee_discount: platformFeeDiscount,
           shipping_fee: shippingFee,
           surcharge: surcharge,
           total: cartTotal,
@@ -876,6 +889,7 @@ export default function PosPage() {
       promotion_id: selectedPromotion ? selectedPromotion.id : undefined,
       note: orderNote || undefined,
       manual_discount: discountAmount > 0 ? discountAmount : undefined,
+      platform_fee_discount: platformFeeDiscount > 0 ? platformFeeDiscount : undefined,
       shipping_fee: shippingFee > 0 ? shippingFee : undefined,
       surcharge: surcharge > 0 ? surcharge : undefined,
       created_at: orderCreatedAt || undefined,
@@ -885,6 +899,7 @@ export default function PosPage() {
         topping_ids: (item.selectedToppings || []).map((t) => t.id),
         notes: item.notes || '',
         is_gift: !!item.isGift,
+        price_override: item.unitPrice !== item.selectedVariant.retail_price ? item.unitPrice : undefined,
       })),
     };
 
@@ -911,12 +926,17 @@ export default function PosPage() {
       setIsVietQRModalOpen(false);
       setIsCartDrawerOpen(false);
 
+      const totalDiscounts =
+        (serverOrder.discount_amount || serverOrder.manual_discount || 0) +
+        (serverOrder.promotion_discount || 0) +
+        (serverOrder.platform_fee_discount || 0);
+
       const orderData: CompletedOrderData = {
         order_code: serverOrder.order_code,
         created_at: serverOrder.created_at || new Date().toISOString(),
         items: orderCartSnapshot,
         subtotal: serverOrder.subtotal,
-        discount: serverOrder.discount_amount || serverOrder.manual_discount || 0,
+        discount: totalDiscounts,
         discount_amount: serverOrder.discount_amount || serverOrder.manual_discount || 0,
         promotion_discount: serverOrder.promotion_discount || 0,
         promotion_name: serverOrder.promotion?.name || undefined,

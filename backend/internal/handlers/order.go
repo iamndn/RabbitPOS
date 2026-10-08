@@ -189,7 +189,7 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 	}
 	isAdmin := role == "admin"
 
-	// Enforce RBAC for Admin-Only Overrides (Price Override, Manual Discount, Custom Backdating)
+	// Enforce RBAC for Admin-Only Overrides (Item Price Override, Custom Backdating)
 	hasItemPriceOverride := false
 	for _, itm := range req.Items {
 		if itm.PriceOverride != nil {
@@ -197,17 +197,20 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 			break
 		}
 	}
-	hasManualDiscount := req.ManualDiscount != nil && *req.ManualDiscount > 0
 	hasBackdate := req.CreatedAt != nil && !req.CreatedAt.IsZero()
-	hasCustomFee := (req.ShippingFee != nil && *req.ShippingFee > 0) || (req.Surcharge != nil && *req.Surcharge > 0)
 
-	if !isAdmin && (hasItemPriceOverride || hasManualDiscount || hasBackdate || hasCustomFee) {
-		models.SendErrorCode(c, http.StatusForbidden, "AUTH_FORBIDDEN_ROLE", "Chỉ quản trị viên (Admin) mới có quyền can thiệp giá (override), giảm giá thủ công hoặc chọn ngày tạo đơn trong quá khứ.")
+	if !isAdmin && (hasItemPriceOverride || hasBackdate) {
+		models.SendErrorCode(c, http.StatusForbidden, "AUTH_FORBIDDEN_ROLE", "Chỉ quản trị viên (Admin) mới có quyền can thiệp giá gốc món (override) hoặc chọn ngày tạo đơn trong quá khứ.")
 		return
 	}
 
-	// Log backward-compatibility warning if client passed legacy money values
-	if req.TotalAmount > 0 || req.Subtotal > 0 || req.DiscountAmount > 0 {
+	// Backward compatibility fallback: accept discount_amount if manual_discount not explicitly provided
+	if req.ManualDiscount == nil && req.DiscountAmount > 0 {
+		req.ManualDiscount = &req.DiscountAmount
+	}
+
+	// Log backward-compatibility warning if client passed legacy money fields
+	if req.TotalAmount > 0 || req.Subtotal > 0 {
 		log.Printf("[PRICE WARN] Client submitted unverified money fields (subtotal/total). Ignored in favor of server-authoritative calculations.")
 	}
 
@@ -483,9 +486,9 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 			}
 		}
 
-		// 6. Admin Manual Discount & Extra Fees
+		// 6. Manual Discount, Platform Discount & Extra Fees
 		var manualDiscount float64 = 0
-		if isAdmin && req.ManualDiscount != nil {
+		if req.ManualDiscount != nil {
 			manualDiscount = math.Round(*req.ManualDiscount)
 			if manualDiscount > subtotal {
 				manualDiscount = subtotal
@@ -495,18 +498,26 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 			}
 		}
 
+		var platformFeeDiscount float64 = 0
+		if req.PlatformFeeDiscount != nil {
+			platformFeeDiscount = math.Round(*req.PlatformFeeDiscount)
+			if platformFeeDiscount > subtotal {
+				platformFeeDiscount = subtotal
+			}
+		}
+
 		var shippingFee float64 = 0
-		if isAdmin && req.ShippingFee != nil {
+		if req.ShippingFee != nil {
 			shippingFee = math.Round(*req.ShippingFee)
 		}
 
 		var surcharge float64 = 0
-		if isAdmin && req.Surcharge != nil {
+		if req.Surcharge != nil {
 			surcharge = math.Round(*req.Surcharge)
 		}
 
 		// 7. Calculate Final Total Amount
-		totalAmount := math.Round(subtotal - promoDiscount - manualDiscount + shippingFee + surcharge)
+		totalAmount := math.Round(subtotal - promoDiscount - manualDiscount - platformFeeDiscount + shippingFee + surcharge)
 		if totalAmount < 0 {
 			totalAmount = 0
 		}
@@ -531,7 +542,7 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 			PromotionID:         req.PromotionID,
 			PromotionDiscount:   promoDiscount,
 			ShippingFee:         shippingFee,
-			PlatformFeeDiscount: 0,
+			PlatformFeeDiscount: platformFeeDiscount,
 			Surcharge:           surcharge,
 			TotalAmount:         totalAmount,
 			FundID:              fund.ID,

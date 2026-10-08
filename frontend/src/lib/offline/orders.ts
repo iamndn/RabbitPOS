@@ -28,6 +28,7 @@ export interface OfflineOrderPayload {
   promotion_id?: number;
   note?: string;
   manual_discount?: number;
+  platform_fee_discount?: number;
   shipping_fee?: number;
   surcharge?: number;
   created_at?: string;
@@ -39,8 +40,10 @@ export interface OfflineOrderDisplaySnapshot {
   items: any[];
   subtotal: number;
   discount: number;
+  manual_discount?: number;
   promotion_discount: number;
   promotion_name?: string;
+  platform_fee_discount?: number;
   shipping_fee: number;
   surcharge: number;
   total: number;

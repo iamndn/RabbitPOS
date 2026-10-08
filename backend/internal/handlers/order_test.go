@@ -764,3 +764,74 @@ func TestOrder_GiftPromotion_SelectGiftItem(t *testing.T) {
 		t.Errorf("Expected 422 when gift item has no promotion, got %d. Body: %s", wNoPromo.Code, wNoPromo.Body.String())
 	}
 }
+
+func TestOrder_Cashier_DiscountsAndFees_Success(t *testing.T) {
+	db := testutils.GetTestDB(t)
+	fixtures, err := testutils.SeedMinimalFixtures(db)
+	if err != nil {
+		t.Fatalf("Failed to seed fixtures: %v", err)
+	}
+
+	handler := NewOrderHandler(db, nil, nil)
+	// Staff / Cashier role
+	router := setupOrderTestRouter(handler, "cashier", "staff_alice", 10)
+
+	manualDiscount := 5000.0
+	platformDiscount := 3000.0
+	shippingFee := 10000.0
+	surcharge := 2000.0
+
+	// 2 items of retail price (e.g. 2 * 30000 = 60000)
+	payload := models.CreateOrderRequest{
+		FundID:              fixtures.CashFund.ID,
+		ManualDiscount:      &manualDiscount,
+		PlatformFeeDiscount: &platformDiscount,
+		ShippingFee:         &shippingFee,
+		Surcharge:           &surcharge,
+		Items: []models.CreateOrderItemRequest{
+			{
+				ProductVariantID: fixtures.Variant.ID,
+				Quantity:         2,
+			},
+		},
+	}
+
+	bodyBytes, _ := json.Marshal(payload)
+	req, _ := http.NewRequest("POST", "/api/v1/orders", bytes.NewBuffer(bodyBytes))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusCreated {
+		t.Fatalf("Expected 201 Created for cashier applying discounts/fees, got %d. Body: %s", w.Code, w.Body.String())
+	}
+
+	var resp struct {
+		Data models.Order `json:"data"`
+	}
+	_ = json.Unmarshal(w.Body.Bytes(), &resp)
+
+	order := resp.Data
+	expectedSubtotal := fixtures.Variant.RetailPrice * 2
+	expectedTotal := expectedSubtotal - manualDiscount - platformDiscount + shippingFee + surcharge
+
+	if order.Subtotal != expectedSubtotal {
+		t.Errorf("Subtotal expected %.0f, got %.0f", expectedSubtotal, order.Subtotal)
+	}
+	if order.ManualDiscount != manualDiscount {
+		t.Errorf("ManualDiscount expected %.0f, got %.0f", manualDiscount, order.ManualDiscount)
+	}
+	if order.PlatformFeeDiscount != platformDiscount {
+		t.Errorf("PlatformFeeDiscount expected %.0f, got %.0f", platformDiscount, order.PlatformFeeDiscount)
+	}
+	if order.ShippingFee != shippingFee {
+		t.Errorf("ShippingFee expected %.0f, got %.0f", shippingFee, order.ShippingFee)
+	}
+	if order.Surcharge != surcharge {
+		t.Errorf("Surcharge expected %.0f, got %.0f", surcharge, order.Surcharge)
+	}
+	if order.TotalAmount != expectedTotal {
+		t.Errorf("TotalAmount expected %.0f, got %.0f", expectedTotal, order.TotalAmount)
+	}
+}
+

@@ -100,20 +100,22 @@ type CreateOrderRequest struct {
 	PromotionID    *uint                    `json:"promotion_id,omitempty"`
 	Note           string                   `json:"note,omitempty"`
 
+	// POS Order Adjustments & Discounts (Allowed for both Cashier & Admin)
+	ManualDiscount      *float64 `json:"manual_discount,omitempty"`
+	PlatformFeeDiscount *float64 `json:"platform_fee_discount,omitempty"`
+	ShippingFee         *float64 `json:"shipping_fee,omitempty"`
+	Surcharge           *float64 `json:"surcharge,omitempty"`
+
 	// Admin Override & Backdating Fields (Forbidden if requester is not admin)
-	ManualDiscount *float64   `json:"manual_discount,omitempty"`
-	ShippingFee    *float64   `json:"shipping_fee,omitempty"`
-	Surcharge      *float64   `json:"surcharge,omitempty"`
 	OverrideReason string     `json:"override_reason,omitempty"`
 	CreatedAt      *time.Time `json:"created_at,omitempty"` // For backdating past orders (Admin only)
 
-	// Backward Compatibility Fields (Ignored by server calculations; recalculated from DB)
-	DiscountAmount      float64 `json:"discount_amount,omitempty"`
-	PromotionDiscount   float64 `json:"promotion_discount,omitempty"`
-	PlatformFeeDiscount float64 `json:"platform_fee_discount,omitempty"`
-	TotalAmount         float64 `json:"total_amount,omitempty"`
-	Subtotal            float64 `json:"subtotal,omitempty"`
-	CreatedBy           string  `json:"created_by,omitempty"`
+	// Backward Compatibility Fields (Fallback or client snapshot)
+	DiscountAmount    float64 `json:"discount_amount,omitempty"`
+	PromotionDiscount float64 `json:"promotion_discount,omitempty"`
+	TotalAmount       float64 `json:"total_amount,omitempty"`
+	Subtotal          float64 `json:"subtotal,omitempty"`
+	CreatedBy         string  `json:"created_by,omitempty"`
 }
 
 type CancelOrderRequest struct {
