@@ -66,6 +66,7 @@ type OrderItem struct {
 	Notes             string          `gorm:"type:text" json:"notes"`
 	IsPriceOverridden bool            `gorm:"default:false" json:"is_price_overridden"`
 	OverrideReason    string          `gorm:"type:text" json:"override_reason,omitempty"`
+	IsGift            bool            `gorm:"not null;default:false;index" json:"is_gift"`
 	CreatedAt         time.Time       `json:"created_at"`
 	UpdatedAt         time.Time       `json:"updated_at"`
 }

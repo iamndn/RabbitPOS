@@ -219,6 +219,7 @@ interface OrderItemApi {
   selected_toppings: string;
   toppings_price: number;
   notes: string;
+  is_gift?: boolean;
 }
 
 interface OrderApi {
@@ -2447,9 +2448,16 @@ export default function TransactionsPage() {
                                         >
                                           <div className="flex justify-between items-start gap-1">
                                             <div className="min-w-0 flex-1">
-                                              <span className="font-bold text-slate-800 block">
-                                                {getOrderItemName(item)}
-                                              </span>
+                                              <div className="flex items-center gap-1.5 flex-wrap">
+                                                <span className="font-bold text-slate-800">
+                                                  {getOrderItemName(item)}
+                                                </span>
+                                                {item.is_gift && (
+                                                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                                                    🎁 Quà tặng (0đ)
+                                                  </span>
+                                                )}
+                                              </div>
                                               {item.variant?.variant_name && item.variant.variant_name !== 'Default' && item.variant.variant_name !== getOrderItemName(item) && (
                                                 <div className="text-[11px] text-slate-500 font-medium mt-0.5">
                                                   Size/Loại: {item.variant.variant_name}
@@ -2589,9 +2597,16 @@ export default function TransactionsPage() {
                               {items.map((item) => (
                                 <div key={item.id} className="flex justify-between items-start text-xs">
                                   <div className="min-w-0 flex-1 pr-2">
-                                    <span className="font-bold text-slate-800">
-                                      {getOrderItemName(item)}
-                                    </span>
+                                    <div className="flex items-center gap-1 flex-wrap">
+                                      <span className="font-bold text-slate-800">
+                                        {getOrderItemName(item)}
+                                      </span>
+                                      {item.is_gift && (
+                                        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                                          🎁 Quà tặng
+                                        </span>
+                                      )}
+                                    </div>
                                     {item.variant?.variant_name && item.variant.variant_name !== 'Default' && item.variant.variant_name !== getOrderItemName(item) && (
                                       <span className="text-[10px] text-slate-500 font-medium ml-1">
                                         ({item.variant.variant_name})

@@ -26,7 +26,7 @@ import {
   WifiOff,
 } from 'lucide-react';
 import AppShell from '@/components/AppShell';
-import type { CartItem, Product } from '@/components/pos/VariantSelectorModal';
+import type { CartItem, Product, ProductVariant } from '@/components/pos/VariantSelectorModal';
 import CartDrawer from '@/components/pos/CartDrawer';
 import type { CompletedOrderData } from '@/components/pos/ReceiptModal';
 import { Promotion } from '@/types/promotion';
@@ -617,8 +617,8 @@ export default function PosPage() {
       setPromotionDiscount(0);
       return;
     }
-    const currentSubtotal = cartItems.reduce((acc, item) => acc + item.lineTotal, 0);
-    const totalQty = cartItems.reduce((acc, item) => acc + item.quantity, 0);
+    const currentSubtotal = cartItems.filter((i) => !i.isGift).reduce((acc, item) => acc + item.lineTotal, 0);
+    const totalQty = cartItems.filter((i) => !i.isGift).reduce((acc, item) => acc + item.quantity, 0);
 
     if (selectedPromotion.min_order_amount > 0 && currentSubtotal < selectedPromotion.min_order_amount) {
       setPromotionDiscount(0);
@@ -682,8 +682,53 @@ export default function PosPage() {
   }, []);
 
   const handleRemoveItem = useCallback((id: string) => {
-    setCartItems((prev) => prev.filter((i) => i.id !== id));
+    setCartItems((prev) => {
+      const target = prev.find((i) => i.id === id);
+      if (target?.isGift) {
+        setSelectedPromotion(null);
+      }
+      return prev.filter((i) => i.id !== id);
+    });
   }, []);
+
+  const handleSelectPromotion = useCallback((promo: Promotion | null) => {
+    setSelectedPromotion(promo);
+    if (!promo || promo.promo_type !== 'gift_item') {
+      setCartItems((prev) => prev.filter((item) => !item.isGift));
+    }
+  }, []);
+
+  const handleApplyGiftItem = useCallback(
+    (promo: Promotion, variant: ProductVariant, product: Product) => {
+      setSelectedPromotion(promo);
+      const giftCartItem: CartItem = {
+        id: `gift-${promo.id}-${variant.id}-${Date.now()}`,
+        product: product,
+        selectedVariant: variant,
+        sugarLevel: '100%',
+        iceLevel: '100%',
+        selectedToppings: [],
+        toppingsPrice: 0,
+        quantity: 1,
+        unitPrice: 0,
+        lineTotal: 0,
+        notes: `Quà tặng: ${promo.name}`,
+        isGift: true,
+        giftPromotionId: promo.id,
+        giftPromotionName: promo.name,
+        originalUnitPrice: variant.retail_price,
+      };
+      setCartItems((prev) => {
+        const nonGifts = prev.filter((item) => !item.isGift);
+        return [...nonGifts, giftCartItem];
+      });
+      toast.success(
+        `Đã áp dụng quà tặng: ${product.name} (${variant.variant_name})`,
+        { duration: 2500 }
+      );
+    },
+    [toast]
+  );
 
   const handleSelectProductForVariant = useCallback((product: Product) => {
     setSelectedProductForVariant(product);
@@ -767,6 +812,7 @@ export default function PosPage() {
             quantity: item.quantity,
             topping_ids: (item.selectedToppings || []).map((t) => t.id),
             notes: item.notes || '',
+            is_gift: !!item.isGift,
           })),
         },
         display_snapshot: {
@@ -838,6 +884,7 @@ export default function PosPage() {
         quantity: item.quantity,
         topping_ids: (item.selectedToppings || []).map((t) => t.id),
         notes: item.notes || '',
+        is_gift: !!item.isGift,
       })),
     };
 
@@ -1429,7 +1476,10 @@ export default function PosPage() {
           discountAmount={discountAmount}
           onDiscountChange={setDiscountAmount}
           selectedPromotion={selectedPromotion}
-          onSelectPromotion={setSelectedPromotion}
+          onSelectPromotion={handleSelectPromotion}
+          products={products}
+          categories={categories}
+          onApplyGiftItem={handleApplyGiftItem}
           promotionDiscount={promotionDiscount}
           shippingFee={shippingFee}
           onShippingFeeChange={setShippingFee}

@@ -19,6 +19,7 @@ export interface OfflineOrderItemPayload {
   topping_ids?: number[];
   notes?: string;
   price_override?: number;
+  is_gift?: boolean;
 }
 
 export interface OfflineOrderPayload {

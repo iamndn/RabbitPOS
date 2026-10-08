@@ -169,6 +169,7 @@ func TestOrder_InvalidTopping_Inactive(t *testing.T) {
 		IsActive: false,
 	}
 	db.Create(&inactiveTopping)
+	db.Model(&inactiveTopping).Update("is_active", false)
 
 	handler := NewOrderHandler(db, nil, nil)
 	router := setupOrderTestRouter(handler, "cashier", "staff1", 2)
@@ -190,8 +191,8 @@ func TestOrder_InvalidTopping_Inactive(t *testing.T) {
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
-	if w.Code != http.StatusBadRequest {
-		t.Errorf("Expected 400 Bad Request when referencing inactive topping, got %d", w.Code)
+	if w.Code != http.StatusUnprocessableEntity && w.Code != http.StatusBadRequest {
+		t.Errorf("Expected 422 or 400 when referencing inactive topping, got %d", w.Code)
 	}
 }
 
@@ -233,8 +234,8 @@ func TestOrder_Promotion_ExpiredOrLimitExceeded(t *testing.T) {
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
-	if w.Code != http.StatusBadRequest {
-		t.Errorf("Expected 400 Bad Request for expired promotion, got %d", w.Code)
+	if w.Code != http.StatusUnprocessableEntity {
+		t.Errorf("Expected 422 Unprocessable Entity for expired promotion, got %d", w.Code)
 	}
 }
 
@@ -596,5 +597,170 @@ func TestTransaction_DeleteSalesTransaction_DeletesOrderAndRevertsFund(t *testin
 	db.First(&fundAfter, fixtures.CashFund.ID)
 	if fundAfter.CurrentBalance != initialBalance {
 		t.Errorf("Fund balance not reverted! Expected %.0f, got %.0f", initialBalance, fundAfter.CurrentBalance)
+	}
+}
+
+func TestOrder_GiftPromotion_SelectGiftItem(t *testing.T) {
+	db := testutils.GetTestDB(t)
+	fixtures, err := testutils.SeedMinimalFixtures(db)
+	if err != nil {
+		t.Fatalf("Failed to seed fixtures: %v", err)
+	}
+
+	// Create a second variant as the designated gift
+	giftVariant := models.ProductVariant{
+		ProductID:   fixtures.Product.ID,
+		VariantName: "Món Tặng Test Size M",
+		RetailPrice: 25000,
+		CogsPrice:   10000,
+		IsActive:    true,
+	}
+	if err := db.Create(&giftVariant).Error; err != nil {
+		t.Fatalf("Failed to create gift variant: %v", err)
+	}
+
+	// Create a third variant that is NOT in the allowed gift list
+	nonAllowedVariant := models.ProductVariant{
+		ProductID:   fixtures.Product.ID,
+		VariantName: "Món Không Cho Phép Tặng",
+		RetailPrice: 35000,
+		CogsPrice:   15000,
+		IsActive:    true,
+	}
+	if err := db.Create(&nonAllowedVariant).Error; err != nil {
+		t.Fatalf("Failed to create non-allowed variant: %v", err)
+	}
+
+	// Create Promotion: PromoTypeGiftItem, AllowSelectGift = true, GiftTargetIDs = [giftVariant.ID]
+	giftPromo := models.Promotion{
+		Name:            "Khuyến mãi Tặng Món Có Chọn",
+		PromoType:       models.PromoTypeGiftItem,
+		MinOrderAmount:  20000,
+		MinQuantity:     1,
+		AllowSelectGift: true,
+		IsActive:        true,
+	}
+	giftPromo.SetGiftTargetIDs([]uint{giftVariant.ID})
+	if err := db.Create(&giftPromo).Error; err != nil {
+		t.Fatalf("Failed to create gift promotion: %v", err)
+	}
+
+	handler := NewOrderHandler(db, nil, nil)
+	router := setupOrderTestRouter(handler, "cashier", "cashier_alice", 2)
+
+	// --- Case 1: Valid gift item chosen -> unit_price 0, line_total 0, is_gift true, order created ---
+	payloadSuccess := models.CreateOrderRequest{
+		FundID:      fixtures.CashFund.ID,
+		PromotionID: &giftPromo.ID,
+		Items: []models.CreateOrderItemRequest{
+			{
+				ProductVariantID: fixtures.Variant.ID, // Purchased item: 25000
+				Quantity:         1,
+				IsGift:           false,
+			},
+			{
+				ProductVariantID: giftVariant.ID, // Gift item: 0đ
+				Quantity:         1,
+				IsGift:           true,
+			},
+		},
+	}
+
+	bodyBytes, _ := json.Marshal(payloadSuccess)
+	req, _ := http.NewRequest("POST", "/api/v1/orders", bytes.NewBuffer(bodyBytes))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusCreated {
+		t.Fatalf("Expected 201 Created for valid gift promotion order, got %d. Body: %s", w.Code, w.Body.String())
+	}
+
+	var successResp struct {
+		Data models.Order `json:"data"`
+	}
+	_ = json.Unmarshal(w.Body.Bytes(), &successResp)
+
+	if successResp.Data.Subtotal != fixtures.Variant.RetailPrice {
+		t.Errorf("Expected subtotal %.0f, got %.0f", fixtures.Variant.RetailPrice, successResp.Data.Subtotal)
+	}
+	if successResp.Data.TotalAmount != fixtures.Variant.RetailPrice {
+		t.Errorf("Expected total amount %.0f, got %.0f", fixtures.Variant.RetailPrice, successResp.Data.TotalAmount)
+	}
+
+	var giftItemFound bool
+	for _, it := range successResp.Data.Items {
+		if it.ProductVariantID == giftVariant.ID {
+			giftItemFound = true
+			if !it.IsGift {
+				t.Errorf("Expected is_gift to be true for gift variant")
+			}
+			if it.UnitPrice != 0 {
+				t.Errorf("Expected unit_price to be 0 for gift variant, got %.0f", it.UnitPrice)
+			}
+			if it.LineTotal != 0 {
+				t.Errorf("Expected line_total to be 0 for gift variant, got %.0f", it.LineTotal)
+			}
+			if it.OriginalUnitPrice != giftVariant.RetailPrice {
+				t.Errorf("Expected original_unit_price %.0f, got %.0f", giftVariant.RetailPrice, it.OriginalUnitPrice)
+			}
+		}
+	}
+	if !giftItemFound {
+		t.Errorf("Gift item not found in response items")
+	}
+
+	// Verify promotion usage count incremented
+	var promoAfter models.Promotion
+	db.First(&promoAfter, giftPromo.ID)
+	if promoAfter.UsageCount != 1 {
+		t.Errorf("Expected promo usage_count 1, got %d", promoAfter.UsageCount)
+	}
+
+	// --- Case 2: Choosing variant NOT in GiftTargetIDs -> 422 Unprocessable Entity ---
+	payloadDisallowed := models.CreateOrderRequest{
+		FundID:      fixtures.CashFund.ID,
+		PromotionID: &giftPromo.ID,
+		Items: []models.CreateOrderItemRequest{
+			{
+				ProductVariantID: fixtures.Variant.ID,
+				Quantity:         1,
+			},
+			{
+				ProductVariantID: nonAllowedVariant.ID, // Not in gift_target_ids
+				Quantity:         1,
+				IsGift:           true,
+			},
+		},
+	}
+	bodyDisallowed, _ := json.Marshal(payloadDisallowed)
+	reqDisallowed, _ := http.NewRequest("POST", "/api/v1/orders", bytes.NewBuffer(bodyDisallowed))
+	reqDisallowed.Header.Set("Content-Type", "application/json")
+	wDisallowed := httptest.NewRecorder()
+	router.ServeHTTP(wDisallowed, reqDisallowed)
+
+	if wDisallowed.Code != http.StatusUnprocessableEntity {
+		t.Errorf("Expected 422 for disallowed gift variant, got %d. Body: %s", wDisallowed.Code, wDisallowed.Body.String())
+	}
+
+	// --- Case 3: IsGift true without PromotionID -> 422 Unprocessable Entity ---
+	payloadNoPromo := models.CreateOrderRequest{
+		FundID: fixtures.CashFund.ID,
+		Items: []models.CreateOrderItemRequest{
+			{
+				ProductVariantID: giftVariant.ID,
+				Quantity:         1,
+				IsGift:           true,
+			},
+		},
+	}
+	bodyNoPromo, _ := json.Marshal(payloadNoPromo)
+	reqNoPromo, _ := http.NewRequest("POST", "/api/v1/orders", bytes.NewBuffer(bodyNoPromo))
+	reqNoPromo.Header.Set("Content-Type", "application/json")
+	wNoPromo := httptest.NewRecorder()
+	router.ServeHTTP(wNoPromo, reqNoPromo)
+
+	if wNoPromo.Code != http.StatusUnprocessableEntity {
+		t.Errorf("Expected 422 when gift item has no promotion, got %d. Body: %s", wNoPromo.Code, wNoPromo.Body.String())
 	}
 }

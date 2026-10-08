@@ -15,7 +15,13 @@ export interface Promotion {
     id: number;
     variant_name: string;
     retail_price: number;
+    product?: {
+      id: number;
+      name: string;
+    };
   };
+  allow_select_gift?: boolean;
+  gift_target_ids?: string;
   start_date?: string | null;
   end_date?: string | null;
   usage_limit: number;

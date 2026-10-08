@@ -33,6 +33,8 @@ type Promotion struct {
 	TargetIDs            string          `gorm:"type:jsonb;not null;default:'[]'"         json:"target_ids"`
 	GiftProductVariantID *uint           `gorm:"index"                                    json:"gift_product_variant_id,omitempty"`
 	GiftVariant          *ProductVariant `gorm:"foreignKey:GiftProductVariantID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL" json:"gift_variant,omitempty"`
+	AllowSelectGift      bool            `gorm:"not null;default:false"                   json:"allow_select_gift"`
+	GiftTargetIDs        string          `gorm:"type:jsonb;not null;default:'[]'"         json:"gift_target_ids"`
 	StartDate            *time.Time      `gorm:"index"                                    json:"start_date,omitempty"`
 	EndDate              *time.Time      `gorm:"index"                                    json:"end_date,omitempty"`
 	UsageLimit           int             `gorm:"not null;default:0"                       json:"usage_limit"`
@@ -69,6 +71,32 @@ func (p *Promotion) SetTargetIDs(ids []uint) {
 	p.TargetIDs = string(b)
 }
 
+// GetGiftTargetIDs parses the GiftTargetIDs JSON string into a uint slice
+func (p *Promotion) GetGiftTargetIDs() []uint {
+	if p.GiftTargetIDs == "" || p.GiftTargetIDs == "null" {
+		return []uint{}
+	}
+	var ids []uint
+	if err := json.Unmarshal([]byte(p.GiftTargetIDs), &ids); err != nil {
+		return []uint{}
+	}
+	return ids
+}
+
+// SetGiftTargetIDs serializes a uint slice into GiftTargetIDs JSON string
+func (p *Promotion) SetGiftTargetIDs(ids []uint) {
+	if len(ids) == 0 {
+		p.GiftTargetIDs = "[]"
+		return
+	}
+	b, err := json.Marshal(ids)
+	if err != nil {
+		p.GiftTargetIDs = "[]"
+		return
+	}
+	p.GiftTargetIDs = string(b)
+}
+
 // --- DTOs ---
 
 type CreatePromotionRequest struct {
@@ -80,6 +108,8 @@ type CreatePromotionRequest struct {
 	Scope                PromoScope `json:"scope"                  binding:"omitempty,oneof=all category product"`
 	TargetIDs            []uint     `json:"target_ids"`
 	GiftProductVariantID *uint      `json:"gift_product_variant_id"`
+	AllowSelectGift      *bool      `json:"allow_select_gift"`
+	GiftTargetIDs        []uint     `json:"gift_target_ids"`
 	StartDate            *time.Time `json:"start_date"`
 	EndDate              *time.Time `json:"end_date"`
 	UsageLimit           int        `json:"usage_limit"            binding:"gte=0"`
@@ -96,6 +126,8 @@ type UpdatePromotionRequest struct {
 	Scope                *PromoScope `json:"scope"                  binding:"omitempty,oneof=all category product"`
 	TargetIDs            *[]uint     `json:"target_ids"`
 	GiftProductVariantID *uint       `json:"gift_product_variant_id"`
+	AllowSelectGift      *bool       `json:"allow_select_gift"`
+	GiftTargetIDs        *[]uint     `json:"gift_target_ids"`
 	StartDate            *time.Time  `json:"start_date"`
 	EndDate              *time.Time  `json:"end_date"`
 	UsageLimit           *int        `json:"usage_limit"            binding:"omitempty,gte=0"`

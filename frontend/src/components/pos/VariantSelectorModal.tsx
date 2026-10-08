@@ -55,6 +55,10 @@ export interface CartItem {
   unitPrice: number;
   lineTotal: number;
   notes: string;
+  isGift?: boolean;
+  giftPromotionId?: number;
+  giftPromotionName?: string;
+  originalUnitPrice?: number;
 }
 
 interface Props {

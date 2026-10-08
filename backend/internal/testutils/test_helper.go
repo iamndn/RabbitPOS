@@ -127,6 +127,7 @@ func CleanTables(db *gorm.DB) error {
 
 // SeedMinimalFixtures inserts standard minimal baseline records for tests
 func SeedMinimalFixtures(db *gorm.DB) (*TestFixtures, error) {
+	_ = CleanTables(db)
 	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte("password123"), bcrypt.DefaultCost)
 
 	admin := models.User{

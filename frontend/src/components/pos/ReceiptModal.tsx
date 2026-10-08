@@ -153,12 +153,24 @@ export default function ReceiptModal({ isOpen, onClose, order, settings: initial
             {(Array.isArray(order.items) ? order.items : []).map((item, idx) => (
               <div key={idx} className="space-y-0.5">
                 <div className="flex justify-between font-bold">
-                  <span className="truncate max-w-[130px]">{item.product.name}</span>
-                  <span className="text-[10px]">{item.quantity}x {formatCurrency(item.unitPrice, settings)}</span>
-                  <span>{formatCurrency(item.lineTotal, settings)}</span>
+                  <span className="truncate max-w-[130px]">
+                    {item.product?.name || 'Món'}
+                    {item.isGift && <span className="ml-1 text-emerald-600 font-bold text-[9px]">(🎁 Tặng)</span>}
+                  </span>
+                  <span className="text-[10px]">
+                    {item.quantity}x {item.isGift ? '0đ' : formatCurrency(item.unitPrice, settings)}
+                  </span>
+                  <span className={item.isGift ? 'text-emerald-600' : ''}>
+                    {item.isGift ? '0đ' : formatCurrency(item.lineTotal, settings)}
+                  </span>
                 </div>
                 <div className="text-[10px] text-slate-500 pl-2 space-y-0.5">
-                  <span className="block">{t('pos.size', { size: item.selectedVariant.variant_name })}</span>
+                  <span className="block">{t('pos.size', { size: item.selectedVariant?.variant_name || '' })}</span>
+                  {item.isGift && item.originalUnitPrice ? (
+                    <span className="block text-slate-400 line-through text-[9px]">
+                      Giá gốc: {formatCurrency(item.originalUnitPrice, settings)}
+                    </span>
+                  ) : null}
                   {/* Sugar & ice level display */}
                   {(item.sugarLevel || item.iceLevel) && (
                     <span className="block">

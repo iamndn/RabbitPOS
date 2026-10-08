@@ -28,7 +28,7 @@ func (h *PromotionHandler) GetActivePromotions(c *gin.Context) {
 		Where("start_date IS NULL OR start_date <= ?", now).
 		Where("end_date IS NULL OR end_date >= ?", now).
 		Where("usage_limit = 0 OR usage_count < usage_limit").
-		Preload("GiftVariant").
+		Preload("GiftVariant.Product").
 		Order("display_order asc, created_at desc").
 		Find(&promotions).Error
 
@@ -44,7 +44,7 @@ func (h *PromotionHandler) GetActivePromotions(c *gin.Context) {
 func (h *PromotionHandler) ListPromotions(c *gin.Context) {
 	var promotions []models.Promotion
 
-	if err := h.db.Preload("GiftVariant").Order("display_order asc, id asc").Find(&promotions).Error; err != nil {
+	if err := h.db.Preload("GiftVariant.Product").Order("display_order asc, id asc").Find(&promotions).Error; err != nil {
 		models.SendInternalError(c, "Failed to retrieve promotions: "+err.Error())
 		return
 	}
@@ -67,6 +67,13 @@ func (h *PromotionHandler) CreatePromotion(c *gin.Context) {
 		}
 	}
 
+	giftTargetIDsJSON := "[]"
+	if len(req.GiftTargetIDs) > 0 {
+		if b, err := json.Marshal(req.GiftTargetIDs); err == nil {
+			giftTargetIDsJSON = string(b)
+		}
+	}
+
 	scope := models.PromoScopeAll
 	if req.Scope != "" {
 		scope = req.Scope
@@ -75,6 +82,11 @@ func (h *PromotionHandler) CreatePromotion(c *gin.Context) {
 	isActive := true
 	if req.IsActive != nil {
 		isActive = *req.IsActive
+	}
+
+	allowSelectGift := false
+	if req.AllowSelectGift != nil {
+		allowSelectGift = *req.AllowSelectGift
 	}
 
 	promotion := models.Promotion{
@@ -86,6 +98,8 @@ func (h *PromotionHandler) CreatePromotion(c *gin.Context) {
 		Scope:                scope,
 		TargetIDs:            targetIDsJSON,
 		GiftProductVariantID: req.GiftProductVariantID,
+		AllowSelectGift:      allowSelectGift,
+		GiftTargetIDs:        giftTargetIDsJSON,
 		StartDate:            req.StartDate,
 		EndDate:              req.EndDate,
 		UsageLimit:           req.UsageLimit,
@@ -100,7 +114,7 @@ func (h *PromotionHandler) CreatePromotion(c *gin.Context) {
 	}
 
 	if promotion.GiftProductVariantID != nil {
-		h.db.Preload("GiftVariant").First(&promotion, promotion.ID)
+		h.db.Preload("GiftVariant.Product").First(&promotion, promotion.ID)
 	}
 
 	models.SendSuccess(c, http.StatusCreated, promotion, "Promotion created successfully")
@@ -158,6 +172,14 @@ func (h *PromotionHandler) UpdatePromotion(c *gin.Context) {
 	if req.GiftProductVariantID != nil {
 		updates["gift_product_variant_id"] = req.GiftProductVariantID
 	}
+	if req.AllowSelectGift != nil {
+		updates["allow_select_gift"] = *req.AllowSelectGift
+	}
+	if req.GiftTargetIDs != nil {
+		if b, err := json.Marshal(*req.GiftTargetIDs); err == nil {
+			updates["gift_target_ids"] = string(b)
+		}
+	}
 	if req.StartDate != nil {
 		updates["start_date"] = req.StartDate
 	}
@@ -180,7 +202,7 @@ func (h *PromotionHandler) UpdatePromotion(c *gin.Context) {
 		return
 	}
 
-	h.db.Preload("GiftVariant").First(&promo, promo.ID)
+	h.db.Preload("GiftVariant.Product").First(&promo, promo.ID)
 	models.SendSuccess(c, http.StatusOK, promo, "Promotion updated successfully")
 }
 

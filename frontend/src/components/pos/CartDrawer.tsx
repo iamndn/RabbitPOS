@@ -22,14 +22,16 @@ import {
   Clock,
   RotateCcw,
   Calendar,
+  Gift,
 } from 'lucide-react';
-import { CartItem } from './VariantSelectorModal';
+import { CartItem, Product, ProductVariant } from './VariantSelectorModal';
 import { Promotion } from '@/types/promotion';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
 import { fetchApi } from '@/lib/api';
 import { formatCurrency, SettingsMap } from '@/lib/utils';
 import ModernSelect from '@/components/common/ModernSelect';
 import HorizontalScroller from '@/components/common/HorizontalScroller';
+import GiftItemSelectorModal from './GiftItemSelectorModal';
 
 interface Props {
   isOpen: boolean;
@@ -55,6 +57,9 @@ interface Props {
   onOrderCreatedAtChange?: (dateStr: string | null) => void;
   onProceedCheckout: () => void;
   settings?: SettingsMap | null;
+  products?: Product[];
+  categories?: { id: number; name: string }[];
+  onApplyGiftItem?: (promo: Promotion, variant: ProductVariant, product: Product) => void;
 }
 
 const FAST_NOTE_PRESETS = [
@@ -91,6 +96,9 @@ export default function CartDrawer({
   onOrderCreatedAtChange,
   onProceedCheckout,
   settings,
+  products = [],
+  categories = [],
+  onApplyGiftItem,
 }: Props) {
   const { t } = useTranslation();
 
@@ -131,6 +139,25 @@ export default function CartDrawer({
   const subtotal = React.useMemo(() => safeCartItems.reduce((acc, item) => acc + (item?.lineTotal || 0), 0), [safeCartItems]);
   const totalItemCount = React.useMemo(() => safeCartItems.reduce((acc, i) => acc + (i?.quantity || 0), 0), [safeCartItems]);
 
+  // Non-gift items used to check promo requirements
+  const eligibleSubtotal = React.useMemo(
+    () => safeCartItems.filter((i) => !i.isGift).reduce((acc, item) => acc + (item?.lineTotal || 0), 0),
+    [safeCartItems]
+  );
+  const eligibleItemCount = React.useMemo(
+    () => safeCartItems.filter((i) => !i.isGift).reduce((acc, i) => acc + (i?.quantity || 0), 0),
+    [safeCartItems]
+  );
+
+  const currentGiftCartItem = React.useMemo(
+    () => safeCartItems.find((it) => it.isGift),
+    [safeCartItems]
+  );
+
+  const [isGiftSelectorOpen, setIsGiftSelectorOpen] = useState<boolean>(false);
+  const [giftPromoForModal, setGiftPromoForModal] = useState<Promotion | null>(null);
+  const [showAllEligiblePromos, setShowAllEligiblePromos] = useState<boolean>(false);
+
   // Check promotion eligibility based on min_order_amount, min_quantity, date, usage, and scope
   const checkEligibility = React.useCallback((promo: Promotion): boolean => {
     if (promo.is_active === false) return false;
@@ -140,8 +167,8 @@ export default function CartDrawer({
     if (promo.end_date && new Date(promo.end_date) < now) return false;
     if (promo.usage_limit > 0 && promo.usage_count >= promo.usage_limit) return false;
 
-    if (promo.min_order_amount > 0 && subtotal < promo.min_order_amount) return false;
-    if (promo.min_quantity > 0 && totalItemCount < promo.min_quantity) return false;
+    if (promo.min_order_amount > 0 && eligibleSubtotal < promo.min_order_amount) return false;
+    if (promo.min_quantity > 0 && eligibleItemCount < promo.min_quantity) return false;
 
     if (promo.scope === 'category' || promo.scope === 'product') {
       let targetIds: number[] = [];
@@ -154,26 +181,31 @@ export default function CartDrawer({
       }
 
       if (Array.isArray(targetIds) && targetIds.length > 0) {
+        const nonGiftItems = safeCartItems.filter((it) => !it.isGift);
         if (promo.scope === 'category') {
-          const hasMatchingCat = safeCartItems.some((it) => it.product && targetIds.includes(it.product.category_id));
+          const hasMatchingCat = nonGiftItems.some((it) => it.product && targetIds.includes(it.product.category_id));
           if (!hasMatchingCat) return false;
         } else if (promo.scope === 'product') {
-          const hasMatchingProd = safeCartItems.some((it) => it.product && targetIds.includes(it.product.id));
+          const hasMatchingProd = nonGiftItems.some((it) => it.product && targetIds.includes(it.product.id));
           if (!hasMatchingProd) return false;
         }
       }
     }
 
     return true;
-  }, [subtotal, totalItemCount, safeCartItems]);
+  }, [eligibleSubtotal, eligibleItemCount, safeCartItems]);
 
-  // Find the single highest priority eligible promotion (sorted by display_order asc)
-  const topEligiblePromotion = React.useMemo(() => {
-    const eligible = activePromotions
+  // Find all eligible promotions sorted by display_order
+  const eligiblePromotions = React.useMemo(() => {
+    return activePromotions
       .filter((p) => checkEligibility(p))
       .sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0));
-    return eligible.length > 0 ? eligible[0] : null;
   }, [activePromotions, checkEligibility]);
+
+  // Top eligible promotion
+  const topEligiblePromotion = React.useMemo(() => {
+    return eligiblePromotions.length > 0 ? eligiblePromotions[0] : null;
+  }, [eligiblePromotions]);
 
   // Auto-sync or auto-unselect if current selectedPromotion is no longer eligible
   useEffect(() => {
@@ -184,6 +216,48 @@ export default function CartDrawer({
       }
     }
   }, [selectedPromotion, checkEligibility, onSelectPromotion]);
+
+  const handleApplyPromo = (promo: Promotion) => {
+    if (selectedPromotion?.id === promo.id) {
+      onSelectPromotion(null);
+      return;
+    }
+
+    if (promo.promo_type === 'gift_item') {
+      if (promo.allow_select_gift) {
+        setGiftPromoForModal(promo);
+        setIsGiftSelectorOpen(true);
+        return;
+      }
+
+      // If fixed gift item, look for it in products
+      if (promo.gift_product_variant_id && Array.isArray(products)) {
+        let foundV: ProductVariant | null = null;
+        let foundP: Product | null = null;
+        for (const p of products) {
+          if (Array.isArray(p.variants)) {
+            const v = p.variants.find((item) => item.id === promo.gift_product_variant_id);
+            if (v) {
+              foundV = v;
+              foundP = p;
+              break;
+            }
+          }
+        }
+        if (foundV && foundP && onApplyGiftItem) {
+          onApplyGiftItem(promo, foundV, foundP);
+          return;
+        }
+      }
+
+      // Fallback: open selector modal so user can pick
+      setGiftPromoForModal(promo);
+      setIsGiftSelectorOpen(true);
+      return;
+    }
+
+    onSelectPromotion(promo);
+  };
 
   const finalTotal = Math.max(
     0,
@@ -235,182 +309,294 @@ export default function CartDrawer({
               <p className="text-sm font-medium">{t('pos.empty_cart')}</p>
             </div>
           ) : (
-            safeCartItems.map((item) => (
-              <div key={item.id} className="pt-3 first:pt-0 flex flex-col space-y-2">
-                <div className="flex items-start justify-between">
-                  <div className="min-w-0 pr-2">
-                    <h3 className="text-sm font-bold text-slate-900 leading-tight">
-                      {item.product.name}
-                    </h3>
-                    <p className="text-xs text-slate-500 font-medium">
-                      {item.selectedVariant.variant_name}
-                      {item.selectedToppings && item.selectedToppings.length > 0 && (
-                        <span className="text-emerald-700 font-semibold block sm:inline sm:ml-1">
-                          + {item.selectedToppings.map((t) => t.name).join(', ')}
-                        </span>
-                      )}
-                    </p>
-                    {item.notes && (
-                      <p className="text-[11px] text-amber-700 italic font-medium bg-amber-50 px-1.5 py-0.5 rounded mt-0.5 inline-block">
-                        Ghi chú: {item.notes}
-                      </p>
-                    )}
-                  </div>
-                  <div className="text-right shrink-0">
-                    <div className="text-xs font-bold text-slate-900">
-                      {formatCurrency(item.lineTotal, settings)}
-                    </div>
-                    {item.quantity > 1 && (
-                      <div className="text-[10px] text-slate-400">
-                        {formatCurrency(item.unitPrice, settings)} / ly
+            safeCartItems.map((item) => {
+              if (item.isGift) {
+                return (
+                  <div key={item.id} className="pt-3 first:pt-0 flex flex-col space-y-2 bg-gradient-to-r from-amber-50/70 via-orange-50/40 to-amber-50/70 p-3 rounded-2xl border border-amber-300 shadow-2xs">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 pr-2">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-amber-200 text-amber-900 border border-amber-300 shrink-0 flex items-center gap-1 shadow-2xs">
+                            <Gift className="w-3 h-3 text-amber-700" />
+                            <span>Món quà tặng</span>
+                          </span>
+                          <h3 className="text-sm font-bold text-slate-900 leading-tight">
+                            {item.product.name}
+                          </h3>
+                        </div>
+                        <p className="text-xs text-slate-600 font-semibold mt-0.5">
+                          {item.selectedVariant.variant_name !== 'Default' ? item.selectedVariant.variant_name : 'Mặc định'}
+                        </p>
+                        {item.giftPromotionName && (
+                          <p className="text-[10px] text-amber-800 font-bold bg-amber-100/90 px-2 py-0.5 rounded-md mt-1 inline-block border border-amber-200">
+                            🎁 CTKM: {item.giftPromotionName}
+                          </p>
+                        )}
                       </div>
-                    )}
-                  </div>
-                </div>
+                      <div className="text-right shrink-0">
+                        <div className="text-xs font-black text-emerald-600">
+                          0đ (Miễn phí)
+                        </div>
+                        {item.originalUnitPrice && item.originalUnitPrice > 0 && (
+                          <div className="text-[10px] text-slate-400 line-through">
+                            {formatCurrency(item.originalUnitPrice, settings)}
+                          </div>
+                        )}
+                      </div>
+                    </div>
 
-                {/* Price Modifier & Quantity Adjuster */}
-                <div className="flex items-center justify-between text-xs pt-1">
-                  {editingPriceItemId === item.id ? (
-                    <div className="flex items-center space-x-1">
-                      <input
-                        type="number"
-                        value={tempUnitPrice || ''}
-                        onChange={(e) => setTempUnitPrice(Number(e.target.value))}
-                        className="w-20 p-1 text-xs border border-emerald-600 rounded bg-emerald-50 focus:outline-none font-bold"
-                        autoFocus
-                      />
+                    {/* Controls for gift item */}
+                    <div className="flex items-center justify-between text-xs pt-1 border-t border-amber-200/60">
                       <button
-                        onClick={() => handleSaveUnitPrice(item.id)}
-                        className="px-2 py-1 bg-emerald-700 text-white rounded text-[11px] font-bold"
+                        type="button"
+                        onClick={() => {
+                          const promoToChange = selectedPromotion || activePromotions.find((p) => p.id === item.giftPromotionId);
+                          if (promoToChange) {
+                            setGiftPromoForModal(promoToChange);
+                            setIsGiftSelectorOpen(true);
+                          }
+                        }}
+                        className="text-[11px] text-amber-900 hover:text-amber-950 flex items-center gap-1 font-bold bg-amber-200/80 hover:bg-amber-300/80 px-2.5 py-1 rounded-xl transition cursor-pointer active:scale-95 shadow-2xs"
                       >
-                        Lưu
+                        <Gift className="w-3.5 h-3.5 text-amber-800" />
+                        <span>Đổi món quà tặng</span>
+                      </button>
+
+                      <div className="flex items-center space-x-1.5 bg-white p-0.5 rounded-xl border border-amber-200">
+                        <span className="text-[11px] font-bold text-slate-600 px-1.5">
+                          SL: 1
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => onRemoveItem(item.id)}
+                          title="Bỏ món quà tặng này"
+                          className="p-1 hover:bg-rose-50 rounded-lg text-slate-400 hover:text-rose-600 transition active:scale-95 cursor-pointer ml-1"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+
+              return (
+                <div key={item.id} className="pt-3 first:pt-0 flex flex-col space-y-2">
+                  <div className="flex items-start justify-between">
+                    <div className="min-w-0 pr-2">
+                      <h3 className="text-sm font-bold text-slate-900 leading-tight">
+                        {item.product.name}
+                      </h3>
+                      <p className="text-xs text-slate-500 font-medium">
+                        {item.selectedVariant.variant_name}
+                        {item.selectedToppings && item.selectedToppings.length > 0 && (
+                          <span className="text-emerald-700 font-semibold block sm:inline sm:ml-1">
+                            + {item.selectedToppings.map((t) => t.name).join(', ')}
+                          </span>
+                        )}
+                      </p>
+                      {item.notes && (
+                        <p className="text-[11px] text-amber-700 italic font-medium bg-amber-50 px-1.5 py-0.5 rounded mt-0.5 inline-block">
+                          Ghi chú: {item.notes}
+                        </p>
+                      )}
+                    </div>
+                    <div className="text-right shrink-0">
+                      <div className="text-xs font-bold text-slate-900">
+                        {formatCurrency(item.lineTotal, settings)}
+                      </div>
+                      {item.quantity > 1 && (
+                        <div className="text-[10px] text-slate-400">
+                          {formatCurrency(item.unitPrice, settings)} / ly
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Price Modifier & Quantity Adjuster */}
+                  <div className="flex items-center justify-between text-xs pt-1">
+                    {editingPriceItemId === item.id ? (
+                      <div className="flex items-center space-x-1">
+                        <input
+                          type="number"
+                          value={tempUnitPrice || ''}
+                          onChange={(e) => setTempUnitPrice(Number(e.target.value))}
+                          className="w-20 p-1 text-xs border border-emerald-600 rounded bg-emerald-50 focus:outline-none font-bold"
+                          autoFocus
+                        />
+                        <button
+                          onClick={() => handleSaveUnitPrice(item.id)}
+                          className="px-2 py-1 bg-emerald-700 text-white rounded text-[11px] font-bold"
+                        >
+                          Lưu
+                        </button>
+                        <button
+                          onClick={() => setEditingPriceItemId(null)}
+                          className="px-1.5 py-1 bg-slate-200 text-slate-600 rounded text-[11px]"
+                        >
+                          Hủy
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => handleStartEditPrice(item)}
+                        className="text-[11px] text-slate-400 hover:text-emerald-700 flex items-center gap-1 font-medium transition cursor-pointer"
+                      >
+                        <Edit2 className="w-3 h-3" />
+                        <span>Sửa giá ({formatCurrency(item.unitPrice, settings)})</span>
+                      </button>
+                    )}
+
+                    {/* Quantity Stepper */}
+                    <div className="flex items-center space-x-1.5 bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+                      <button
+                        onClick={() => onUpdateQty(item.id, -1)}
+                        className="p-1 hover:bg-white rounded text-slate-600 transition active:scale-95 cursor-pointer"
+                      >
+                        <Minus className="w-3.5 h-3.5" />
+                      </button>
+                      <span className="w-6 text-center font-bold text-slate-800 text-xs">
+                        {item.quantity}
+                      </span>
+                      <button
+                        onClick={() => onUpdateQty(item.id, 1)}
+                        className="p-1 hover:bg-white rounded text-slate-600 transition active:scale-95 cursor-pointer"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
                       </button>
                       <button
-                        onClick={() => setEditingPriceItemId(null)}
-                        className="px-1.5 py-1 bg-slate-200 text-slate-600 rounded text-[11px]"
+                        onClick={() => onRemoveItem(item.id)}
+                        className="p-1 hover:bg-rose-50 rounded text-slate-400 hover:text-rose-600 transition active:scale-95 cursor-pointer ml-1"
                       >
-                        Hủy
+                        <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
-                  ) : (
-                    <button
-                      onClick={() => handleStartEditPrice(item)}
-                      className="text-[11px] text-slate-400 hover:text-emerald-700 flex items-center gap-1 font-medium transition cursor-pointer"
-                    >
-                      <Edit2 className="w-3 h-3" />
-                      <span>Sửa giá ({formatCurrency(item.unitPrice, settings)})</span>
-                    </button>
-                  )}
-
-                  {/* Quantity Stepper */}
-                  <div className="flex items-center space-x-1.5 bg-slate-100 p-0.5 rounded-lg border border-slate-200">
-                    <button
-                      onClick={() => onUpdateQty(item.id, -1)}
-                      className="p-1 hover:bg-white rounded text-slate-600 transition active:scale-95 cursor-pointer"
-                    >
-                      <Minus className="w-3.5 h-3.5" />
-                    </button>
-                    <span className="w-6 text-center font-bold text-slate-800 text-xs">
-                      {item.quantity}
-                    </span>
-                    <button
-                      onClick={() => onUpdateQty(item.id, 1)}
-                      className="p-1 hover:bg-white rounded text-slate-600 transition active:scale-95 cursor-pointer"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      onClick={() => onRemoveItem(item.id)}
-                      className="p-1 hover:bg-rose-50 rounded text-slate-400 hover:text-rose-600 transition active:scale-95 cursor-pointer ml-1"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
                   </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
 
         {/* Footer Summary, Promotions, Adjustments & Checkout */}
         {cartItems.length > 0 && (
           <div className="p-4 border-t border-slate-200 bg-slate-50 space-y-3 pb-safe">
-            {/* 1. Only Show 1 Eligible Promotion */}
-            <div className="space-y-1">
+            {/* 1. Promotions Section */}
+            <div className="space-y-1.5">
               <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
                 <span className="flex items-center gap-1">
                   <Tag className="w-3.5 h-3.5 text-emerald-700" />
                   {t('pos.apply_promotion')}
                 </span>
-                {topEligiblePromotion && (
+                {eligiblePromotions.length > 1 ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowAllEligiblePromos((prev) => !prev)}
+                    className="text-[11px] text-emerald-700 font-bold hover:underline cursor-pointer flex items-center gap-0.5"
+                  >
+                    <span>{showAllEligiblePromos ? 'Thu gọn' : `Xem tất cả (${eligiblePromotions.length} CTKM)`}</span>
+                    {showAllEligiblePromos ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                  </button>
+                ) : eligiblePromotions.length === 1 ? (
                   <span className="text-[10px] text-emerald-700 font-semibold">
                     1 khuyến mãi phù hợp
                   </span>
-                )}
+                ) : null}
               </label>
 
-              {topEligiblePromotion ? (
-                <div
-                  className={`p-3 rounded-2xl border transition flex items-center justify-between gap-3 ${
-                    selectedPromotion?.id === topEligiblePromotion.id
-                      ? 'bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 border-emerald-300 shadow-2xs'
-                      : 'bg-white border-slate-200 hover:border-emerald-200'
-                  }`}
-                >
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <div
-                      className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-sm shrink-0 ${
-                        selectedPromotion?.id === topEligiblePromotion.id
-                          ? 'bg-emerald-600 text-white shadow-xs'
-                          : 'bg-amber-100 text-amber-700'
-                      }`}
-                    >
-                      <Sparkles className="w-4 h-4" />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="text-xs font-bold text-slate-900 truncate flex items-center gap-1.5">
-                        <span className="truncate">{topEligiblePromotion.name}</span>
-                        <span className="text-[10px] font-extrabold px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800 shrink-0">
-                          Đủ điều kiện
-                        </span>
-                      </div>
-                      <p className="text-[11px] font-bold text-emerald-700 truncate">
-                        {topEligiblePromotion.promo_type === 'discount_percent'
-                          ? `Giảm -${topEligiblePromotion.discount_value}% (-${formatCurrency(
-                              (subtotal * topEligiblePromotion.discount_value) / 100,
-                              settings
-                            )})`
-                          : topEligiblePromotion.promo_type === 'discount_amount'
-                          ? `Giảm -${formatCurrency(topEligiblePromotion.discount_value, settings)}`
-                          : `Tặng: ${topEligiblePromotion.gift_variant?.variant_name || 'Quà tặng kèm'}`}
-                      </p>
-                    </div>
-                  </div>
+              {eligiblePromotions.length > 0 ? (
+                <div className="space-y-2">
+                  {(showAllEligiblePromos ? eligiblePromotions : [topEligiblePromotion!]).map((promo) => {
+                    const isSelected = selectedPromotion?.id === promo.id;
+                    const isGiftPromo = promo.promo_type === 'gift_item';
+                    const hasGiftInCart = isSelected && currentGiftCartItem;
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (selectedPromotion?.id === topEligiblePromotion.id) {
-                        onSelectPromotion(null);
-                      } else {
-                        onSelectPromotion(topEligiblePromotion);
-                      }
-                    }}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer shrink-0 active:scale-95 flex items-center gap-1 shadow-2xs ${
-                      selectedPromotion?.id === topEligiblePromotion.id
-                        ? 'bg-emerald-700 hover:bg-emerald-800 text-white'
-                        : 'bg-slate-900 hover:bg-slate-800 text-white'
-                    }`}
-                  >
-                    {selectedPromotion?.id === topEligiblePromotion.id ? (
-                      <>
-                        <Check className="w-3.5 h-3.5" />
-                        <span>Đã áp dụng</span>
-                      </>
-                    ) : (
-                      <span>Áp dụng</span>
-                    )}
-                  </button>
+                    return (
+                      <div
+                        key={promo.id}
+                        className={`p-3 rounded-2xl border transition flex items-center justify-between gap-3 ${
+                          isSelected
+                            ? 'bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 border-emerald-300 shadow-2xs'
+                            : 'bg-white border-slate-200 hover:border-emerald-200'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div
+                            className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-sm shrink-0 ${
+                              isSelected
+                                ? 'bg-emerald-600 text-white shadow-xs'
+                                : isGiftPromo
+                                ? 'bg-amber-100 text-amber-700'
+                                : 'bg-slate-100 text-slate-700'
+                            }`}
+                          >
+                            {isGiftPromo ? <Gift className="w-4 h-4" /> : <Sparkles className="w-4 h-4" />}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="text-xs font-bold text-slate-900 truncate flex items-center gap-1.5">
+                              <span className="truncate">{promo.name}</span>
+                              <span className="text-[10px] font-extrabold px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800 shrink-0">
+                                Đủ điều kiện
+                              </span>
+                            </div>
+                            <p className="text-[11px] font-bold text-emerald-700 truncate">
+                              {promo.promo_type === 'discount_percent'
+                                ? `Giảm -${promo.discount_value}% (-${formatCurrency(
+                                    (subtotal * promo.discount_value) / 100,
+                                    settings
+                                  )})`
+                                : promo.promo_type === 'discount_amount'
+                                ? `Giảm -${formatCurrency(promo.discount_value, settings)}`
+                                : hasGiftInCart
+                                ? `🎁 Tặng: ${currentGiftCartItem.product.name} (${currentGiftCartItem.selectedVariant.variant_name !== 'Default' ? currentGiftCartItem.selectedVariant.variant_name : 'Mặc định'}) - 0đ`
+                                : `🎁 Tặng: ${promo.gift_variant?.variant_name || 'Chọn món quà tặng (0đ)'}`}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {isSelected && isGiftPromo && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setGiftPromoForModal(promo);
+                                setIsGiftSelectorOpen(true);
+                              }}
+                              title="Đổi món quà tặng"
+                              className="px-2 py-1.5 rounded-xl text-xs font-bold bg-amber-100 hover:bg-amber-200 text-amber-900 transition cursor-pointer active:scale-95 flex items-center gap-1 border border-amber-300 shadow-2xs"
+                            >
+                              <Gift className="w-3 h-3 text-amber-700" />
+                              <span className="hidden sm:inline">Đổi món</span>
+                            </button>
+                          )}
+
+                          <button
+                            type="button"
+                            onClick={() => handleApplyPromo(promo)}
+                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer shrink-0 active:scale-95 flex items-center gap-1 shadow-2xs ${
+                              isSelected
+                                ? 'bg-emerald-700 hover:bg-emerald-800 text-white'
+                                : 'bg-slate-900 hover:bg-slate-800 text-white'
+                            }`}
+                          >
+                            {isSelected ? (
+                              <>
+                                <Check className="w-3.5 h-3.5" />
+                                <span>Đã áp dụng</span>
+                              </>
+                            ) : isGiftPromo ? (
+                              <>
+                                <Gift className="w-3.5 h-3.5" />
+                                <span>{promo.allow_select_gift ? 'Chọn món tặng' : 'Áp dụng'}</span>
+                              </>
+                            ) : (
+                              <span>Áp dụng</span>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="p-2.5 rounded-xl bg-slate-100/70 border border-slate-200/60 text-slate-400 text-xs flex items-center justify-between gap-2">
@@ -738,6 +924,29 @@ export default function CartDrawer({
           </div>
         )}
       </div>
+
+      {/* Gift Item Selector Modal */}
+      {isGiftSelectorOpen && giftPromoForModal && (
+        <GiftItemSelectorModal
+          isOpen={isGiftSelectorOpen}
+          onClose={() => {
+            setIsGiftSelectorOpen(false);
+            setGiftPromoForModal(null);
+          }}
+          promotion={giftPromoForModal}
+          products={products || []}
+          categories={categories || []}
+          selectedVariantId={currentGiftCartItem?.selectedVariant.id}
+          onSelectGift={(variant, product) => {
+            if (onApplyGiftItem) {
+              onApplyGiftItem(giftPromoForModal, variant, product);
+            }
+            setIsGiftSelectorOpen(false);
+            setGiftPromoForModal(null);
+          }}
+          settings={settings}
+        />
+      )}
     </div>
   );
 }

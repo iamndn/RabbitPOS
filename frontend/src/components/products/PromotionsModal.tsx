@@ -82,6 +82,9 @@ export default function PromotionsModal({ isOpen, onClose, settings: initialSett
   const [formScope, setFormScope] = useState<PromoScope>('all');
   const [formTargetIds, setFormTargetIds] = useState<number[]>([]);
   const [formGiftVariantId, setFormGiftVariantId] = useState<number | null>(null);
+  const [formAllowSelectGift, setFormAllowSelectGift] = useState<boolean>(false);
+  const [formGiftTargetIds, setFormGiftTargetIds] = useState<number[]>([]);
+  const [formGiftScope, setFormGiftScope] = useState<'all' | 'specific'>('all');
   const [formStartDate, setFormStartDate] = useState<string>('');
   const [formEndDate, setFormEndDate] = useState<string>('');
   const [formUsageLimit, setFormUsageLimit] = useState<number>(0);
@@ -178,6 +181,9 @@ export default function PromotionsModal({ isOpen, onClose, settings: initialSett
     setFormScope('all');
     setFormTargetIds([]);
     setFormGiftVariantId(null);
+    setFormAllowSelectGift(false);
+    setFormGiftTargetIds([]);
+    setFormGiftScope('all');
     setFormStartDate('');
     setFormEndDate('');
     setFormUsageLimit(0);
@@ -205,6 +211,19 @@ export default function PromotionsModal({ isOpen, onClose, settings: initialSett
     setFormTargetIds(parsedTargetIds);
 
     setFormGiftVariantId(promo.gift_product_variant_id || null);
+    setFormAllowSelectGift(!!promo.allow_select_gift);
+
+    let parsedGiftTargetIds: number[] = [];
+    try {
+      if (promo.gift_target_ids) {
+        parsedGiftTargetIds = JSON.parse(promo.gift_target_ids);
+      }
+    } catch {
+      parsedGiftTargetIds = [];
+    }
+    setFormGiftTargetIds(parsedGiftTargetIds);
+    setFormGiftScope(parsedGiftTargetIds.length > 0 ? 'specific' : 'all');
+
     setFormStartDate(promo.start_date ? promo.start_date.split('T')[0] : '');
     setFormEndDate(promo.end_date ? promo.end_date.split('T')[0] : '');
     setFormUsageLimit(promo.usage_limit || 0);
@@ -219,6 +238,17 @@ export default function PromotionsModal({ isOpen, onClose, settings: initialSett
       return;
     }
 
+    if (formType === 'gift_item') {
+      if (!formAllowSelectGift && !formGiftVariantId) {
+        showAlert(t('common.error') || 'Lỗi', 'Vui lòng chọn món quà tặng cố định', 'warning');
+        return;
+      }
+      if (formAllowSelectGift && formGiftScope === 'specific' && formGiftTargetIds.length === 0) {
+        showAlert(t('common.error') || 'Lỗi', 'Vui lòng chọn ít nhất 1 món trong danh sách quà tặng cho phép', 'warning');
+        return;
+      }
+    }
+
     const payload = {
       name: formName.trim(),
       promo_type: formType,
@@ -228,6 +258,8 @@ export default function PromotionsModal({ isOpen, onClose, settings: initialSett
       scope: formScope,
       target_ids: formTargetIds,
       gift_product_variant_id: formType === 'gift_item' ? formGiftVariantId : null,
+      allow_select_gift: formType === 'gift_item' ? formAllowSelectGift : false,
+      gift_target_ids: formType === 'gift_item' && formAllowSelectGift && formGiftScope === 'specific' ? formGiftTargetIds : [],
       start_date: formStartDate ? new Date(formStartDate).toISOString() : null,
       end_date: formEndDate ? new Date(formEndDate).toISOString() : null,
       usage_limit: Number(formUsageLimit) || 0,
@@ -502,10 +534,27 @@ export default function PromotionsModal({ isOpen, onClose, settings: initialSett
                     {/* Promo Name */}
                     <div>
                       <h3 className="font-extrabold text-slate-900 text-sm leading-tight">{promo.name}</h3>
-                      {isGift && promo.gift_variant && (
-                        <p className="text-xs font-semibold text-amber-700 mt-0.5">
-                          🎁 Tặng kèm: {promo.gift_variant.variant_name}
-                        </p>
+                      {isGift && (
+                        <div className="mt-1 space-y-0.5">
+                          {promo.allow_select_gift ? (
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-200">
+                                🎁 Cho phép chọn món
+                              </span>
+                              {promo.gift_variant && (
+                                <span className="text-[11px] font-medium text-amber-800 truncate">
+                                  (Gợi ý: {promo.gift_variant.variant_name})
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            promo.gift_variant && (
+                              <p className="text-xs font-semibold text-amber-700">
+                                🎁 Tặng kèm: {promo.gift_variant.variant_name}
+                              </p>
+                            )
+                          )}
+                        </div>
                       )}
                     </div>
 
@@ -655,19 +704,146 @@ export default function PromotionsModal({ isOpen, onClose, settings: initialSett
                     </div>
                   </div>
                 ) : (
-                  <div>
-                    <label className="app-label">Món quà tặng kèm *</label>
-                    <ModernSelect
-                      value={formGiftVariantId || 0}
-                      onChange={(val) => setFormGiftVariantId(Number(val) || null)}
-                      options={[
-                        { value: 0, label: '— Chọn món tặng —' },
-                        ...allVariants.map((v) => ({
-                          value: v.id,
-                          label: `${v.productName} - ${v.variantName} (${formatCurrency(v.price, settings)})`,
-                        })),
-                      ]}
-                    />
+                  <div className="bg-amber-50/70 border border-amber-200/80 rounded-2xl p-3.5 space-y-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="text-xs font-bold text-amber-950 flex items-center gap-1.5">
+                          <Gift className="w-4 h-4 text-amber-600 shrink-0" />
+                          <span>{t('promotions.allow_select_gift_label') || 'Cho phép chọn món được tặng khi áp dụng'}</span>
+                        </div>
+                        <p className="text-[11px] text-amber-800/80 mt-0.5 leading-relaxed">
+                          {t('promotions.allow_select_gift_hint') || 'Thu ngân có thể linh hoạt chọn món quà tặng trực tiếp tại giỏ hàng POS khi áp dụng khuyến mãi này.'}
+                        </p>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                        <input
+                          type="checkbox"
+                          checked={formAllowSelectGift}
+                          onChange={(e) => setFormAllowSelectGift(e.target.checked)}
+                          className="sr-only peer"
+                        />
+                        <div className="w-10 h-6 bg-slate-200 peer-focus:outline-hidden rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600"></div>
+                      </label>
+                    </div>
+
+                    {formAllowSelectGift ? (
+                      <div className="space-y-3 pt-2.5 border-t border-amber-200/60">
+                        {/* Scope of allowed gifts */}
+                        <div>
+                          <label className="text-[11px] font-bold text-slate-700 block mb-1.5">
+                            {t('promotions.gift_scope_label') || 'Phạm vi món được tặng'}
+                          </label>
+                          <div className="grid grid-cols-2 gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setFormGiftScope('all')}
+                              className={`py-2 px-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 border cursor-pointer ${
+                                formGiftScope === 'all'
+                                  ? 'bg-amber-600 text-white border-amber-600 shadow-2xs'
+                                  : 'bg-white text-slate-700 border-slate-200 hover:border-amber-300'
+                              }`}
+                            >
+                              <span>{t('promotions.gift_scope_all') || 'Tất cả món trong menu'}</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setFormGiftScope('specific')}
+                              className={`py-2 px-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 border cursor-pointer ${
+                                formGiftScope === 'specific'
+                                  ? 'bg-amber-600 text-white border-amber-600 shadow-2xs'
+                                  : 'bg-white text-slate-700 border-slate-200 hover:border-amber-300'
+                              }`}
+                            >
+                              <span>{t('promotions.gift_scope_specific') || 'Chỉ các món chỉ định'}</span>
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* If specific, render selectable list of variants with search/check */}
+                        {formGiftScope === 'specific' && (
+                          <div className="space-y-1.5">
+                            <div className="flex items-center justify-between">
+                              <label className="text-[11px] font-bold text-slate-700">
+                                {t('promotions.select_gift_target_variants') || 'Chọn các món/biến thể được phép tặng:'} ({formGiftTargetIds.length}) *
+                              </label>
+                              <span className="text-[10px] text-amber-700 font-semibold">
+                                Đã chọn {formGiftTargetIds.length} món
+                              </span>
+                            </div>
+                            <div className="max-h-48 overflow-y-auto border border-amber-200/90 rounded-xl p-2 bg-white space-y-1 divide-y divide-slate-100">
+                              {allVariants.map((v) => {
+                                const isSelected = formGiftTargetIds.includes(v.id);
+                                return (
+                                  <label
+                                    key={v.id}
+                                    className="flex items-center justify-between p-1.5 hover:bg-amber-50/50 rounded-lg cursor-pointer text-xs"
+                                  >
+                                    <div className="flex items-center gap-2 min-w-0">
+                                      <input
+                                        type="checkbox"
+                                        checked={isSelected}
+                                        onChange={() => {
+                                          if (isSelected) {
+                                            setFormGiftTargetIds(formGiftTargetIds.filter((id) => id !== v.id));
+                                          } else {
+                                            setFormGiftTargetIds([...formGiftTargetIds, v.id]);
+                                          }
+                                        }}
+                                        className="w-4 h-4 rounded text-amber-600 focus:ring-amber-500 border-slate-300 cursor-pointer"
+                                      />
+                                      <span className="font-semibold text-slate-800 truncate">
+                                        {v.productName} - {v.variantName}
+                                      </span>
+                                    </div>
+                                    <span className="text-[11px] font-bold text-slate-500 shrink-0">
+                                      {formatCurrency(v.price, settings)}
+                                    </span>
+                                  </label>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Default / suggested gift variant */}
+                        <div>
+                          <label className="text-[11px] font-bold text-slate-700 block mb-1">
+                            {t('promotions.default_gift_variant') || 'Món quà tặng gợi ý mặc định (tùy chọn)'}
+                          </label>
+                          <ModernSelect
+                            value={formGiftVariantId || 0}
+                            onChange={(val) => setFormGiftVariantId(Number(val) || null)}
+                            options={[
+                              { value: 0, label: '— Không đặt gợi ý (Thu ngân tự chọn khi bán) —' },
+                              ...allVariants
+                                .filter((v) => formGiftScope === 'all' || formGiftTargetIds.includes(v.id))
+                                .map((v) => ({
+                                  value: v.id,
+                                  label: `${v.productName} - ${v.variantName} (${formatCurrency(v.price, settings)})`,
+                                })),
+                            ]}
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      /* Fixed single gift variant */
+                      <div>
+                        <label className="text-[11px] font-bold text-slate-700 block mb-1">
+                          {t('promotions.fixed_gift_variant') || 'Món quà tặng cố định *'}
+                        </label>
+                        <ModernSelect
+                          value={formGiftVariantId || 0}
+                          onChange={(val) => setFormGiftVariantId(Number(val) || null)}
+                          options={[
+                            { value: 0, label: '— Chọn món tặng cố định —' },
+                            ...allVariants.map((v) => ({
+                              value: v.id,
+                              label: `${v.productName} - ${v.variantName} (${formatCurrency(v.price, settings)})`,
+                            })),
+                          ]}
+                        />
+                      </div>
+                    )}
                   </div>
                 )}
 

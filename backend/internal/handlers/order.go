@@ -284,9 +284,37 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 		}
 		orderCode := fmt.Sprintf("ORD-%s-%04d", orderTime.Format("20060102-150405"), orderTime.Nanosecond()/100000)
 
-		// 4. Server-Authoritative Items & Toppings Calculation
-		var subtotal float64 = 0
+		// 4. Validate Promotion upfront (if provided) & Process Items
+		var promo *models.Promotion
+		if req.PromotionID != nil && *req.PromotionID > 0 {
+			var p models.Promotion
+			// Row lock for concurrent usage count safety
+			if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&p, *req.PromotionID).Error; err != nil {
+				if err == gorm.ErrRecordNotFound {
+					return fmt.Errorf("PROMOTION_NOT_FOUND: Chương trình khuyến mãi ID %d không tồn tại", *req.PromotionID)
+				}
+				return err
+			}
+			if !p.IsActive {
+				return fmt.Errorf("PROMOTION_INACTIVE: Khuyến mãi %s đã bị vô hiệu hóa", p.Name)
+			}
+			if p.StartDate != nil && orderTime.Before(*p.StartDate) {
+				return fmt.Errorf("PROMOTION_NOT_STARTED: Khuyến mãi %s chưa đến thời gian áp dụng", p.Name)
+			}
+			if p.EndDate != nil && orderTime.After(*p.EndDate) {
+				return fmt.Errorf("PROMOTION_EXPIRED: Khuyến mãi %s đã hết hạn sử dụng", p.Name)
+			}
+			if p.UsageLimit > 0 && p.UsageCount >= p.UsageLimit {
+				return fmt.Errorf("PROMOTION_USAGE_EXCEEDED: Khuyến mãi %s đã hết lượt sử dụng cho phép", p.Name)
+			}
+			promo = &p
+		}
+
 		var orderItems []models.OrderItem
+		var subtotal float64 = 0
+		var eligibleSubtotal float64 = 0
+		var eligibleQuantity int = 0
+		var giftItemsCount int = 0
 		isOrderOverridden := false
 
 		for _, itemReq := range req.Items {
@@ -308,12 +336,50 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 			origUnitPrice := variant.RetailPrice
 			unitPrice := origUnitPrice
 			isItemOverridden := false
+			isGift := itemReq.IsGift
 
-			// Apply Admin Price Override if requested
-			if isAdmin && itemReq.PriceOverride != nil && *itemReq.PriceOverride >= 0 {
-				unitPrice = math.Round(*itemReq.PriceOverride)
-				isItemOverridden = true
-				isOrderOverridden = true
+			// Handle gift items
+			if isGift {
+				if promo == nil {
+					return fmt.Errorf("PROMOTION_GIFT_INVALID: Món quà tặng yêu cầu chương trình khuyến mãi hợp lệ")
+				}
+				if promo.PromoType != models.PromoTypeGiftItem {
+					return fmt.Errorf("PROMOTION_TYPE_MISMATCH: Khuyến mãi %s không phải loại tặng kèm sản phẩm", promo.Name)
+				}
+
+				if promo.AllowSelectGift {
+					targetIDs := promo.GetGiftTargetIDs()
+					if len(targetIDs) > 0 {
+						allowed := false
+						for _, tid := range targetIDs {
+							if tid == variant.ID {
+								allowed = true
+								break
+							}
+						}
+						if !allowed {
+							return fmt.Errorf("PROMOTION_GIFT_NOT_ALLOWED: Biến thể món %s không thuộc danh sách quà tặng cho phép", variant.VariantName)
+						}
+					}
+				} else {
+					if promo.GiftProductVariantID != nil && *promo.GiftProductVariantID != variant.ID {
+						return fmt.Errorf("PROMOTION_GIFT_MISMATCH: Món quà tặng không đúng với cấu hình khuyến mãi %s", promo.Name)
+					}
+				}
+
+				giftItemsCount += itemReq.Quantity
+				if giftItemsCount > 1 {
+					return fmt.Errorf("PROMOTION_GIFT_LIMIT_EXCEEDED: Mỗi đơn hàng chỉ được nhận tối đa 1 món quà tặng")
+				}
+
+				unitPrice = 0
+			} else {
+				// Apply Admin Price Override if requested
+				if isAdmin && itemReq.PriceOverride != nil && *itemReq.PriceOverride >= 0 {
+					unitPrice = math.Round(*itemReq.PriceOverride)
+					isItemOverridden = true
+					isOrderOverridden = true
+				}
 			}
 
 			// Query & Calculate Toppings authoritatively
@@ -371,6 +437,11 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 			lineTotal := math.Round((unitPrice + toppingsPrice) * float64(itemReq.Quantity))
 			subtotal += lineTotal
 
+			if !isGift {
+				eligibleSubtotal += lineTotal
+				eligibleQuantity += itemReq.Quantity
+			}
+
 			orderItems = append(orderItems, models.OrderItem{
 				ProductVariantID:  variant.ID,
 				Quantity:          itemReq.Quantity,
@@ -382,35 +453,19 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 				Notes:             itemReq.Notes,
 				IsPriceOverridden: isItemOverridden,
 				OverrideReason:    itemReq.OverrideReason,
+				IsGift:            isGift,
 				CreatedAt:         orderTime,
 			})
 		}
 
 		// 5. Promotion Calculation & Atomic Validation
 		var promoDiscount float64 = 0
-		if req.PromotionID != nil && *req.PromotionID > 0 {
-			var promo models.Promotion
-			// Row lock for concurrent usage count safety
-			if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&promo, *req.PromotionID).Error; err != nil {
-				if err == gorm.ErrRecordNotFound {
-					return fmt.Errorf("PROMOTION_NOT_FOUND: Chương trình khuyến mãi ID %d không tồn tại", *req.PromotionID)
-				}
-				return err
-			}
-			if !promo.IsActive {
-				return fmt.Errorf("PROMOTION_INACTIVE: Khuyến mãi %s đã bị vô hiệu hóa", promo.Name)
-			}
-			if promo.StartDate != nil && orderTime.Before(*promo.StartDate) {
-				return fmt.Errorf("PROMOTION_NOT_STARTED: Khuyến mãi %s chưa đến thời gian áp dụng", promo.Name)
-			}
-			if promo.EndDate != nil && orderTime.After(*promo.EndDate) {
-				return fmt.Errorf("PROMOTION_EXPIRED: Khuyến mãi %s đã hết hạn sử dụng", promo.Name)
-			}
-			if promo.UsageLimit > 0 && promo.UsageCount >= promo.UsageLimit {
-				return fmt.Errorf("PROMOTION_USAGE_EXCEEDED: Khuyến mãi %s đã hết lượt sử dụng cho phép", promo.Name)
-			}
-			if subtotal < promo.MinOrderAmount {
+		if promo != nil {
+			if eligibleSubtotal < promo.MinOrderAmount {
 				return fmt.Errorf("PROMOTION_MIN_AMOUNT_NOT_MET: Đơn hàng chưa đạt giá trị tối thiểu (%.0fđ) để áp dụng khuyến mãi %s", promo.MinOrderAmount, promo.Name)
+			}
+			if promo.MinQuantity > 0 && eligibleQuantity < promo.MinQuantity {
+				return fmt.Errorf("PROMOTION_MIN_QTY_NOT_MET: Đơn hàng chưa đạt số lượng tối thiểu (%d món) để áp dụng khuyến mãi %s", promo.MinQuantity, promo.Name)
 			}
 
 			switch promo.PromoType {
@@ -423,7 +478,7 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 			}
 
 			// Atomic increment promotion usage
-			if err := tx.Model(&promo).Update("usage_count", gorm.Expr("usage_count + 1")).Error; err != nil {
+			if err := tx.Model(promo).Update("usage_count", gorm.Expr("usage_count + 1")).Error; err != nil {
 				return fmt.Errorf("failed to increment promotion usage: %w", err)
 			}
 		}
