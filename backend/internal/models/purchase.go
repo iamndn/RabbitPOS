@@ -17,7 +17,8 @@ type IngredientConversionPreset struct {
 // Ingredient represents a raw material, fresh produce, beverage supply, or packaging
 type Ingredient struct {
 	ID                   uint      `gorm:"primaryKey" json:"id"`
-	Name                 string    `gorm:"type:varchar(150);not null;uniqueIndex" json:"name"`
+	StoreID              uint      `gorm:"not null;default:1;uniqueIndex:uq_ingredients_store_name,priority:1" json:"store_id"`
+	Name                 string    `gorm:"type:varchar(150);not null;uniqueIndex:uq_ingredients_store_name,priority:2" json:"name"`
 	Category             string    `gorm:"type:varchar(50);not null;default:'fruit'" json:"category"`              // 'fruit', 'ingredient', 'packaging', 'other'
 	Unit                 string    `gorm:"type:varchar(20);not null" json:"unit"`                                  // Legacy field, synced with BaseUnit
 	BaseUnit             string    `gorm:"type:varchar(20);not null;default:'ml'" json:"base_unit"`                // 'ml', 'g', 'cái', 'quả', 'viên', 'lon', 'hộp', 'lít', 'kg'

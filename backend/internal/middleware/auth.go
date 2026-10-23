@@ -56,6 +56,7 @@ func AuthMiddleware(jwtSecret string, db *gorm.DB) gin.HandlerFunc {
 		}
 
 		// 5. Verify User Active Status and TokenVersion
+		activeRole := claims.Role
 		if db != nil && claims.UserID > 0 {
 			var user models.User
 			if err := db.Select("id, role, is_active, token_version").First(&user, claims.UserID).Error; err == nil {
@@ -70,14 +71,15 @@ func AuthMiddleware(jwtSecret string, db *gorm.DB) gin.HandlerFunc {
 					c.Abort()
 					return
 				}
+				activeRole = user.Role
 			}
 		}
 
 		// Set context values for downstream handlers
 		c.Set("user_id", claims.UserID)
 		c.Set("username", claims.Username)
-		c.Set("role", string(claims.Role))
-		c.Set("user_role", claims.Role)
+		c.Set("role", string(activeRole))
+		c.Set("user_role", activeRole)
 		c.Set("jti", claims.ID)
 		c.Set("token_version", claims.TokenVersion)
 
@@ -103,7 +105,7 @@ func RequireRole(allowedRoles ...models.UserRole) gin.HandlerFunc {
 		}
 
 		for _, allowed := range allowedRoles {
-			if userRole == allowed {
+			if userRole == allowed || (allowed == models.RoleAdmin && userRole.IsSuperAdmin()) {
 				c.Next()
 				return
 			}

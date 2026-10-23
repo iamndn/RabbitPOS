@@ -7,6 +7,7 @@ import (
 // Category represents a product category in the POS catalog domain
 type Category struct {
 	ID           uint      `gorm:"primaryKey" json:"id"`
+	StoreID      uint      `gorm:"not null;default:1" json:"store_id"`
 	Name         string    `gorm:"type:varchar(100);not null" json:"name"`
 	ImageURL     string    `gorm:"type:varchar(255)" json:"image_url"`
 	DisplayOrder int       `gorm:"default:0;index" json:"display_order"`

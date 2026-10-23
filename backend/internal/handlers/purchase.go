@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"errors"
+	"fmt"
 	"math"
 	"net/http"
 	"sort"
@@ -10,6 +11,8 @@ import (
 	"time"
 
 	"github.com/RabbitPOS/backend/internal/cache"
+	"github.com/RabbitPOS/backend/internal/database"
+	"github.com/RabbitPOS/backend/internal/middleware"
 	"github.com/RabbitPOS/backend/internal/models"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -33,7 +36,12 @@ func NewPurchaseHandler(db *gorm.DB, productCache *cache.TTLCache, toppingCache 
 
 // ListIngredients returns all registered raw materials, produce, and packaging items
 func (h *PurchaseHandler) ListIngredients(c *gin.Context) {
-	query := h.db.Model(&models.Ingredient{})
+	storeID := middleware.MustGetStoreID(c)
+	if storeID == 0 {
+		return
+	}
+
+	query := h.db.Scopes(database.ScopeByStore(storeID)).Model(&models.Ingredient{})
 
 	if cat := c.Query("category"); cat != "" && cat != "all" {
 		query = query.Where("category = ?", cat)
@@ -54,6 +62,11 @@ func (h *PurchaseHandler) ListIngredients(c *gin.Context) {
 
 // CreateIngredient creates a new ingredient manually
 func (h *PurchaseHandler) CreateIngredient(c *gin.Context) {
+	storeID := middleware.MustGetStoreID(c)
+	if storeID == 0 {
+		return
+	}
+
 	var req models.CreateOrUpdateIngredientRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		models.SendError(c, http.StatusBadRequest, "Invalid payload: "+err.Error())
@@ -63,6 +76,13 @@ func (h *PurchaseHandler) CreateIngredient(c *gin.Context) {
 	name := strings.TrimSpace(req.Name)
 	if name == "" {
 		models.SendError(c, http.StatusBadRequest, "Ingredient name is required")
+		return
+	}
+
+	// Check duplicate name within store
+	var existing models.Ingredient
+	if err := h.db.Scopes(database.ScopeByStore(storeID)).Where("LOWER(name) = LOWER(?)", name).First(&existing).Error; err == nil {
+		models.SendError(c, http.StatusConflict, "An ingredient with this name already exists in this store")
 		return
 	}
 
@@ -116,29 +136,26 @@ func (h *PurchaseHandler) CreateIngredient(c *gin.Context) {
 	}
 
 	ingredient := models.Ingredient{
+		StoreID:              storeID,
 		Name:                 name,
 		Category:             category,
 		Unit:                 baseUnit,
 		BaseUnit:             baseUnit,
 		LossRate:             lossRate,
 		YieldRate:            yieldRate,
+		LatestPurchasePrice:  initPrice,
+		AveragePurchasePrice: avgPrice,
 		DefaultPurchaseUnit:  strings.TrimSpace(req.DefaultPurchaseUnit),
 		DefaultPackQty:       packQty,
 		DefaultPackUnit:      strings.TrimSpace(req.DefaultPackUnit),
 		DefaultCapacityQty:   capQty,
 		DefaultCapacityUnit:  strings.TrimSpace(req.DefaultCapacityUnit),
 		SavedConversions:     savedConversions,
-		LatestPurchasePrice:  initPrice,
-		AveragePurchasePrice: avgPrice,
 		CreatedAt:            time.Now(),
 		UpdatedAt:            time.Now(),
 	}
 
 	if err := h.db.Create(&ingredient).Error; err != nil {
-		if strings.Contains(err.Error(), "duplicate key") || strings.Contains(err.Error(), "unique") {
-			models.SendError(c, http.StatusConflict, "Tên nguyên liệu này đã tồn tại")
-			return
-		}
 		models.SendInternalErrorLogged(c, "Failed to create ingredient", err)
 		return
 	}
@@ -146,12 +163,23 @@ func (h *PurchaseHandler) CreateIngredient(c *gin.Context) {
 	models.SendSuccess(c, http.StatusCreated, ingredient, "Ingredient created successfully")
 }
 
-// UpdateIngredient updates ingredient metadata (category, unit, loss rate, default conversions, price)
+// UpdateIngredient updates an existing ingredient
 func (h *PurchaseHandler) UpdateIngredient(c *gin.Context) {
+	storeID := middleware.MustGetStoreID(c)
+	if storeID == 0 {
+		return
+	}
+
 	idParam := c.Param("id")
 	id, err := strconv.ParseUint(idParam, 10, 32)
 	if err != nil {
 		models.SendError(c, http.StatusBadRequest, "Invalid ingredient ID")
+		return
+	}
+
+	var ingredient models.Ingredient
+	if err := h.db.Scopes(database.ScopeByStore(storeID)).First(&ingredient, id).Error; err != nil {
+		models.SendError(c, http.StatusNotFound, "Ingredient not found")
 		return
 	}
 
@@ -161,28 +189,25 @@ func (h *PurchaseHandler) UpdateIngredient(c *gin.Context) {
 		return
 	}
 
-	var ingredient models.Ingredient
-	if err := h.db.First(&ingredient, id).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			models.SendError(c, http.StatusNotFound, "Ingredient not found")
+	name := strings.TrimSpace(req.Name)
+	if name != "" && name != ingredient.Name {
+		var existing models.Ingredient
+		if err := h.db.Scopes(database.ScopeByStore(storeID)).Where("id != ? AND LOWER(name) = LOWER(?)", id, name).First(&existing).Error; err == nil {
+			models.SendError(c, http.StatusConflict, "Another ingredient with this name already exists in this store")
 			return
 		}
-		models.SendInternalErrorLogged(c, "Failed to find ingredient", err)
-		return
-	}
-
-	if name := strings.TrimSpace(req.Name); name != "" {
 		ingredient.Name = name
 	}
-	if category := strings.TrimSpace(req.Category); category != "" {
-		ingredient.Category = category
+
+	if cat := strings.TrimSpace(req.Category); cat != "" {
+		ingredient.Category = cat
 	}
-	if baseUnit := strings.TrimSpace(req.BaseUnit); baseUnit != "" {
-		ingredient.BaseUnit = baseUnit
-		ingredient.Unit = baseUnit
-	} else if unit := strings.TrimSpace(req.Unit); unit != "" {
-		ingredient.BaseUnit = unit
-		ingredient.Unit = unit
+	if bu := strings.TrimSpace(req.BaseUnit); bu != "" {
+		ingredient.BaseUnit = bu
+		ingredient.Unit = bu
+	} else if u := strings.TrimSpace(req.Unit); u != "" {
+		ingredient.BaseUnit = u
+		ingredient.Unit = u
 	}
 
 	if req.LossRate >= 0 && req.LossRate < 1.0 {
@@ -195,32 +220,30 @@ func (h *PurchaseHandler) UpdateIngredient(c *gin.Context) {
 
 	if req.LatestPurchasePrice != nil && *req.LatestPurchasePrice >= 0 {
 		ingredient.LatestPurchasePrice = *req.LatestPurchasePrice
-		if ingredient.AveragePurchasePrice == 0 {
-			ingredient.AveragePurchasePrice = *req.LatestPurchasePrice
-		}
 	}
 	if req.AveragePurchasePrice != nil && *req.AveragePurchasePrice >= 0 {
 		ingredient.AveragePurchasePrice = *req.AveragePurchasePrice
 	}
 
-	if req.DefaultPurchaseUnit != "" {
-		ingredient.DefaultPurchaseUnit = strings.TrimSpace(req.DefaultPurchaseUnit)
+	if dpu := strings.TrimSpace(req.DefaultPurchaseUnit); dpu != "" {
+		ingredient.DefaultPurchaseUnit = dpu
 	}
 	if req.DefaultPackQty > 0 {
 		ingredient.DefaultPackQty = req.DefaultPackQty
 	}
-	if req.DefaultPackUnit != "" {
-		ingredient.DefaultPackUnit = strings.TrimSpace(req.DefaultPackUnit)
+	if dpu := strings.TrimSpace(req.DefaultPackUnit); dpu != "" {
+		ingredient.DefaultPackUnit = dpu
 	}
 	if req.DefaultCapacityQty > 0 {
 		ingredient.DefaultCapacityQty = req.DefaultCapacityQty
 	}
-	if req.DefaultCapacityUnit != "" {
-		ingredient.DefaultCapacityUnit = strings.TrimSpace(req.DefaultCapacityUnit)
+	if dcu := strings.TrimSpace(req.DefaultCapacityUnit); dcu != "" {
+		ingredient.DefaultCapacityUnit = dcu
 	}
-	if req.SavedConversions != "" {
-		ingredient.SavedConversions = req.SavedConversions
+	if sc := strings.TrimSpace(req.SavedConversions); sc != "" {
+		ingredient.SavedConversions = sc
 	}
+
 	ingredient.UpdatedAt = time.Now()
 
 	if err := h.db.Save(&ingredient).Error; err != nil {
@@ -231,39 +254,13 @@ func (h *PurchaseHandler) UpdateIngredient(c *gin.Context) {
 	models.SendSuccess(c, http.StatusOK, ingredient, "Ingredient updated successfully")
 }
 
-// DeleteIngredient removes an ingredient if not referenced in recipes or purchase items
+// DeleteIngredient deletes an ingredient if not referenced in any recipe
 func (h *PurchaseHandler) DeleteIngredient(c *gin.Context) {
-	idParam := c.Param("id")
-	id, err := strconv.ParseUint(idParam, 10, 32)
-	if err != nil {
-		models.SendError(c, http.StatusBadRequest, "Invalid ingredient ID")
+	storeID := middleware.MustGetStoreID(c)
+	if storeID == 0 {
 		return
 	}
 
-	var recipeCount int64
-	h.db.Model(&models.RecipeItem{}).Where("ingredient_id = ?", id).Count(&recipeCount)
-	if recipeCount > 0 {
-		models.SendError(c, http.StatusBadRequest, "Không thể xóa nguyên liệu đang được dùng trong công thức món")
-		return
-	}
-
-	var purchaseCount int64
-	h.db.Model(&models.PurchaseItem{}).Where("ingredient_id = ?", id).Count(&purchaseCount)
-	if purchaseCount > 0 {
-		models.SendError(c, http.StatusBadRequest, "Không thể xóa nguyên liệu đã có lịch sử nhập hàng")
-		return
-	}
-
-	if err := h.db.Delete(&models.Ingredient{}, id).Error; err != nil {
-		models.SendInternalErrorLogged(c, "Failed to delete ingredient", err)
-		return
-	}
-
-	models.SendSuccess(c, http.StatusOK, gin.H{"deleted_id": id}, "Ingredient deleted successfully")
-}
-
-// GetIngredientHistory returns the chronological invoice purchase records for an ingredient with detailed conversion info
-func (h *PurchaseHandler) GetIngredientHistory(c *gin.Context) {
 	idParam := c.Param("id")
 	id, err := strconv.ParseUint(idParam, 10, 32)
 	if err != nil {
@@ -272,7 +269,43 @@ func (h *PurchaseHandler) GetIngredientHistory(c *gin.Context) {
 	}
 
 	var ingredient models.Ingredient
-	if err := h.db.First(&ingredient, id).Error; err != nil {
+	if err := h.db.Scopes(database.ScopeByStore(storeID)).First(&ingredient, id).Error; err != nil {
+		models.SendError(c, http.StatusNotFound, "Ingredient not found")
+		return
+	}
+
+	// Check if ingredient is used in any recipes
+	var recipeCount int64
+	h.db.Model(&models.RecipeItem{}).Where("ingredient_id = ?", id).Count(&recipeCount)
+	if recipeCount > 0 {
+		models.SendError(c, http.StatusBadRequest, "Cannot delete ingredient referenced by active recipes")
+		return
+	}
+
+	if err := h.db.Scopes(database.ScopeByStore(storeID)).Delete(&ingredient).Error; err != nil {
+		models.SendInternalErrorLogged(c, "Failed to delete ingredient", err)
+		return
+	}
+
+	models.SendSuccess(c, http.StatusOK, gin.H{"id": id}, "Ingredient deleted successfully")
+}
+
+// GetIngredientHistory returns purchase records for an ingredient with full conversion metrics
+func (h *PurchaseHandler) GetIngredientHistory(c *gin.Context) {
+	storeID := middleware.MustGetStoreID(c)
+	if storeID == 0 {
+		return
+	}
+
+	idParam := c.Param("id")
+	id, err := strconv.ParseUint(idParam, 10, 32)
+	if err != nil {
+		models.SendError(c, http.StatusBadRequest, "Invalid ingredient ID")
+		return
+	}
+
+	var ingredient models.Ingredient
+	if err := h.db.Scopes(database.ScopeByStore(storeID)).First(&ingredient, id).Error; err != nil {
 		models.SendError(c, http.StatusNotFound, "Ingredient not found")
 		return
 	}
@@ -315,7 +348,7 @@ func (h *PurchaseHandler) GetIngredientHistory(c *gin.Context) {
 			funds.name as fund_name, transactions.cashier_name, transactions.description`).
 		Joins("JOIN transactions ON transactions.id = purchase_items.transaction_id").
 		Joins("LEFT JOIN funds ON funds.id = transactions.fund_id").
-		Where("purchase_items.ingredient_id = ?", id).
+		Where("purchase_items.ingredient_id = ? AND transactions.store_id = ?", id, storeID).
 		Order("created_at DESC, purchase_items.id DESC").
 		Scan(&history)
 
@@ -327,6 +360,11 @@ func (h *PurchaseHandler) GetIngredientHistory(c *gin.Context) {
 
 // GetAllPurchaseHistory returns all chronological purchase records across transactions with conversion details
 func (h *PurchaseHandler) GetAllPurchaseHistory(c *gin.Context) {
+	storeID := middleware.MustGetStoreID(c)
+	if storeID == 0 {
+		return
+	}
+
 	type PurchaseRecord struct {
 		ID                    uint      `json:"id"`
 		TransactionID         uint      `json:"transaction_id"`
@@ -372,6 +410,7 @@ func (h *PurchaseHandler) GetAllPurchaseHistory(c *gin.Context) {
 		Joins("JOIN transactions ON transactions.id = purchase_items.transaction_id").
 		Joins("LEFT JOIN ingredients ON ingredients.id = purchase_items.ingredient_id").
 		Joins("LEFT JOIN funds ON funds.id = transactions.fund_id").
+		Where("transactions.store_id = ?", storeID).
 		Order("created_at DESC, purchase_items.id DESC").
 		Limit(500).
 		Scan(&records)
@@ -391,7 +430,7 @@ func (h *PurchaseHandler) GetAllPurchaseHistory(c *gin.Context) {
 	h.db.Table("transactions").
 		Select("transactions.id, transactions.fund_id, funds.name as fund_name, transactions.category, transactions.amount, transactions.description, transactions.cashier_name, transactions.created_at").
 		Joins("LEFT JOIN funds ON funds.id = transactions.fund_id").
-		Where("transactions.transaction_type = 'outflow'").
+		Where("transactions.store_id = ? AND transactions.transaction_type = 'outflow'", storeID).
 		Where("transactions.id NOT IN (SELECT DISTINCT transaction_id FROM purchase_items WHERE transaction_id IS NOT NULL)").
 		Order("transactions.created_at DESC, transactions.id DESC").
 		Limit(300).
@@ -462,16 +501,23 @@ func (h *PurchaseHandler) GetAllPurchaseHistory(c *gin.Context) {
 
 // GetCostComparison computes real-time recipe theoretical COGS vs active menu COGS
 func (h *PurchaseHandler) GetCostComparison(c *gin.Context) {
-	// 1. Fetch all product variants with Product and Category
+	storeID := middleware.MustGetStoreID(c)
+	if storeID == 0 {
+		return
+	}
+
+	// 1. Fetch all product variants with Product and Category for active store
 	var products []models.Product
-	if err := h.db.Preload("Category").Preload("Variants", "is_active = true").Where("is_active = true").Find(&products).Error; err != nil {
+	if err := h.db.Scopes(database.ScopeByStore(storeID)).Preload("Category").Preload("Variants", "is_active = true").Where("is_active = true").Find(&products).Error; err != nil {
 		models.SendInternalErrorLogged(c, "Failed to load products for cost comparison", err)
 		return
 	}
 
-	// 2. Fetch all RecipeItems with preloaded Ingredient
+	// 2. Fetch all RecipeItems with preloaded Ingredient belonging to active store
 	var allRecipeItems []models.RecipeItem
-	if err := h.db.Preload("Ingredient").Find(&allRecipeItems).Error; err != nil {
+	if err := h.db.Joins("JOIN ingredients ON ingredients.id = recipe_items.ingredient_id").
+		Where("ingredients.store_id = ?", storeID).
+		Preload("Ingredient").Find(&allRecipeItems).Error; err != nil {
 		models.SendInternalErrorLogged(c, "Failed to load recipe items", err)
 		return
 	}
@@ -564,9 +610,9 @@ func (h *PurchaseHandler) GetCostComparison(c *gin.Context) {
 		}
 	}
 
-	// 4. Process Toppings
+	// 4. Process Toppings scoped to active store
 	var toppings []models.Topping
-	if err := h.db.Preload("Category").Where("is_active = true").Find(&toppings).Error; err == nil {
+	if err := h.db.Scopes(database.ScopeByStore(storeID)).Preload("Category").Where("is_active = true").Find(&toppings).Error; err == nil {
 		for _, tp := range toppings {
 			catName := "Topping toàn cục"
 			if tp.Category != nil {
@@ -642,6 +688,11 @@ func (h *PurchaseHandler) GetCostComparison(c *gin.Context) {
 
 // ApplyCostToMenu updates the menu COGS (cogs_price for product_variant, cogs for topping)
 func (h *PurchaseHandler) ApplyCostToMenu(c *gin.Context) {
+	storeID := middleware.MustGetStoreID(c)
+	if storeID == 0 {
+		return
+	}
+
 	var req models.ApplyCostRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		models.SendError(c, http.StatusBadRequest, "Invalid payload: "+err.Error())
@@ -666,12 +717,18 @@ func (h *PurchaseHandler) ApplyCostToMenu(c *gin.Context) {
 	err := h.db.Transaction(func(tx *gorm.DB) error {
 		for _, item := range itemsToApply {
 			if item.TargetType == "topping" {
-				if err := tx.Model(&models.Topping{}).Where("id = ?", item.TargetID).Update("cogs", item.NewCost).Error; err != nil {
+				if err := database.AssertOwned(tx, &models.Topping{}, item.TargetID, storeID); err != nil {
+					return err
+				}
+				if err := tx.Scopes(database.ScopeByStore(storeID)).Model(&models.Topping{}).Where("id = ?", item.TargetID).Update("cogs", item.NewCost).Error; err != nil {
 					return err
 				}
 				appliedCount++
 			} else {
-				// Default to variant
+				// Default to variant: verify parent product ownership
+				if err := database.AssertVariantOwned(tx, item.TargetID, storeID); err != nil {
+					return err
+				}
 				if err := tx.Model(&models.ProductVariant{}).Where("id = ?", item.TargetID).Update("cogs_price", item.NewCost).Error; err != nil {
 					return err
 				}
@@ -682,15 +739,19 @@ func (h *PurchaseHandler) ApplyCostToMenu(c *gin.Context) {
 	})
 
 	if err != nil {
+		if errors.Is(err, database.ErrNotInStore) {
+			models.SendError(c, http.StatusNotFound, "Một hoặc nhiều món không thuộc cửa hàng này")
+			return
+		}
 		models.SendInternalErrorLogged(c, "Failed to apply new costs to menu", err)
 		return
 	}
 
 	if h.productCache != nil {
-		h.productCache.Clear()
+		h.productCache.Invalidate(fmt.Sprintf("s%d:products:list", storeID))
 	}
 	if h.toppingCache != nil {
-		h.toppingCache.Clear()
+		h.toppingCache.Invalidate(fmt.Sprintf("s%d:toppings:list", storeID))
 	}
 
 	models.SendSuccess(c, http.StatusOK, gin.H{"applied_count": appliedCount}, "Menu costs updated successfully")
@@ -698,6 +759,11 @@ func (h *PurchaseHandler) ApplyCostToMenu(c *gin.Context) {
 
 // GetRecipe retrieves recipe items for a product variant or topping
 func (h *PurchaseHandler) GetRecipe(c *gin.Context) {
+	storeID := middleware.MustGetStoreID(c)
+	if storeID == 0 {
+		return
+	}
+
 	targetType := c.Param("target_type") // 'variant' or 'topping'
 	targetIDStr := c.Param("target_id")
 	targetID, err := strconv.ParseUint(targetIDStr, 10, 32)
@@ -709,8 +775,16 @@ func (h *PurchaseHandler) GetRecipe(c *gin.Context) {
 	var items []models.RecipeItem
 	query := h.db.Preload("Ingredient")
 	if targetType == "topping" {
+		if err := database.AssertOwned(h.db, &models.Topping{}, uint(targetID), storeID); err != nil {
+			models.SendError(c, http.StatusNotFound, "Topping not found in active store")
+			return
+		}
 		query = query.Where("topping_id = ?", targetID)
 	} else {
+		if err := database.AssertVariantOwned(h.db, uint(targetID), storeID); err != nil {
+			models.SendError(c, http.StatusNotFound, "Product variant not found in active store")
+			return
+		}
 		query = query.Where("product_variant_id = ?", targetID)
 	}
 
@@ -724,6 +798,11 @@ func (h *PurchaseHandler) GetRecipe(c *gin.Context) {
 
 // SaveRecipe replaces all recipe items for a product variant or topping
 func (h *PurchaseHandler) SaveRecipe(c *gin.Context) {
+	storeID := middleware.MustGetStoreID(c)
+	if storeID == 0 {
+		return
+	}
+
 	targetType := c.Param("target_type") // 'variant' or 'topping'
 	targetIDStr := c.Param("target_id")
 	targetID, err := strconv.ParseUint(targetIDStr, 10, 32)
@@ -739,18 +818,35 @@ func (h *PurchaseHandler) SaveRecipe(c *gin.Context) {
 	}
 
 	err = h.db.Transaction(func(tx *gorm.DB) error {
-		// 1. Delete existing recipe items
+		// 1. Verify target ownership
 		if targetType == "topping" {
+			if err := database.AssertOwned(tx, &models.Topping{}, uint(targetID), storeID); err != nil {
+				return err
+			}
 			if err := tx.Where("topping_id = ?", targetID).Delete(&models.RecipeItem{}).Error; err != nil {
 				return err
 			}
 		} else {
+			if err := database.AssertVariantOwned(tx, uint(targetID), storeID); err != nil {
+				return err
+			}
 			if err := tx.Where("product_variant_id = ?", targetID).Delete(&models.RecipeItem{}).Error; err != nil {
 				return err
 			}
 		}
 
-		// 2. Insert new recipe items
+		// 2. Verify all ingredient IDs belong to active store
+		var ingIDs []uint
+		for _, item := range req.Items {
+			if item.IngredientID > 0 {
+				ingIDs = append(ingIDs, item.IngredientID)
+			}
+		}
+		if err := database.AssertOwnedIDs(tx, &models.Ingredient{}, ingIDs, storeID); err != nil {
+			return err
+		}
+
+		// 3. Insert new recipe items
 		for _, item := range req.Items {
 			if item.UsageQuantity <= 0 {
 				continue
@@ -779,8 +875,19 @@ func (h *PurchaseHandler) SaveRecipe(c *gin.Context) {
 	})
 
 	if err != nil {
+		if errors.Is(err, database.ErrNotInStore) {
+			models.SendError(c, http.StatusNotFound, "Một hoặc nhiều nguyên liệu hoặc mục tiêu không thuộc cửa hàng này")
+			return
+		}
 		models.SendInternalErrorLogged(c, "Failed to save recipe", err)
 		return
+	}
+
+	if h.productCache != nil {
+		h.productCache.Invalidate(fmt.Sprintf("s%d:products:list", storeID))
+	}
+	if h.toppingCache != nil {
+		h.toppingCache.Invalidate(fmt.Sprintf("s%d:toppings:list", storeID))
 	}
 
 	models.SendSuccess(c, http.StatusOK, gin.H{"saved_count": len(req.Items)}, "Recipe saved successfully")

@@ -5,22 +5,18 @@ import (
 	"os"
 	"testing"
 
-	"github.com/RabbitPOS/backend/internal/config"
-	"github.com/RabbitPOS/backend/internal/database"
 	"github.com/RabbitPOS/backend/internal/models"
+	"github.com/RabbitPOS/backend/internal/testutils"
 	"github.com/xuri/excelize/v2"
 )
 
 func TestImporterService_GenerateTemplateAndImport(t *testing.T) {
-	cfg, err := config.LoadConfig()
-	if err != nil {
-		t.Skipf("Skipping integration test: cannot load config: %v", err)
+	db := testutils.GetTestDB(t)
+	if db == nil {
+		return
 	}
-
-	// Only run if DB is accessible
-	db, err := database.InitDB(cfg)
-	if err != nil {
-		t.Skipf("Skipping integration test: database unavailable: %v", err)
+	if _, err := testutils.SeedMinimalFixtures(db); err != nil {
+		t.Fatal(err)
 	}
 
 	svc := NewImporterService(db)

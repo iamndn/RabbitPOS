@@ -1,10 +1,13 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 
 	"github.com/RabbitPOS/backend/internal/cache"
+	"github.com/RabbitPOS/backend/internal/database"
+	"github.com/RabbitPOS/backend/internal/middleware"
 	"github.com/RabbitPOS/backend/internal/models"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -19,8 +22,17 @@ func NewVariantHandler(db *gorm.DB, c *cache.TTLCache) *VariantHandler {
 	return &VariantHandler{db: db, cache: c}
 }
 
-// AddVariantToProduct creates a new variant for a target product ID
+func variantProductCachePrefix(storeID uint) string {
+	return fmt.Sprintf("s%d:products:", storeID)
+}
+
+// AddVariantToProduct creates a new variant for a target product ID, verifying parent product ownership
 func (h *VariantHandler) AddVariantToProduct(c *gin.Context) {
+	storeID := middleware.MustGetStoreID(c)
+	if storeID == 0 {
+		return
+	}
+
 	productIDStr := c.Param("id")
 	productID, err := strconv.ParseUint(productIDStr, 10, 32)
 	if err != nil {
@@ -29,7 +41,7 @@ func (h *VariantHandler) AddVariantToProduct(c *gin.Context) {
 	}
 
 	var product models.Product
-	if err := h.db.First(&product, productID).Error; err != nil {
+	if err := h.db.Scopes(database.ScopeByStore(storeID)).First(&product, productID).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			models.SendError(c, http.StatusNotFound, "Product not found")
 			return
@@ -64,18 +76,28 @@ func (h *VariantHandler) AddVariantToProduct(c *gin.Context) {
 	}
 
 	if h.cache != nil {
-		h.cache.InvalidatePrefix("products:")
+		h.cache.InvalidatePrefix(variantProductCachePrefix(storeID))
 	}
 
 	models.SendSuccess(c, http.StatusCreated, variant, "Variant added successfully")
 }
 
-// UpdateVariant updates price, COGS, name or status of a variant
+// UpdateVariant updates price, COGS, name or status of a variant, verifying product ownership
 func (h *VariantHandler) UpdateVariant(c *gin.Context) {
+	storeID := middleware.MustGetStoreID(c)
+	if storeID == 0 {
+		return
+	}
+
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
 		models.SendError(c, http.StatusBadRequest, "Invalid variant ID")
+		return
+	}
+
+	if err := database.AssertVariantOwned(h.db, uint(id), storeID); err != nil {
+		models.SendError(c, http.StatusNotFound, "Variant not found")
 		return
 	}
 
@@ -117,18 +139,28 @@ func (h *VariantHandler) UpdateVariant(c *gin.Context) {
 	}
 
 	if h.cache != nil {
-		h.cache.InvalidatePrefix("products:")
+		h.cache.InvalidatePrefix(variantProductCachePrefix(storeID))
 	}
 
 	models.SendSuccess(c, http.StatusOK, variant, "Variant updated successfully")
 }
 
-// DeleteVariant deletes a variant record safely (or soft-deactivates if past orders exist)
+// DeleteVariant deletes a variant record safely (or soft-deactivates if past orders exist), verifying product ownership
 func (h *VariantHandler) DeleteVariant(c *gin.Context) {
+	storeID := middleware.MustGetStoreID(c)
+	if storeID == 0 {
+		return
+	}
+
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
 		models.SendError(c, http.StatusBadRequest, "Invalid variant ID")
+		return
+	}
+
+	if err := database.AssertVariantOwned(h.db, uint(id), storeID); err != nil {
+		models.SendError(c, http.StatusNotFound, "Variant not found")
 		return
 	}
 
@@ -172,7 +204,7 @@ func (h *VariantHandler) DeleteVariant(c *gin.Context) {
 	}
 
 	if h.cache != nil {
-		h.cache.InvalidatePrefix("products:")
+		h.cache.InvalidatePrefix(variantProductCachePrefix(storeID))
 	}
 
 	models.SendSuccess(c, http.StatusOK, nil, "Variant deleted successfully")

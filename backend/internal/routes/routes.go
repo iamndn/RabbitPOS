@@ -68,6 +68,7 @@ func SetupRouter(cfg *config.Config, db *gorm.DB, emailSvc *services.EmailServic
 	sheetsSyncHandler := handlers.NewSheetsSyncHandler(sheetsSyncSvc)
 	autoTaggingHandler := handlers.NewAutoTaggingHandler(autoTaggingSvc)
 	purchaseHandler := handlers.NewPurchaseHandler(db, productCache, toppingCache)
+	storeHandler := handlers.NewStoreHandler(db, cfg, auditSvc)
 
 	// API v1 Group
 	v1 := router.Group("/api/v1")
@@ -82,145 +83,168 @@ func SetupRouter(cfg *config.Config, db *gorm.DB, emailSvc *services.EmailServic
 		authenticated := v1.Group("")
 		authenticated.Use(middleware.AuthMiddleware(cfg.JWTSecret, db))
 		{
-			// Auth User Session Routes
+			// Auth User Session Routes (Platform - no store header required)
 			authenticated.POST("/auth/logout", authHandler.Logout)
 			authenticated.GET("/auth/me", authHandler.GetMe)
-			authenticated.POST("/upload", uploadHandler.UploadImage)
 
-			// Staff & Admin Accessible Endpoints (POS Operations, Store Settings & Active Promotions View)
-			authenticated.GET("/categories", categoryHandler.ListCategories)
-			authenticated.GET("/products", productHandler.ListProducts)
-			authenticated.GET("/products/:id", productHandler.GetProductByID)
-			authenticated.GET("/funds", fundHandler.ListFunds)
-			authenticated.GET("/funds/:id/balance", fundHandler.GetFundBalance)
-			authenticated.GET("/funds/cashier-shift-summary", fundHandler.GetCashierShiftSummary)
-			authenticated.GET("/orders", orderHandler.ListOrders)
-			authenticated.GET("/orders/:id", orderHandler.GetOrderByID)
-			authenticated.POST("/orders", orderHandler.CreateOrder)
-			authenticated.GET("/vietqr/generate", orderHandler.GetVietQR)
-			authenticated.GET("/settings/store", settingHandler.GetStoreSettings)
-
-			// Toppings: public read (for POS variant selector) + admin write
-			authenticated.GET("/toppings", toppingHandler.ListToppings)
-			authenticated.GET("/toppings/all", toppingHandler.ListAllToppings)
-
-			// Promotions: active list for POS Cart application
-			authenticated.GET("/promotions/active", promotionHandler.GetActivePromotions)
-
-			// Transaction Categories: read list for manual transactions
-			authenticated.GET("/transaction-categories", txCategoryHandler.ListCategories)
-
-			// Ingredients: read list for expense logging autocomplete
-			authenticated.GET("/purchases/ingredients", purchaseHandler.ListIngredients)
-
-			// Admin-Only Routes (Management, Financial Ledger, Analytics & Settings Update)
-			adminOnly := authenticated.Group("")
-			adminOnly.Use(middleware.RequireRole(models.RoleAdmin))
+			// Multi-store management (Platform)
+			authenticated.GET("/stores", storeHandler.ListStores)
+			superAdmin := authenticated.Group("")
+			superAdmin.Use(middleware.RequireSuperAdmin())
 			{
-				// Inventory Purchases, Ingredients & Recipe Cost Management
-				adminOnly.POST("/purchases/ingredients", purchaseHandler.CreateIngredient)
-				adminOnly.PUT("/purchases/ingredients/:id", purchaseHandler.UpdateIngredient)
-				adminOnly.DELETE("/purchases/ingredients/:id", purchaseHandler.DeleteIngredient)
-				adminOnly.GET("/purchases/ingredients/:id/history", purchaseHandler.GetIngredientHistory)
-				adminOnly.GET("/purchases/history", purchaseHandler.GetAllPurchaseHistory)
-				adminOnly.GET("/purchases/cost-comparison", purchaseHandler.GetCostComparison)
-				adminOnly.POST("/purchases/apply-cost", purchaseHandler.ApplyCostToMenu)
-				adminOnly.GET("/purchases/recipes/:target_type/:target_id", purchaseHandler.GetRecipe)
-				adminOnly.POST("/purchases/recipes/:target_type/:target_id", purchaseHandler.SaveRecipe)
+				superAdmin.POST("/stores", storeHandler.CreateStore)
+				superAdmin.PUT("/stores/:id", storeHandler.UpdateStore)
+				superAdmin.GET("/stores/:id/members", storeHandler.ListMembers)
+				superAdmin.PUT("/stores/:id/members", storeHandler.UpsertMember)
+				superAdmin.DELETE("/stores/:id/members/:user_id", storeHandler.RemoveMember)
+				superAdmin.GET("/users", storeHandler.ListUsers)
+				superAdmin.POST("/users", storeHandler.CreateUser)
 
-				// Catalog Management Mutations
-				adminOnly.POST("/categories", categoryHandler.CreateCategory)
-				adminOnly.PUT("/categories/reorder", categoryHandler.ReorderCategories)
-				adminOnly.PUT("/categories/:id", categoryHandler.UpdateCategory)
-				adminOnly.DELETE("/categories/:id", categoryHandler.DeleteCategory)
+				// Platform-wide backup & restore
+				superAdmin.GET("/backup/export", backupHandler.ExportBackup)
+				superAdmin.POST("/backup/preview", backupHandler.PreviewBackup)
+				superAdmin.POST("/backup/restore", backupHandler.RestoreBackup)
 
-				adminOnly.POST("/products", productHandler.CreateProduct)
-				adminOnly.PUT("/products/:id", productHandler.UpdateProduct)
-				adminOnly.DELETE("/products/:id", productHandler.DeleteProduct)
+				// Cross-store executive overview
+				superAdmin.GET("/analytics/overview-all-stores", analyticsHandler.GetOverviewAllStores)
+			}
 
-				// Automated Product Tagging Engine Endpoints
-				adminOnly.GET("/products/auto-tag/config", autoTaggingHandler.GetConfig)
-				adminOnly.PUT("/products/auto-tag/config", autoTaggingHandler.SaveConfig)
-				adminOnly.POST("/products/auto-tag/preview", autoTaggingHandler.Preview)
-				adminOnly.POST("/products/auto-tag/apply", autoTaggingHandler.Apply)
-				adminOnly.POST("/products/auto-tag/toggle-lock", autoTaggingHandler.ToggleLock)
+			// Store-Scoped Routes Group (wrapped with StoreContext)
+			storeScoped := authenticated.Group("")
+			storeScoped.Use(middleware.StoreContext(db, settingCache, cfg.StoreHeaderRequired))
+			{
+				storeScoped.POST("/upload", uploadHandler.UploadImage)
 
-				adminOnly.POST("/products/:id/variants", variantHandler.AddVariantToProduct)
-				adminOnly.PUT("/variants/:id", variantHandler.UpdateVariant)
-				adminOnly.DELETE("/variants/:id", variantHandler.DeleteVariant)
+				// Staff & Admin Accessible Endpoints (POS Operations, Store Settings & Active Promotions View)
+				storeScoped.GET("/categories", categoryHandler.ListCategories)
+				storeScoped.GET("/products", productHandler.ListProducts)
+				storeScoped.GET("/products/:id", productHandler.GetProductByID)
+				storeScoped.GET("/funds", fundHandler.ListFunds)
+				storeScoped.GET("/funds/:id/balance", fundHandler.GetFundBalance)
+				storeScoped.GET("/funds/cashier-shift-summary", fundHandler.GetCashierShiftSummary)
+				storeScoped.GET("/orders", orderHandler.ListOrders)
+				storeScoped.GET("/orders/:id", orderHandler.GetOrderByID)
+				storeScoped.POST("/orders", orderHandler.CreateOrder)
+				storeScoped.GET("/vietqr/generate", orderHandler.GetVietQR)
+				storeScoped.GET("/settings/store", settingHandler.GetStoreSettings)
 
-				// Topping Management (admin only writes)
-				adminOnly.POST("/toppings", toppingHandler.CreateTopping)
-				adminOnly.PUT("/toppings/reorder", toppingHandler.ReorderToppings)
-				adminOnly.PUT("/toppings/:id", toppingHandler.UpdateTopping)
-				adminOnly.DELETE("/toppings/:id", toppingHandler.DeleteTopping)
+				// Toppings: read for POS variant selector
+				storeScoped.GET("/toppings", toppingHandler.ListToppings)
+				storeScoped.GET("/toppings/all", toppingHandler.ListAllToppings)
 
-				// Promotion Management (admin only CRUD)
-				adminOnly.GET("/promotions", promotionHandler.ListPromotions)
-				adminOnly.POST("/promotions", promotionHandler.CreatePromotion)
-				adminOnly.PUT("/promotions/reorder", promotionHandler.ReorderPromotions)
-				adminOnly.PUT("/promotions/:id", promotionHandler.UpdatePromotion)
-				adminOnly.DELETE("/promotions/:id", promotionHandler.DeletePromotion)
+				// Promotions: active list for POS Cart application
+				storeScoped.GET("/promotions/active", promotionHandler.GetActivePromotions)
 
-				// Transaction Category Management (admin only mutations)
-				adminOnly.POST("/transaction-categories", txCategoryHandler.CreateCategory)
-				adminOnly.PUT("/transaction-categories/reorder", txCategoryHandler.ReorderCategories)
-				adminOnly.PUT("/transaction-categories/:id", txCategoryHandler.UpdateCategory)
-				adminOnly.POST("/transaction-categories/:id/set-default", txCategoryHandler.SetDefaultCategory)
-				adminOnly.DELETE("/transaction-categories/:id", txCategoryHandler.DeleteCategory)
+				// Transaction Categories: read list for manual transactions
+				storeScoped.GET("/transaction-categories", txCategoryHandler.ListCategories)
 
-				// Fund Reconciliation & Periodic Balance Summary
-				adminOnly.POST("/funds/:id/reconcile", fundHandler.ReconcileFund)
-				adminOnly.PUT("/funds/:id/reconcile", fundHandler.UpdateReconciliation)
-				adminOnly.DELETE("/funds/:id/reconcile/latest", fundHandler.DeleteLatestReconciliation)
-				adminOnly.DELETE("/funds/:id/reconcile", fundHandler.DeleteLatestReconciliation)
-				adminOnly.POST("/funds/:id/reconcile/restore", fundHandler.RestorePreviousReconciliation)
-				adminOnly.GET("/funds/:id/reconcile/history", fundHandler.GetReconciliationHistory)
-				adminOnly.GET("/funds/period-summary", fundHandler.GetPeriodSummary)
+				// Ingredients: read list for expense logging autocomplete
+				storeScoped.GET("/purchases/ingredients", purchaseHandler.ListIngredients)
 
-				// Financial Ledger Transactions & Category Breakdown
-				adminOnly.GET("/transactions", txHandler.ListTransactions)
-				adminOnly.POST("/transactions", txHandler.CreateTransaction)
-				adminOnly.PUT("/transactions/:id", txHandler.UpdateTransaction)
-				adminOnly.DELETE("/transactions/:id", txHandler.DeleteTransaction)
-				adminOnly.GET("/transactions/category-breakdown", txHandler.GetCategoryBreakdown)
+				// Store Admin Routes (Management, Financial Ledger, Analytics & Settings Update)
+				storeAdmin := storeScoped.Group("")
+				storeAdmin.Use(middleware.RequireStoreRole(models.StoreRoleStoreAdmin))
+				{
+					// Inventory Purchases, Ingredients & Recipe Cost Management
+					storeAdmin.POST("/purchases/ingredients", purchaseHandler.CreateIngredient)
+					storeAdmin.PUT("/purchases/ingredients/:id", purchaseHandler.UpdateIngredient)
+					storeAdmin.DELETE("/purchases/ingredients/:id", purchaseHandler.DeleteIngredient)
+					storeAdmin.GET("/purchases/ingredients/:id/history", purchaseHandler.GetIngredientHistory)
+					storeAdmin.GET("/purchases/history", purchaseHandler.GetAllPurchaseHistory)
+					storeAdmin.GET("/purchases/cost-comparison", purchaseHandler.GetCostComparison)
+					storeAdmin.POST("/purchases/apply-cost", purchaseHandler.ApplyCostToMenu)
+					storeAdmin.GET("/purchases/recipes/:target_type/:target_id", purchaseHandler.GetRecipe)
+					storeAdmin.POST("/purchases/recipes/:target_type/:target_id", purchaseHandler.SaveRecipe)
 
-				// Executive Analytics & BI Dashboards
-				adminOnly.GET("/analytics/revenue", analyticsHandler.GetRevenueAnalytics)
-				adminOnly.GET("/analytics/profit", analyticsHandler.GetProfitAnalytics)
-				adminOnly.GET("/analytics/products-ranking", analyticsHandler.GetProductsRanking)
-				adminOnly.GET("/analytics/products-sales-performance", analyticsHandler.GetProductsSalesPerformance)
-				adminOnly.GET("/analytics/hourly-distribution", analyticsHandler.GetHourlyDistribution)
-				adminOnly.GET("/analytics/dashboard", analyticsHandler.GetDashboardMetrics)
-				adminOnly.GET("/analytics/top-products", analyticsHandler.GetTopProducts)
-				adminOnly.GET("/analytics/cash-flow", analyticsHandler.GetCashFlowSummary)
-				// On-demand financial email report dispatcher
-				adminOnly.POST("/analytics/send-daily-report-email", analyticsHandler.SendDailyReportEmail)
+					// Catalog Management Mutations
+					storeAdmin.POST("/categories", categoryHandler.CreateCategory)
+					storeAdmin.PUT("/categories/reorder", categoryHandler.ReorderCategories)
+					storeAdmin.PUT("/categories/:id", categoryHandler.UpdateCategory)
+					storeAdmin.DELETE("/categories/:id", categoryHandler.DeleteCategory)
 
-				// Order Cancellation & Deletion (Admin Only)
-				adminOnly.POST("/orders/:id/cancel", orderHandler.CancelOrder)
-				adminOnly.DELETE("/orders/:id", orderHandler.DeleteOrder)
+					storeAdmin.POST("/products", productHandler.CreateProduct)
+					storeAdmin.PUT("/products/:id", productHandler.UpdateProduct)
+					storeAdmin.DELETE("/products/:id", productHandler.DeleteProduct)
 
-				// Settings Management
-				adminOnly.GET("/settings/admin", settingHandler.GetSettings)
-				adminOnly.GET("/settings", settingHandler.GetSettings)
-				adminOnly.PUT("/settings", settingHandler.UpdateSettings)
-				// SMTP connectivity test
-				adminOnly.POST("/settings/test-smtp", settingHandler.TestSMTP)
+					// Automated Product Tagging Engine Endpoints
+					storeAdmin.GET("/products/auto-tag/config", autoTaggingHandler.GetConfig)
+					storeAdmin.PUT("/products/auto-tag/config", autoTaggingHandler.SaveConfig)
+					storeAdmin.POST("/products/auto-tag/preview", autoTaggingHandler.Preview)
+					storeAdmin.POST("/products/auto-tag/apply", autoTaggingHandler.Apply)
+					storeAdmin.POST("/products/auto-tag/toggle-lock", autoTaggingHandler.ToggleLock)
 
-				// Google Sheets Bi-Modal Synchronization Endpoints
-				adminOnly.POST("/settings/sheets/test-connection", sheetsSyncHandler.TestConnection)
-				adminOnly.POST("/settings/sheets/sync-now", sheetsSyncHandler.SyncNow)
-				adminOnly.GET("/settings/sheets/status", sheetsSyncHandler.GetStatus)
+					storeAdmin.POST("/products/:id/variants", variantHandler.AddVariantToProduct)
+					storeAdmin.PUT("/variants/:id", variantHandler.UpdateVariant)
+					storeAdmin.DELETE("/variants/:id", variantHandler.DeleteVariant)
 
-				// Database Manual Backup & Restore V2
-				adminOnly.GET("/backup/export", backupHandler.ExportBackup)
-				adminOnly.POST("/backup/preview", backupHandler.PreviewBackup)
-				adminOnly.POST("/backup/restore", backupHandler.RestoreBackup)
+					// Topping Management (admin only writes)
+					storeAdmin.POST("/toppings", toppingHandler.CreateTopping)
+					storeAdmin.PUT("/toppings/reorder", toppingHandler.ReorderToppings)
+					storeAdmin.PUT("/toppings/:id", toppingHandler.UpdateTopping)
+					storeAdmin.DELETE("/toppings/:id", toppingHandler.DeleteTopping)
 
-				// Data Import Engine (Excel & CSV)
-				adminOnly.GET("/import/template", importerHandler.DownloadTemplate)
-				adminOnly.POST("/import/excel", importerHandler.ImportData)
+					// Promotion Management (admin only CRUD)
+					storeAdmin.GET("/promotions", promotionHandler.ListPromotions)
+					storeAdmin.POST("/promotions", promotionHandler.CreatePromotion)
+					storeAdmin.PUT("/promotions/reorder", promotionHandler.ReorderPromotions)
+					storeAdmin.PUT("/promotions/:id", promotionHandler.UpdatePromotion)
+					storeAdmin.DELETE("/promotions/:id", promotionHandler.DeletePromotion)
+
+					// Transaction Category Management (admin only mutations)
+					storeAdmin.POST("/transaction-categories", txCategoryHandler.CreateCategory)
+					storeAdmin.PUT("/transaction-categories/reorder", txCategoryHandler.ReorderCategories)
+					storeAdmin.PUT("/transaction-categories/:id", txCategoryHandler.UpdateCategory)
+					storeAdmin.POST("/transaction-categories/:id/set-default", txCategoryHandler.SetDefaultCategory)
+					storeAdmin.DELETE("/transaction-categories/:id", txCategoryHandler.DeleteCategory)
+
+					// Fund Reconciliation & Periodic Balance Summary
+					storeAdmin.POST("/funds/:id/reconcile", fundHandler.ReconcileFund)
+					storeAdmin.PUT("/funds/:id/reconcile", fundHandler.UpdateReconciliation)
+					storeAdmin.DELETE("/funds/:id/reconcile/latest", fundHandler.DeleteLatestReconciliation)
+					storeAdmin.DELETE("/funds/:id/reconcile", fundHandler.DeleteLatestReconciliation)
+					storeAdmin.POST("/funds/:id/reconcile/restore", fundHandler.RestorePreviousReconciliation)
+					storeAdmin.GET("/funds/:id/reconcile/history", fundHandler.GetReconciliationHistory)
+					storeAdmin.GET("/funds/period-summary", fundHandler.GetPeriodSummary)
+
+					// Financial Ledger Transactions & Category Breakdown
+					storeAdmin.GET("/transactions", txHandler.ListTransactions)
+					storeAdmin.POST("/transactions", txHandler.CreateTransaction)
+					storeAdmin.PUT("/transactions/:id", txHandler.UpdateTransaction)
+					storeAdmin.DELETE("/transactions/:id", txHandler.DeleteTransaction)
+					storeAdmin.GET("/transactions/category-breakdown", txHandler.GetCategoryBreakdown)
+
+					// Executive Analytics & BI Dashboards
+					storeAdmin.GET("/analytics/revenue", analyticsHandler.GetRevenueAnalytics)
+					storeAdmin.GET("/analytics/profit", analyticsHandler.GetProfitAnalytics)
+					storeAdmin.GET("/analytics/products-ranking", analyticsHandler.GetProductsRanking)
+					storeAdmin.GET("/analytics/products-sales-performance", analyticsHandler.GetProductsSalesPerformance)
+					storeAdmin.GET("/analytics/hourly-distribution", analyticsHandler.GetHourlyDistribution)
+					storeAdmin.GET("/analytics/dashboard", analyticsHandler.GetDashboardMetrics)
+					storeAdmin.GET("/analytics/top-products", analyticsHandler.GetTopProducts)
+					storeAdmin.GET("/analytics/cash-flow", analyticsHandler.GetCashFlowSummary)
+					// On-demand financial email report dispatcher
+					storeAdmin.POST("/analytics/send-daily-report-email", analyticsHandler.SendDailyReportEmail)
+
+					// Order Cancellation & Deletion (Admin Only)
+					storeAdmin.POST("/orders/:id/cancel", orderHandler.CancelOrder)
+					storeAdmin.DELETE("/orders/:id", orderHandler.DeleteOrder)
+
+					// Settings Management
+					storeAdmin.GET("/settings/admin", settingHandler.GetSettings)
+					storeAdmin.GET("/settings", settingHandler.GetSettings)
+					storeAdmin.PUT("/settings", settingHandler.UpdateSettings)
+					// SMTP connectivity test
+					storeAdmin.POST("/settings/test-smtp", settingHandler.TestSMTP)
+
+					// Google Sheets Bi-Modal Synchronization Endpoints
+					storeAdmin.POST("/settings/sheets/test-connection", sheetsSyncHandler.TestConnection)
+					storeAdmin.POST("/settings/sheets/sync-now", sheetsSyncHandler.SyncNow)
+					storeAdmin.GET("/settings/sheets/status", sheetsSyncHandler.GetStatus)
+
+					// Data Import Engine (Excel & CSV)
+					storeAdmin.GET("/import/template", importerHandler.DownloadTemplate)
+					storeAdmin.POST("/import/excel", importerHandler.ImportData)
+				}
 			}
 		}
 	}

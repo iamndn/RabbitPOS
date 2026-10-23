@@ -70,6 +70,7 @@ func TestSettings_StoreSettings_StaffSafe(t *testing.T) {
 
 	// Seed public and sensitive settings
 	db.Create(&models.Setting{Key: "store_name", Value: "Thỏ Juice Test"})
+	db.Model(&models.Store{}).Where("id = ?", 1).Update("name", "Thỏ Juice Test")
 	db.Create(&models.Setting{Key: "smtp_password", Value: "enc:v1:fake_nonce:fake_ciphertext"})
 	db.Create(&models.Setting{Key: "google_sheets_service_account_json", Value: "enc:v1:fake_nonce2:fake_ciphertext2"})
 

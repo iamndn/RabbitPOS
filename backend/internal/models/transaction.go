@@ -25,6 +25,7 @@ const (
 // Transaction represents a financial ledger record in the cash flow system
 type Transaction struct {
 	ID               uint                `gorm:"primaryKey" json:"id"`
+	StoreID          uint                `gorm:"not null;default:1" json:"store_id"`
 	FundID           uint                `gorm:"not null;index" json:"fund_id"`
 	Fund             *Fund               `gorm:"foreignKey:FundID" json:"fund,omitempty"`
 	TransactionType  TransactionType     `gorm:"type:varchar(20);not null;default:'outflow'" json:"transaction_type"`

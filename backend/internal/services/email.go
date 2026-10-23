@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/RabbitPOS/backend/internal/models"
 	"github.com/RabbitPOS/backend/internal/utils"
 	"gorm.io/gorm"
 )
@@ -39,9 +40,13 @@ type smtpConfig struct {
 	DailyReportTime   string
 }
 
-// loadSMTPConfig reads SMTP and report config from the settings table at runtime
-// This allows users to update config via UI without restarting the server
-func (s *EmailService) loadSMTPConfig() smtpConfig {
+// loadSMTPConfig reads SMTP and report config from settings and store_settings tables at runtime
+func (s *EmailService) loadSMTPConfig(optionalStoreID ...uint) smtpConfig {
+	storeID := uint(1)
+	if len(optionalStoreID) > 0 && optionalStoreID[0] > 0 {
+		storeID = optionalStoreID[0]
+	}
+
 	type settingRow struct {
 		Key   string
 		Value string
@@ -99,6 +104,36 @@ func (s *EmailService) loadSMTPConfig() smtpConfig {
 			}
 		}
 	}
+
+	// Overlay per-store settings from store_settings
+	var storeRows []settingRow
+	s.db.Raw(`SELECT key, value FROM store_settings WHERE store_id = ? AND key IN ('report_recipient_emails','enable_daily_email_report','daily_report_time')`, storeID).Scan(&storeRows)
+	for _, r := range storeRows {
+		switch r.Key {
+		case "report_recipient_emails":
+			if r.Value != "" {
+				cfg.RecipientEmails = nil
+				for _, email := range strings.Split(r.Value, ",") {
+					trimmed := strings.TrimSpace(email)
+					if trimmed != "" {
+						cfg.RecipientEmails = append(cfg.RecipientEmails, trimmed)
+					}
+				}
+			}
+		case "enable_daily_email_report":
+			cfg.EnableDailyReport = r.Value == "true"
+		case "daily_report_time":
+			if r.Value != "" {
+				cfg.DailyReportTime = r.Value
+			}
+		}
+	}
+
+	var store models.Store
+	if err := s.db.First(&store, storeID).Error; err == nil && store.Name != "" {
+		cfg.FromName = fmt.Sprintf("%s - RabbitPOS", store.Name)
+	}
+
 	return cfg
 }
 
@@ -184,22 +219,34 @@ func (s *EmailService) SendTestEmail(to string) error {
 	return s.SendEmail([]string{to}, subject, body)
 }
 
+// GetDailyReportTimeForStore returns the configured daily_report_time for a store
+func (s *EmailService) GetDailyReportTimeForStore(storeID uint) string {
+	return s.loadSMTPConfig(storeID).DailyReportTime
+}
+
+// IsDailyReportEnabledForStore returns whether automated daily reports are enabled for a store
+func (s *EmailService) IsDailyReportEnabledForStore(storeID uint) bool {
+	return s.loadSMTPConfig(storeID).EnableDailyReport
+}
+
+// GetDefaultRecipientsForStore returns the configured recipient email list for a store
+func (s *EmailService) GetDefaultRecipientsForStore(storeID uint) []string {
+	return s.loadSMTPConfig(storeID).RecipientEmails
+}
+
 // GetDailyReportTime returns the configured daily_report_time from settings
 func (s *EmailService) GetDailyReportTime() string {
-	cfg := s.loadSMTPConfig()
-	return cfg.DailyReportTime
+	return s.GetDailyReportTimeForStore(1)
 }
 
 // IsDailyReportEnabled returns whether automated daily reports are enabled
 func (s *EmailService) IsDailyReportEnabled() bool {
-	cfg := s.loadSMTPConfig()
-	return cfg.EnableDailyReport
+	return s.IsDailyReportEnabledForStore(1)
 }
 
 // GetDefaultRecipients returns the configured recipient email list
 func (s *EmailService) GetDefaultRecipients() []string {
-	cfg := s.loadSMTPConfig()
-	return cfg.RecipientEmails
+	return s.GetDefaultRecipientsForStore(1)
 }
 
 // --- Financial Data Aggregation Structs ---
@@ -250,8 +297,13 @@ type dailyReportData struct {
 	GeneratedAt     string
 }
 
-// aggregateDailyData queries all financial metrics for the given date
-func (s *EmailService) aggregateDailyData(date time.Time) dailyReportData {
+// aggregateDailyData queries all financial metrics for the given date and store
+func (s *EmailService) aggregateDailyData(date time.Time, optionalStoreID ...uint) dailyReportData {
+	storeID := uint(1)
+	if len(optionalStoreID) > 0 && optionalStoreID[0] > 0 {
+		storeID = optionalStoreID[0]
+	}
+
 	loc := date.Location()
 	dayStart := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, loc)
 	dayEnd := time.Date(date.Year(), date.Month(), date.Day(), 23, 59, 59, 999999999, loc)
@@ -261,12 +313,17 @@ func (s *EmailService) aggregateDailyData(date time.Time) dailyReportData {
 		GeneratedAt: time.Now().Format("02/01/2006 15:04:05"),
 	}
 
-	// Read store name from settings
-	var storeNameSetting struct{ Value string }
-	s.db.Raw(`SELECT value FROM settings WHERE key = 'store_name'`).Scan(&storeNameSetting)
-	data.StoreName = storeNameSetting.Value
-	if data.StoreName == "" {
-		data.StoreName = "Thỏ Juice & Coffee"
+	// Read store name from stores table or fallback to settings
+	var store models.Store
+	if err := s.db.First(&store, storeID).Error; err == nil && store.Name != "" {
+		data.StoreName = store.Name
+	} else {
+		var storeNameSetting struct{ Value string }
+		s.db.Raw(`SELECT value FROM settings WHERE key = 'store_name'`).Scan(&storeNameSetting)
+		data.StoreName = storeNameSetting.Value
+		if data.StoreName == "" {
+			data.StoreName = "Thỏ Juice & Coffee"
+		}
 	}
 
 	// Revenue summary from completed orders
@@ -289,8 +346,9 @@ func (s *EmailService) aggregateDailyData(date time.Time) dailyReportData {
 			COUNT(*)                                                                             AS order_count
 		FROM orders
 		WHERE status = 'completed'
+		  AND store_id = ?
 		  AND created_at >= ? AND created_at <= ?
-	`, dayStart, dayEnd).Scan(&rev)
+	`, storeID, dayStart, dayEnd).Scan(&rev)
 
 	data.Revenue = dailyRevenueSummary{
 		TotalGrossSales: rev.TotalGrossSales,
@@ -321,10 +379,11 @@ func (s *EmailService) aggregateDailyData(date time.Time) dailyReportData {
 		FROM orders o
 		JOIN funds f ON f.id = o.fund_id
 		WHERE o.status = 'completed'
+		  AND o.store_id = ?
 		  AND o.created_at >= ? AND o.created_at <= ?
 		GROUP BY f.id, f.name, f.fund_type
 		ORDER BY total_amount DESC
-	`, dayStart, dayEnd).Scan(&fundRows)
+	`, storeID, dayStart, dayEnd).Scan(&fundRows)
 	for _, fr := range fundRows {
 		data.FundCollections = append(data.FundCollections, fundCollection{
 			FundName:    fr.FundName,
@@ -349,10 +408,11 @@ func (s *EmailService) aggregateDailyData(date time.Time) dailyReportData {
 		FROM transactions
 		WHERE transaction_type = 'outflow'
 		  AND category != 'sale'
+		  AND store_id = ?
 		  AND created_at >= ? AND created_at <= ?
 		GROUP BY category
 		ORDER BY amount DESC
-	`, dayStart, dayEnd).Scan(&expenseRows)
+	`, storeID, dayStart, dayEnd).Scan(&expenseRows)
 
 	// Human-readable category labels
 	categoryLabels := map[string]string{
@@ -387,8 +447,9 @@ func (s *EmailService) aggregateDailyData(date time.Time) dailyReportData {
 		JOIN orders o ON o.id = oi.order_id
 		JOIN product_variants pv ON pv.id = oi.product_variant_id
 		WHERE o.status = 'completed'
+		  AND o.store_id = ?
 		  AND o.created_at >= ? AND o.created_at <= ?
-	`, dayStart, dayEnd).Scan(&cogsRow)
+	`, storeID, dayStart, dayEnd).Scan(&cogsRow)
 	data.EstimatedCOGS = cogsRow.TotalCogs
 	data.GrossProfit = data.Revenue.NetRevenue - data.EstimatedCOGS
 	data.NetProfit = data.GrossProfit - data.TotalExpenses
@@ -412,11 +473,12 @@ func (s *EmailService) aggregateDailyData(date time.Time) dailyReportData {
 		JOIN product_variants pv ON pv.id = oi.product_variant_id
 		JOIN products p ON p.id = pv.product_id
 		WHERE o.status = 'completed'
+		  AND o.store_id = ?
 		  AND o.created_at >= ? AND o.created_at <= ?
 		GROUP BY p.id, p.name, pv.id, pv.variant_name
 		ORDER BY total_revenue DESC
 		LIMIT 5
-	`, dayStart, dayEnd).Scan(&topRows)
+	`, storeID, dayStart, dayEnd).Scan(&topRows)
 	for _, tr := range topRows {
 		data.TopProducts = append(data.TopProducts, topProduct{
 			ProductName:  tr.ProductName,
@@ -655,10 +717,12 @@ func buildHTMLReport(data dailyReportData) (string, error) {
 	return buf.String(), nil
 }
 
-// SendDailyFinancialReport aggregates financial data for the given date and sends it to all recipients
-// triggeredBy is the username of the person who triggered it (empty for automated sends)
-func (s *EmailService) SendDailyFinancialReport(date time.Time, triggeredBy string, overrideRecipients []string) error {
-	cfg := s.loadSMTPConfig()
+// SendDailyFinancialReportForStore aggregates financial data for the given date and store and sends it to all recipients
+func (s *EmailService) SendDailyFinancialReportForStore(date time.Time, triggeredBy string, overrideRecipients []string, storeID uint) error {
+	if storeID == 0 {
+		storeID = 1
+	}
+	cfg := s.loadSMTPConfig(storeID)
 
 	recipients := overrideRecipients
 	if len(recipients) == 0 {
@@ -668,7 +732,7 @@ func (s *EmailService) SendDailyFinancialReport(date time.Time, triggeredBy stri
 		return fmt.Errorf("no recipient emails configured for daily report")
 	}
 
-	data := s.aggregateDailyData(date)
+	data := s.aggregateDailyData(date, storeID)
 	data.TriggeredBy = triggeredBy
 
 	htmlBody, err := buildHTMLReport(data)
@@ -678,4 +742,9 @@ func (s *EmailService) SendDailyFinancialReport(date time.Time, triggeredBy stri
 
 	subject := fmt.Sprintf("📊 Báo Cáo Tài Chính Ngày %s — %s", date.Format("02/01/2006"), data.StoreName)
 	return s.SendEmail(recipients, subject, htmlBody)
+}
+
+// SendDailyFinancialReport aggregates financial data for the given date (default Store #1) and sends it to all recipients
+func (s *EmailService) SendDailyFinancialReport(date time.Time, triggeredBy string, overrideRecipients []string) error {
+	return s.SendDailyFinancialReportForStore(date, triggeredBy, overrideRecipients, 1)
 }

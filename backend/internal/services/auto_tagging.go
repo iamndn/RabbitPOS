@@ -78,37 +78,47 @@ type AutoTaggingService struct {
 	mu    sync.Mutex
 }
 
-func NewAutoTaggingService(db *gorm.DB, c *cache.TTLCache) *AutoTaggingService {
+func NewAutoTaggingService(db *gorm.DB, cache *cache.TTLCache) *AutoTaggingService {
 	return &AutoTaggingService{
 		db:    db,
-		cache: c,
+		cache: cache,
 	}
 }
 
-// GetConfig reads auto_tagging_config from settings table or returns defaults
-func (s *AutoTaggingService) GetConfig() (AutoTaggingConfig, error) {
+// GetConfigForStore reads auto_tagging_config from store_settings table (or settings fallback) or returns defaults
+func (s *AutoTaggingService) GetConfigForStore(storeID uint) (AutoTaggingConfig, error) {
+	if storeID == 0 {
+		storeID = 1
+	}
 	cfg := DefaultAutoTaggingConfig()
 
-	var setting models.Setting
-	if err := s.db.Where("key = ?", "auto_tagging_config").First(&setting).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
+	var storeSetting models.StoreSetting
+	if err := s.db.Where("store_id = ? AND key = ?", storeID, "auto_tagging_config").First(&storeSetting).Error; err == nil && storeSetting.Value != "" {
+		if err := json.Unmarshal([]byte(storeSetting.Value), &cfg); err == nil {
 			return cfg, nil
 		}
-		return cfg, err
 	}
 
-	if setting.Value != "" {
-		if err := json.Unmarshal([]byte(setting.Value), &cfg); err != nil {
-			log.Printf("[AutoTagging] Failed to unmarshal auto_tagging_config: %v", err)
-			return DefaultAutoTaggingConfig(), nil
+	var setting models.Setting
+	if err := s.db.Where("key = ?", "auto_tagging_config").First(&setting).Error; err == nil && setting.Value != "" {
+		if err := json.Unmarshal([]byte(setting.Value), &cfg); err == nil {
+			return cfg, nil
 		}
 	}
 
 	return cfg, nil
 }
 
-// SaveConfig stores configuration in settings table and clears cache
-func (s *AutoTaggingService) SaveConfig(cfg AutoTaggingConfig) error {
+// GetConfig reads auto_tagging_config for default store #1
+func (s *AutoTaggingService) GetConfig() (AutoTaggingConfig, error) {
+	return s.GetConfigForStore(1)
+}
+
+// SaveConfigForStore stores configuration in store_settings table and clears cache
+func (s *AutoTaggingService) SaveConfigForStore(storeID uint, cfg AutoTaggingConfig) error {
+	if storeID == 0 {
+		storeID = 1
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -118,10 +128,10 @@ func (s *AutoTaggingService) SaveConfig(cfg AutoTaggingConfig) error {
 	}
 
 	val := string(bytes)
-	enabledStr := fmt.Sprintf("%v", cfg.Enabled)
 
 	err = s.db.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Save(&models.Setting{
+		if err := tx.Save(&models.StoreSetting{
+			StoreID:   storeID,
 			Key:       "auto_tagging_config",
 			Value:     val,
 			UpdatedAt: time.Now(),
@@ -129,9 +139,10 @@ func (s *AutoTaggingService) SaveConfig(cfg AutoTaggingConfig) error {
 			return err
 		}
 
-		if err := tx.Save(&models.Setting{
+		if err := tx.Save(&models.StoreSetting{
+			StoreID:   storeID,
 			Key:       "auto_tagging_enabled",
-			Value:     enabledStr,
+			Value:     fmt.Sprintf("%v", cfg.Enabled),
 			UpdatedAt: time.Now(),
 		}).Error; err != nil {
 			return err
@@ -145,10 +156,16 @@ func (s *AutoTaggingService) SaveConfig(cfg AutoTaggingConfig) error {
 	}
 
 	if s.cache != nil {
-		s.cache.InvalidatePrefix("settings:")
+		s.cache.Invalidate(fmt.Sprintf("s%d:settings:store", storeID))
+		s.cache.Invalidate(fmt.Sprintf("s%d:settings:all", storeID))
 	}
 
 	return nil
+}
+
+// SaveConfig stores configuration for default store #1
+func (s *AutoTaggingService) SaveConfig(cfg AutoTaggingConfig) error {
+	return s.SaveConfigForStore(1, cfg)
 }
 
 // RawQueryResult models single row from the high-speed CTE aggregation
@@ -169,14 +186,17 @@ type rawProductMetric struct {
 	SalesRank     int       `gorm:"column:sales_rank"`
 }
 
-// Evaluate runs the single-pass CTE evaluation without applying changes to DB
-func (s *AutoTaggingService) Evaluate(ctx context.Context, customCfg *AutoTaggingConfig) (*AutoTaggingResult, error) {
+// EvaluateForStore runs the single-pass CTE evaluation scoped to storeID without applying changes to DB
+func (s *AutoTaggingService) EvaluateForStore(ctx context.Context, storeID uint, customCfg *AutoTaggingConfig) (*AutoTaggingResult, error) {
+	if storeID == 0 {
+		storeID = 1
+	}
 	var cfg AutoTaggingConfig
 	if customCfg != nil {
 		cfg = *customCfg
 	} else {
 		var err error
-		cfg, err = s.GetConfig()
+		cfg, err = s.GetConfigForStore(storeID)
 		if err != nil {
 			return nil, err
 		}
@@ -190,7 +210,7 @@ func (s *AutoTaggingService) Evaluate(ctx context.Context, customCfg *AutoTaggin
 	now := time.Now()
 	windowStart := now.AddDate(0, 0, -days)
 
-	// High-performance single-pass PostgreSQL CTE aggregation with Window function DENSE_RANK()
+	// High-performance single-pass PostgreSQL CTE aggregation with Window function DENSE_RANK() scoped to storeID
 	query := `
 		WITH product_sales AS (
 			SELECT 
@@ -216,14 +236,15 @@ func (s *AutoTaggingService) Evaluate(ctx context.Context, customCfg *AutoTaggin
 			LEFT JOIN categories c ON c.id = p.category_id
 			LEFT JOIN product_variants pv ON pv.product_id = p.id
 			LEFT JOIN order_items oi ON oi.product_variant_id = pv.id
-			LEFT JOIN orders o ON o.id = oi.order_id AND o.status = 'completed' AND o.created_at >= ?
+			LEFT JOIN orders o ON o.id = oi.order_id AND o.status = 'completed' AND o.created_at >= ? AND o.store_id = ?
+			WHERE p.store_id = ?
 			GROUP BY p.id, p.name, c.name, p.image_url, p.tag, p.tag_locked, p.is_active, p.created_at
 		)
 		SELECT * FROM product_sales ORDER BY total_qty DESC, product_name ASC;
 	`
 
 	var metrics []rawProductMetric
-	if err := s.db.WithContext(ctx).Raw(query, windowStart).Scan(&metrics).Error; err != nil {
+	if err := s.db.WithContext(ctx).Raw(query, windowStart, storeID, storeID).Scan(&metrics).Error; err != nil {
 		return nil, fmt.Errorf("failed to aggregate product metrics: %w", err)
 	}
 
@@ -239,53 +260,49 @@ func (s *AutoTaggingService) Evaluate(ctx context.Context, customCfg *AutoTaggin
 		suggestedTag := string(models.TagNone)
 		reason := "Món tiêu chuẩn (không thỏa mãn tiêu chí đặc biệt)"
 
-		// Rule Evaluation Matrix
-		if !m.IsActive {
-			suggestedTag = string(models.TagSuspended)
-			reason = "Món đang tắt kích hoạt (is_active = false)"
-		} else if m.CurrentTag == string(models.TagComingSoon) {
-			// Preserve coming_soon unless changed manually
-			suggestedTag = string(models.TagComingSoon)
-			reason = "Món đang ở trạng thái sắp ra mắt"
+		// Retain manual system tags unconditionally
+		if m.CurrentTag == string(models.TagFeatured) ||
+			m.CurrentTag == string(models.TagSuspended) ||
+			m.CurrentTag == string(models.TagComingSoon) {
+			suggestedTag = m.CurrentTag
+			reason = fmt.Sprintf("Giữ nguyên tag thủ công (%s)", m.CurrentTag)
+		} else if m.TagLocked {
+			// Product is locked by admin — preserve whatever current tag is
+			suggestedTag = m.CurrentTag
+			reason = "Đã khóa tag thủ công bởi quản trị viên"
 		} else {
+			// Evaluate rule qualifications
 			isBestSeller := m.SalesRank <= cfg.BestSellerTopN && m.TotalQty >= cfg.BestSellerMinQty && m.TotalQty > 0
 			isNew := daysSinceCreated <= cfg.NewProductDays
 			isHighProfit := m.MarginPercent >= cfg.HighProfitMarginMin && m.TotalQty >= cfg.HighProfitMinQty
 
-			if isBestSeller && isNew {
-				if cfg.PrioritizeBestSellerOverNew {
+			if cfg.PrioritizeBestSellerOverNew {
+				if isBestSeller {
 					suggestedTag = string(models.TagBestSeller)
-					reason = fmt.Sprintf("Top %d bán chạy (%d ly) & Món mới (%d ngày)", m.SalesRank, m.TotalQty, daysSinceCreated)
-				} else {
+					reason = fmt.Sprintf("Bán chạy (Top #%d sản lượng: %d ly trong %d ngày qua)", m.SalesRank, m.TotalQty, days)
+				} else if isNew {
 					suggestedTag = string(models.TagNew)
-					reason = fmt.Sprintf("Món mới ra mắt (%d ngày) & Top %d bán chạy (%d ly)", daysSinceCreated, m.SalesRank, m.TotalQty)
+					reason = fmt.Sprintf("Món mới (Tạo cách đây %d ngày <= %d ngày)", daysSinceCreated, cfg.NewProductDays)
+				} else if isHighProfit {
+					suggestedTag = string(models.TagBestSeller)
+					reason = fmt.Sprintf("Biên lợi nhuận cao (%.1f%% >= %.1f%%, bán %d ly)", m.MarginPercent, cfg.HighProfitMarginMin, m.TotalQty)
 				}
-			} else if isBestSeller {
-				suggestedTag = string(models.TagBestSeller)
-				reason = fmt.Sprintf("Top %d bán chạy trong %d ngày qua (Bán %d ly)", m.SalesRank, cfg.TimeWindowDays, m.TotalQty)
-			} else if isNew {
-				suggestedTag = string(models.TagNew)
-				reason = fmt.Sprintf("Món mới tạo trong vòng %d ngày (Mới %d ngày)", cfg.NewProductDays, daysSinceCreated)
-			} else if isHighProfit {
-				suggestedTag = string(models.TagFeatured)
-				reason = fmt.Sprintf("Biên lợi nhuận cao %.1f%% (Bán %d ly)", m.MarginPercent, m.TotalQty)
 			} else {
-				suggestedTag = string(models.TagNone)
-				if m.TotalQty > 0 {
-					reason = fmt.Sprintf("Đã bán %d ly (Hạng #%d)", m.TotalQty, m.SalesRank)
-				} else {
-					reason = "Chưa phát sinh doanh số trong kỳ"
+				if isNew {
+					suggestedTag = string(models.TagNew)
+					reason = fmt.Sprintf("Món mới (Tạo cách đây %d ngày <= %d ngày)", daysSinceCreated, cfg.NewProductDays)
+				} else if isBestSeller {
+					suggestedTag = string(models.TagBestSeller)
+					reason = fmt.Sprintf("Bán chạy (Top #%d sản lượng: %d ly trong %d ngày qua)", m.SalesRank, m.TotalQty, days)
+				} else if isHighProfit {
+					suggestedTag = string(models.TagBestSeller)
+					reason = fmt.Sprintf("Biên lợi nhuận cao (%.1f%% >= %.1f%%, bán %d ly)", m.MarginPercent, cfg.HighProfitMarginMin, m.TotalQty)
 				}
 			}
 		}
 
-		// If tag is locked, keep the current tag
-		willChange := false
-		if m.TagLocked {
-			reason = fmt.Sprintf("[ĐÃ KHÓA THỦ CÔNG] Giữ nguyên nhãn '%s'. Đề xuất máy: '%s'", m.CurrentTag, suggestedTag)
-			suggestedTag = m.CurrentTag
-		} else if m.CurrentTag != suggestedTag {
-			willChange = true
+		willChange := !m.TagLocked && m.CurrentTag != suggestedTag
+		if willChange {
 			changedCount++
 		}
 
@@ -315,18 +332,26 @@ func (s *AutoTaggingService) Evaluate(ctx context.Context, customCfg *AutoTaggin
 		EvaluatedAt:          now,
 		TimeWindowStart:      windowStart,
 		TimeWindowEnd:        now,
-		TotalProducts:        len(evaluations),
+		TotalProducts:        len(metrics),
 		ChangedProductsCount: changedCount,
 		Evaluations:          evaluations,
 	}, nil
 }
 
-// Apply executes the tag updates directly to the database
-func (s *AutoTaggingService) Apply(ctx context.Context, targetProductIDs []uint) (*AutoTaggingResult, error) {
+// Evaluate runs the evaluation for default store #1
+func (s *AutoTaggingService) Evaluate(ctx context.Context, customCfg *AutoTaggingConfig) (*AutoTaggingResult, error) {
+	return s.EvaluateForStore(ctx, 1, customCfg)
+}
+
+// ApplyForStore executes tag updates directly to the database for storeID
+func (s *AutoTaggingService) ApplyForStore(ctx context.Context, storeID uint, targetProductIDs []uint) (*AutoTaggingResult, error) {
+	if storeID == 0 {
+		storeID = 1
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	result, err := s.Evaluate(ctx, nil)
+	result, err := s.EvaluateForStore(ctx, storeID, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -349,7 +374,7 @@ func (s *AutoTaggingService) Apply(ctx context.Context, targetProductIDs []uint)
 			}
 
 			if err := tx.Model(&models.Product{}).
-				Where("id = ? AND tag_locked = false", ev.ProductID).
+				Where("id = ? AND store_id = ? AND tag_locked = false", ev.ProductID, storeID).
 				Update("tag", ev.SuggestedTag).Error; err != nil {
 				return err
 			}
@@ -362,48 +387,73 @@ func (s *AutoTaggingService) Apply(ctx context.Context, targetProductIDs []uint)
 	}
 
 	if s.cache != nil {
-		s.cache.InvalidatePrefix("products:")
+		s.cache.Invalidate(fmt.Sprintf("s%d:products:list", storeID))
 	}
 
-	log.Printf("[AutoTagging] Successfully applied tag updates for %d products", result.ChangedProductsCount)
+	log.Printf("[AutoTagging] Store %d: Successfully applied tag updates for %d products", storeID, result.ChangedProductsCount)
 	return result, nil
 }
 
-// ToggleLock sets or unsets tag_locked for a specific product
-func (s *AutoTaggingService) ToggleLock(ctx context.Context, productID uint, locked bool) error {
-	if err := s.db.WithContext(ctx).Model(&models.Product{}).Where("id = ?", productID).Update("tag_locked", locked).Error; err != nil {
+// Apply executes the tag updates directly to the database for default store #1
+func (s *AutoTaggingService) Apply(ctx context.Context, targetProductIDs []uint) (*AutoTaggingResult, error) {
+	return s.ApplyForStore(ctx, 1, targetProductIDs)
+}
+
+// ToggleLockForStore sets or unsets tag_locked for a specific product inside storeID
+func (s *AutoTaggingService) ToggleLockForStore(ctx context.Context, storeID uint, productID uint, locked bool) error {
+	if storeID == 0 {
+		storeID = 1
+	}
+	if err := s.db.WithContext(ctx).Model(&models.Product{}).Where("id = ? AND store_id = ?", productID, storeID).Update("tag_locked", locked).Error; err != nil {
 		return err
 	}
 
 	if s.cache != nil {
-		s.cache.InvalidatePrefix("products:")
+		s.cache.Invalidate(fmt.Sprintf("s%d:products:list", storeID))
 	}
 
 	return nil
 }
 
-// RunNightlyJob runs automated tagging evaluation and execution at closing time (22:30)
-func (s *AutoTaggingService) RunNightlyJob() error {
-	cfg, err := s.GetConfig()
+// ToggleLock sets or unsets tag_locked for a single product (default store #1)
+func (s *AutoTaggingService) ToggleLock(ctx context.Context, productID uint, locked bool) error {
+	return s.ToggleLockForStore(ctx, 1, productID, locked)
+}
+
+// RunNightlyJobForStore runs automated tagging evaluation and execution for a specific store
+func (s *AutoTaggingService) RunNightlyJobForStore(storeID uint) error {
+	cfg, err := s.GetConfigForStore(storeID)
 	if err != nil {
 		return err
 	}
 
 	if !cfg.Enabled {
-		log.Println("[AutoTagging] Nightly job skipped (auto_tagging_enabled = false)")
+		log.Printf("[AutoTagging] Store %d nightly job skipped (auto_tagging_enabled = false)", storeID)
 		return nil
 	}
 
-	log.Println("[AutoTagging] Starting automated nightly product tagging...")
+	log.Printf("[AutoTagging] Starting automated nightly product tagging for store %d...", storeID)
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	result, err := s.Apply(ctx, nil)
+	result, err := s.ApplyForStore(ctx, storeID, nil)
 	if err != nil {
-		log.Printf("[AutoTagging] ERROR during nightly auto-tagging: %v", err)
+		log.Printf("[AutoTagging] Store %d ERROR during nightly auto-tagging: %v", storeID, err)
 		return err
 	}
 
-	log.Printf("[AutoTagging] Nightly auto-tagging completed: %d/%d products updated.", result.ChangedProductsCount, result.TotalProducts)
+	log.Printf("[AutoTagging] Store %d nightly auto-tagging completed: %d/%d products updated.", storeID, result.ChangedProductsCount, result.TotalProducts)
+	return nil
+}
+
+// RunNightlyJob runs automated tagging evaluation and execution across all active stores
+func (s *AutoTaggingService) RunNightlyJob() error {
+	var stores []models.Store
+	if err := s.db.Where("is_active = true").Find(&stores).Error; err != nil {
+		return s.RunNightlyJobForStore(1)
+	}
+	for _, store := range stores {
+		_ = s.RunNightlyJobForStore(store.ID)
+	}
 	return nil
 }

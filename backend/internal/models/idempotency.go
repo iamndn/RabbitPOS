@@ -13,6 +13,7 @@ const (
 // IdempotencyRecord stores processed API requests to guarantee exactly-once execution semantics
 type IdempotencyRecord struct {
 	Key          string            `gorm:"type:varchar(128);primaryKey" json:"key"`
+	StoreID      *uint             `json:"store_id,omitempty"`
 	RequestHash  string            `gorm:"type:varchar(64);not null;index" json:"request_hash"`
 	ResourceType string            `gorm:"type:varchar(50);not null;default:'order'" json:"resource_type"`
 	ResourceID   *uint             `gorm:"index" json:"resource_id,omitempty"`

@@ -72,10 +72,13 @@ func NewSheetsSyncService(db *gorm.DB) *SheetsSyncService {
 	return &SheetsSyncService{db: db}
 }
 
-// GetConfig reads Google Sheets configuration key-value pairs from database
-func (s *SheetsSyncService) GetConfig() (*SheetsConfig, error) {
+// GetConfigForStore reads Google Sheets configuration for a store (overlaying store_settings on settings)
+func (s *SheetsSyncService) GetConfigForStore(storeID uint) (*SheetsConfig, error) {
 	if s.db == nil {
 		return nil, errors.New("database connection is unavailable")
+	}
+	if storeID == 0 {
+		storeID = 1
 	}
 
 	var settings []models.Setting
@@ -128,30 +131,73 @@ func (s *SheetsSyncService) GetConfig() (*SheetsConfig, error) {
 		}
 	}
 
+	// Overlay store_settings
+	var storeSettings []models.StoreSetting
+	if err := s.db.Where("store_id = ? AND key IN ?", storeID, keys).Find(&storeSettings).Error; err == nil {
+		for _, st := range storeSettings {
+			switch st.Key {
+			case "google_sheets_sync_enabled":
+				cfg.SyncEnabled = strings.ToLower(strings.TrimSpace(st.Value)) == "true"
+			case "google_sheets_spreadsheet_id":
+				cfg.SpreadsheetID = strings.TrimSpace(st.Value)
+			case "google_sheets_service_account_json":
+				decrypted, err := utils.DecryptSettingSecret(st.Value, utils.GetSettingsEncryptionKey())
+				if err != nil {
+					cfg.ServiceAccountJSON = strings.TrimSpace(st.Value)
+				} else {
+					cfg.ServiceAccountJSON = strings.TrimSpace(decrypted)
+				}
+			case "google_sheets_auto_realtime_sync":
+				cfg.AutoRealtimeSync = strings.ToLower(strings.TrimSpace(st.Value)) != "false"
+			case "google_sheets_last_synced_at":
+				cfg.LastSyncedAt = st.Value
+			case "google_sheets_last_sync_status":
+				cfg.LastSyncStatus = st.Value
+			case "google_sheets_last_sync_error":
+				cfg.LastSyncError = st.Value
+			}
+		}
+	}
+
 	return cfg, nil
 }
 
-// IsSyncEnabled checks if Google Sheets sync is currently active
-func (s *SheetsSyncService) IsSyncEnabled() bool {
-	cfg, err := s.GetConfig()
+// GetConfig reads Google Sheets configuration for default store #1
+func (s *SheetsSyncService) GetConfig() (*SheetsConfig, error) {
+	return s.GetConfigForStore(1)
+}
+
+// IsSyncEnabledForStore checks if Google Sheets sync is active for a store
+func (s *SheetsSyncService) IsSyncEnabledForStore(storeID uint) bool {
+	cfg, err := s.GetConfigForStore(storeID)
 	if err != nil {
 		return false
 	}
 	return cfg.SyncEnabled && cfg.SpreadsheetID != "" && cfg.ServiceAccountJSON != ""
 }
 
-// IsAutoRealtimeSyncEnabled checks if realtime event appending is enabled
-func (s *SheetsSyncService) IsAutoRealtimeSyncEnabled() bool {
-	cfg, err := s.GetConfig()
+// IsSyncEnabled checks if Google Sheets sync is currently active (default Store #1)
+func (s *SheetsSyncService) IsSyncEnabled() bool {
+	return s.IsSyncEnabledForStore(1)
+}
+
+// IsAutoRealtimeSyncEnabledForStore checks if realtime event appending is enabled for a store
+func (s *SheetsSyncService) IsAutoRealtimeSyncEnabledForStore(storeID uint) bool {
+	cfg, err := s.GetConfigForStore(storeID)
 	if err != nil {
 		return false
 	}
 	return cfg.SyncEnabled && cfg.AutoRealtimeSync && cfg.SpreadsheetID != "" && cfg.ServiceAccountJSON != ""
 }
 
-// GetStatus returns the current synchronization state
-func (s *SheetsSyncService) GetStatus() (*SheetsSyncStatusResponse, error) {
-	cfg, err := s.GetConfig()
+// IsAutoRealtimeSyncEnabled checks if realtime event appending is enabled (default Store #1)
+func (s *SheetsSyncService) IsAutoRealtimeSyncEnabled() bool {
+	return s.IsAutoRealtimeSyncEnabledForStore(1)
+}
+
+// GetStatusForStore returns the current synchronization state for a store
+func (s *SheetsSyncService) GetStatusForStore(storeID uint) (*SheetsSyncStatusResponse, error) {
+	cfg, err := s.GetConfigForStore(storeID)
 	if err != nil {
 		return nil, err
 	}
@@ -174,8 +220,21 @@ func (s *SheetsSyncService) GetStatus() (*SheetsSyncStatusResponse, error) {
 	}, nil
 }
 
-// updateSyncStatus atomically updates the sync timestamp and status in settings table
+// GetStatus returns the current synchronization state (default Store #1)
+func (s *SheetsSyncService) GetStatus() (*SheetsSyncStatusResponse, error) {
+	return s.GetStatusForStore(1)
+}
+
+// updateSyncStatus atomically updates the sync timestamp and status in settings table (store 1)
 func (s *SheetsSyncService) updateSyncStatus(status, errorMsg string) {
+	s.updateSyncStatusForStore(1, status, errorMsg)
+}
+
+// updateSyncStatusForStore atomically updates the sync timestamp and status for a store
+func (s *SheetsSyncService) updateSyncStatusForStore(storeID uint, status, errorMsg string) {
+	if storeID == 0 {
+		storeID = 1
+	}
 	now := time.Now()
 	nowStr := now.Format("2006-01-02 15:04:05")
 
@@ -189,16 +248,28 @@ func (s *SheetsSyncService) updateSyncStatus(status, errorMsg string) {
 
 	_ = s.db.Transaction(func(tx *gorm.DB) error {
 		for k, v := range updates {
-			setting := models.Setting{
+			setting := models.StoreSetting{
+				StoreID:   storeID,
 				Key:       k,
 				Value:     v,
 				UpdatedAt: now,
 			}
 			if err := tx.Clauses(clause.OnConflict{
-				Columns:   []clause.Column{{Name: "key"}},
+				Columns:   []clause.Column{{Name: "store_id"}, {Name: "key"}},
 				DoUpdates: clause.AssignmentColumns([]string{"value", "updated_at"}),
 			}).Create(&setting).Error; err != nil {
 				return err
+			}
+			if storeID == 1 {
+				globalSetting := models.Setting{
+					Key:       k,
+					Value:     v,
+					UpdatedAt: now,
+				}
+				_ = tx.Clauses(clause.OnConflict{
+					Columns:   []clause.Column{{Name: "key"}},
+					DoUpdates: clause.AssignmentColumns([]string{"value", "updated_at"}),
+				}).Create(&globalSetting).Error
 			}
 		}
 		return nil
@@ -423,11 +494,15 @@ func (s *SheetsSyncService) TestConnection(ctx context.Context, credentialsJSON,
 
 // AppendOrderRow appends a single formatted order record to '🧾 Lịch Sử Đơn Hàng' tab
 func (s *SheetsSyncService) AppendOrderRow(order models.Order) {
-	if !s.IsAutoRealtimeSyncEnabled() {
+	storeID := order.StoreID
+	if storeID == 0 {
+		storeID = 1
+	}
+	if !s.IsAutoRealtimeSyncEnabledForStore(storeID) {
 		return
 	}
 
-	cfg, err := s.GetConfig()
+	cfg, err := s.GetConfigForStore(storeID)
 	if err != nil || cfg.SpreadsheetID == "" || cfg.ServiceAccountJSON == "" {
 		return
 	}
@@ -556,11 +631,15 @@ func (s *SheetsSyncService) AppendOrderRow(order models.Order) {
 
 // AppendTransactionRow appends a single formatted transaction record to '💸 Sổ Thu Chi' tab
 func (s *SheetsSyncService) AppendTransactionRow(tx models.Transaction) {
-	if !s.IsAutoRealtimeSyncEnabled() {
+	storeID := tx.StoreID
+	if storeID == 0 {
+		storeID = 1
+	}
+	if !s.IsAutoRealtimeSyncEnabledForStore(storeID) {
 		return
 	}
 
-	cfg, err := s.GetConfig()
+	cfg, err := s.GetConfigForStore(storeID)
 	if err != nil || cfg.SpreadsheetID == "" || cfg.ServiceAccountJSON == "" {
 		return
 	}
@@ -592,9 +671,9 @@ func (s *SheetsSyncService) AppendTransactionRow(tx models.Transaction) {
 		typeStr = "Thu tiền (Inflow)"
 	}
 
-	// Query categories from database for dynamic matching
+	// Query categories from database for dynamic matching (scoped to store)
 	var txCatItems []models.TransactionCategoryItem
-	s.db.Find(&txCatItems)
+	s.db.Where("store_id = ?", storeID).Find(&txCatItems)
 	catLabels := map[string]string{
 		"sale":                    "Doanh thu bán hàng POS",
 		"ingredient_purchase":     "Mua nguyên vật liệu",
@@ -658,12 +737,20 @@ func (s *SheetsSyncService) AppendTransactionRow(tx models.Transaction) {
 	}
 }
 
-// SyncAllToGoogleSheets executes full batch synchronization across all 5 operational & BI tabs
+// SyncAllToGoogleSheets executes full batch synchronization across all 5 operational & BI tabs (Store #1)
 func (s *SheetsSyncService) SyncAllToGoogleSheets() error {
+	return s.SyncAllToGoogleSheetsForStore(1)
+}
+
+// SyncAllToGoogleSheetsForStore executes full batch synchronization across all 5 operational & BI tabs for a specific store
+func (s *SheetsSyncService) SyncAllToGoogleSheetsForStore(storeID uint) error {
+	if storeID == 0 {
+		storeID = 1
+	}
 	s.syncMux.Lock()
 	defer s.syncMux.Unlock()
 
-	cfg, err := s.GetConfig()
+	cfg, err := s.GetConfigForStore(storeID)
 	if err != nil {
 		return err
 	}
@@ -676,49 +763,49 @@ func (s *SheetsSyncService) SyncAllToGoogleSheets() error {
 
 	srv, err := s.getClient(ctx, cfg.ServiceAccountJSON)
 	if err != nil {
-		s.updateSyncStatus("error", err.Error())
+		s.updateSyncStatusForStore(storeID, "error", err.Error())
 		return err
 	}
 
 	// 1. Ensure Layout & Tabs
 	if err := s.EnsureSheetsLayout(ctx, srv, cfg.SpreadsheetID); err != nil {
-		s.updateSyncStatus("error", err.Error())
+		s.updateSyncStatusForStore(storeID, "error", err.Error())
 		return err
 	}
 
-	// 2. Query All Operational Data
+	// 2. Query All Operational Data (Scoped by store_id)
 	var orders []models.Order
-	if err := s.db.Preload("Fund").Preload("Promotion").Preload("Items.Variant.Product").Order("created_at desc").Find(&orders).Error; err != nil {
-		s.updateSyncStatus("error", "Lỗi truy vấn đơn hàng: "+err.Error())
+	if err := s.db.Where("store_id = ?", storeID).Preload("Fund").Preload("Promotion").Preload("Items.Variant.Product").Order("created_at desc").Find(&orders).Error; err != nil {
+		s.updateSyncStatusForStore(storeID, "error", "Lỗi truy vấn đơn hàng: "+err.Error())
 		return err
 	}
 
 	var transactions []models.Transaction
-	if err := s.db.Preload("Fund").Preload("ReferenceOrder").Order("created_at desc").Find(&transactions).Error; err != nil {
-		s.updateSyncStatus("error", "Lỗi truy vấn giao dịch: "+err.Error())
+	if err := s.db.Where("store_id = ?", storeID).Preload("Fund").Preload("ReferenceOrder").Order("created_at desc").Find(&transactions).Error; err != nil {
+		s.updateSyncStatusForStore(storeID, "error", "Lỗi truy vấn giao dịch: "+err.Error())
 		return err
 	}
 
 	var products []models.Product
-	if err := s.db.Preload("Category").Preload("Variants").Order("id asc").Find(&products).Error; err != nil {
-		s.updateSyncStatus("error", "Lỗi truy vấn thực đơn: "+err.Error())
+	if err := s.db.Where("store_id = ?", storeID).Preload("Category").Preload("Variants").Order("id asc").Find(&products).Error; err != nil {
+		s.updateSyncStatusForStore(storeID, "error", "Lỗi truy vấn thực đơn: "+err.Error())
 		return err
 	}
 
 	var toppings []models.Topping
-	if err := s.db.Preload("Category").Order("display_order asc, id asc").Find(&toppings).Error; err != nil {
-		s.updateSyncStatus("error", "Lỗi truy vấn toppings: "+err.Error())
+	if err := s.db.Where("store_id = ?", storeID).Preload("Category").Order("display_order asc, id asc").Find(&toppings).Error; err != nil {
+		s.updateSyncStatusForStore(storeID, "error", "Lỗi truy vấn toppings: "+err.Error())
 		return err
 	}
 
 	var funds []models.Fund
-	if err := s.db.Order("id asc").Find(&funds).Error; err != nil {
-		s.updateSyncStatus("error", "Lỗi truy vấn quỹ: "+err.Error())
+	if err := s.db.Where("store_id = ?", storeID).Order("id asc").Find(&funds).Error; err != nil {
+		s.updateSyncStatusForStore(storeID, "error", "Lỗi truy vấn quỹ: "+err.Error())
 		return err
 	}
 
 	var txCategories []models.TransactionCategoryItem
-	s.db.Order("display_order asc, id asc").Find(&txCategories)
+	s.db.Where("store_id = ?", storeID).Order("display_order asc, id asc").Find(&txCategories)
 	catLabels := map[string]string{
 		"sale":                    "Doanh thu bán hàng POS",
 		"ingredient_purchase":     "Mua nguyên vật liệu",
@@ -772,8 +859,8 @@ func (s *SheetsSyncService) SyncAllToGoogleSheets() error {
 		FROM order_items oi
 		JOIN orders o ON o.id = oi.order_id
 		JOIN product_variants pv ON pv.id = oi.product_variant_id
-		WHERE o.status = 'completed' AND o.created_at >= ?
-	`, firstOfMonth).Scan(&totalCogs)
+		WHERE o.store_id = ? AND o.status = 'completed' AND o.created_at >= ?
+	`, storeID, firstOfMonth).Scan(&totalCogs)
 
 	grossProfit := netRevenue - totalCogs
 	var grossMarginPct float64 = 0
@@ -1152,11 +1239,11 @@ func (s *SheetsSyncService) SyncAllToGoogleSheets() error {
 	}
 
 	if _, err := srv.Spreadsheets.Values.BatchUpdate(cfg.SpreadsheetID, batchUpdateReq).Context(ctx).Do(); err != nil {
-		s.updateSyncStatus("error", "Lỗi ghi dữ liệu Google Sheets: "+err.Error())
+		s.updateSyncStatusForStore(storeID, "error", "Lỗi ghi dữ liệu Google Sheets: "+err.Error())
 		return fmt.Errorf("failed to batch update Google Sheets: %w", err)
 	}
 
-	s.updateSyncStatus("success", "")
-	log.Printf("[GoogleSheets] Batch sync completed successfully for spreadsheet %s", cfg.SpreadsheetID)
+	s.updateSyncStatusForStore(storeID, "success", "")
+	log.Printf("[GoogleSheets] Batch sync completed successfully for store %d (spreadsheet %s)", storeID, cfg.SpreadsheetID)
 	return nil
 }

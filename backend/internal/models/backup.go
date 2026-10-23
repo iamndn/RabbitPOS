@@ -2,7 +2,7 @@ package models
 
 import "time"
 
-// BackupStats summarizes record counts in a backup snapshot for all 16 database tables
+// BackupStats summarizes record counts in a backup snapshot for all database tables
 type BackupStats struct {
 	Settings              int `json:"settings"`
 	Categories            int `json:"categories"`
@@ -20,9 +20,12 @@ type BackupStats struct {
 	Ingredients           int `json:"ingredients"`
 	PurchaseItems         int `json:"purchase_items"`
 	RecipeItems           int `json:"recipe_items"`
+	Stores                int `json:"stores,omitempty"`
+	UserStores            int `json:"user_stores,omitempty"`
+	StoreSettings         int `json:"store_settings,omitempty"`
 }
 
-// BackupData contains all raw relational tables exported from PostgreSQL (16 tables)
+// BackupData contains all raw relational tables exported from PostgreSQL
 type BackupData struct {
 	Settings              []Setting                 `json:"settings"`
 	Categories            []Category                `json:"categories"`
@@ -40,6 +43,9 @@ type BackupData struct {
 	Ingredients           []Ingredient              `json:"ingredients"`
 	PurchaseItems         []PurchaseItem            `json:"purchase_items"`
 	RecipeItems           []RecipeItem              `json:"recipe_items"`
+	Stores                []Store                   `json:"stores,omitempty"`
+	UserStores            []UserStore               `json:"user_stores,omitempty"`
+	StoreSettings         []StoreSetting            `json:"store_settings,omitempty"`
 }
 
 // EncryptionMeta details cryptographic metadata if backup payload is encrypted

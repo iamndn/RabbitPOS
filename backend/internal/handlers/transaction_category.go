@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/RabbitPOS/backend/internal/database"
+	"github.com/RabbitPOS/backend/internal/middleware"
 	"github.com/RabbitPOS/backend/internal/models"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -21,9 +23,14 @@ func NewTransactionCategoryHandler(db *gorm.DB) *TransactionCategoryHandler {
 
 // ListCategories returns a list of transaction categories, optionally filtered by type (outflow/inflow)
 func (h *TransactionCategoryHandler) ListCategories(c *gin.Context) {
+	storeID := middleware.MustGetStoreID(c)
+	if storeID == 0 {
+		return
+	}
+
 	txType := strings.TrimSpace(c.Query("type"))
 
-	query := h.db.Model(&models.TransactionCategoryItem{})
+	query := h.db.Scopes(database.ScopeByStore(storeID)).Model(&models.TransactionCategoryItem{})
 	if txType != "" && txType != "all" {
 		query = query.Where("type = ? OR type = 'both'", txType)
 	}
@@ -39,6 +46,11 @@ func (h *TransactionCategoryHandler) ListCategories(c *gin.Context) {
 
 // CreateCategory creates a new custom transaction category
 func (h *TransactionCategoryHandler) CreateCategory(c *gin.Context) {
+	storeID := middleware.MustGetStoreID(c)
+	if storeID == 0 {
+		return
+	}
+
 	var req models.CreateTransactionCategoryRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		models.SendError(c, http.StatusBadRequest, "Invalid request payload: "+err.Error())
@@ -51,10 +63,11 @@ func (h *TransactionCategoryHandler) CreateCategory(c *gin.Context) {
 		return
 	}
 
-	// Check for duplicate name within the same type scope
+	// Check for duplicate name within the same store and type scope
 	var existing models.TransactionCategoryItem
-	err := h.db.Where("LOWER(name) = ? AND (type = ? OR type = 'both' OR ? = 'both')",
-		strings.ToLower(trimmedName), req.Type, req.Type).First(&existing).Error
+	err := h.db.Scopes(database.ScopeByStore(storeID)).
+		Where("LOWER(name) = ? AND (type = ? OR type = 'both' OR ? = 'both')",
+			strings.ToLower(trimmedName), req.Type, req.Type).First(&existing).Error
 	if err == nil {
 		models.SendError(c, http.StatusConflict, "A category with this name already exists for this transaction type")
 		return
@@ -66,13 +79,14 @@ func (h *TransactionCategoryHandler) CreateCategory(c *gin.Context) {
 	isDefault := false
 	if req.IsDefault != nil && *req.IsDefault {
 		isDefault = true
-		// Clear default for others of same type
-		h.db.Model(&models.TransactionCategoryItem{}).
+		// Clear default for others of same type within active store
+		h.db.Scopes(database.ScopeByStore(storeID)).Model(&models.TransactionCategoryItem{}).
 			Where("type = ? OR type = 'both' OR ? = 'both'", req.Type, req.Type).
 			Update("is_default", false)
 	}
 
 	category := models.TransactionCategoryItem{
+		StoreID:      storeID,
 		Name:         trimmedName,
 		Type:         req.Type,
 		Code:         req.Code,
@@ -91,6 +105,11 @@ func (h *TransactionCategoryHandler) CreateCategory(c *gin.Context) {
 
 // UpdateCategory updates an existing transaction category
 func (h *TransactionCategoryHandler) UpdateCategory(c *gin.Context) {
+	storeID := middleware.MustGetStoreID(c)
+	if storeID == 0 {
+		return
+	}
+
 	idParam := c.Param("id")
 	id, err := strconv.ParseUint(idParam, 10, 32)
 	if err != nil {
@@ -99,7 +118,7 @@ func (h *TransactionCategoryHandler) UpdateCategory(c *gin.Context) {
 	}
 
 	var category models.TransactionCategoryItem
-	if err := h.db.First(&category, id).Error; err != nil {
+	if err := h.db.Scopes(database.ScopeByStore(storeID)).First(&category, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			models.SendError(c, http.StatusNotFound, "Transaction category not found")
 			return
@@ -120,10 +139,11 @@ func (h *TransactionCategoryHandler) UpdateCategory(c *gin.Context) {
 		return
 	}
 
-	// Check if another category already has this name
+	// Check if another category in active store already has this name
 	var existing models.TransactionCategoryItem
-	err = h.db.Where("id != ? AND LOWER(name) = ? AND (type = ? OR type = 'both' OR ? = 'both')",
-		id, strings.ToLower(trimmedName), req.Type, req.Type).First(&existing).Error
+	err = h.db.Scopes(database.ScopeByStore(storeID)).
+		Where("id != ? AND LOWER(name) = ? AND (type = ? OR type = 'both' OR ? = 'both')",
+			id, strings.ToLower(trimmedName), req.Type, req.Type).First(&existing).Error
 	if err == nil {
 		models.SendError(c, http.StatusConflict, "Another category with this name already exists")
 		return
@@ -140,8 +160,8 @@ func (h *TransactionCategoryHandler) UpdateCategory(c *gin.Context) {
 
 	if req.IsDefault != nil {
 		if *req.IsDefault {
-			// Clear default for others of same type
-			h.db.Model(&models.TransactionCategoryItem{}).
+			// Clear default for others of same type within active store
+			h.db.Scopes(database.ScopeByStore(storeID)).Model(&models.TransactionCategoryItem{}).
 				Where("id != ? AND (type = ? OR type = 'both' OR ? = 'both')", id, req.Type, req.Type).
 				Update("is_default", false)
 			category.IsDefault = true
@@ -160,6 +180,11 @@ func (h *TransactionCategoryHandler) UpdateCategory(c *gin.Context) {
 
 // SetDefaultCategory sets the specified category as the default for its type
 func (h *TransactionCategoryHandler) SetDefaultCategory(c *gin.Context) {
+	storeID := middleware.MustGetStoreID(c)
+	if storeID == 0 {
+		return
+	}
+
 	idParam := c.Param("id")
 	id, err := strconv.ParseUint(idParam, 10, 32)
 	if err != nil {
@@ -168,7 +193,7 @@ func (h *TransactionCategoryHandler) SetDefaultCategory(c *gin.Context) {
 	}
 
 	var category models.TransactionCategoryItem
-	if err := h.db.First(&category, id).Error; err != nil {
+	if err := h.db.Scopes(database.ScopeByStore(storeID)).First(&category, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			models.SendError(c, http.StatusNotFound, "Transaction category not found")
 			return
@@ -177,8 +202,8 @@ func (h *TransactionCategoryHandler) SetDefaultCategory(c *gin.Context) {
 		return
 	}
 
-	// Clear default for other categories of the same type
-	if err := h.db.Model(&models.TransactionCategoryItem{}).
+	// Clear default for other categories of the same type within active store
+	if err := h.db.Scopes(database.ScopeByStore(storeID)).Model(&models.TransactionCategoryItem{}).
 		Where("type = ? OR type = 'both' OR ? = 'both'", category.Type, category.Type).
 		Update("is_default", false).Error; err != nil {
 		models.SendInternalError(c, "Failed to reset other category defaults: "+err.Error())
@@ -197,6 +222,11 @@ func (h *TransactionCategoryHandler) SetDefaultCategory(c *gin.Context) {
 
 // DeleteCategory deletes a transaction category
 func (h *TransactionCategoryHandler) DeleteCategory(c *gin.Context) {
+	storeID := middleware.MustGetStoreID(c)
+	if storeID == 0 {
+		return
+	}
+
 	idParam := c.Param("id")
 	id, err := strconv.ParseUint(idParam, 10, 32)
 	if err != nil {
@@ -205,7 +235,7 @@ func (h *TransactionCategoryHandler) DeleteCategory(c *gin.Context) {
 	}
 
 	var category models.TransactionCategoryItem
-	if err := h.db.First(&category, id).Error; err != nil {
+	if err := h.db.Scopes(database.ScopeByStore(storeID)).First(&category, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			models.SendError(c, http.StatusNotFound, "Transaction category not found")
 			return
@@ -224,6 +254,11 @@ func (h *TransactionCategoryHandler) DeleteCategory(c *gin.Context) {
 
 // ReorderCategories updates the display_order of multiple transaction categories based on the provided ordered IDs
 func (h *TransactionCategoryHandler) ReorderCategories(c *gin.Context) {
+	storeID := middleware.MustGetStoreID(c)
+	if storeID == 0 {
+		return
+	}
+
 	var req struct {
 		OrderedIDs []uint `json:"ordered_ids" binding:"required"`
 	}
@@ -233,8 +268,11 @@ func (h *TransactionCategoryHandler) ReorderCategories(c *gin.Context) {
 	}
 
 	err := h.db.Transaction(func(tx *gorm.DB) error {
+		if err := database.AssertOwnedIDs(tx, &models.TransactionCategoryItem{}, req.OrderedIDs, storeID); err != nil {
+			return err
+		}
 		for idx, id := range req.OrderedIDs {
-			if err := tx.Model(&models.TransactionCategoryItem{}).Where("id = ?", id).Update("display_order", idx+1).Error; err != nil {
+			if err := tx.Scopes(database.ScopeByStore(storeID)).Model(&models.TransactionCategoryItem{}).Where("id = ?", id).Update("display_order", idx+1).Error; err != nil {
 				return err
 			}
 		}
@@ -242,6 +280,10 @@ func (h *TransactionCategoryHandler) ReorderCategories(c *gin.Context) {
 	})
 
 	if err != nil {
+		if errors.Is(err, database.ErrNotInStore) {
+			models.SendError(c, http.StatusNotFound, "Một hoặc nhiều danh mục không thuộc cửa hàng này")
+			return
+		}
 		models.SendInternalError(c, "Failed to reorder transaction categories: "+err.Error())
 		return
 	}

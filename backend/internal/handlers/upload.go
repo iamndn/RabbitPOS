@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/RabbitPOS/backend/internal/middleware"
 	"github.com/RabbitPOS/backend/internal/models"
 	"github.com/gin-gonic/gin"
 )
@@ -57,8 +58,14 @@ func (h *UploadHandler) UploadImage(c *gin.Context) {
 		return
 	}
 
-	// Ensure upload directory exists
+	// Ensure upload directory exists (scoped to store if present)
 	uploadDir := "./uploads"
+	publicURLPrefix := "/uploads/"
+	if storeID := middleware.GetStoreID(c); storeID > 0 {
+		uploadDir = filepath.Join("./uploads", "stores", fmt.Sprintf("%d", storeID))
+		publicURLPrefix = fmt.Sprintf("/uploads/stores/%d/", storeID)
+	}
+
 	if err := os.MkdirAll(uploadDir, os.ModePerm); err != nil {
 		models.SendInternalError(c, "Failed to initialize upload directory")
 		return
@@ -78,7 +85,7 @@ func (h *UploadHandler) UploadImage(c *gin.Context) {
 		return
 	}
 
-	publicURL := "/uploads/" + uniqueFilename
+	publicURL := publicURLPrefix + uniqueFilename
 	models.SendSuccess(c, http.StatusOK, gin.H{
 		"url": publicURL,
 	}, "File uploaded successfully")

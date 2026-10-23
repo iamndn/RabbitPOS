@@ -19,6 +19,7 @@ const (
 // Product represents a item in the POS catalog
 type Product struct {
 	ID            uint             `gorm:"primaryKey" json:"id"`
+	StoreID       uint             `gorm:"not null;default:1" json:"store_id"`
 	CategoryID    uint             `gorm:"not null;index" json:"category_id"`
 	Category      *Category        `gorm:"foreignKey:CategoryID;constraint:OnDelete:CASCADE" json:"category,omitempty"`
 	Name          string           `gorm:"type:varchar(150);not null" json:"name"`

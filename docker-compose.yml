@@ -38,6 +38,10 @@ services:
       JWT_EXPIRY_HOURS: ${JWT_EXPIRY_HOURS:-24}
       # Seeding: enable demo catalog in development by default
       ENABLE_SEEDING: ${ENABLE_SEEDING:-true}
+      ENABLE_MULTI_STORE: ${ENABLE_MULTI_STORE:-false}
+      STORE_STRICT_CREATE: ${STORE_STRICT_CREATE:-false}
+      INITIAL_STORE_NAME: ${INITIAL_STORE_NAME:-My Store}
+      INITIAL_STORE_CODE: ${INITIAL_STORE_CODE:-main}
       # Initial admin credentials for first-run DB setup
       INITIAL_ADMIN_USERNAME: ${INITIAL_ADMIN_USERNAME:-admin}
       INITIAL_ADMIN_PASSWORD: ${INITIAL_ADMIN_PASSWORD:-admin123}

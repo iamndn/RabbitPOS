@@ -9,6 +9,7 @@ import (
 // If CategoryID is nil, the topping is considered global (available for all products)
 type Topping struct {
 	ID           uint      `gorm:"primaryKey"                          json:"id"`
+	StoreID      uint      `gorm:"not null;default:1"                  json:"store_id"`
 	Name         string    `gorm:"type:varchar(100);not null"          json:"name"`
 	Price        float64   `gorm:"type:numeric(15,2);not null;default:0" json:"price"`
 	COGS         float64   `gorm:"type:numeric(15,2);not null;default:0" json:"cogs"`

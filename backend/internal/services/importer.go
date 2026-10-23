@@ -250,7 +250,13 @@ func (s *ImporterService) ImportExcel(
 	opts models.ImportOptions,
 	currentUserID *uint,
 	currentUsername string,
+	optionalStoreID ...uint,
 ) (*models.ImportResponse, error) {
+	storeID := uint(1)
+	if len(optionalStoreID) > 0 && optionalStoreID[0] > 0 {
+		storeID = optionalStoreID[0]
+	}
+
 	f, err := excelize.OpenReader(reader)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open Excel workbook: %w", err)
@@ -277,7 +283,7 @@ func (s *ImporterService) ImportExcel(
 			if sheetName != "" {
 				rows, err := f.GetRows(sheetName)
 				if err == nil && len(rows) > 1 {
-					s.importCategories(tx, sheetName, rows[1:], response)
+					s.importCategories(tx, sheetName, rows[1:], storeID, response)
 				}
 			}
 		}
@@ -288,7 +294,7 @@ func (s *ImporterService) ImportExcel(
 			if sheetName != "" {
 				rows, err := f.GetRows(sheetName)
 				if err == nil && len(rows) > 1 {
-					s.importToppings(tx, sheetName, rows[1:], response)
+					s.importToppings(tx, sheetName, rows[1:], storeID, response)
 				}
 			}
 		}
@@ -299,7 +305,7 @@ func (s *ImporterService) ImportExcel(
 			if sheetName != "" {
 				rows, err := f.GetRows(sheetName)
 				if err == nil && len(rows) > 1 {
-					s.importProducts(tx, sheetName, rows[1:], opts.UpsertProducts, response)
+					s.importProducts(tx, sheetName, rows[1:], opts.UpsertProducts, storeID, response)
 				}
 			}
 		}
@@ -310,7 +316,7 @@ func (s *ImporterService) ImportExcel(
 			if sheetName != "" {
 				rows, err := f.GetRows(sheetName)
 				if err == nil && len(rows) > 1 {
-					s.importTransactions(tx, sheetName, rows[1:], opts.UpdateFunds, currentUserID, currentUsername, response)
+					s.importTransactions(tx, sheetName, rows[1:], opts.UpdateFunds, currentUserID, currentUsername, storeID, response)
 				}
 			}
 		}
@@ -321,7 +327,7 @@ func (s *ImporterService) ImportExcel(
 			if sheetName != "" {
 				rows, err := f.GetRows(sheetName)
 				if err == nil && len(rows) > 1 {
-					s.importOrders(tx, sheetName, rows[1:], currentUserID, currentUsername, response)
+					s.importOrders(tx, sheetName, rows[1:], currentUserID, currentUsername, storeID, response)
 				}
 			}
 		}
@@ -355,7 +361,13 @@ func (s *ImporterService) ImportCSV(
 	opts models.ImportOptions,
 	currentUserID *uint,
 	currentUsername string,
+	optionalStoreID ...uint,
 ) (*models.ImportResponse, error) {
+	storeID := uint(1)
+	if len(optionalStoreID) > 0 && optionalStoreID[0] > 0 {
+		storeID = optionalStoreID[0]
+	}
+
 	csvReader := csv.NewReader(r)
 	csvReader.TrimLeadingSpace = true
 	csvReader.FieldsPerRecord = -1
@@ -386,15 +398,15 @@ func (s *ImporterService) ImportCSV(
 
 		switch target {
 		case "categories":
-			s.importCategories(tx, sheetName, dataRows, response)
+			s.importCategories(tx, sheetName, dataRows, storeID, response)
 		case "toppings":
-			s.importToppings(tx, sheetName, dataRows, response)
+			s.importToppings(tx, sheetName, dataRows, storeID, response)
 		case "products":
-			s.importProducts(tx, sheetName, dataRows, opts.UpsertProducts, response)
+			s.importProducts(tx, sheetName, dataRows, opts.UpsertProducts, storeID, response)
 		case "transactions":
-			s.importTransactions(tx, sheetName, dataRows, opts.UpdateFunds, currentUserID, currentUsername, response)
+			s.importTransactions(tx, sheetName, dataRows, opts.UpdateFunds, currentUserID, currentUsername, storeID, response)
 		case "orders":
-			s.importOrders(tx, sheetName, dataRows, currentUserID, currentUsername, response)
+			s.importOrders(tx, sheetName, dataRows, currentUserID, currentUsername, storeID, response)
 		default:
 			return fmt.Errorf("unsupported CSV import target: %s", target)
 		}
@@ -416,7 +428,7 @@ func (s *ImporterService) ImportCSV(
 // SHEET PARSERS
 // -------------------------------------------------------------
 
-func (s *ImporterService) importCategories(tx *gorm.DB, sheet string, rows [][]string, res *models.ImportResponse) {
+func (s *ImporterService) importCategories(tx *gorm.DB, sheet string, rows [][]string, storeID uint, res *models.ImportResponse) {
 	for idx, row := range rows {
 		rowNum := idx + 2
 		if len(row) < 2 || strings.TrimSpace(row[1]) == "" {
@@ -440,10 +452,11 @@ func (s *ImporterService) importCategories(tx *gorm.DB, sheet string, rows [][]s
 		}
 
 		var cat models.Category
-		err := tx.Where("LOWER(name) = LOWER(?)", name).First(&cat).Error
+		err := tx.Where("store_id = ? AND LOWER(name) = LOWER(?)", storeID, name).First(&cat).Error
 		if err != nil {
 			// Create new
 			cat = models.Category{
+				StoreID:      storeID,
 				Name:         name,
 				DisplayOrder: displayOrder,
 				IsActive:     isActive,
@@ -471,7 +484,7 @@ func (s *ImporterService) importCategories(tx *gorm.DB, sheet string, rows [][]s
 	}
 }
 
-func (s *ImporterService) importToppings(tx *gorm.DB, sheet string, rows [][]string, res *models.ImportResponse) {
+func (s *ImporterService) importToppings(tx *gorm.DB, sheet string, rows [][]string, storeID uint, res *models.ImportResponse) {
 	for idx, row := range rows {
 		rowNum := idx + 2
 		if len(row) < 2 || strings.TrimSpace(row[0]) == "" {
@@ -500,7 +513,7 @@ func (s *ImporterService) importToppings(tx *gorm.DB, sheet string, rows [][]str
 			catName := strings.TrimSpace(row[3])
 			if !strings.EqualFold(catName, "tất cả") && !strings.EqualFold(catName, "áp dụng tất cả") {
 				var cat models.Category
-				if err := tx.Where("LOWER(name) = LOWER(?)", catName).First(&cat).Error; err == nil {
+				if err := tx.Where("store_id = ? AND LOWER(name) = LOWER(?)", storeID, catName).First(&cat).Error; err == nil {
 					categoryID = &cat.ID
 				}
 			}
@@ -512,9 +525,10 @@ func (s *ImporterService) importToppings(tx *gorm.DB, sheet string, rows [][]str
 		}
 
 		var topping models.Topping
-		err := tx.Where("LOWER(name) = LOWER(?)", name).First(&topping).Error
+		err := tx.Where("store_id = ? AND LOWER(name) = LOWER(?)", storeID, name).First(&topping).Error
 		if err != nil {
 			topping = models.Topping{
+				StoreID:    storeID,
 				Name:       name,
 				Price:      price,
 				COGS:       cogs,
@@ -541,11 +555,11 @@ func (s *ImporterService) importToppings(tx *gorm.DB, sheet string, rows [][]str
 	}
 }
 
-func (s *ImporterService) importProducts(tx *gorm.DB, sheet string, rows [][]string, upsert bool, res *models.ImportResponse) {
-	// Cache categories for fast lookup
+func (s *ImporterService) importProducts(tx *gorm.DB, sheet string, rows [][]string, upsert bool, storeID uint, res *models.ImportResponse) {
+	// Cache categories for fast lookup (scoped to store)
 	categoryMap := make(map[string]uint)
 	var categories []models.Category
-	tx.Find(&categories)
+	tx.Where("store_id = ?", storeID).Find(&categories)
 	for _, c := range categories {
 		categoryMap[strings.ToLower(strings.TrimSpace(c.Name))] = c.ID
 	}
@@ -565,7 +579,7 @@ func (s *ImporterService) importProducts(tx *gorm.DB, sheet string, rows [][]str
 		// Find or auto-create category
 		catID, exists := categoryMap[strings.ToLower(catName)]
 		if !exists {
-			newCat := models.Category{Name: catName, IsActive: true}
+			newCat := models.Category{StoreID: storeID, Name: catName, IsActive: true}
 			if err := tx.Create(&newCat).Error; err == nil {
 				catID = newCat.ID
 				categoryMap[strings.ToLower(catName)] = catID
@@ -624,11 +638,12 @@ func (s *ImporterService) importProducts(tx *gorm.DB, sheet string, rows [][]str
 			imageURL = strings.TrimSpace(row[9])
 		}
 
-		// 1. Find or create Product
+		// 1. Find or create Product (scoped to store)
 		var product models.Product
-		err := tx.Where("LOWER(name) = LOWER(?)", prodName).First(&product).Error
+		err := tx.Where("store_id = ? AND LOWER(name) = LOWER(?)", storeID, prodName).First(&product).Error
 		if err != nil {
 			product = models.Product{
+				StoreID:     storeID,
 				CategoryID:  catID,
 				Name:        prodName,
 				Description: desc,
@@ -706,11 +721,12 @@ func (s *ImporterService) importTransactions(
 	updateFunds bool,
 	currentUserID *uint,
 	currentUsername string,
+	storeID uint,
 	res *models.ImportResponse,
 ) {
-	// Cache funds
+	// Cache funds for store
 	var funds []models.Fund
-	tx.Find(&funds)
+	tx.Where("store_id = ?", storeID).Find(&funds)
 	fundMap := make(map[string]uint)
 	for _, f := range funds {
 		fundMap[strings.ToLower(strings.TrimSpace(f.Name))] = f.ID
@@ -787,7 +803,7 @@ func (s *ImporterService) importTransactions(
 			description = strings.TrimSpace(row[6])
 		}
 
-		// Map or create transaction category
+		// Map or create transaction category (scoped to store)
 		var txCategory models.TransactionCategoryItem
 		catType := "both"
 		if txType == models.TransactionTypeInflow {
@@ -795,8 +811,9 @@ func (s *ImporterService) importTransactions(
 		} else {
 			catType = "outflow"
 		}
-		if err := tx.Where("LOWER(name) = LOWER(?)", categoryName).First(&txCategory).Error; err != nil {
+		if err := tx.Where("store_id = ? AND LOWER(name) = LOWER(?)", storeID, categoryName).First(&txCategory).Error; err != nil {
 			txCategory = models.TransactionCategoryItem{
+				StoreID:  storeID,
 				Name:     categoryName,
 				Type:     catType,
 				IsSystem: false,
@@ -805,6 +822,7 @@ func (s *ImporterService) importTransactions(
 		}
 
 		transaction := models.Transaction{
+			StoreID:         storeID,
 			FundID:          fundID,
 			TransactionType: txType,
 			Category:        models.TransactionCategory(categoryName),
@@ -829,9 +847,9 @@ func (s *ImporterService) importTransactions(
 		// Adjust fund balance
 		if updateFunds {
 			if txType == models.TransactionTypeInflow {
-				tx.Model(&models.Fund{}).Where("id = ?", fundID).UpdateColumn("current_balance", gorm.Expr("current_balance + ?", amount))
+				tx.Model(&models.Fund{}).Where("store_id = ? AND id = ?", storeID, fundID).UpdateColumn("current_balance", gorm.Expr("current_balance + ?", amount))
 			} else {
-				tx.Model(&models.Fund{}).Where("id = ?", fundID).UpdateColumn("current_balance", gorm.Expr("current_balance - ?", amount))
+				tx.Model(&models.Fund{}).Where("store_id = ? AND id = ?", storeID, fundID).UpdateColumn("current_balance", gorm.Expr("current_balance - ?", amount))
 			}
 		}
 
@@ -845,11 +863,12 @@ func (s *ImporterService) importOrders(
 	rows [][]string,
 	currentUserID *uint,
 	currentUsername string,
+	storeID uint,
 	res *models.ImportResponse,
 ) {
-	// Cache funds
+	// Cache funds for store
 	var funds []models.Fund
-	tx.Find(&funds)
+	tx.Where("store_id = ?", storeID).Find(&funds)
 	fundMap := make(map[string]uint)
 	for _, f := range funds {
 		fundMap[strings.ToLower(strings.TrimSpace(f.Name))] = f.ID
@@ -865,25 +884,22 @@ func (s *ImporterService) importOrders(
 		}
 	}
 
-	// Cache variants: map[LOWER(product_name + "_" + variant_name)] -> variant
+	// Cache variants for store: map[LOWER(product_name + "_" + variant_name)] -> variant
 	type VariantLookup struct {
 		ID        uint
 		UnitPrice float64
 	}
 	variantMap := make(map[string]VariantLookup)
 	var variants []models.ProductVariant
-	tx.Preload("Product").Find(&variants)
+	tx.Joins("JOIN products ON products.id = product_variants.product_id").Where("products.store_id = ?", storeID).Preload("Product").Find(&variants)
 	for _, v := range variants {
-		if v.ProductID > 0 {
-			var prod models.Product
-			if err := tx.First(&prod, v.ProductID).Error; err == nil {
-				key := strings.ToLower(strings.TrimSpace(prod.Name)) + "_" + strings.ToLower(strings.TrimSpace(v.VariantName))
-				variantMap[key] = VariantLookup{ID: v.ID, UnitPrice: v.RetailPrice}
-				// Also add default fallback
-				defaultKey := strings.ToLower(strings.TrimSpace(prod.Name)) + "_mặc định"
-				if _, ok := variantMap[defaultKey]; !ok {
-					variantMap[defaultKey] = VariantLookup{ID: v.ID, UnitPrice: v.RetailPrice}
-				}
+		if v.Product != nil {
+			key := strings.ToLower(strings.TrimSpace(v.Product.Name)) + "_" + strings.ToLower(strings.TrimSpace(v.VariantName))
+			variantMap[key] = VariantLookup{ID: v.ID, UnitPrice: v.RetailPrice}
+			// Also add default fallback
+			defaultKey := strings.ToLower(strings.TrimSpace(v.Product.Name)) + "_mặc định"
+			if _, ok := variantMap[defaultKey]; !ok {
+				variantMap[defaultKey] = VariantLookup{ID: v.ID, UnitPrice: v.RetailPrice}
 			}
 		}
 	}
@@ -1046,8 +1062,14 @@ func (s *ImporterService) importOrders(
 			if !ok {
 				// Try creating on the fly
 				var prod models.Product
-				if err := tx.Where("LOWER(name) = LOWER(?)", item.ProductName).First(&prod).Error; err != nil {
-					prod = models.Product{CategoryID: 1, Name: item.ProductName, IsActive: true}
+				if err := tx.Where("store_id = ? AND LOWER(name) = LOWER(?)", storeID, item.ProductName).First(&prod).Error; err != nil {
+					var defCat models.Category
+					tx.Where("store_id = ?", storeID).First(&defCat)
+					catID := defCat.ID
+					if catID == 0 {
+						catID = 1
+					}
+					prod = models.Product{StoreID: storeID, CategoryID: catID, Name: item.ProductName, IsActive: true}
 					_ = tx.Create(&prod).Error
 				}
 				newVariant := models.ProductVariant{
@@ -1100,6 +1122,7 @@ func (s *ImporterService) importOrders(
 		}
 
 		order := models.Order{
+			StoreID:        storeID,
 			OrderCode:      orderCode,
 			Status:         firstRow.Status,
 			Subtotal:       subtotal,
@@ -1116,9 +1139,9 @@ func (s *ImporterService) importOrders(
 			UpdatedAt:      firstRow.CreatedAt,
 		}
 
-		// Upsert Order by order_code
+		// Upsert Order by (store_id, order_code)
 		if err := tx.Clauses(clause.OnConflict{
-			Columns:   []clause.Column{{Name: "order_code"}},
+			Columns:   []clause.Column{{Name: "store_id"}, {Name: "order_code"}},
 			DoUpdates: clause.AssignmentColumns([]string{"subtotal", "discount_amount", "shipping_fee", "surcharge", "total_amount", "status"}),
 		}).Create(&order).Error; err != nil {
 			res.Errors = append(res.Errors, models.ImportRowError{

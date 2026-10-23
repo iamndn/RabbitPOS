@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -33,10 +34,11 @@ type TestFixtures struct {
 func GetTestDB(t *testing.T) *gorm.DB {
 	dsn := os.Getenv("TEST_DATABASE_URL")
 	if dsn == "" {
-		dsn = os.Getenv("DATABASE_URL")
-	}
-	if dsn == "" {
 		dsn = "host=localhost user=admin password=SGsurv9wi7uQRXXniYj0kg1V8TunrUnR dbname=rabbitpos port=5432 sslmode=disable connect_timeout=2"
+	}
+	if strings.Contains(strings.ToLower(dsn), "supabase") {
+		t.Skip("Safety guard: target database appears to be Supabase production, skipping test")
+		return nil
 	}
 
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
@@ -89,6 +91,9 @@ func AutoMigrateAll(db *gorm.DB) error {
 		&models.AuditLog{},
 		&models.RevokedToken{},
 		&models.FundReconciliation{},
+		&models.Store{},
+		&models.UserStore{},
+		&models.StoreSetting{},
 	)
 }
 
@@ -113,8 +118,11 @@ func CleanTables(db *gorm.DB) error {
 		"categories",
 		"transaction_categories",
 		"funds",
+		"user_stores",
+		"store_settings",
 		"users",
 		"settings",
+		"stores",
 	}
 
 	for _, tbl := range tables {
@@ -122,7 +130,12 @@ func CleanTables(db *gorm.DB) error {
 			return err
 		}
 	}
-	return nil
+	// Re-create Store #1 so rows relying on the transitional store_id default (1) stay valid.
+	if err := db.Exec(`INSERT INTO stores (id, code, name, is_active, created_at, updated_at)
+		VALUES (1, 'main', 'Test Store', TRUE, NOW(), NOW()) ON CONFLICT (id) DO NOTHING`).Error; err != nil {
+		return err
+	}
+	return db.Exec(`SELECT setval(pg_get_serial_sequence('stores','id'), GREATEST((SELECT MAX(id) FROM stores), 1))`).Error
 }
 
 // SeedMinimalFixtures inserts standard minimal baseline records for tests

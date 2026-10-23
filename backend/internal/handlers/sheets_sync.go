@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/RabbitPOS/backend/internal/middleware"
 	"github.com/RabbitPOS/backend/internal/models"
 	"github.com/RabbitPOS/backend/internal/services"
 	"github.com/gin-gonic/gin"
@@ -42,12 +43,17 @@ func (h *SheetsSyncHandler) TestConnection(c *gin.Context) {
 // SyncNow triggers immediate full batch synchronization across all 5 Google Sheet tabs
 // POST /api/v1/settings/sheets/sync-now
 func (h *SheetsSyncHandler) SyncNow(c *gin.Context) {
-	if err := h.sheetsSyncSvc.SyncAllToGoogleSheets(); err != nil {
+	storeID := middleware.GetStoreID(c)
+	if storeID == 0 {
+		storeID = 1
+	}
+
+	if err := h.sheetsSyncSvc.SyncAllToGoogleSheetsForStore(storeID); err != nil {
 		models.SendError(c, http.StatusInternalServerError, "Đồng bộ thất bại: "+err.Error())
 		return
 	}
 
-	status, err := h.sheetsSyncSvc.GetStatus()
+	status, err := h.sheetsSyncSvc.GetStatusForStore(storeID)
 	if err != nil {
 		models.SendSuccess(c, http.StatusOK, gin.H{"status": "success"}, "Đồng bộ toàn bộ dữ liệu lên Google Sheets thành công")
 		return
@@ -59,7 +65,12 @@ func (h *SheetsSyncHandler) SyncNow(c *gin.Context) {
 // GetStatus returns the current Google Sheets synchronization status, last synced time, and errors
 // GET /api/v1/settings/sheets/status
 func (h *SheetsSyncHandler) GetStatus(c *gin.Context) {
-	status, err := h.sheetsSyncSvc.GetStatus()
+	storeID := middleware.GetStoreID(c)
+	if storeID == 0 {
+		storeID = 1
+	}
+
+	status, err := h.sheetsSyncSvc.GetStatusForStore(storeID)
 	if err != nil {
 		models.SendInternalError(c, "Không thể lấy thông tin trạng thái đồng bộ: "+err.Error())
 		return

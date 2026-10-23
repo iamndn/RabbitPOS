@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/RabbitPOS/backend/internal/cache"
+	"github.com/RabbitPOS/backend/internal/database"
+	"github.com/RabbitPOS/backend/internal/middleware"
 	"github.com/RabbitPOS/backend/internal/models"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -21,11 +23,20 @@ func NewToppingHandler(db *gorm.DB, c *cache.TTLCache) *ToppingHandler {
 	return &ToppingHandler{db: db, cache: c}
 }
 
-// ListToppings returns active toppings with in-memory caching.
+func toppingCachePrefix(storeID uint) string {
+	return fmt.Sprintf("s%d:toppings:", storeID)
+}
+
+// ListToppings returns active toppings with in-memory caching scoped to the active store.
 // Supports ?category_id=X to return global toppings (category_id IS NULL) PLUS toppings scoped to that category.
 func (h *ToppingHandler) ListToppings(c *gin.Context) {
+	storeID := middleware.MustGetStoreID(c)
+	if storeID == 0 {
+		return
+	}
+
 	catIDStr := c.Query("category_id")
-	cacheKey := fmt.Sprintf("toppings:active:%s", catIDStr)
+	cacheKey := fmt.Sprintf("s%d:toppings:active:%s", storeID, catIDStr)
 
 	if h.cache != nil {
 		if cached, ok := h.cache.Get(cacheKey); ok {
@@ -35,7 +46,7 @@ func (h *ToppingHandler) ListToppings(c *gin.Context) {
 	}
 
 	toppings := make([]models.Topping, 0)
-	query := h.db.Where("is_active = ?", true)
+	query := h.db.Scopes(database.ScopeByStore(storeID)).Where("is_active = ?", true)
 
 	if catIDStr != "" {
 		catID, err := strconv.ParseUint(catIDStr, 10, 64)
@@ -58,9 +69,14 @@ func (h *ToppingHandler) ListToppings(c *gin.Context) {
 	models.SendSuccess(c, http.StatusOK, toppings, "Toppings retrieved successfully")
 }
 
-// ListAllToppings returns all toppings (including inactive) for admin management
+// ListAllToppings returns all toppings (including inactive) for store admin management
 func (h *ToppingHandler) ListAllToppings(c *gin.Context) {
-	cacheKey := "toppings:all"
+	storeID := middleware.MustGetStoreID(c)
+	if storeID == 0 {
+		return
+	}
+
+	cacheKey := fmt.Sprintf("s%d:toppings:all", storeID)
 	if h.cache != nil {
 		if cached, ok := h.cache.Get(cacheKey); ok {
 			models.SendSuccess(c, http.StatusOK, cached, "All toppings retrieved successfully")
@@ -69,7 +85,7 @@ func (h *ToppingHandler) ListAllToppings(c *gin.Context) {
 	}
 
 	toppings := make([]models.Topping, 0)
-	if err := h.db.Order("display_order asc, id asc").Find(&toppings).Error; err != nil {
+	if err := h.db.Scopes(database.ScopeByStore(storeID)).Order("display_order asc, id asc").Find(&toppings).Error; err != nil {
 		models.SendInternalErrorLogged(c, "Failed to retrieve toppings", err)
 		return
 	}
@@ -81,12 +97,24 @@ func (h *ToppingHandler) ListAllToppings(c *gin.Context) {
 	models.SendSuccess(c, http.StatusOK, toppings, "All toppings retrieved successfully")
 }
 
-// CreateTopping creates a new topping (admin only)
+// CreateTopping creates a new topping scoped to the active store
 func (h *ToppingHandler) CreateTopping(c *gin.Context) {
+	storeID := middleware.MustGetStoreID(c)
+	if storeID == 0 {
+		return
+	}
+
 	var req models.CreateToppingRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		models.SendError(c, http.StatusBadRequest, "Invalid request payload")
 		return
+	}
+
+	if req.CategoryID != nil {
+		if err := database.AssertOwned(h.db, &models.Category{}, *req.CategoryID, storeID); err != nil {
+			models.SendErrorCode(c, http.StatusBadRequest, "VALIDATION_ERROR", "Category does not belong to active store")
+			return
+		}
 	}
 
 	isActive := true
@@ -95,6 +123,7 @@ func (h *ToppingHandler) CreateTopping(c *gin.Context) {
 	}
 
 	topping := models.Topping{
+		StoreID:      storeID,
 		Name:         req.Name,
 		Price:        req.Price,
 		COGS:         req.COGS,
@@ -109,14 +138,19 @@ func (h *ToppingHandler) CreateTopping(c *gin.Context) {
 	}
 
 	if h.cache != nil {
-		h.cache.InvalidatePrefix("toppings:")
+		h.cache.InvalidatePrefix(toppingCachePrefix(storeID))
 	}
 
 	models.SendSuccess(c, http.StatusCreated, topping, "Topping created successfully")
 }
 
-// UpdateTopping updates an existing topping (admin only)
+// UpdateTopping updates an existing topping scoped to the active store
 func (h *ToppingHandler) UpdateTopping(c *gin.Context) {
+	storeID := middleware.MustGetStoreID(c)
+	if storeID == 0 {
+		return
+	}
+
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 64)
 	if err != nil {
@@ -125,7 +159,7 @@ func (h *ToppingHandler) UpdateTopping(c *gin.Context) {
 	}
 
 	var topping models.Topping
-	if err := h.db.First(&topping, id).Error; err != nil {
+	if err := h.db.Scopes(database.ScopeByStore(storeID)).First(&topping, id).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			models.SendError(c, http.StatusNotFound, "Topping not found")
 			return
@@ -138,6 +172,13 @@ func (h *ToppingHandler) UpdateTopping(c *gin.Context) {
 	if err := c.ShouldBindJSON(&req); err != nil {
 		models.SendError(c, http.StatusBadRequest, "Invalid request payload")
 		return
+	}
+
+	if req.CategoryID != nil {
+		if err := database.AssertOwned(h.db, &models.Category{}, *req.CategoryID, storeID); err != nil {
+			models.SendErrorCode(c, http.StatusBadRequest, "VALIDATION_ERROR", "Category does not belong to active store")
+			return
+		}
 	}
 
 	if req.Name != "" {
@@ -159,14 +200,19 @@ func (h *ToppingHandler) UpdateTopping(c *gin.Context) {
 	}
 
 	if h.cache != nil {
-		h.cache.InvalidatePrefix("toppings:")
+		h.cache.InvalidatePrefix(toppingCachePrefix(storeID))
 	}
 
 	models.SendSuccess(c, http.StatusOK, topping, "Topping updated successfully")
 }
 
-// DeleteTopping deletes a topping by ID (admin only)
+// DeleteTopping deletes a topping by ID scoped to the active store
 func (h *ToppingHandler) DeleteTopping(c *gin.Context) {
+	storeID := middleware.MustGetStoreID(c)
+	if storeID == 0 {
+		return
+	}
+
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 64)
 	if err != nil {
@@ -174,13 +220,23 @@ func (h *ToppingHandler) DeleteTopping(c *gin.Context) {
 		return
 	}
 
-	if err := h.db.Delete(&models.Topping{}, id).Error; err != nil {
+	var topping models.Topping
+	if err := h.db.Scopes(database.ScopeByStore(storeID)).First(&topping, id).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			models.SendError(c, http.StatusNotFound, "Topping not found")
+			return
+		}
+		models.SendInternalErrorLogged(c, "Failed to find topping", err)
+		return
+	}
+
+	if err := h.db.Delete(&topping).Error; err != nil {
 		models.SendInternalErrorLogged(c, "Failed to delete topping", err)
 		return
 	}
 
 	if h.cache != nil {
-		h.cache.InvalidatePrefix("toppings:")
+		h.cache.InvalidatePrefix(toppingCachePrefix(storeID))
 	}
 
 	models.SendSuccess(c, http.StatusOK, nil, "Topping deleted successfully")
@@ -188,6 +244,11 @@ func (h *ToppingHandler) DeleteTopping(c *gin.Context) {
 
 // ReorderToppings updates the display_order of multiple toppings based on the provided ordered IDs
 func (h *ToppingHandler) ReorderToppings(c *gin.Context) {
+	storeID := middleware.MustGetStoreID(c)
+	if storeID == 0 {
+		return
+	}
+
 	var req struct {
 		OrderedIDs []uint `json:"ordered_ids" binding:"required"`
 	}
@@ -196,9 +257,14 @@ func (h *ToppingHandler) ReorderToppings(c *gin.Context) {
 		return
 	}
 
+	if err := database.AssertOwnedIDs(h.db, &models.Topping{}, req.OrderedIDs, storeID); err != nil {
+		models.SendErrorCode(c, http.StatusBadRequest, "VALIDATION_ERROR", "All toppings must belong to the active store")
+		return
+	}
+
 	err := h.db.Transaction(func(tx *gorm.DB) error {
 		for idx, id := range req.OrderedIDs {
-			if err := tx.Model(&models.Topping{}).Where("id = ?", id).Update("display_order", idx+1).Error; err != nil {
+			if err := tx.Model(&models.Topping{}).Scopes(database.ScopeByStore(storeID)).Where("id = ?", id).Update("display_order", idx+1).Error; err != nil {
 				return err
 			}
 		}
@@ -211,7 +277,7 @@ func (h *ToppingHandler) ReorderToppings(c *gin.Context) {
 	}
 
 	if h.cache != nil {
-		h.cache.InvalidatePrefix("toppings:")
+		h.cache.InvalidatePrefix(toppingCachePrefix(storeID))
 	}
 
 	models.SendSuccess(c, http.StatusOK, gin.H{"count": len(req.OrderedIDs)}, "Toppings reordered successfully")

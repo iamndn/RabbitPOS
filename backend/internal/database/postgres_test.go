@@ -2,6 +2,7 @@ package database
 
 import (
 	"fmt"
+	"os"
 	"testing"
 	"time"
 
@@ -9,9 +10,14 @@ import (
 )
 
 func TestSupabaseConnection(t *testing.T) {
+	testDBURL := os.Getenv("TEST_DATABASE_URL")
+	if testDBURL == "" || os.Getenv("ALLOW_SUPABASE_TEST") != "true" {
+		t.Skip("Skipping live Supabase connection test for safety (set ALLOW_SUPABASE_TEST=true and TEST_DATABASE_URL to run)")
+	}
+
 	cfg, err := config.LoadConfig()
 	if err != nil {
-		t.Fatalf("Failed to load config: %v", err)
+		t.Fatalf("failed to load config: %v", err)
 	}
 
 	t.Logf("Testing connection to host=%s port=%s db=%s user=%s sslmode=%s",

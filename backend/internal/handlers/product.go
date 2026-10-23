@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"github.com/RabbitPOS/backend/internal/cache"
+	"github.com/RabbitPOS/backend/internal/database"
+	"github.com/RabbitPOS/backend/internal/middleware"
 	"github.com/RabbitPOS/backend/internal/models"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -22,13 +24,22 @@ func NewProductHandler(db *gorm.DB, c *cache.TTLCache) *ProductHandler {
 	return &ProductHandler{db: db, cache: c}
 }
 
-// ListProducts lists products with optional filters and high-performance in-memory caching
+func productCachePrefix(storeID uint) string {
+	return fmt.Sprintf("s%d:products:", storeID)
+}
+
+// ListProducts lists products for the active store with optional filters and caching
 func (h *ProductHandler) ListProducts(c *gin.Context) {
+	storeID := middleware.MustGetStoreID(c)
+	if storeID == 0 {
+		return
+	}
+
 	categoryIDStr := c.Query("category_id")
 	tag := c.Query("tag")
 	isActiveStr := c.Query("is_active")
 
-	cacheKey := fmt.Sprintf("products:list:%s:%s:%s", categoryIDStr, tag, isActiveStr)
+	cacheKey := fmt.Sprintf("s%d:products:list:%s:%s:%s", storeID, categoryIDStr, tag, isActiveStr)
 	if h.cache != nil {
 		if cached, ok := h.cache.Get(cacheKey); ok {
 			models.SendSuccess(c, http.StatusOK, cached, "Products retrieved successfully")
@@ -40,6 +51,7 @@ func (h *ProductHandler) ListProducts(c *gin.Context) {
 	defer cancel()
 
 	query := h.db.WithContext(ctx).Model(&models.Product{}).
+		Scopes(database.ScopeByStore(storeID)).
 		Preload("Category").
 		Preload("Variants", func(db *gorm.DB) *gorm.DB {
 			return db.Where("is_active = ?", true).Order("retail_price asc")
@@ -75,8 +87,13 @@ func (h *ProductHandler) ListProducts(c *gin.Context) {
 	models.SendSuccess(c, http.StatusOK, products, "Products retrieved successfully")
 }
 
-// GetProductByID returns single product with loaded relations
+// GetProductByID returns single product with loaded relations scoped to active store
 func (h *ProductHandler) GetProductByID(c *gin.Context) {
+	storeID := middleware.MustGetStoreID(c)
+	if storeID == 0 {
+		return
+	}
+
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
@@ -89,6 +106,7 @@ func (h *ProductHandler) GetProductByID(c *gin.Context) {
 
 	var product models.Product
 	if err := h.db.WithContext(ctx).
+		Scopes(database.ScopeByStore(storeID)).
 		Preload("Category").
 		Preload("Variants", func(db *gorm.DB) *gorm.DB {
 			return db.Where("is_active = ?", true).Order("retail_price asc")
@@ -106,11 +124,22 @@ func (h *ProductHandler) GetProductByID(c *gin.Context) {
 	models.SendSuccess(c, http.StatusOK, product, "Product details retrieved successfully")
 }
 
-// CreateProduct creates a new product and initial variants in a single transaction
+// CreateProduct creates a new product and initial variants in a single transaction scoped to active store
 func (h *ProductHandler) CreateProduct(c *gin.Context) {
+	storeID := middleware.MustGetStoreID(c)
+	if storeID == 0 {
+		return
+	}
+
 	var req models.CreateProductRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		models.SendError(c, http.StatusBadRequest, "Invalid request payload: "+err.Error())
+		return
+	}
+
+	// Verify Category belongs to this store
+	if err := database.AssertOwned(h.db, &models.Category{}, req.CategoryID, storeID); err != nil {
+		models.SendErrorCode(c, http.StatusBadRequest, "VALIDATION_ERROR", "Category does not belong to the active store")
 		return
 	}
 
@@ -130,6 +159,7 @@ func (h *ProductHandler) CreateProduct(c *gin.Context) {
 	}
 
 	product := models.Product{
+		StoreID:     storeID,
 		CategoryID:  req.CategoryID,
 		Name:        req.Name,
 		Description: req.Description,
@@ -148,9 +178,9 @@ func (h *ProductHandler) CreateProduct(c *gin.Context) {
 		if len(req.Variants) > 0 {
 			var variants []models.ProductVariant
 			for _, vReq := range req.Variants {
-				isActive := true
+				vIsActive := true
 				if vReq.IsActive != nil {
-					isActive = *vReq.IsActive
+					vIsActive = *vReq.IsActive
 				}
 				variants = append(variants, models.ProductVariant{
 					ProductID:   product.ID,
@@ -158,7 +188,7 @@ func (h *ProductHandler) CreateProduct(c *gin.Context) {
 					CogsPrice:   vReq.CogsPrice,
 					RetailPrice: vReq.RetailPrice,
 					SKU:         vReq.SKU,
-					IsActive:    isActive,
+					IsActive:    vIsActive,
 				})
 			}
 			if err := tx.Create(&variants).Error; err != nil {
@@ -176,17 +206,22 @@ func (h *ProductHandler) CreateProduct(c *gin.Context) {
 	}
 
 	if h.cache != nil {
-		h.cache.InvalidatePrefix("products:")
+		h.cache.InvalidatePrefix(productCachePrefix(storeID))
 	}
 
 	// Reload product with relations
-	h.db.Preload("Category").Preload("Variants").First(&product, product.ID)
+	h.db.Scopes(database.ScopeByStore(storeID)).Preload("Category").Preload("Variants").First(&product, product.ID)
 
 	models.SendSuccess(c, http.StatusCreated, product, "Product created successfully")
 }
 
-// UpdateProduct updates existing product fields
+// UpdateProduct updates existing product fields scoped to active store
 func (h *ProductHandler) UpdateProduct(c *gin.Context) {
+	storeID := middleware.MustGetStoreID(c)
+	if storeID == 0 {
+		return
+	}
+
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
@@ -195,7 +230,7 @@ func (h *ProductHandler) UpdateProduct(c *gin.Context) {
 	}
 
 	var product models.Product
-	if err := h.db.First(&product, id).Error; err != nil {
+	if err := h.db.Scopes(database.ScopeByStore(storeID)).First(&product, id).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			models.SendError(c, http.StatusNotFound, "Product not found")
 			return
@@ -211,6 +246,10 @@ func (h *ProductHandler) UpdateProduct(c *gin.Context) {
 	}
 
 	if req.CategoryID != nil {
+		if err := database.AssertOwned(h.db, &models.Category{}, *req.CategoryID, storeID); err != nil {
+			models.SendErrorCode(c, http.StatusBadRequest, "VALIDATION_ERROR", "Category does not belong to the active store")
+			return
+		}
 		product.CategoryID = *req.CategoryID
 	}
 	if req.Name != nil {
@@ -238,16 +277,21 @@ func (h *ProductHandler) UpdateProduct(c *gin.Context) {
 	}
 
 	if h.cache != nil {
-		h.cache.InvalidatePrefix("products:")
+		h.cache.InvalidatePrefix(productCachePrefix(storeID))
 	}
 
-	h.db.Preload("Category").Preload("Variants").Preload("VariantGroups").First(&product, product.ID)
+	h.db.Scopes(database.ScopeByStore(storeID)).Preload("Category").Preload("Variants").Preload("VariantGroups").First(&product, product.ID)
 
 	models.SendSuccess(c, http.StatusOK, product, "Product updated successfully")
 }
 
-// DeleteProduct deletes product record
+// DeleteProduct deletes product record scoped to active store
 func (h *ProductHandler) DeleteProduct(c *gin.Context) {
+	storeID := middleware.MustGetStoreID(c)
+	if storeID == 0 {
+		return
+	}
+
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
@@ -256,7 +300,7 @@ func (h *ProductHandler) DeleteProduct(c *gin.Context) {
 	}
 
 	var product models.Product
-	if err := h.db.First(&product, id).Error; err != nil {
+	if err := h.db.Scopes(database.ScopeByStore(storeID)).First(&product, id).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			models.SendError(c, http.StatusNotFound, "Product not found")
 			return
@@ -271,7 +315,7 @@ func (h *ProductHandler) DeleteProduct(c *gin.Context) {
 	}
 
 	if h.cache != nil {
-		h.cache.InvalidatePrefix("products:")
+		h.cache.InvalidatePrefix(productCachePrefix(storeID))
 	}
 
 	models.SendSuccess(c, http.StatusOK, nil, "Product deleted successfully")

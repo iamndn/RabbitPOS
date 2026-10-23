@@ -5,6 +5,7 @@ import "time"
 // TransactionCategoryItem represents a category for categorizing financial inflows and outflows
 type TransactionCategoryItem struct {
 	ID           uint      `gorm:"primaryKey" json:"id"`
+	StoreID      uint      `gorm:"not null;default:1" json:"store_id"`
 	Name         string    `gorm:"type:varchar(100);not null" json:"name"`
 	Type         string    `gorm:"type:varchar(20);not null;default:'outflow';index" json:"type"` // outflow, inflow, both
 	Code         string    `gorm:"type:varchar(50)" json:"code"`

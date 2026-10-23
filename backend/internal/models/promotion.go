@@ -24,6 +24,7 @@ const (
 // Promotion represents a store discount or gift rule
 type Promotion struct {
 	ID                   uint            `gorm:"primaryKey"                                json:"id"`
+	StoreID              uint            `gorm:"not null;default:1"                       json:"store_id"`
 	Name                 string          `gorm:"type:varchar(150);not null"               json:"name"`
 	PromoType            PromoType       `gorm:"type:varchar(50);not null"                json:"promo_type"`
 	DiscountValue        float64         `gorm:"type:numeric(15,2);not null;default:0"    json:"discount_value"`

@@ -134,8 +134,20 @@ func (h *BackupHandler) ExportBackup(c *gin.Context) {
 		models.SendInternalError(c, "Failed to export purchase items: "+err.Error())
 		return
 	}
+	if err := h.db.Find(&payload.Data.Stores).Error; err != nil {
+		models.SendInternalError(c, "Failed to export stores: "+err.Error())
+		return
+	}
+	if err := h.db.Find(&payload.Data.UserStores).Error; err != nil {
+		models.SendInternalError(c, "Failed to export user stores: "+err.Error())
+		return
+	}
+	if err := h.db.Find(&payload.Data.StoreSettings).Error; err != nil {
+		models.SendInternalError(c, "Failed to export store settings: "+err.Error())
+		return
+	}
 
-	// Calculate statistics across all 16 tables
+	// Calculate statistics across all tables
 	payload.Stats = models.BackupStats{
 		Settings:              len(payload.Data.Settings),
 		Categories:            len(payload.Data.Categories),
@@ -153,6 +165,9 @@ func (h *BackupHandler) ExportBackup(c *gin.Context) {
 		Ingredients:           len(payload.Data.Ingredients),
 		PurchaseItems:         len(payload.Data.PurchaseItems),
 		RecipeItems:           len(payload.Data.RecipeItems),
+		Stores:                len(payload.Data.Stores),
+		UserStores:            len(payload.Data.UserStores),
+		StoreSettings:         len(payload.Data.StoreSettings),
 	}
 
 	// Compute stable SHA-256 checksum on data payload BEFORE encryption
@@ -264,6 +279,9 @@ func (h *BackupHandler) PreviewBackup(c *gin.Context) {
 		Ingredients:           len(payload.Data.Ingredients),
 		PurchaseItems:         len(payload.Data.PurchaseItems),
 		RecipeItems:           len(payload.Data.RecipeItems),
+		Stores:                len(payload.Data.Stores),
+		UserStores:            len(payload.Data.UserStores),
+		StoreSettings:         len(payload.Data.StoreSettings),
 	}
 	payload.Stats = stats
 
@@ -445,7 +463,10 @@ func (h *BackupHandler) RestoreBackup(c *gin.Context) {
 			"categories",
 			"transaction_categories",
 			"funds",
+			"user_stores",
+			"store_settings",
 			"users",
+			"stores",
 			"settings",
 		}
 		for _, tbl := range tablesToClear {
@@ -456,6 +477,20 @@ func (h *BackupHandler) RestoreBackup(c *gin.Context) {
 
 		// 2. Insert records in strict TOPOLOGICAL dependency order
 		// Level 0: Independent tables
+		if len(payload.Data.Stores) > 0 {
+			if err := tx.Create(&payload.Data.Stores).Error; err != nil {
+				return fmt.Errorf("failed to restore stores: %w", err)
+			}
+			restoredStats.Stores = len(payload.Data.Stores)
+		}
+
+		if len(payload.Data.StoreSettings) > 0 {
+			if err := tx.Create(&payload.Data.StoreSettings).Error; err != nil {
+				return fmt.Errorf("failed to restore store settings: %w", err)
+			}
+			restoredStats.StoreSettings = len(payload.Data.StoreSettings)
+		}
+
 		if len(payload.Data.Settings) > 0 {
 			if err := tx.Create(&payload.Data.Settings).Error; err != nil {
 				return fmt.Errorf("failed to restore settings: %w", err)
@@ -468,6 +503,13 @@ func (h *BackupHandler) RestoreBackup(c *gin.Context) {
 				return fmt.Errorf("failed to restore users: %w", err)
 			}
 			restoredStats.Users = len(payload.Data.Users)
+		}
+
+		if len(payload.Data.UserStores) > 0 {
+			if err := tx.Create(&payload.Data.UserStores).Error; err != nil {
+				return fmt.Errorf("failed to restore user stores: %w", err)
+			}
+			restoredStats.UserStores = len(payload.Data.UserStores)
 		}
 
 		if len(payload.Data.Funds) > 0 {

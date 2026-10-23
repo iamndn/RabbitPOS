@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/RabbitPOS/backend/internal/middleware"
 	"github.com/RabbitPOS/backend/internal/models"
 	"github.com/RabbitPOS/backend/internal/services"
 	"github.com/gin-gonic/gin"
@@ -27,6 +28,11 @@ func NewAnalyticsHandler(db *gorm.DB, emailSvc *services.EmailService) *Analytic
 // POST /api/v1/analytics/send-daily-report-email
 // Body (all optional): { "date": "YYYY-MM-DD", "recipients": ["email@example.com"] }
 func (h *AnalyticsHandler) SendDailyReportEmail(c *gin.Context) {
+	storeID := middleware.GetStoreID(c)
+	if storeID == 0 {
+		storeID = 1
+	}
+
 	// Extract requesting admin username for attribution in the email
 	triggeredBy := ""
 	if user, exists := c.Get("user"); exists {
@@ -59,7 +65,7 @@ func (h *AnalyticsHandler) SendDailyReportEmail(c *gin.Context) {
 	// Fire email in a goroutine so the API returns immediately
 	errCh := make(chan error, 1)
 	go func() {
-		errCh <- h.emailSvc.SendDailyFinancialReport(targetDate, triggeredBy, req.Recipients)
+		errCh <- h.emailSvc.SendDailyFinancialReportForStore(targetDate, triggeredBy, req.Recipients, storeID)
 	}()
 
 	// Wait up to 30 seconds for send (reasonable for SMTP; avoids HTTP timeout)
@@ -74,7 +80,7 @@ func (h *AnalyticsHandler) SendDailyReportEmail(c *gin.Context) {
 		return
 	}
 
-	recipients := h.emailSvc.GetDefaultRecipients()
+	recipients := h.emailSvc.GetDefaultRecipientsForStore(storeID)
 	if len(req.Recipients) > 0 {
 		recipients = req.Recipients
 	}
@@ -199,6 +205,11 @@ func calculateDelta(current, prev float64) float64 {
 
 // GetRevenueAnalytics computes comprehensive revenue KPIs, trend timeline, payment methods, and top selling items
 func (h *AnalyticsHandler) GetRevenueAnalytics(c *gin.Context) {
+	storeID := middleware.GetStoreID(c)
+	if storeID == 0 {
+		storeID = 1
+	}
+
 	startTime, endTime, prevStartTime, prevEndTime, period, fromStr, toStr := parseAnalyticsPeriod(c)
 
 	// 1. Current Period Summary (completed orders only)
@@ -227,7 +238,7 @@ func (h *AnalyticsHandler) GetRevenueAnalytics(c *gin.Context) {
 			COUNT(id) as completed_order_count,
 			COUNT(CASE WHEN discount_amount > 0 OR promotion_discount > 0 OR platform_fee_discount > 0 THEN 1 END) as discounted_order_count
 		`).
-		Where("status = ? AND created_at BETWEEN ? AND ?", models.OrderStatusCompleted, startTime, endTime).
+		Where("store_id = ? AND status = ? AND created_at BETWEEN ? AND ?", storeID, models.OrderStatusCompleted, startTime, endTime).
 		Scan(&currSummary)
 
 	// 2. Previous Period Summary for Delta Comparison
@@ -237,21 +248,21 @@ func (h *AnalyticsHandler) GetRevenueAnalytics(c *gin.Context) {
 			COALESCE(SUM(total_amount), 0) as net_revenue,
 			COUNT(id) as completed_order_count
 		`).
-		Where("status = ? AND created_at BETWEEN ? AND ?", models.OrderStatusCompleted, prevStartTime, prevEndTime).
+		Where("store_id = ? AND status = ? AND created_at BETWEEN ? AND ?", storeID, models.OrderStatusCompleted, prevStartTime, prevEndTime).
 		Scan(&prevSummary)
 
 	// Items sold calculations (total cups/units sold)
 	var currItemsSold int64
 	h.db.Table("order_items").
 		Joins("JOIN orders ON orders.id = order_items.order_id").
-		Where("orders.status = ? AND orders.created_at BETWEEN ? AND ?", models.OrderStatusCompleted, startTime, endTime).
+		Where("orders.store_id = ? AND orders.status = ? AND orders.created_at BETWEEN ? AND ?", storeID, models.OrderStatusCompleted, startTime, endTime).
 		Select("COALESCE(SUM(order_items.quantity), 0)").
 		Scan(&currItemsSold)
 
 	var prevItemsSold int64
 	h.db.Table("order_items").
 		Joins("JOIN orders ON orders.id = order_items.order_id").
-		Where("orders.status = ? AND orders.created_at BETWEEN ? AND ?", models.OrderStatusCompleted, prevStartTime, prevEndTime).
+		Where("orders.store_id = ? AND orders.status = ? AND orders.created_at BETWEEN ? AND ?", storeID, models.OrderStatusCompleted, prevStartTime, prevEndTime).
 		Select("COALESCE(SUM(order_items.quantity), 0)").
 		Scan(&prevItemsSold)
 
@@ -311,7 +322,7 @@ func (h *AnalyticsHandler) GetRevenueAnalytics(c *gin.Context) {
 				COALESCE(SUM(discount_amount + promotion_discount + platform_fee_discount), 0) as discounts,
 				COUNT(id) as orders_count
 			FROM orders
-			WHERE status = 'completed' AND created_at BETWEEN ? AND ?
+			WHERE store_id = ? AND status = 'completed' AND created_at BETWEEN ? AND ?
 			GROUP BY TO_CHAR(created_at AT TIME ZONE 'Asia/Ho_Chi_Minh', 'YYYY-MM-DD HH24:00')
 			ORDER BY date ASC
 		`
@@ -325,7 +336,7 @@ func (h *AnalyticsHandler) GetRevenueAnalytics(c *gin.Context) {
 				COALESCE(SUM(discount_amount + promotion_discount + platform_fee_discount), 0) as discounts,
 				COUNT(id) as orders_count
 			FROM orders
-			WHERE status = 'completed' AND created_at BETWEEN ? AND ?
+			WHERE store_id = ? AND status = 'completed' AND created_at BETWEEN ? AND ?
 			GROUP BY TO_CHAR(created_at AT TIME ZONE 'Asia/Ho_Chi_Minh', 'YYYY-MM-DD')
 			ORDER BY date ASC
 		`
@@ -339,7 +350,7 @@ func (h *AnalyticsHandler) GetRevenueAnalytics(c *gin.Context) {
 				COALESCE(SUM(discount_amount + promotion_discount + platform_fee_discount), 0) as discounts,
 				COUNT(id) as orders_count
 			FROM orders
-			WHERE status = 'completed' AND created_at BETWEEN ? AND ?
+			WHERE store_id = ? AND status = 'completed' AND created_at BETWEEN ? AND ?
 			GROUP BY TO_CHAR(created_at AT TIME ZONE 'Asia/Ho_Chi_Minh', 'YYYY-MM')
 			ORDER BY date ASC
 		`
@@ -347,7 +358,7 @@ func (h *AnalyticsHandler) GetRevenueAnalytics(c *gin.Context) {
 
 	_ = groupFormat
 	timeline := make([]models.RevenueTimelinePoint, 0)
-	h.db.Raw(timelineQuery, startTime, endTime).Scan(&timeline)
+	h.db.Raw(timelineQuery, storeID, startTime, endTime).Scan(&timeline)
 
 	// Attach items_count to timeline points
 	type TimelineItemCount struct {
@@ -361,10 +372,10 @@ func (h *AnalyticsHandler) GetRevenueAnalytics(c *gin.Context) {
 			COALESCE(SUM(order_items.quantity), 0) as items_count
 		FROM order_items
 		JOIN orders ON orders.id = order_items.order_id
-		WHERE orders.status = 'completed' AND orders.created_at BETWEEN ? AND ?
+		WHERE orders.store_id = ? AND orders.status = 'completed' AND orders.created_at BETWEEN ? AND ?
 		GROUP BY TO_CHAR(orders.created_at AT TIME ZONE 'Asia/Ho_Chi_Minh', '%s')
 	`, groupFormat, groupFormat)
-	h.db.Raw(timelineItemQuery, startTime, endTime).Scan(&timelineItems)
+	h.db.Raw(timelineItemQuery, storeID, startTime, endTime).Scan(&timelineItems)
 	itemMap := make(map[string]int64, len(timelineItems))
 	for _, it := range timelineItems {
 		itemMap[it.Date] = it.ItemsCount
@@ -384,7 +395,7 @@ func (h *AnalyticsHandler) GetRevenueAnalytics(c *gin.Context) {
 	h.db.Table("orders").
 		Select("orders.fund_id, COALESCE(funds.name, 'Unknown') as fund_name, SUM(orders.total_amount) as total_amount, COUNT(orders.id) as order_count").
 		Joins("LEFT JOIN funds ON funds.id = orders.fund_id").
-		Where("orders.status = ? AND orders.created_at BETWEEN ? AND ?", models.OrderStatusCompleted, startTime, endTime).
+		Where("orders.store_id = ? AND orders.status = ? AND orders.created_at BETWEEN ? AND ?", storeID, models.OrderStatusCompleted, startTime, endTime).
 		Group("orders.fund_id, funds.name").
 		Order("total_amount desc").
 		Scan(&rawMethods)
@@ -418,7 +429,7 @@ func (h *AnalyticsHandler) GetRevenueAnalytics(c *gin.Context) {
 		Joins("JOIN orders ON orders.id = order_items.order_id").
 		Joins("JOIN product_variants ON product_variants.id = order_items.product_variant_id").
 		Joins("JOIN products ON products.id = product_variants.product_id").
-		Where("orders.status = ? AND orders.created_at BETWEEN ? AND ?", models.OrderStatusCompleted, startTime, endTime).
+		Where("orders.store_id = ? AND orders.status = ? AND orders.created_at BETWEEN ? AND ?", storeID, models.OrderStatusCompleted, startTime, endTime).
 		Group("products.id, products.name, product_variants.variant_name").
 		Order("total_revenue desc").
 		Limit(5).
@@ -455,12 +466,17 @@ func (h *AnalyticsHandler) GetRevenueAnalytics(c *gin.Context) {
 
 // GetProfitAnalytics computes P&L metrics, Gross/Net Margins, COGS, Operating Expenses, and Financial Statement
 func (h *AnalyticsHandler) GetProfitAnalytics(c *gin.Context) {
+	storeID := middleware.GetStoreID(c)
+	if storeID == 0 {
+		storeID = 1
+	}
+
 	startTime, endTime, prevStartTime, prevEndTime, period, fromStr, toStr := parseAnalyticsPeriod(c)
 
 	// 1. Current Period Revenue
 	var netRevenue float64 = 0
 	h.db.Model(&models.Order{}).
-		Where("status = ? AND created_at BETWEEN ? AND ?", models.OrderStatusCompleted, startTime, endTime).
+		Where("store_id = ? AND status = ? AND created_at BETWEEN ? AND ?", storeID, models.OrderStatusCompleted, startTime, endTime).
 		Select("COALESCE(SUM(total_amount), 0)").
 		Scan(&netRevenue)
 
@@ -469,7 +485,7 @@ func (h *AnalyticsHandler) GetProfitAnalytics(c *gin.Context) {
 	h.db.Table("order_items").
 		Joins("JOIN orders ON orders.id = order_items.order_id").
 		Joins("JOIN product_variants ON product_variants.id = order_items.product_variant_id").
-		Where("orders.status = ? AND orders.created_at BETWEEN ? AND ?", models.OrderStatusCompleted, startTime, endTime).
+		Where("orders.store_id = ? AND orders.status = ? AND orders.created_at BETWEEN ? AND ?", storeID, models.OrderStatusCompleted, startTime, endTime).
 		Select("COALESCE(SUM(product_variants.cogs_price * order_items.quantity), 0)").
 		Scan(&totalCogs)
 
@@ -485,16 +501,16 @@ func (h *AnalyticsHandler) GetProfitAnalytics(c *gin.Context) {
 	// 3. Current Operating Expenses (outflow transactions excluding reconciliation variances and order refunds)
 	var operatingExpenses float64 = 0
 	h.db.Model(&models.Transaction{}).
-		Where("transaction_type = ? AND category NOT IN (?) AND created_at BETWEEN ? AND ?",
-			models.TransactionTypeOutflow, excludedOutflowCats, startTime, endTime).
+		Where("store_id = ? AND transaction_type = ? AND category NOT IN (?) AND created_at BETWEEN ? AND ?",
+			storeID, models.TransactionTypeOutflow, excludedOutflowCats, startTime, endTime).
 		Select("COALESCE(SUM(amount), 0)").
 		Scan(&operatingExpenses)
 
 	// 4. Current Other Inflows (non-order manual inflows excluding reconciliation variances)
 	var otherInflow float64 = 0
 	h.db.Model(&models.Transaction{}).
-		Where("transaction_type = ? AND reference_order_id IS NULL AND category != ? AND created_at BETWEEN ? AND ?",
-			models.TransactionTypeInflow, models.CategoryReconciliationVariance, startTime, endTime).
+		Where("store_id = ? AND transaction_type = ? AND reference_order_id IS NULL AND category != ? AND created_at BETWEEN ? AND ?",
+			storeID, models.TransactionTypeInflow, models.CategoryReconciliationVariance, startTime, endTime).
 		Select("COALESCE(SUM(amount), 0)").
 		Scan(&otherInflow)
 
@@ -513,26 +529,26 @@ func (h *AnalyticsHandler) GetProfitAnalytics(c *gin.Context) {
 	// 5. Previous Period for Deltas
 	var prevRevenue, prevCogs, prevExpenses, prevOtherInflow float64
 	h.db.Model(&models.Order{}).
-		Where("status = ? AND created_at BETWEEN ? AND ?", models.OrderStatusCompleted, prevStartTime, prevEndTime).
+		Where("store_id = ? AND status = ? AND created_at BETWEEN ? AND ?", storeID, models.OrderStatusCompleted, prevStartTime, prevEndTime).
 		Select("COALESCE(SUM(total_amount), 0)").
 		Scan(&prevRevenue)
 
 	h.db.Table("order_items").
 		Joins("JOIN orders ON orders.id = order_items.order_id").
 		Joins("JOIN product_variants ON product_variants.id = order_items.product_variant_id").
-		Where("orders.status = ? AND orders.created_at BETWEEN ? AND ?", models.OrderStatusCompleted, prevStartTime, prevEndTime).
+		Where("orders.store_id = ? AND orders.status = ? AND orders.created_at BETWEEN ? AND ?", storeID, models.OrderStatusCompleted, prevStartTime, prevEndTime).
 		Select("COALESCE(SUM(product_variants.cogs_price * order_items.quantity), 0)").
 		Scan(&prevCogs)
 
 	h.db.Model(&models.Transaction{}).
-		Where("transaction_type = ? AND category NOT IN (?) AND created_at BETWEEN ? AND ?",
-			models.TransactionTypeOutflow, excludedOutflowCats, prevStartTime, prevEndTime).
+		Where("store_id = ? AND transaction_type = ? AND category NOT IN (?) AND created_at BETWEEN ? AND ?",
+			storeID, models.TransactionTypeOutflow, excludedOutflowCats, prevStartTime, prevEndTime).
 		Select("COALESCE(SUM(amount), 0)").
 		Scan(&prevExpenses)
 
 	h.db.Model(&models.Transaction{}).
-		Where("transaction_type = ? AND reference_order_id IS NULL AND category != ? AND created_at BETWEEN ? AND ?",
-			models.TransactionTypeInflow, models.CategoryReconciliationVariance, prevStartTime, prevEndTime).
+		Where("store_id = ? AND transaction_type = ? AND reference_order_id IS NULL AND category != ? AND created_at BETWEEN ? AND ?",
+			storeID, models.TransactionTypeInflow, models.CategoryReconciliationVariance, prevStartTime, prevEndTime).
 		Select("COALESCE(SUM(amount), 0)").
 		Scan(&prevOtherInflow)
 
@@ -579,7 +595,7 @@ func (h *AnalyticsHandler) GetProfitAnalytics(c *gin.Context) {
 			FROM orders
 			JOIN order_items ON order_items.order_id = orders.id
 			JOIN product_variants ON product_variants.id = order_items.product_variant_id
-			WHERE orders.status = 'completed' AND orders.created_at BETWEEN ? AND ?
+			WHERE orders.store_id = ? AND orders.status = 'completed' AND orders.created_at BETWEEN ? AND ?
 			GROUP BY TO_CHAR(orders.created_at AT TIME ZONE 'Asia/Ho_Chi_Minh', '%s')
 		),
 		expense_daily AS (
@@ -588,7 +604,7 @@ func (h *AnalyticsHandler) GetProfitAnalytics(c *gin.Context) {
 				COALESCE(SUM(CASE WHEN transaction_type = 'outflow' AND category NOT IN ('reconciliation_variance', 'chênh lệch đối soát két', 'order_refund', 'Hủy đơn / Trả hàng') THEN amount ELSE 0 END), 0) as exp,
 				COALESCE(SUM(CASE WHEN transaction_type = 'inflow' AND reference_order_id IS NULL AND category NOT IN ('reconciliation_variance', 'chênh lệch đối soát két', 'order_refund', 'Hủy đơn / Trả hàng') THEN amount ELSE 0 END), 0) as inf
 			FROM transactions
-			WHERE created_at BETWEEN ? AND ?
+			WHERE store_id = ? AND created_at BETWEEN ? AND ?
 			GROUP BY TO_CHAR(created_at AT TIME ZONE 'Asia/Ho_Chi_Minh', '%s')
 		),
 		all_dates AS (
@@ -608,7 +624,7 @@ func (h *AnalyticsHandler) GetProfitAnalytics(c *gin.Context) {
 	`, timeFormat, timeFormat, timeFormat, timeFormat)
 
 	timeline := make([]models.ProfitTimelinePoint, 0)
-	h.db.Raw(timelineQuery, startTime, endTime, startTime, endTime).Scan(&timeline)
+	h.db.Raw(timelineQuery, storeID, startTime, endTime, storeID, startTime, endTime).Scan(&timeline)
 
 	// 7. Top 5 Profitable Products
 	type ProfitableProductRaw struct {
@@ -625,7 +641,7 @@ func (h *AnalyticsHandler) GetProfitAnalytics(c *gin.Context) {
 		Joins("JOIN orders ON orders.id = order_items.order_id").
 		Joins("JOIN product_variants ON product_variants.id = order_items.product_variant_id").
 		Joins("JOIN products ON products.id = product_variants.product_id").
-		Where("orders.status = ? AND orders.created_at BETWEEN ? AND ?", models.OrderStatusCompleted, startTime, endTime).
+		Where("orders.store_id = ? AND orders.status = ? AND orders.created_at BETWEEN ? AND ?", storeID, models.OrderStatusCompleted, startTime, endTime).
 		Group("products.id, products.name, product_variants.variant_name").
 		Order("(SUM(order_items.line_total) - SUM(product_variants.cogs_price * order_items.quantity)) desc").
 		Limit(5).
@@ -682,6 +698,11 @@ func (h *AnalyticsHandler) GetProfitAnalytics(c *gin.Context) {
 
 // GetProductsRanking returns paginated rankings of products by revenue, profit, or quantity sold
 func (h *AnalyticsHandler) GetProductsRanking(c *gin.Context) {
+	storeID := middleware.GetStoreID(c)
+	if storeID == 0 {
+		storeID = 1
+	}
+
 	startTime, endTime, _, _, _, _, _ := parseAnalyticsPeriod(c)
 
 	sortBy := strings.ToLower(c.DefaultQuery("sort_by", "revenue"))
@@ -720,7 +741,7 @@ func (h *AnalyticsHandler) GetProductsRanking(c *gin.Context) {
 		Joins("JOIN product_variants ON product_variants.id = order_items.product_variant_id").
 		Joins("JOIN products ON products.id = product_variants.product_id").
 		Joins("LEFT JOIN categories ON categories.id = products.category_id").
-		Where("orders.status = ? AND orders.created_at BETWEEN ? AND ?", models.OrderStatusCompleted, startTime, endTime).
+		Where("orders.store_id = ? AND orders.status = ? AND orders.created_at BETWEEN ? AND ?", storeID, models.OrderStatusCompleted, startTime, endTime).
 		Group("products.id, products.name, categories.name, product_variants.variant_name")
 
 	if search != "" {
@@ -729,7 +750,7 @@ func (h *AnalyticsHandler) GetProductsRanking(c *gin.Context) {
 
 	if categoryIDStr != "" {
 		if catID, err := strconv.ParseUint(categoryIDStr, 10, 32); err == nil && catID > 0 {
-			baseQuery = baseQuery.Where("products.category_id = ?", catID)
+			baseQuery = baseQuery.Where("products.store_id = ? AND products.category_id = ?", storeID, catID)
 		}
 	}
 
@@ -773,25 +794,30 @@ func (h *AnalyticsHandler) GetProductsRanking(c *gin.Context) {
 
 // GetDashboardMetrics (Legacy endpoint preserved for backwards compatibility)
 func (h *AnalyticsHandler) GetDashboardMetrics(c *gin.Context) {
+	storeID := middleware.GetStoreID(c)
+	if storeID == 0 {
+		storeID = 1
+	}
+
 	startDate, endDate, startDateStr, endDateStr := parseDateRange(c)
 
 	var totalRevenue float64 = 0
 	var orderCount int64 = 0
 
 	h.db.Model(&models.Order{}).
-		Where("status = ? AND created_at BETWEEN ? AND ?", models.OrderStatusCompleted, startDate, endDate).
+		Where("store_id = ? AND status = ? AND created_at BETWEEN ? AND ?", storeID, models.OrderStatusCompleted, startDate, endDate).
 		Select("COALESCE(SUM(total_amount), 0)").
 		Scan(&totalRevenue)
 
 	h.db.Model(&models.Order{}).
-		Where("status = ? AND created_at BETWEEN ? AND ?", models.OrderStatusCompleted, startDate, endDate).
+		Where("store_id = ? AND status = ? AND created_at BETWEEN ? AND ?", storeID, models.OrderStatusCompleted, startDate, endDate).
 		Count(&orderCount)
 
 	var totalCogs float64 = 0
 	h.db.Table("order_items").
 		Joins("JOIN orders ON orders.id = order_items.order_id").
 		Joins("JOIN product_variants ON product_variants.id = order_items.product_variant_id").
-		Where("orders.status = ? AND orders.created_at BETWEEN ? AND ?", models.OrderStatusCompleted, startDate, endDate).
+		Where("orders.store_id = ? AND orders.status = ? AND orders.created_at BETWEEN ? AND ?", storeID, models.OrderStatusCompleted, startDate, endDate).
 		Select("COALESCE(SUM(product_variants.cogs_price * order_items.quantity), 0)").
 		Scan(&totalCogs)
 
@@ -806,7 +832,7 @@ func (h *AnalyticsHandler) GetDashboardMetrics(c *gin.Context) {
 
 	var totalOutflow float64 = 0
 	h.db.Model(&models.Transaction{}).
-		Where("transaction_type = ? AND category NOT IN (?) AND created_at BETWEEN ? AND ?", models.TransactionTypeOutflow, excludedOutflowCats, startDate, endDate).
+		Where("store_id = ? AND transaction_type = ? AND category NOT IN (?) AND created_at BETWEEN ? AND ?", storeID, models.TransactionTypeOutflow, excludedOutflowCats, startDate, endDate).
 		Select("COALESCE(SUM(amount), 0)").
 		Scan(&totalOutflow)
 
@@ -835,6 +861,11 @@ func (h *AnalyticsHandler) GetDashboardMetrics(c *gin.Context) {
 
 // GetTopProducts (Legacy endpoint preserved for backwards compatibility)
 func (h *AnalyticsHandler) GetTopProducts(c *gin.Context) {
+	storeID := middleware.GetStoreID(c)
+	if storeID == 0 {
+		storeID = 1
+	}
+
 	startDate, endDate, _, _ := parseDateRange(c)
 
 	limitStr := c.DefaultQuery("limit", "10")
@@ -858,7 +889,7 @@ func (h *AnalyticsHandler) GetTopProducts(c *gin.Context) {
 		Joins("JOIN orders ON orders.id = order_items.order_id").
 		Joins("JOIN product_variants ON product_variants.id = order_items.product_variant_id").
 		Joins("JOIN products ON products.id = product_variants.product_id").
-		Where("orders.status = ? AND orders.created_at BETWEEN ? AND ?", models.OrderStatusCompleted, startDate, endDate).
+		Where("orders.store_id = ? AND orders.status = ? AND orders.created_at BETWEEN ? AND ?", storeID, models.OrderStatusCompleted, startDate, endDate).
 		Group("product_variants.id, products.name, product_variants.variant_name").
 		Order("quantity_sold desc").
 		Limit(limit).
@@ -893,6 +924,11 @@ func (h *AnalyticsHandler) GetTopProducts(c *gin.Context) {
 
 // GetCashFlowSummary (Legacy endpoint preserved for backwards compatibility)
 func (h *AnalyticsHandler) GetCashFlowSummary(c *gin.Context) {
+	storeID := middleware.GetStoreID(c)
+	if storeID == 0 {
+		storeID = 1
+	}
+
 	startDate, endDate, _, _ := parseDateRange(c)
 
 	type DailyAggregate struct {
@@ -908,12 +944,12 @@ func (h *AnalyticsHandler) GetCashFlowSummary(c *gin.Context) {
 			SUM(CASE WHEN transaction_type = 'inflow' THEN amount ELSE 0 END) AS inflow,
 			SUM(CASE WHEN transaction_type = 'outflow' THEN amount ELSE 0 END) AS outflow
 		FROM transactions
-		WHERE created_at BETWEEN ? AND ?
+		WHERE store_id = ? AND created_at BETWEEN ? AND ?
 		GROUP BY TO_CHAR(created_at AT TIME ZONE 'Asia/Ho_Chi_Minh', 'YYYY-MM-DD')
 		ORDER BY date ASC
 	`
 
-	if err := h.db.Raw(query, startDate, endDate).Scan(&results).Error; err != nil {
+	if err := h.db.Raw(query, storeID, startDate, endDate).Scan(&results).Error; err != nil {
 		models.SendInternalError(c, "Failed to retrieve cash flow summary: "+err.Error())
 		return
 	}
@@ -971,13 +1007,12 @@ func parseDateRange(c *gin.Context) (time.Time, time.Time, string, string) {
 
 // GetProductsSalesPerformance returns product-level sales, COGS, profit and margin analytics.
 // GET /api/v1/analytics/products-sales-performance
-// Query params:
-//   - period (today|yesterday|week|month|year|custom), from, to — time window
-//   - category_id — filter by category (optional)
-//   - search — search by product name (optional)
-//   - sort_by (quantity|revenue|profit|margin) — default: revenue
-//   - sort_order (asc|desc) — default: desc
 func (h *AnalyticsHandler) GetProductsSalesPerformance(c *gin.Context) {
+	storeID := middleware.GetStoreID(c)
+	if storeID == 0 {
+		storeID = 1
+	}
+
 	startTime, endTime, _, _, period, fromStr, toStr := parseAnalyticsPeriod(c)
 
 	sortBy := strings.ToLower(c.DefaultQuery("sort_by", "revenue"))
@@ -1014,7 +1049,6 @@ func (h *AnalyticsHandler) GetProductsSalesPerformance(c *gin.Context) {
 		TotalRevenue float64
 		TotalCOGS    float64
 		TotalProfit  float64
-		// MarginPercentage computed in Go to avoid PostgreSQL CASE precision issues
 	}
 
 	baseQuery := h.db.Table("order_items").
@@ -1032,7 +1066,7 @@ func (h *AnalyticsHandler) GetProductsSalesPerformance(c *gin.Context) {
 		Joins("JOIN product_variants ON product_variants.id = order_items.product_variant_id").
 		Joins("JOIN products ON products.id = product_variants.product_id").
 		Joins("LEFT JOIN categories ON categories.id = products.category_id").
-		Where("orders.status = ? AND orders.created_at BETWEEN ? AND ?", models.OrderStatusCompleted, startTime, endTime).
+		Where("orders.store_id = ? AND orders.status = ? AND orders.created_at BETWEEN ? AND ?", storeID, models.OrderStatusCompleted, startTime, endTime).
 		Group("products.id, products.name, categories.name, products.image_url")
 
 	// Optional search filter
@@ -1044,7 +1078,7 @@ func (h *AnalyticsHandler) GetProductsSalesPerformance(c *gin.Context) {
 	// Optional category filter
 	if categoryIDStr != "" {
 		if catID, err := strconv.ParseUint(categoryIDStr, 10, 32); err == nil && catID > 0 {
-			baseQuery = baseQuery.Where("products.category_id = ?", catID)
+			baseQuery = baseQuery.Where("products.store_id = ? AND products.category_id = ?", storeID, catID)
 		}
 	}
 
@@ -1107,7 +1141,7 @@ func (h *AnalyticsHandler) GetProductsSalesPerformance(c *gin.Context) {
 		totalRev += r.TotalRevenue
 		totalProfit += r.TotalProfit
 
-		// Track leaders (always scanning full slice regardless of sort order)
+		// Track leaders
 		if r.QuantitySold > topSoldQty {
 			topSoldQty = r.QuantitySold
 			topSoldName = r.ProductName
@@ -1172,6 +1206,11 @@ type HourlyDistributionResponse struct {
 // GetHourlyDistribution computes order count and revenue grouped by hour (0..23)
 // GET /api/v1/analytics/hourly-distribution
 func (h *AnalyticsHandler) GetHourlyDistribution(c *gin.Context) {
+	storeID := middleware.GetStoreID(c)
+	if storeID == 0 {
+		storeID = 1
+	}
+
 	startTime, endTime, _, _, period, fromStr, toStr := parseAnalyticsPeriod(c)
 
 	type HourlyRaw struct {
@@ -1187,12 +1226,12 @@ func (h *AnalyticsHandler) GetHourlyDistribution(c *gin.Context) {
 			COUNT(id) as order_count,
 			COALESCE(SUM(total_amount), 0) as revenue
 		FROM orders
-		WHERE status = 'completed' AND created_at BETWEEN ? AND ?
+		WHERE store_id = ? AND status = 'completed' AND created_at BETWEEN ? AND ?
 		GROUP BY hour
 		ORDER BY hour ASC
 	`
 
-	if err := h.db.Raw(query, startTime, endTime).Scan(&rawRows).Error; err != nil {
+	if err := h.db.Raw(query, storeID, startTime, endTime).Scan(&rawRows).Error; err != nil {
 		models.SendInternalError(c, "Failed to calculate hourly distribution: "+err.Error())
 		return
 	}
@@ -1244,4 +1283,112 @@ func (h *AnalyticsHandler) GetHourlyDistribution(c *gin.Context) {
 	}
 
 	models.SendSuccess(c, http.StatusOK, resp, "Hourly distribution retrieved successfully")
+}
+
+// StoreOverviewItem summarizes performance for one store in the platform overview
+type StoreOverviewItem struct {
+	StoreID          uint    `json:"store_id"`
+	StoreCode        string  `json:"store_code"`
+	StoreName        string  `json:"store_name"`
+	IsActive         bool    `json:"is_active"`
+	TodayRevenue     float64 `json:"today_revenue"`
+	TodayOrders      int64   `json:"today_orders"`
+	ThisMonthRevenue float64 `json:"this_month_revenue"`
+	ThisMonthOrders  int64   `json:"this_month_orders"`
+}
+
+type PlatformOverviewResponse struct {
+	TotalStores       int                 `json:"total_stores"`
+	ActiveStores      int                 `json:"active_stores"`
+	TotalTodayRevenue float64             `json:"total_today_revenue"`
+	TotalTodayOrders  int64               `json:"total_today_orders"`
+	TotalMonthRevenue float64             `json:"total_month_revenue"`
+	TotalMonthOrders  int64               `json:"total_month_orders"`
+	Stores            []StoreOverviewItem `json:"stores"`
+}
+
+// GetOverviewAllStores aggregates cross-store revenue and order count for super_admin
+// GET /api/v1/analytics/overview-all-stores
+func (h *AnalyticsHandler) GetOverviewAllStores(c *gin.Context) {
+	loc := getAnalyticsLocation()
+	now := time.Now().In(loc)
+	startOfToday := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, loc)
+	startOfMonth := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, loc)
+
+	var stores []models.Store
+	if err := h.db.Order("id asc").Find(&stores).Error; err != nil {
+		models.SendInternalError(c, "Failed to load stores: "+err.Error())
+		return
+	}
+
+	type MetricRow struct {
+		StoreID uint    `gorm:"column:store_id"`
+		Revenue float64 `gorm:"column:revenue"`
+		Orders  int64   `gorm:"column:orders"`
+	}
+
+	var todayMetrics []MetricRow
+	h.db.Table("orders").
+		Select("store_id, COALESCE(SUM(total_amount), 0) as revenue, COUNT(id) as orders").
+		Where("status = ? AND created_at >= ?", models.OrderStatusCompleted, startOfToday).
+		Group("store_id").
+		Scan(&todayMetrics)
+
+	todayMap := make(map[uint]MetricRow)
+	for _, m := range todayMetrics {
+		todayMap[m.StoreID] = m
+	}
+
+	var monthMetrics []MetricRow
+	h.db.Table("orders").
+		Select("store_id, COALESCE(SUM(total_amount), 0) as revenue, COUNT(id) as orders").
+		Where("status = ? AND created_at >= ?", models.OrderStatusCompleted, startOfMonth).
+		Group("store_id").
+		Scan(&monthMetrics)
+
+	monthMap := make(map[uint]MetricRow)
+	for _, m := range monthMetrics {
+		monthMap[m.StoreID] = m
+	}
+
+	storeItems := make([]StoreOverviewItem, 0, len(stores))
+	var activeCount int
+	var totalTodayRev, totalMonthRev float64
+	var totalTodayOrd, totalMonthOrd int64
+
+	for _, s := range stores {
+		if s.IsActive {
+			activeCount++
+		}
+		t := todayMap[s.ID]
+		m := monthMap[s.ID]
+
+		totalTodayRev += t.Revenue
+		totalTodayOrd += t.Orders
+		totalMonthRev += m.Revenue
+		totalMonthOrd += m.Orders
+
+		storeItems = append(storeItems, StoreOverviewItem{
+			StoreID:          s.ID,
+			StoreCode:        s.Code,
+			StoreName:        s.Name,
+			IsActive:         s.IsActive,
+			TodayRevenue:     t.Revenue,
+			TodayOrders:      t.Orders,
+			ThisMonthRevenue: m.Revenue,
+			ThisMonthOrders:  m.Orders,
+		})
+	}
+
+	resp := PlatformOverviewResponse{
+		TotalStores:       len(stores),
+		ActiveStores:      activeCount,
+		TotalTodayRevenue: totalTodayRev,
+		TotalTodayOrders:  totalTodayOrd,
+		TotalMonthRevenue: totalMonthRev,
+		TotalMonthOrders:  totalMonthOrd,
+		Stores:            storeItems,
+	}
+
+	models.SendSuccess(c, http.StatusOK, resp, "Platform overview retrieved successfully")
 }

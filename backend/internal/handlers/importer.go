@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/RabbitPOS/backend/internal/middleware"
 	"github.com/RabbitPOS/backend/internal/models"
 	"github.com/RabbitPOS/backend/internal/services"
 	"github.com/gin-gonic/gin"
@@ -80,6 +81,11 @@ func (h *ImporterHandler) ImportData(c *gin.Context) {
 	}
 	defer file.Close()
 
+	storeID := middleware.GetStoreID(c)
+	if storeID == 0 {
+		storeID = 1
+	}
+
 	fileName := strings.ToLower(fileHeader.Filename)
 	var response *models.ImportResponse
 
@@ -91,9 +97,9 @@ func (h *ImporterHandler) ImportData(c *gin.Context) {
 			return
 		}
 		reader := bytes.NewReader(buf.Bytes())
-		response, err = h.importerSvc.ImportExcel(reader, int64(buf.Len()), opts, currentUserID, currentUsername)
+		response, err = h.importerSvc.ImportExcel(reader, int64(buf.Len()), opts, currentUserID, currentUsername, storeID)
 	} else if strings.HasSuffix(fileName, ".csv") {
-		response, err = h.importerSvc.ImportCSV(file, opts, currentUserID, currentUsername)
+		response, err = h.importerSvc.ImportCSV(file, opts, currentUserID, currentUsername, storeID)
 	} else {
 		models.SendError(c, http.StatusBadRequest, "Định dạng file không được hỗ trợ. Vui lòng sử dụng file .xlsx hoặc .csv")
 		return

@@ -14,6 +14,8 @@ import (
 	"time"
 
 	"github.com/RabbitPOS/backend/internal/cache"
+	"github.com/RabbitPOS/backend/internal/database"
+	"github.com/RabbitPOS/backend/internal/middleware"
 	"github.com/RabbitPOS/backend/internal/models"
 	"github.com/RabbitPOS/backend/internal/services"
 	"github.com/RabbitPOS/backend/internal/utils"
@@ -32,9 +34,14 @@ func NewOrderHandler(db *gorm.DB, sheetsSyncSvc *services.SheetsSyncService, fun
 	return &OrderHandler{db: db, sheetsSyncSvc: sheetsSyncSvc, fundCache: fundCache}
 }
 
-// ListOrders retrieves orders with loaded relations, optional filters and pagination
+// ListOrders retrieves orders with loaded relations, optional filters and pagination scoped to active store
 func (h *OrderHandler) ListOrders(c *gin.Context) {
-	query := h.db.Model(&models.Order{}).
+	storeID := middleware.MustGetStoreID(c)
+	if storeID == 0 {
+		return
+	}
+
+	query := h.db.Scopes(database.ScopeByStore(storeID)).Model(&models.Order{}).
 		Preload("Fund").
 		Preload("Promotion").
 		Preload("Items.Variant.Product")
@@ -139,8 +146,14 @@ func (h *OrderHandler) GetOrderByID(c *gin.Context) {
 		return
 	}
 
+	storeID := middleware.MustGetStoreID(c)
+	if storeID == 0 {
+		models.SendErrorCode(c, http.StatusBadRequest, "STORE_REQUIRED", "Cần có ngữ cảnh cửa hàng.")
+		return
+	}
+
 	var order models.Order
-	if err := h.db.Preload("Fund").Preload("Promotion").Preload("Items.Variant.Product").First(&order, id).Error; err != nil {
+	if err := h.db.Scopes(database.ScopeByStore(storeID)).Preload("Fund").Preload("Promotion").Preload("Items.Variant.Product").First(&order, id).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			models.SendError(c, http.StatusNotFound, "Order not found")
 			return
@@ -155,6 +168,12 @@ func (h *OrderHandler) GetOrderByID(c *gin.Context) {
 // CreateOrder processes cart items with Server-Authoritative pricing, RBAC overrides, idempotency & transaction safety
 // POST /api/v1/orders
 func (h *OrderHandler) CreateOrder(c *gin.Context) {
+	storeID := middleware.MustGetStoreID(c)
+	if storeID == 0 {
+		models.SendErrorCode(c, http.StatusBadRequest, "STORE_REQUIRED", "Cần có ngữ cảnh cửa hàng.")
+		return
+	}
+
 	// Read canonical raw body bytes for Idempotency SHA-256 hash
 	var bodyBytes []byte
 	if c.Request.Body != nil {
@@ -226,6 +245,11 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 
 		var existingRecord models.IdempotencyRecord
 		if err := h.db.Where("key = ?", idempotencyKey).First(&existingRecord).Error; err == nil {
+			// Cross-store collision guard
+			if existingRecord.StoreID != nil && *existingRecord.StoreID != storeID {
+				models.SendErrorCode(c, http.StatusConflict, "ORDER_IDEMPOTENT_CONFLICT", "Khóa Idempotency-Key đã được sử dụng trước đó cho một yêu cầu khác với dữ liệu khác.")
+				return
+			}
 			// Idempotency Record Exists
 			if existingRecord.Status == models.IdempotencyStatusCompleted {
 				if existingRecord.RequestHash == requestHash {
@@ -253,6 +277,7 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 		// 1. If Idempotency Key provided, record processing lock
 		if idempotencyKey != "" {
 			procRecord := models.IdempotencyRecord{
+				StoreID:      &storeID,
 				Key:          idempotencyKey,
 				RequestHash:  requestHash,
 				ResourceType: "order",
@@ -262,7 +287,7 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 			}
 			if err := tx.Clauses(clause.OnConflict{
 				Columns:   []clause.Column{{Name: "key"}},
-				DoUpdates: clause.AssignmentColumns([]string{"status", "request_hash", "expires_at"}),
+				DoUpdates: clause.AssignmentColumns([]string{"store_id", "status", "request_hash", "expires_at"}),
 			}).Create(&procRecord).Error; err != nil {
 				return fmt.Errorf("failed to initialize idempotency record: %w", err)
 			}
@@ -270,7 +295,7 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 
 		// 2. Verify Target Fund
 		var fund models.Fund
-		if err := tx.First(&fund, req.FundID).Error; err != nil {
+		if err := tx.Scopes(database.ScopeByStore(storeID)).First(&fund, req.FundID).Error; err != nil {
 			if err == gorm.ErrRecordNotFound {
 				return fmt.Errorf("FUND_NOT_FOUND: Quỹ thanh toán ID %d không tồn tại", req.FundID)
 			}
@@ -280,19 +305,25 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 			return fmt.Errorf("FUND_INACTIVE: Quỹ thanh toán %s hiện đang bị khóa", fund.Name)
 		}
 
-		// 3. Determine Order Timestamp
+		// 3. Determine Order Timestamp & Store-scoped Order Code
 		orderTime := time.Now()
 		if isAdmin && req.CreatedAt != nil && !req.CreatedAt.IsZero() {
 			orderTime = *req.CreatedAt
 		}
-		orderCode := fmt.Sprintf("ORD-%s-%04d", orderTime.Format("20060102-150405"), orderTime.Nanosecond()/100000)
+		var orderCode string
+		store, _ := middleware.GetStore(c)
+		if storeID == 1 || store == nil {
+			orderCode = fmt.Sprintf("ORD-%s-%04d", orderTime.Format("20060102-150405"), orderTime.Nanosecond()/100000)
+		} else {
+			orderCode = fmt.Sprintf("ORD-%s-%s-%04d", strings.ToUpper(store.Code), orderTime.Format("20060102-150405"), orderTime.Nanosecond()/100000)
+		}
 
 		// 4. Validate Promotion upfront (if provided) & Process Items
 		var promo *models.Promotion
 		if req.PromotionID != nil && *req.PromotionID > 0 {
 			var p models.Promotion
-			// Row lock for concurrent usage count safety
-			if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&p, *req.PromotionID).Error; err != nil {
+			// Row lock for concurrent usage count safety scoped to active store
+			if err := tx.Scopes(database.ScopeByStore(storeID)).Clauses(clause.Locking{Strength: "UPDATE"}).First(&p, *req.PromotionID).Error; err != nil {
 				if err == gorm.ErrRecordNotFound {
 					return fmt.Errorf("PROMOTION_NOT_FOUND: Chương trình khuyến mãi ID %d không tồn tại", *req.PromotionID)
 				}
@@ -321,6 +352,11 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 		isOrderOverridden := false
 
 		for _, itemReq := range req.Items {
+			// Verify Product Variant belongs to active store through parent product
+			if err := database.AssertVariantOwned(tx, itemReq.ProductVariantID, storeID); err != nil {
+				return fmt.Errorf("VARIANT_NOT_FOUND: Biến thể món ID %d không thuộc cửa hàng này", itemReq.ProductVariantID)
+			}
+
 			// Query Product Variant from DB
 			var variant models.ProductVariant
 			if err := tx.Preload("Product").First(&variant, itemReq.ProductVariantID).Error; err != nil {
@@ -392,7 +428,7 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 			// Handle ToppingIDs
 			if len(itemReq.ToppingIDs) > 0 {
 				var toppings []models.Topping
-				if err := tx.Where("id IN ? AND is_active = ?", itemReq.ToppingIDs, true).Find(&toppings).Error; err != nil {
+				if err := tx.Scopes(database.ScopeByStore(storeID)).Where("id IN ? AND is_active = ?", itemReq.ToppingIDs, true).Find(&toppings).Error; err != nil {
 					return err
 				}
 				if len(toppings) != len(itemReq.ToppingIDs) {
@@ -416,7 +452,7 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 				}
 				if len(toppingIDs) > 0 {
 					var toppings []models.Topping
-					if err := tx.Where("id IN ? AND is_active = ?", toppingIDs, true).Find(&toppings).Error; err != nil {
+					if err := tx.Scopes(database.ScopeByStore(storeID)).Where("id IN ? AND is_active = ?", toppingIDs, true).Find(&toppings).Error; err != nil {
 						return err
 					}
 					topMap := make(map[uint]models.Topping)
@@ -534,6 +570,7 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 		}
 
 		createdOrder = models.Order{
+			StoreID:             storeID,
 			OrderCode:           orderCode,
 			Status:              models.OrderStatusCompleted,
 			Subtotal:            subtotal,
@@ -577,6 +614,7 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 
 		// 10. Record Automated Inflow Transaction
 		transaction := models.Transaction{
+			StoreID:          storeID,
 			FundID:           createdOrder.FundID,
 			TransactionType:  models.TransactionTypeInflow,
 			Category:         models.CategorySale,
@@ -646,7 +684,7 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 	}
 
 	if h.fundCache != nil {
-		h.fundCache.Invalidate("funds:list")
+		h.fundCache.Invalidate(fmt.Sprintf("s%d:funds:list", storeID))
 	}
 
 	// Trigger non-blocking real-time Google Sheets sync if enabled
@@ -659,6 +697,11 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 
 // CancelOrder handles order cancellation, status transition, and optional refund to fund account
 func (h *OrderHandler) CancelOrder(c *gin.Context) {
+	storeID := middleware.MustGetStoreID(c)
+	if storeID == 0 {
+		return
+	}
+
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
@@ -667,7 +710,7 @@ func (h *OrderHandler) CancelOrder(c *gin.Context) {
 	}
 
 	var order models.Order
-	if err := h.db.First(&order, id).Error; err != nil {
+	if err := h.db.Scopes(database.ScopeByStore(storeID)).First(&order, id).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			models.SendError(c, http.StatusNotFound, "Order not found")
 			return
@@ -717,6 +760,7 @@ func (h *OrderHandler) CancelOrder(c *gin.Context) {
 		if req.Refund && order.TotalAmount > 0 {
 			refundDesc := fmt.Sprintf("Hoàn tiền đơn hàng #%s - Lý do: %s", order.OrderCode, req.CancelReason)
 			refundTx := models.Transaction{
+				StoreID:          storeID,
 				FundID:           order.FundID,
 				TransactionType:  models.TransactionTypeOutflow,
 				Category:         models.CategoryOrderRefund,
@@ -733,7 +777,7 @@ func (h *OrderHandler) CancelOrder(c *gin.Context) {
 			}
 
 			// Deduct from fund current balance
-			if err := tx.Model(&models.Fund{}).Where("id = ?", order.FundID).
+			if err := tx.Model(&models.Fund{}).Scopes(database.ScopeByStore(storeID)).Where("id = ?", order.FundID).
 				Update("current_balance", gorm.Expr("current_balance - ?", order.TotalAmount)).Error; err != nil {
 				return err
 			}
@@ -748,10 +792,10 @@ func (h *OrderHandler) CancelOrder(c *gin.Context) {
 	}
 
 	if h.fundCache != nil {
-		h.fundCache.Invalidate("funds:list")
+		h.fundCache.Invalidate(fmt.Sprintf("s%d:funds:list", storeID))
 	}
 
-	h.db.Preload("Fund").Preload("Promotion").Preload("Items.Variant.Product").First(&order, order.ID)
+	h.db.Scopes(database.ScopeByStore(storeID)).Preload("Fund").Preload("Promotion").Preload("Items.Variant.Product").First(&order, order.ID)
 
 	// Trigger non-blocking real-time Google Sheets sync if enabled
 	if h.sheetsSyncSvc != nil {
@@ -764,6 +808,11 @@ func (h *OrderHandler) CancelOrder(c *gin.Context) {
 // DeleteOrder permanently deletes an order, cleans up associated financial transactions,
 // reverts fund balances accordingly, and deletes related order items.
 func (h *OrderHandler) DeleteOrder(c *gin.Context) {
+	storeID := middleware.MustGetStoreID(c)
+	if storeID == 0 {
+		return
+	}
+
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
@@ -772,7 +821,7 @@ func (h *OrderHandler) DeleteOrder(c *gin.Context) {
 	}
 
 	var order models.Order
-	if err := h.db.First(&order, id).Error; err != nil {
+	if err := h.db.Scopes(database.ScopeByStore(storeID)).First(&order, id).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			models.SendError(c, http.StatusNotFound, "Order not found")
 			return
@@ -784,7 +833,7 @@ func (h *OrderHandler) DeleteOrder(c *gin.Context) {
 	err = h.db.Transaction(func(tx *gorm.DB) error {
 		// 1. Find all transactions linked to this order
 		var linkedTxs []models.Transaction
-		if err := tx.Where("reference_order_id = ?", order.ID).Find(&linkedTxs).Error; err != nil {
+		if err := tx.Scopes(database.ScopeByStore(storeID)).Where("reference_order_id = ?", order.ID).Find(&linkedTxs).Error; err != nil {
 			return err
 		}
 
@@ -792,13 +841,13 @@ func (h *OrderHandler) DeleteOrder(c *gin.Context) {
 		for _, ltx := range linkedTxs {
 			if ltx.TransactionType == models.TransactionTypeInflow {
 				// Revert inflow: deduct amount from fund
-				if err := tx.Model(&models.Fund{}).Where("id = ?", ltx.FundID).
+				if err := tx.Model(&models.Fund{}).Scopes(database.ScopeByStore(storeID)).Where("id = ?", ltx.FundID).
 					Update("current_balance", gorm.Expr("current_balance - ?", ltx.Amount)).Error; err != nil {
 					return err
 				}
 			} else if ltx.TransactionType == models.TransactionTypeOutflow {
 				// Revert outflow: add amount back to fund
-				if err := tx.Model(&models.Fund{}).Where("id = ?", ltx.FundID).
+				if err := tx.Model(&models.Fund{}).Scopes(database.ScopeByStore(storeID)).Where("id = ?", ltx.FundID).
 					Update("current_balance", gorm.Expr("current_balance + ?", ltx.Amount)).Error; err != nil {
 					return err
 				}
@@ -841,14 +890,19 @@ func (h *OrderHandler) DeleteOrder(c *gin.Context) {
 	}
 
 	if h.fundCache != nil {
-		h.fundCache.Invalidate("funds:list")
+		h.fundCache.Invalidate(fmt.Sprintf("s%d:funds:list", storeID))
 	}
 
 	models.SendSuccess(c, http.StatusOK, gin.H{"id": order.ID, "order_code": order.OrderCode}, "Order deleted successfully")
 }
 
-// GetVietQR generates Napas 247 VietQR payload & image URL for bank transfers
+// GetVietQR generates Napas 247 VietQR payload & image URL for bank transfers using active store settings
 func (h *OrderHandler) GetVietQR(c *gin.Context) {
+	storeID := middleware.MustGetStoreID(c)
+	if storeID == 0 {
+		return
+	}
+
 	orderCode := c.Query("order_code")
 	amountStr := c.Query("amount")
 
@@ -857,28 +911,30 @@ func (h *OrderHandler) GetVietQR(c *gin.Context) {
 		orderCode = fmt.Sprintf("POS-%d", time.Now().Unix())
 	}
 
-	// Fetch VietQR settings from DB with default fallbacks
+	// Fetch VietQR settings from active store with fallback defaults
 	bankID := "MB"
 	accountNo := "123456789"
-	accountName := "THO JUICE AND COFFEE"
+	accountName := "RabbitPOS"
 
-	var settings []models.Setting
-	if err := h.db.Where("key IN ?", []string{"vietqr_bank_id", "vietqr_account_no", "vietqr_account_name"}).Find(&settings).Error; err == nil {
-		for _, s := range settings {
-			switch s.Key {
-			case "vietqr_bank_id":
-				if s.Value != "" {
-					bankID = s.Value
-				}
-			case "vietqr_account_no":
-				if s.Value != "" {
-					accountNo = s.Value
-				}
-			case "vietqr_account_name":
-				if s.Value != "" {
-					accountName = s.Value
-				}
-			}
+	store, _ := middleware.GetStore(c)
+	if store == nil {
+		var s models.Store
+		if err := h.db.First(&s, storeID).Error; err == nil {
+			store = &s
+		}
+	}
+
+	if store != nil {
+		if store.VietQRBankID != "" {
+			bankID = store.VietQRBankID
+		}
+		if store.VietQRAccountNo != "" {
+			accountNo = store.VietQRAccountNo
+		}
+		if store.VietQRAccountName != "" {
+			accountName = store.VietQRAccountName
+		} else if store.Name != "" {
+			accountName = store.Name
 		}
 	}
 

@@ -110,7 +110,7 @@ func TestPurchaseUnitConversion_DBIntegration(t *testing.T) {
 		LossRate:          0.05,
 	}
 
-	pi, ingID, err := buildPurchaseItemAndApplyIngredient(db, item, testTx.ID, txTime)
+	pi, ingID, err := buildPurchaseItemAndApplyIngredient(db, item, testTx.ID, txTime, testTx.StoreID)
 	if err != nil {
 		t.Fatalf("buildPurchaseItemAndApplyIngredient failed: %v", err)
 	}

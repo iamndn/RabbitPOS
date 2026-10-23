@@ -48,6 +48,17 @@ type Config struct {
 	ReportRecipientEmails  string
 	EnableDailyEmailReport bool
 	DailyReportTime        string
+
+	// Multi-store settings
+	// InitialStoreName/Code bootstrap Store #1 on a fresh database only (legacy databases get it from migration 000020).
+	InitialStoreName string
+	InitialStoreCode string
+	// StoreStrictCreate makes creating a tenant-scoped row without StoreID fail (enable once all handlers are scoped).
+	StoreStrictCreate bool
+	// EnableMultiStore allows creating additional stores. In dev/test defaults to true; in prod requires env flag.
+	EnableMultiStore bool
+	// StoreHeaderRequired requires X-Store-ID header. Transition flag (false falls back to default store).
+	StoreHeaderRequired bool
 }
 
 // IsProduction returns true when running in production mode
@@ -121,6 +132,18 @@ func LoadConfig() (*Config, error) {
 	enableDailyReport, _ := strconv.ParseBool(getEnv("ENABLE_DAILY_EMAIL_REPORT", "true"))
 	dailyReportTime := getEnv("DAILY_REPORT_TIME", "22:30")
 
+	initialStoreName := getEnv("INITIAL_STORE_NAME", "My Store")
+	initialStoreCode := strings.ToLower(getEnv("INITIAL_STORE_CODE", "main"))
+	storeStrictCreate, _ := strconv.ParseBool(getEnv("STORE_STRICT_CREATE", "false"))
+	enableMultiStoreStr := getEnv("ENABLE_MULTI_STORE", "")
+	var enableMultiStore bool
+	if enableMultiStoreStr == "" {
+		enableMultiStore = (appEnv != "production")
+	} else {
+		enableMultiStore, _ = strconv.ParseBool(enableMultiStoreStr)
+	}
+	storeHeaderRequired, _ := strconv.ParseBool(getEnv("STORE_HEADER_REQUIRED", "false"))
+
 	jwtExpiryHours, err := strconv.Atoi(jwtExpiryStr)
 	if err != nil || jwtExpiryHours <= 0 {
 		jwtExpiryHours = 24
@@ -163,6 +186,11 @@ func LoadConfig() (*Config, error) {
 		ReportRecipientEmails:  reportRecipients,
 		EnableDailyEmailReport: enableDailyReport,
 		DailyReportTime:        dailyReportTime,
+		InitialStoreName:       initialStoreName,
+		InitialStoreCode:       initialStoreCode,
+		StoreStrictCreate:      storeStrictCreate,
+		EnableMultiStore:       enableMultiStore,
+		StoreHeaderRequired:    storeHeaderRequired,
 	}
 
 	// Enforce secure JWT secret in production — fail fast rather than run insecurely

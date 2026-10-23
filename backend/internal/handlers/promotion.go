@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/RabbitPOS/backend/internal/database"
+	"github.com/RabbitPOS/backend/internal/middleware"
 	"github.com/RabbitPOS/backend/internal/models"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -19,12 +21,18 @@ func NewPromotionHandler(db *gorm.DB) *PromotionHandler {
 	return &PromotionHandler{db: db}
 }
 
-// GetActivePromotions returns all currently valid and active promotions for POS cart application
+// GetActivePromotions returns all currently valid and active promotions for POS cart application in the active store
 func (h *PromotionHandler) GetActivePromotions(c *gin.Context) {
+	storeID := middleware.MustGetStoreID(c)
+	if storeID == 0 {
+		return
+	}
+
 	now := time.Now()
 	var promotions []models.Promotion
 
-	err := h.db.Where("is_active = ?", true).
+	err := h.db.Scopes(database.ScopeByStore(storeID)).
+		Where("is_active = ?", true).
 		Where("start_date IS NULL OR start_date <= ?", now).
 		Where("end_date IS NULL OR end_date >= ?", now).
 		Where("usage_limit = 0 OR usage_count < usage_limit").
@@ -40,11 +48,18 @@ func (h *PromotionHandler) GetActivePromotions(c *gin.Context) {
 	models.SendSuccess(c, http.StatusOK, promotions, "Active promotions retrieved successfully")
 }
 
-// ListPromotions returns all promotions for management view (admin)
+// ListPromotions returns all promotions for management view in the active store
 func (h *PromotionHandler) ListPromotions(c *gin.Context) {
-	var promotions []models.Promotion
+	storeID := middleware.MustGetStoreID(c)
+	if storeID == 0 {
+		return
+	}
 
-	if err := h.db.Preload("GiftVariant.Product").Order("display_order asc, id asc").Find(&promotions).Error; err != nil {
+	var promotions []models.Promotion
+	if err := h.db.Scopes(database.ScopeByStore(storeID)).
+		Preload("GiftVariant.Product").
+		Order("display_order asc, id asc").
+		Find(&promotions).Error; err != nil {
 		models.SendInternalError(c, "Failed to retrieve promotions: "+err.Error())
 		return
 	}
@@ -52,12 +67,44 @@ func (h *PromotionHandler) ListPromotions(c *gin.Context) {
 	models.SendSuccess(c, http.StatusOK, promotions, "All promotions retrieved successfully")
 }
 
-// CreatePromotion creates a new promotional rule (admin only)
+// CreatePromotion creates a new promotional rule scoped to the active store
 func (h *PromotionHandler) CreatePromotion(c *gin.Context) {
+	storeID := middleware.MustGetStoreID(c)
+	if storeID == 0 {
+		return
+	}
+
 	var req models.CreatePromotionRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		models.SendError(c, http.StatusBadRequest, "Invalid request payload: "+err.Error())
 		return
+	}
+
+	// Validate target IDs belong to this store
+	if req.Scope == models.PromoScopeCategory && len(req.TargetIDs) > 0 {
+		if err := database.AssertOwnedIDs(h.db, &models.Category{}, req.TargetIDs, storeID); err != nil {
+			models.SendErrorCode(c, http.StatusBadRequest, "VALIDATION_ERROR", "One or more target categories do not belong to active store")
+			return
+		}
+	} else if req.Scope == models.PromoScopeProduct && len(req.TargetIDs) > 0 {
+		if err := database.AssertOwnedIDs(h.db, &models.Product{}, req.TargetIDs, storeID); err != nil {
+			models.SendErrorCode(c, http.StatusBadRequest, "VALIDATION_ERROR", "One or more target products do not belong to active store")
+			return
+		}
+	}
+
+	if req.GiftProductVariantID != nil {
+		if err := database.AssertVariantOwned(h.db, *req.GiftProductVariantID, storeID); err != nil {
+			models.SendErrorCode(c, http.StatusBadRequest, "VALIDATION_ERROR", "Gift variant does not belong to active store")
+			return
+		}
+	}
+
+	for _, gvid := range req.GiftTargetIDs {
+		if err := database.AssertVariantOwned(h.db, gvid, storeID); err != nil {
+			models.SendErrorCode(c, http.StatusBadRequest, "VALIDATION_ERROR", "One or more gift variants do not belong to active store")
+			return
+		}
 	}
 
 	targetIDsJSON := "[]"
@@ -90,6 +137,7 @@ func (h *PromotionHandler) CreatePromotion(c *gin.Context) {
 	}
 
 	promotion := models.Promotion{
+		StoreID:              storeID,
 		Name:                 req.Name,
 		PromoType:            req.PromoType,
 		DiscountValue:        req.DiscountValue,
@@ -114,14 +162,19 @@ func (h *PromotionHandler) CreatePromotion(c *gin.Context) {
 	}
 
 	if promotion.GiftProductVariantID != nil {
-		h.db.Preload("GiftVariant.Product").First(&promotion, promotion.ID)
+		h.db.Scopes(database.ScopeByStore(storeID)).Preload("GiftVariant.Product").First(&promotion, promotion.ID)
 	}
 
 	models.SendSuccess(c, http.StatusCreated, promotion, "Promotion created successfully")
 }
 
-// UpdatePromotion updates an existing promotion rule (admin only)
+// UpdatePromotion updates an existing promotion rule scoped to the active store
 func (h *PromotionHandler) UpdatePromotion(c *gin.Context) {
+	storeID := middleware.MustGetStoreID(c)
+	if storeID == 0 {
+		return
+	}
+
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 64)
 	if err != nil {
@@ -130,7 +183,7 @@ func (h *PromotionHandler) UpdatePromotion(c *gin.Context) {
 	}
 
 	var promo models.Promotion
-	if err := h.db.First(&promo, id).Error; err != nil {
+	if err := h.db.Scopes(database.ScopeByStore(storeID)).First(&promo, id).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			models.SendError(c, http.StatusNotFound, "Promotion not found")
 			return
@@ -143,6 +196,41 @@ func (h *PromotionHandler) UpdatePromotion(c *gin.Context) {
 	if err := c.ShouldBindJSON(&req); err != nil {
 		models.SendError(c, http.StatusBadRequest, "Invalid request payload: "+err.Error())
 		return
+	}
+
+	effectiveScope := promo.Scope
+	if req.Scope != nil {
+		effectiveScope = *req.Scope
+	}
+
+	if req.TargetIDs != nil && len(*req.TargetIDs) > 0 {
+		if effectiveScope == models.PromoScopeCategory {
+			if err := database.AssertOwnedIDs(h.db, &models.Category{}, *req.TargetIDs, storeID); err != nil {
+				models.SendErrorCode(c, http.StatusBadRequest, "VALIDATION_ERROR", "One or more target categories do not belong to active store")
+				return
+			}
+		} else if effectiveScope == models.PromoScopeProduct {
+			if err := database.AssertOwnedIDs(h.db, &models.Product{}, *req.TargetIDs, storeID); err != nil {
+				models.SendErrorCode(c, http.StatusBadRequest, "VALIDATION_ERROR", "One or more target products do not belong to active store")
+				return
+			}
+		}
+	}
+
+	if req.GiftProductVariantID != nil {
+		if err := database.AssertVariantOwned(h.db, *req.GiftProductVariantID, storeID); err != nil {
+			models.SendErrorCode(c, http.StatusBadRequest, "VALIDATION_ERROR", "Gift variant does not belong to active store")
+			return
+		}
+	}
+
+	if req.GiftTargetIDs != nil {
+		for _, gvid := range *req.GiftTargetIDs {
+			if err := database.AssertVariantOwned(h.db, gvid, storeID); err != nil {
+				models.SendErrorCode(c, http.StatusBadRequest, "VALIDATION_ERROR", "One or more gift variants do not belong to active store")
+				return
+			}
+		}
 	}
 
 	updates := map[string]interface{}{}
@@ -202,12 +290,17 @@ func (h *PromotionHandler) UpdatePromotion(c *gin.Context) {
 		return
 	}
 
-	h.db.Preload("GiftVariant.Product").First(&promo, promo.ID)
+	h.db.Scopes(database.ScopeByStore(storeID)).Preload("GiftVariant.Product").First(&promo, promo.ID)
 	models.SendSuccess(c, http.StatusOK, promo, "Promotion updated successfully")
 }
 
-// DeletePromotion deletes a promotion rule (admin only)
+// DeletePromotion deletes a promotion rule scoped to the active store
 func (h *PromotionHandler) DeletePromotion(c *gin.Context) {
+	storeID := middleware.MustGetStoreID(c)
+	if storeID == 0 {
+		return
+	}
+
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 64)
 	if err != nil {
@@ -216,7 +309,7 @@ func (h *PromotionHandler) DeletePromotion(c *gin.Context) {
 	}
 
 	var promo models.Promotion
-	if err := h.db.First(&promo, id).Error; err != nil {
+	if err := h.db.Scopes(database.ScopeByStore(storeID)).First(&promo, id).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			models.SendError(c, http.StatusNotFound, "Promotion not found")
 			return
@@ -227,8 +320,8 @@ func (h *PromotionHandler) DeletePromotion(c *gin.Context) {
 
 	tx := h.db.Begin()
 
-	// Decouple any historical orders by setting promotion_id = NULL so orders retain all financial records
-	if err := tx.Model(&models.Order{}).Where("promotion_id = ?", id).Update("promotion_id", nil).Error; err != nil {
+	// Decouple any historical orders in this store by setting promotion_id = NULL
+	if err := tx.Model(&models.Order{}).Scopes(database.ScopeByStore(storeID)).Where("promotion_id = ?", id).Update("promotion_id", nil).Error; err != nil {
 		tx.Rollback()
 		models.SendInternalError(c, "Failed to decouple promotion from orders: "+err.Error())
 		return
@@ -246,6 +339,11 @@ func (h *PromotionHandler) DeletePromotion(c *gin.Context) {
 
 // ReorderPromotions updates the display_order of multiple promotions based on the provided ordered IDs
 func (h *PromotionHandler) ReorderPromotions(c *gin.Context) {
+	storeID := middleware.MustGetStoreID(c)
+	if storeID == 0 {
+		return
+	}
+
 	var req struct {
 		OrderedIDs []uint `json:"ordered_ids" binding:"required"`
 	}
@@ -254,9 +352,14 @@ func (h *PromotionHandler) ReorderPromotions(c *gin.Context) {
 		return
 	}
 
+	if err := database.AssertOwnedIDs(h.db, &models.Promotion{}, req.OrderedIDs, storeID); err != nil {
+		models.SendErrorCode(c, http.StatusBadRequest, "VALIDATION_ERROR", "All promotions must belong to the active store")
+		return
+	}
+
 	err := h.db.Transaction(func(tx *gorm.DB) error {
 		for idx, id := range req.OrderedIDs {
-			if err := tx.Model(&models.Promotion{}).Where("id = ?", id).Update("display_order", idx+1).Error; err != nil {
+			if err := tx.Model(&models.Promotion{}).Scopes(database.ScopeByStore(storeID)).Where("id = ?", id).Update("display_order", idx+1).Error; err != nil {
 				return err
 			}
 		}

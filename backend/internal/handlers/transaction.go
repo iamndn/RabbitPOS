@@ -11,6 +11,8 @@ import (
 	"time"
 
 	"github.com/RabbitPOS/backend/internal/cache"
+	"github.com/RabbitPOS/backend/internal/database"
+	"github.com/RabbitPOS/backend/internal/middleware"
 	"github.com/RabbitPOS/backend/internal/models"
 	"github.com/RabbitPOS/backend/internal/services"
 	"github.com/gin-gonic/gin"
@@ -29,7 +31,12 @@ func NewTransactionHandler(db *gorm.DB, sheetsSyncSvc *services.SheetsSyncServic
 
 // ListTransactions retrieves transaction history with filters and pagination support
 func (h *TransactionHandler) ListTransactions(c *gin.Context) {
-	query := h.db.Model(&models.Transaction{}).
+	storeID := middleware.MustGetStoreID(c)
+	if storeID == 0 {
+		return
+	}
+
+	query := h.db.Scopes(database.ScopeByStore(storeID)).Model(&models.Transaction{}).
 		Preload("Fund").
 		Preload("ReferenceOrder").
 		Preload("PurchaseItems.Ingredient")
@@ -67,7 +74,7 @@ func (h *TransactionHandler) ListTransactions(c *gin.Context) {
 			query = query.Where("category IN ?", aliases)
 		} else {
 			var catItem models.TransactionCategoryItem
-			if err := h.db.Where("code = ? OR name = ?", category, category).First(&catItem).Error; err == nil {
+			if err := h.db.Scopes(database.ScopeByStore(storeID)).Where("code = ? OR name = ?", category, category).First(&catItem).Error; err == nil {
 				names := []string{category}
 				if catItem.Code != "" {
 					names = append(names, catItem.Code)
@@ -131,6 +138,11 @@ func (h *TransactionHandler) ListTransactions(c *gin.Context) {
 
 // CreateTransaction logs a manual inflow or outflow expense and updates target fund balance
 func (h *TransactionHandler) CreateTransaction(c *gin.Context) {
+	storeID := middleware.MustGetStoreID(c)
+	if storeID == 0 {
+		return
+	}
+
 	var req models.CreateTransactionRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		models.SendError(c, http.StatusBadRequest, "Invalid request payload: "+err.Error())
@@ -138,9 +150,9 @@ func (h *TransactionHandler) CreateTransaction(c *gin.Context) {
 	}
 
 	var fund models.Fund
-	if err := h.db.First(&fund, req.FundID).Error; err != nil {
+	if err := h.db.Scopes(database.ScopeByStore(storeID)).First(&fund, req.FundID).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			models.SendError(c, http.StatusBadRequest, "Invalid fund ID: Fund does not exist")
+			models.SendError(c, http.StatusBadRequest, "Invalid fund ID: Fund does not exist in active store")
 			return
 		}
 		models.SendInternalError(c, "Failed to verify target fund")
@@ -175,6 +187,7 @@ func (h *TransactionHandler) CreateTransaction(c *gin.Context) {
 	}
 
 	transaction := models.Transaction{
+		StoreID:         storeID,
 		FundID:          req.FundID,
 		TransactionType: req.TransactionType,
 		Category:        req.Category,
@@ -192,13 +205,15 @@ func (h *TransactionHandler) CreateTransaction(c *gin.Context) {
 			return err
 		}
 
-		// 2. Adjust Fund Balance
+		// 2. Adjust Fund Balance scoped to store
 		if req.TransactionType == models.TransactionTypeInflow {
-			if err := tx.Model(&fund).Update("current_balance", gorm.Expr("current_balance + ?", req.Amount)).Error; err != nil {
+			if err := tx.Model(&models.Fund{}).Scopes(database.ScopeByStore(storeID)).Where("id = ?", fund.ID).
+				Update("current_balance", gorm.Expr("current_balance + ?", req.Amount)).Error; err != nil {
 				return err
 			}
 		} else {
-			if err := tx.Model(&fund).Update("current_balance", gorm.Expr("current_balance - ?", req.Amount)).Error; err != nil {
+			if err := tx.Model(&models.Fund{}).Scopes(database.ScopeByStore(storeID)).Where("id = ?", fund.ID).
+				Update("current_balance", gorm.Expr("current_balance - ?", req.Amount)).Error; err != nil {
 				return err
 			}
 		}
@@ -206,7 +221,7 @@ func (h *TransactionHandler) CreateTransaction(c *gin.Context) {
 		// 3. Process optional itemized purchase items (Ingredients & Packaging with Conversions)
 		if len(req.PurchaseItems) > 0 {
 			for _, item := range req.PurchaseItems {
-				_, ingID, err := buildPurchaseItemAndApplyIngredient(tx, item, transaction.ID, txTime)
+				_, ingID, err := buildPurchaseItemAndApplyIngredient(tx, item, transaction.ID, txTime, storeID)
 				if err != nil {
 					return err
 				}
@@ -227,10 +242,10 @@ func (h *TransactionHandler) CreateTransaction(c *gin.Context) {
 	}
 
 	if h.fundCache != nil {
-		h.fundCache.Invalidate("funds:list")
+		h.fundCache.Invalidate(fmt.Sprintf("s%d:funds:list", storeID))
 	}
 
-	h.db.Preload("Fund").Preload("PurchaseItems.Ingredient").First(&transaction, transaction.ID)
+	h.db.Scopes(database.ScopeByStore(storeID)).Preload("Fund").Preload("PurchaseItems.Ingredient").First(&transaction, transaction.ID)
 
 	// Trigger non-blocking real-time Google Sheets sync if enabled
 	if h.sheetsSyncSvc != nil {
@@ -241,7 +256,7 @@ func (h *TransactionHandler) CreateTransaction(c *gin.Context) {
 }
 
 // buildPurchaseItemAndApplyIngredient processes conversion logic, updates/creates Ingredient, and inserts PurchaseItem
-func buildPurchaseItemAndApplyIngredient(tx *gorm.DB, item models.PurchaseItemInput, txID uint, txTime time.Time) (*models.PurchaseItem, uint, error) {
+func buildPurchaseItemAndApplyIngredient(tx *gorm.DB, item models.PurchaseItemInput, txID uint, txTime time.Time, storeID uint) (*models.PurchaseItem, uint, error) {
 	ingName := strings.TrimSpace(item.IngredientName)
 	if ingName == "" && (item.IngredientID == nil || *item.IngredientID == 0) {
 		return nil, 0, nil
@@ -251,9 +266,9 @@ func buildPurchaseItemAndApplyIngredient(tx *gorm.DB, item models.PurchaseItemIn
 	var findErr error
 
 	if item.IngredientID != nil && *item.IngredientID > 0 {
-		findErr = tx.First(&ingredient, *item.IngredientID).Error
+		findErr = tx.Scopes(database.ScopeByStore(storeID)).First(&ingredient, *item.IngredientID).Error
 	} else {
-		findErr = tx.Where("LOWER(name) = LOWER(?)", ingName).First(&ingredient).Error
+		findErr = tx.Scopes(database.ScopeByStore(storeID)).Where("LOWER(name) = LOWER(?)", ingName).First(&ingredient).Error
 	}
 
 	baseUnit := strings.TrimSpace(item.BaseUnit)
@@ -377,6 +392,7 @@ func buildPurchaseItemAndApplyIngredient(tx *gorm.DB, item models.PurchaseItemIn
 
 	if errors.Is(findErr, gorm.ErrRecordNotFound) {
 		ingredient = models.Ingredient{
+			StoreID:              storeID,
 			Name:                 ingName,
 			Category:             category,
 			Unit:                 baseUnit,
@@ -448,32 +464,34 @@ func buildPurchaseItemAndApplyIngredient(tx *gorm.DB, item models.PurchaseItemIn
 		// Auto-save new preset if unique
 		if purchaseUnit != "" && capacityQty > 0 {
 			var presets []models.IngredientConversionPreset
-			if ingredient.SavedConversions != "" && ingredient.SavedConversions != "[]" {
-				_ = json.Unmarshal([]byte(ingredient.SavedConversions), &presets)
-			}
-			exists := false
-			for _, p := range presets {
-				if strings.EqualFold(p.PurchaseUnit, purchaseUnit) && p.PackQty == packQty && p.CapacityQty == capacityQty && strings.EqualFold(p.CapacityUnit, capacityUnit) {
-					exists = true
-					break
+			if err := json.Unmarshal([]byte(ingredient.SavedConversions), &presets); err == nil {
+				exists := false
+				for _, p := range presets {
+					if strings.EqualFold(p.PurchaseUnit, purchaseUnit) &&
+						math.Abs(p.CapacityQty-capacityQty) < 0.001 &&
+						strings.EqualFold(p.CapacityUnit, capacityUnit) &&
+						math.Abs(p.PackQty-packQty) < 0.001 {
+						exists = true
+						break
+					}
 				}
-			}
-			if !exists {
-				label := fmt.Sprintf("%s (%g%s)", purchaseUnit, capacityQty, capacityUnit)
-				if packQty > 1 && packUnit != "" {
-					label = fmt.Sprintf("%s (%g%s × %g%s)", purchaseUnit, packQty, packUnit, capacityQty, capacityUnit)
-				}
-				presets = append(presets, models.IngredientConversionPreset{
-					Label:        label,
-					PurchaseUnit: purchaseUnit,
-					PackQty:      packQty,
-					PackUnit:     packUnit,
-					CapacityQty:  capacityQty,
-					CapacityUnit: capacityUnit,
-					LossRate:     lossRate,
-				})
-				if b, err := json.Marshal(presets); err == nil {
-					ingredient.SavedConversions = string(b)
+				if !exists {
+					label := fmt.Sprintf("%s (%g%s)", purchaseUnit, capacityQty, capacityUnit)
+					if packQty > 1 && packUnit != "" {
+						label = fmt.Sprintf("%s (%g%s × %g%s)", purchaseUnit, packQty, packUnit, capacityQty, capacityUnit)
+					}
+					presets = append(presets, models.IngredientConversionPreset{
+						Label:        label,
+						PurchaseUnit: purchaseUnit,
+						PackQty:      packQty,
+						PackUnit:     packUnit,
+						CapacityQty:  capacityQty,
+						CapacityUnit: capacityUnit,
+						LossRate:     lossRate,
+					})
+					if b, err := json.Marshal(presets); err == nil {
+						ingredient.SavedConversions = string(b)
+					}
 				}
 			}
 		}
@@ -489,7 +507,7 @@ func buildPurchaseItemAndApplyIngredient(tx *gorm.DB, item models.PurchaseItemIn
 		TransactionID:         txID,
 		IngredientID:          ingredient.ID,
 		Quantity:              totalBaseQty,
-		UnitPrice:             effectiveBasePrice,
+		UnitPrice:             baseUnitPrice,
 		Subtotal:              subtotal,
 		PurchaseUnit:          purchaseUnit,
 		PurchaseQuantity:      purchaseQty,
@@ -571,6 +589,11 @@ func recalculateIngredientPrices(tx *gorm.DB, ingredientID uint) error {
 
 // UpdateTransaction updates an existing manual transaction and adjusts fund balances accordingly
 func (h *TransactionHandler) UpdateTransaction(c *gin.Context) {
+	storeID := middleware.MustGetStoreID(c)
+	if storeID == 0 {
+		return
+	}
+
 	idParam := c.Param("id")
 	id, err := strconv.ParseUint(idParam, 10, 32)
 	if err != nil {
@@ -579,7 +602,7 @@ func (h *TransactionHandler) UpdateTransaction(c *gin.Context) {
 	}
 
 	var existingTx models.Transaction
-	if err := h.db.First(&existingTx, id).Error; err != nil {
+	if err := h.db.Scopes(database.ScopeByStore(storeID)).First(&existingTx, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			models.SendError(c, http.StatusNotFound, "Transaction not found")
 			return
@@ -605,9 +628,9 @@ func (h *TransactionHandler) UpdateTransaction(c *gin.Context) {
 	}
 
 	var targetFund models.Fund
-	if err := h.db.First(&targetFund, req.FundID).Error; err != nil {
+	if err := h.db.Scopes(database.ScopeByStore(storeID)).First(&targetFund, req.FundID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			models.SendError(c, http.StatusBadRequest, "Target fund not found")
+			models.SendError(c, http.StatusBadRequest, "Target fund not found in active store")
 			return
 		}
 		models.SendInternalError(c, "Failed to verify target fund")
@@ -617,12 +640,12 @@ func (h *TransactionHandler) UpdateTransaction(c *gin.Context) {
 	err = h.db.Transaction(func(tx *gorm.DB) error {
 		// 1. Revert effect of existing transaction on its original fund
 		if existingTx.TransactionType == models.TransactionTypeInflow {
-			if err := tx.Model(&models.Fund{}).Where("id = ?", existingTx.FundID).
+			if err := tx.Model(&models.Fund{}).Scopes(database.ScopeByStore(storeID)).Where("id = ?", existingTx.FundID).
 				Update("current_balance", gorm.Expr("current_balance - ?", existingTx.Amount)).Error; err != nil {
 				return err
 			}
 		} else {
-			if err := tx.Model(&models.Fund{}).Where("id = ?", existingTx.FundID).
+			if err := tx.Model(&models.Fund{}).Scopes(database.ScopeByStore(storeID)).Where("id = ?", existingTx.FundID).
 				Update("current_balance", gorm.Expr("current_balance + ?", existingTx.Amount)).Error; err != nil {
 				return err
 			}
@@ -630,12 +653,12 @@ func (h *TransactionHandler) UpdateTransaction(c *gin.Context) {
 
 		// 2. Apply effect of new transaction on the new fund
 		if req.TransactionType == models.TransactionTypeInflow {
-			if err := tx.Model(&models.Fund{}).Where("id = ?", req.FundID).
+			if err := tx.Model(&models.Fund{}).Scopes(database.ScopeByStore(storeID)).Where("id = ?", req.FundID).
 				Update("current_balance", gorm.Expr("current_balance + ?", req.Amount)).Error; err != nil {
 				return err
 			}
 		} else {
-			if err := tx.Model(&models.Fund{}).Where("id = ?", req.FundID).
+			if err := tx.Model(&models.Fund{}).Scopes(database.ScopeByStore(storeID)).Where("id = ?", req.FundID).
 				Update("current_balance", gorm.Expr("current_balance - ?", req.Amount)).Error; err != nil {
 				return err
 			}
@@ -674,7 +697,7 @@ func (h *TransactionHandler) UpdateTransaction(c *gin.Context) {
 
 			// Insert new purchase items
 			for _, item := range *req.PurchaseItems {
-				_, ingID, err := buildPurchaseItemAndApplyIngredient(tx, item, existingTx.ID, existingTx.CreatedAt)
+				_, ingID, err := buildPurchaseItemAndApplyIngredient(tx, item, existingTx.ID, existingTx.CreatedAt, storeID)
 				if err != nil {
 					return err
 				}
@@ -703,15 +726,20 @@ func (h *TransactionHandler) UpdateTransaction(c *gin.Context) {
 	}
 
 	if h.fundCache != nil {
-		h.fundCache.Invalidate("funds:list")
+		h.fundCache.Invalidate(fmt.Sprintf("s%d:funds:list", storeID))
 	}
 
-	h.db.Preload("Fund").Preload("PurchaseItems.Ingredient").First(&existingTx, existingTx.ID)
+	h.db.Scopes(database.ScopeByStore(storeID)).Preload("Fund").Preload("PurchaseItems.Ingredient").First(&existingTx, existingTx.ID)
 	models.SendSuccess(c, http.StatusOK, existingTx, "Transaction updated successfully")
 }
 
 // DeleteTransaction deletes an existing manual transaction and reverts fund balance
 func (h *TransactionHandler) DeleteTransaction(c *gin.Context) {
+	storeID := middleware.MustGetStoreID(c)
+	if storeID == 0 {
+		return
+	}
+
 	idParam := c.Param("id")
 	id, err := strconv.ParseUint(idParam, 10, 32)
 	if err != nil {
@@ -720,7 +748,7 @@ func (h *TransactionHandler) DeleteTransaction(c *gin.Context) {
 	}
 
 	var existingTx models.Transaction
-	if err := h.db.First(&existingTx, id).Error; err != nil {
+	if err := h.db.Scopes(database.ScopeByStore(storeID)).First(&existingTx, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			models.SendError(c, http.StatusNotFound, "Transaction not found")
 			return
@@ -747,7 +775,7 @@ func (h *TransactionHandler) DeleteTransaction(c *gin.Context) {
 			"Chênh lệch đối soát",
 			"Chênh lệch đối soát két",
 		}
-		if err := h.db.Model(&models.Transaction{}).
+		if err := h.db.Scopes(database.ScopeByStore(storeID)).Model(&models.Transaction{}).
 			Where("fund_id = ? AND category IN (?) AND id > ?", existingTx.FundID, reconcileCategories, existingTx.ID).
 			Count(&newerReconcileCount).Error; err != nil {
 			models.SendInternalErrorLogged(c, "Failed to verify reconciliation transaction order", err)
@@ -764,21 +792,21 @@ func (h *TransactionHandler) DeleteTransaction(c *gin.Context) {
 		orderID := *existingTx.ReferenceOrderID
 		var order models.Order
 		err = h.db.Transaction(func(tx *gorm.DB) error {
-			// Find all transactions linked to this order
+			// Find all transactions linked to this order scoped to store
 			var linkedTxs []models.Transaction
-			if err := tx.Where("reference_order_id = ?", orderID).Find(&linkedTxs).Error; err != nil {
+			if err := tx.Scopes(database.ScopeByStore(storeID)).Where("reference_order_id = ?", orderID).Find(&linkedTxs).Error; err != nil {
 				return err
 			}
 
 			// Revert fund balance for each linked transaction and delete transaction
 			for _, ltx := range linkedTxs {
 				if ltx.TransactionType == models.TransactionTypeInflow {
-					if err := tx.Model(&models.Fund{}).Where("id = ?", ltx.FundID).
+					if err := tx.Model(&models.Fund{}).Scopes(database.ScopeByStore(storeID)).Where("id = ?", ltx.FundID).
 						Update("current_balance", gorm.Expr("current_balance - ?", ltx.Amount)).Error; err != nil {
 						return err
 					}
 				} else if ltx.TransactionType == models.TransactionTypeOutflow {
-					if err := tx.Model(&models.Fund{}).Where("id = ?", ltx.FundID).
+					if err := tx.Model(&models.Fund{}).Scopes(database.ScopeByStore(storeID)).Where("id = ?", ltx.FundID).
 						Update("current_balance", gorm.Expr("current_balance + ?", ltx.Amount)).Error; err != nil {
 						return err
 					}
@@ -793,7 +821,7 @@ func (h *TransactionHandler) DeleteTransaction(c *gin.Context) {
 			}
 
 			// Delete order items & order if found
-			if err := tx.First(&order, orderID).Error; err == nil {
+			if err := tx.Scopes(database.ScopeByStore(storeID)).First(&order, orderID).Error; err == nil {
 				if err := tx.Where("order_id = ?", order.ID).Delete(&models.OrderItem{}).Error; err != nil {
 					return err
 				}
@@ -816,7 +844,7 @@ func (h *TransactionHandler) DeleteTransaction(c *gin.Context) {
 		}
 
 		if h.fundCache != nil {
-			h.fundCache.Invalidate("funds:list")
+			h.fundCache.Invalidate(fmt.Sprintf("s%d:funds:list", storeID))
 		}
 
 		models.SendSuccess(c, http.StatusOK, gin.H{"id": existingTx.ID, "deleted_order_id": orderID}, "Order transaction deleted successfully")
@@ -826,12 +854,12 @@ func (h *TransactionHandler) DeleteTransaction(c *gin.Context) {
 	err = h.db.Transaction(func(tx *gorm.DB) error {
 		// 1. Revert effect of the transaction on the fund
 		if existingTx.TransactionType == models.TransactionTypeInflow {
-			if err := tx.Model(&models.Fund{}).Where("id = ?", existingTx.FundID).
+			if err := tx.Model(&models.Fund{}).Scopes(database.ScopeByStore(storeID)).Where("id = ?", existingTx.FundID).
 				Update("current_balance", gorm.Expr("current_balance - ?", existingTx.Amount)).Error; err != nil {
 				return err
 			}
 		} else {
-			if err := tx.Model(&models.Fund{}).Where("id = ?", existingTx.FundID).
+			if err := tx.Model(&models.Fund{}).Scopes(database.ScopeByStore(storeID)).Where("id = ?", existingTx.FundID).
 				Update("current_balance", gorm.Expr("current_balance + ?", existingTx.Amount)).Error; err != nil {
 				return err
 			}
@@ -865,7 +893,7 @@ func (h *TransactionHandler) DeleteTransaction(c *gin.Context) {
 			return err
 		}
 
-		// 4. Recalculate prices for affected ingredients
+		// 5. Recalculate prices for affected ingredients
 		for ingID := range affectedIngredientIDs {
 			if err := recalculateIngredientPrices(tx, ingID); err != nil {
 				return err
@@ -881,7 +909,7 @@ func (h *TransactionHandler) DeleteTransaction(c *gin.Context) {
 	}
 
 	if h.fundCache != nil {
-		h.fundCache.Invalidate("funds:list")
+		h.fundCache.Invalidate(fmt.Sprintf("s%d:funds:list", storeID))
 	}
 
 	models.SendSuccess(c, http.StatusOK, gin.H{"id": id}, "Transaction deleted successfully")
@@ -889,6 +917,11 @@ func (h *TransactionHandler) DeleteTransaction(c *gin.Context) {
 
 // GetCategoryBreakdown computes grouped transaction metrics by expense/inflow category
 func (h *TransactionHandler) GetCategoryBreakdown(c *gin.Context) {
+	storeID := middleware.MustGetStoreID(c)
+	if storeID == 0 {
+		return
+	}
+
 	txType := strings.ToLower(c.DefaultQuery("type", "outflow"))
 	if txType != "inflow" && txType != "outflow" {
 		txType = "outflow"
@@ -910,14 +943,15 @@ func (h *TransactionHandler) GetCategoryBreakdown(c *gin.Context) {
 			COUNT(t.id) as count 
 		FROM transactions t
 		LEFT JOIN orders o ON t.reference_order_id = o.id
-		WHERE t.transaction_type = ? 
+		WHERE t.store_id = ?
+		  AND t.transaction_type = ? 
 		  AND t.created_at BETWEEN ? AND ?
 		  AND (t.reference_order_id IS NULL OR o.status != 'cancelled')
 		GROUP BY t.category 
 		ORDER BY total_amount DESC
 	`
 
-	if err := h.db.Raw(query, txType, startTime, endTime).Scan(&rawCategories).Error; err != nil {
+	if err := h.db.Raw(query, storeID, txType, startTime, endTime).Scan(&rawCategories).Error; err != nil {
 		models.SendInternalError(c, "Failed to retrieve category breakdown: "+err.Error())
 		return
 	}
@@ -929,87 +963,25 @@ func (h *TransactionHandler) GetCategoryBreakdown(c *gin.Context) {
 		totalCount += rc.Count
 	}
 
-	canonicalMap := map[string]struct {
-		Label string
-		Code  string
-	}{
-		"sale":                    {Label: "Doanh thu bán hàng POS", Code: "sale"},
-		"doanh thu bán hàng pos":  {Label: "Doanh thu bán hàng POS", Code: "sale"},
-		"doanh thu bán hàng":      {Label: "Doanh thu bán hàng POS", Code: "sale"},
-		"ingredient_purchase":     {Label: "Mua nguyên liệu (Sữa, Cà phê, Đá)", Code: "ingredient_purchase"},
-		"mua nguyên liệu":         {Label: "Mua nguyên liệu (Sữa, Cà phê, Đá)", Code: "ingredient_purchase"},
-		"utility_bill":            {Label: "Chi phí vận hành (Điện, Nước, Net)", Code: "utility_bill"},
-		"chi phí vận hành":        {Label: "Chi phí vận hành (Điện, Nước, Net)", Code: "utility_bill"},
-		"reconciliation_variance": {Label: "Chênh lệch đối soát két", Code: "reconciliation_variance"},
-		"chênh lệch đối soát két": {Label: "Chênh lệch đối soát két", Code: "reconciliation_variance"},
-		"chênh lệch đối soát":     {Label: "Chênh lệch đối soát két", Code: "reconciliation_variance"},
-		"order_refund":            {Label: "Hủy đơn / Trả hàng", Code: "order_refund"},
-		"hủy đơn / trả hàng":      {Label: "Hủy đơn / Trả hàng", Code: "order_refund"},
-		"hủy đơn":                 {Label: "Hủy đơn / Trả hàng", Code: "order_refund"},
-		"hoàn tiền đơn hàng":      {Label: "Hủy đơn / Trả hàng", Code: "order_refund"},
-		"other":                   {Label: "Chi phí khác", Code: "other"},
-		"chi phí khác":            {Label: "Chi phí khác", Code: "other"},
-	}
-
-	type MergedItem struct {
-		Category string
-		Label    string
-		Amount   float64
-		Count    int64
-	}
-
-	mergedMap := make(map[string]*MergedItem)
-	orderedKeys := make([]string, 0)
-
+	categoryItems := make([]gin.H, 0)
 	for _, rc := range rawCategories {
-		normKey := strings.ToLower(strings.TrimSpace(rc.Category))
-		code := rc.Category
-		label := strings.ReplaceAll(rc.Category, "_", " ")
-
-		if canon, exists := canonicalMap[normKey]; exists {
-			code = canon.Code
-			label = canon.Label
-		}
-
-		if item, exists := mergedMap[code]; exists {
-			item.Amount += rc.TotalAmount
-			item.Count += rc.Count
-		} else {
-			mergedMap[code] = &MergedItem{
-				Category: code,
-				Label:    label,
-				Amount:   rc.TotalAmount,
-				Count:    rc.Count,
-			}
-			orderedKeys = append(orderedKeys, code)
-		}
-	}
-
-	categories := make([]models.CategoryBreakdownItem, 0)
-	for _, key := range orderedKeys {
-		item := mergedMap[key]
-		var pct float64 = 0
+		pct := 0.0
 		if totalAmount > 0 {
-			pct = math.Round((item.Amount/totalAmount)*1000) / 10
+			pct = math.Round((rc.TotalAmount/totalAmount)*1000) / 10
 		}
-
-		categories = append(categories, models.CategoryBreakdownItem{
-			Category:      item.Category,
-			CategoryLabel: item.Label,
-			TotalAmount:   item.Amount,
-			Percentage:    pct,
-			Count:         item.Count,
+		categoryItems = append(categoryItems, gin.H{
+			"category":     rc.Category,
+			"total_amount": rc.TotalAmount,
+			"count":        rc.Count,
+			"percentage":   pct,
 		})
 	}
 
-	response := models.CategoryBreakdownResponse{
-		TransactionType: txType,
-		TotalAmount:     totalAmount,
-		TotalCount:      totalCount,
-		From:            fromStr,
-		To:              toStr,
-		Categories:      categories,
-	}
-
-	models.SendSuccess(c, http.StatusOK, response, "Category breakdown retrieved successfully")
+	models.SendSuccess(c, http.StatusOK, gin.H{
+		"items":        categoryItems,
+		"total_amount": totalAmount,
+		"total_count":  totalCount,
+		"period_from":  fromStr,
+		"period_to":    toStr,
+	}, "Category breakdown retrieved successfully")
 }

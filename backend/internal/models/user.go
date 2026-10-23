@@ -9,7 +9,15 @@ type UserRole string
 const (
 	RoleAdmin UserRole = "admin"
 	RoleStaff UserRole = "staff"
+	// RoleSuperAdmin is the platform owner role. Legacy RoleAdmin is treated identically
+	// until migration 000021 normalizes stored values.
+	RoleSuperAdmin UserRole = "super_admin"
 )
+
+// IsSuperAdmin reports whether the role grants platform-wide authority (legacy admin included).
+func (r UserRole) IsSuperAdmin() bool {
+	return r == RoleAdmin || r == RoleSuperAdmin
+}
 
 // User represents a system operator or cashier in RabbitPOS
 type User struct {
@@ -40,12 +48,14 @@ type SetupPasswordRequest struct {
 }
 
 type UserResponse struct {
-	ID                 uint     `json:"id"`
-	Username           string   `json:"username"`
-	Email              string   `json:"email"`
-	Role               UserRole `json:"role"`
-	IsActive           bool     `json:"is_active"`
-	NeedsPasswordSetup bool     `json:"needs_password_setup"`
+	ID                 uint            `json:"id"`
+	Username           string          `json:"username"`
+	Email              string          `json:"email"`
+	Role               UserRole        `json:"role"`
+	IsActive           bool            `json:"is_active"`
+	NeedsPasswordSetup bool            `json:"needs_password_setup"`
+	Stores             []StoreResponse `json:"stores"`
+	DefaultStoreID     *uint           `json:"default_store_id"`
 }
 
 type LoginResponse struct {

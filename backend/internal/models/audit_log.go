@@ -5,6 +5,7 @@ import "time"
 // AuditLog records security-critical actions and administrative modifications across RabbitPOS
 type AuditLog struct {
 	ID            uint      `gorm:"primaryKey" json:"id"`
+	StoreID       *uint     `json:"store_id,omitempty"`
 	ActorID       *uint     `gorm:"index" json:"actor_id,omitempty"`
 	ActorUsername string    `gorm:"type:varchar(100);not null;index" json:"actor_username"`
 	Role          string    `gorm:"type:varchar(50);not null" json:"role"`

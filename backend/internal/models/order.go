@@ -15,7 +15,8 @@ const (
 // Order represents a customer POS transaction with server-authoritative financials & audit trail
 type Order struct {
 	ID                  uint        `gorm:"primaryKey" json:"id"`
-	OrderCode           string      `gorm:"type:varchar(50);not null;uniqueIndex" json:"order_code"`
+	StoreID             uint        `gorm:"not null;default:1;uniqueIndex:uq_orders_store_order_code,priority:1" json:"store_id"`
+	OrderCode           string      `gorm:"type:varchar(50);not null;index:idx_orders_order_code;uniqueIndex:uq_orders_store_order_code,priority:2" json:"order_code"`
 	Status              OrderStatus `gorm:"type:varchar(30);not null;default:'completed';index" json:"status"`
 	Subtotal            float64     `gorm:"type:numeric(12,2);not null;default:0.00" json:"subtotal"`
 	DiscountAmount      float64     `gorm:"type:numeric(12,2);not null;default:0.00" json:"discount_amount"`

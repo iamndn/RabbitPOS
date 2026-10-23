@@ -9,12 +9,16 @@ import (
 	"time"
 
 	"github.com/RabbitPOS/backend/internal/cache"
+	"github.com/RabbitPOS/backend/internal/database"
+	"github.com/RabbitPOS/backend/internal/middleware"
 	"github.com/RabbitPOS/backend/internal/models"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
 
-const fundsCacheKey = "funds:list"
+func fundCacheKey(storeID uint) string {
+	return fmt.Sprintf("s%d:funds:list", storeID)
+}
 
 type FundHandler struct {
 	db    *gorm.DB
@@ -27,29 +31,27 @@ func NewFundHandler(db *gorm.DB, c *cache.TTLCache) *FundHandler {
 
 // ListFunds returns active payment funds (Cash Drawer, Bank Accounts, E-Wallets) with in-memory caching
 func (h *FundHandler) ListFunds(c *gin.Context) {
+	storeID := middleware.MustGetStoreID(c)
+	if storeID == 0 {
+		return
+	}
+
+	ck := fundCacheKey(storeID)
 	if h.cache != nil {
-		if cached, ok := h.cache.Get(fundsCacheKey); ok {
+		if cached, ok := h.cache.Get(ck); ok {
 			models.SendSuccess(c, http.StatusOK, cached, "Funds retrieved successfully")
 			return
 		}
 	}
 
 	funds := make([]models.Fund, 0)
-	if err := h.db.Where("is_active = ?", true).Order("id asc").Find(&funds).Error; err != nil {
+	if err := h.db.Scopes(database.ScopeByStore(storeID)).Where("is_active = ?", true).Order("id asc").Find(&funds).Error; err != nil {
 		models.SendInternalErrorLogged(c, "Failed to retrieve funds", err)
 		return
 	}
 
-	// Fallback response if DB has no funds seeded yet
-	if len(funds) == 0 {
-		funds = []models.Fund{
-			{ID: 1, Name: "Cash Drawer", FundType: models.FundTypeCash, CurrentBalance: 0, IsActive: true},
-			{ID: 2, Name: "MBBank Account", FundType: models.FundTypeBank, CurrentBalance: 0, IsActive: true},
-		}
-	}
-
 	if h.cache != nil {
-		h.cache.SetWithTTL(fundsCacheKey, funds, 1*time.Minute)
+		h.cache.SetWithTTL(ck, funds, 1*time.Minute)
 	}
 
 	models.SendSuccess(c, http.StatusOK, funds, "Funds retrieved successfully")
@@ -57,6 +59,11 @@ func (h *FundHandler) ListFunds(c *gin.Context) {
 
 // GetFundBalance returns theoretical balance and transaction totals for a target fund
 func (h *FundHandler) GetFundBalance(c *gin.Context) {
+	storeID := middleware.MustGetStoreID(c)
+	if storeID == 0 {
+		return
+	}
+
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
@@ -65,7 +72,7 @@ func (h *FundHandler) GetFundBalance(c *gin.Context) {
 	}
 
 	var fund models.Fund
-	if err := h.db.First(&fund, id).Error; err != nil {
+	if err := h.db.Scopes(database.ScopeByStore(storeID)).First(&fund, id).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			models.SendError(c, http.StatusNotFound, "Fund not found")
 			return
@@ -78,16 +85,18 @@ func (h *FundHandler) GetFundBalance(c *gin.Context) {
 	var totalOutflows float64
 
 	h.db.Model(&models.Transaction{}).
+		Scopes(database.ScopeByStore(storeID)).
 		Where("fund_id = ? AND transaction_type = ?", id, models.TransactionTypeInflow).
 		Select("COALESCE(SUM(amount), 0)").Scan(&totalInflows)
 
 	h.db.Model(&models.Transaction{}).
+		Scopes(database.ScopeByStore(storeID)).
 		Where("fund_id = ? AND transaction_type = ?", id, models.TransactionTypeOutflow).
 		Select("COALESCE(SUM(amount), 0)").Scan(&totalOutflows)
 
 	var lastTx models.Transaction
 	var lastTxTime *time.Time
-	if err := h.db.Where("fund_id = ?", id).Order("created_at desc").First(&lastTx).Error; err == nil {
+	if err := h.db.Scopes(database.ScopeByStore(storeID)).Where("fund_id = ?", id).Order("created_at desc").First(&lastTx).Error; err == nil {
 		lastTxTime = &lastTx.CreatedAt
 	}
 
@@ -105,6 +114,11 @@ func (h *FundHandler) GetFundBalance(c *gin.Context) {
 
 // ReconcileFund compares actual counted balance against theoretical balance and logs variance
 func (h *FundHandler) ReconcileFund(c *gin.Context) {
+	storeID := middleware.MustGetStoreID(c)
+	if storeID == 0 {
+		return
+	}
+
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
@@ -113,7 +127,7 @@ func (h *FundHandler) ReconcileFund(c *gin.Context) {
 	}
 
 	var fund models.Fund
-	if err := h.db.First(&fund, id).Error; err != nil {
+	if err := h.db.Scopes(database.ScopeByStore(storeID)).First(&fund, id).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			models.SendError(c, http.StatusNotFound, "Fund not found")
 			return
@@ -156,6 +170,7 @@ func (h *FundHandler) ReconcileFund(c *gin.Context) {
 			}
 
 			reconcileTx = &models.Transaction{
+				StoreID:         storeID,
 				FundID:          fund.ID,
 				TransactionType: txType,
 				Category:        models.CategoryReconciliationVariance,
@@ -200,11 +215,11 @@ func (h *FundHandler) ReconcileFund(c *gin.Context) {
 	}
 
 	if h.cache != nil {
-		h.cache.Invalidate(fundsCacheKey)
+		h.cache.Invalidate(fundCacheKey(storeID))
 	}
 
 	// Fetch updated fund
-	h.db.First(&fund, id)
+	h.db.Scopes(database.ScopeByStore(storeID)).First(&fund, id)
 
 	models.SendSuccess(c, http.StatusOK, gin.H{
 		"fund":                fund,
@@ -216,6 +231,11 @@ func (h *FundHandler) ReconcileFund(c *gin.Context) {
 
 // UpdateReconciliation updates the actual counted balance of the most recent reconciliation and adjusts fund balance
 func (h *FundHandler) UpdateReconciliation(c *gin.Context) {
+	storeID := middleware.MustGetStoreID(c)
+	if storeID == 0 {
+		return
+	}
+
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
@@ -224,7 +244,7 @@ func (h *FundHandler) UpdateReconciliation(c *gin.Context) {
 	}
 
 	var fund models.Fund
-	if err := h.db.First(&fund, id).Error; err != nil {
+	if err := h.db.Scopes(database.ScopeByStore(storeID)).First(&fund, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			models.SendError(c, http.StatusNotFound, "Fund not found")
 			return
@@ -342,6 +362,7 @@ func (h *FundHandler) UpdateReconciliation(c *gin.Context) {
 			}
 		} else if newVariance != 0 {
 			newTx := models.Transaction{
+				StoreID:         storeID,
 				FundID:          fund.ID,
 				TransactionType: txType,
 				Category:        models.CategoryReconciliationVariance,
@@ -401,10 +422,10 @@ func (h *FundHandler) UpdateReconciliation(c *gin.Context) {
 	}
 
 	if h.cache != nil {
-		h.cache.Invalidate(fundsCacheKey)
+		h.cache.Invalidate(fundCacheKey(storeID))
 	}
 
-	_ = h.db.First(&fund, id)
+	_ = h.db.Scopes(database.ScopeByStore(storeID)).First(&fund, id)
 
 	models.SendSuccess(c, http.StatusOK, gin.H{
 		"fund_id":                 fund.ID,
@@ -423,6 +444,11 @@ func (h *FundHandler) UpdateReconciliation(c *gin.Context) {
 
 // DeleteLatestReconciliation finds and deletes the most recent reconciliation transaction for a fund and reverts its balance
 func (h *FundHandler) DeleteLatestReconciliation(c *gin.Context) {
+	storeID := middleware.MustGetStoreID(c)
+	if storeID == 0 {
+		return
+	}
+
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
@@ -431,7 +457,7 @@ func (h *FundHandler) DeleteLatestReconciliation(c *gin.Context) {
 	}
 
 	var fund models.Fund
-	if err := h.db.First(&fund, id).Error; err != nil {
+	if err := h.db.Scopes(database.ScopeByStore(storeID)).First(&fund, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			models.SendError(c, http.StatusNotFound, "Fund not found")
 			return
@@ -540,11 +566,11 @@ func (h *FundHandler) DeleteLatestReconciliation(c *gin.Context) {
 	}
 
 	if h.cache != nil {
-		h.cache.Invalidate(fundsCacheKey)
+		h.cache.Invalidate(fundCacheKey(storeID))
 	}
 
 	// Fetch updated fund
-	_ = h.db.First(&fund, id)
+	_ = h.db.Scopes(database.ScopeByStore(storeID)).First(&fund, id)
 
 	models.SendSuccess(c, http.StatusOK, gin.H{
 		"deleted_transaction_id": latestTx.ID,
@@ -559,6 +585,11 @@ func (h *FundHandler) DeleteLatestReconciliation(c *gin.Context) {
 
 // RestorePreviousReconciliation restores the most recently reverted reconciliation for a fund
 func (h *FundHandler) RestorePreviousReconciliation(c *gin.Context) {
+	storeID := middleware.MustGetStoreID(c)
+	if storeID == 0 {
+		return
+	}
+
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
@@ -567,7 +598,7 @@ func (h *FundHandler) RestorePreviousReconciliation(c *gin.Context) {
 	}
 
 	var fund models.Fund
-	if err := h.db.First(&fund, id).Error; err != nil {
+	if err := h.db.Scopes(database.ScopeByStore(storeID)).First(&fund, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			models.SendError(c, http.StatusNotFound, "Fund not found")
 			return
@@ -623,6 +654,7 @@ func (h *FundHandler) RestorePreviousReconciliation(c *gin.Context) {
 			}
 
 			reconcileTx := models.Transaction{
+				StoreID:         storeID,
 				FundID:          fund.ID,
 				TransactionType: txType,
 				Category:        models.CategoryReconciliationVariance,
@@ -652,10 +684,10 @@ func (h *FundHandler) RestorePreviousReconciliation(c *gin.Context) {
 	}
 
 	if h.cache != nil {
-		h.cache.Invalidate(fundsCacheKey)
+		h.cache.Invalidate(fundCacheKey(storeID))
 	}
 
-	_ = h.db.First(&fund, id)
+	_ = h.db.Scopes(database.ScopeByStore(storeID)).First(&fund, id)
 
 	models.SendSuccess(c, http.StatusOK, gin.H{
 		"reconciliation_id":  revertedRec.ID,
@@ -670,6 +702,11 @@ func (h *FundHandler) RestorePreviousReconciliation(c *gin.Context) {
 
 // GetReconciliationHistory returns recent reconciliation audit logs for a fund
 func (h *FundHandler) GetReconciliationHistory(c *gin.Context) {
+	storeID := middleware.MustGetStoreID(c)
+	if storeID == 0 {
+		return
+	}
+
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
@@ -678,7 +715,7 @@ func (h *FundHandler) GetReconciliationHistory(c *gin.Context) {
 	}
 
 	var fund models.Fund
-	if err := h.db.First(&fund, id).Error; err != nil {
+	if err := h.db.Scopes(database.ScopeByStore(storeID)).First(&fund, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			models.SendError(c, http.StatusNotFound, "Fund not found")
 			return
@@ -733,6 +770,11 @@ func (h *FundHandler) GetReconciliationHistory(c *gin.Context) {
 // GetCashierShiftSummary returns financial totals for a specific cashier's shift
 // Query params: cashier_name (required), date (optional, YYYY-MM-DD, defaults to today)
 func (h *FundHandler) GetCashierShiftSummary(c *gin.Context) {
+	storeID := middleware.MustGetStoreID(c)
+	if storeID == 0 {
+		return
+	}
+
 	cashierName := c.Query("cashier_name")
 	if cashierName == "" {
 		// Default to the requesting user's own cashier name from JWT context
@@ -767,6 +809,7 @@ func (h *FundHandler) GetCashierShiftSummary(c *gin.Context) {
 	// Query inflows attributed to this cashier in the date range
 	var totalInflows float64
 	h.db.Model(&models.Transaction{}).
+		Scopes(database.ScopeByStore(storeID)).
 		Where("cashier_name = ? AND transaction_type = ? AND created_at >= ? AND created_at < ?",
 			cashierName, models.TransactionTypeInflow, startTime, endTime).
 		Select("COALESCE(SUM(amount), 0)").Scan(&totalInflows)
@@ -774,6 +817,7 @@ func (h *FundHandler) GetCashierShiftSummary(c *gin.Context) {
 	// Query outflows attributed to this cashier in the date range
 	var totalOutflows float64
 	h.db.Model(&models.Transaction{}).
+		Scopes(database.ScopeByStore(storeID)).
 		Where("cashier_name = ? AND transaction_type = ? AND created_at >= ? AND created_at < ?",
 			cashierName, models.TransactionTypeOutflow, startTime, endTime).
 		Select("COALESCE(SUM(amount), 0)").Scan(&totalOutflows)
@@ -781,6 +825,7 @@ func (h *FundHandler) GetCashierShiftSummary(c *gin.Context) {
 	// Count completed orders attributed to this cashier in the date range
 	var orderCount int64
 	h.db.Model(&models.Order{}).
+		Scopes(database.ScopeByStore(storeID)).
 		Where("cashier_name = ? AND status = ? AND created_at >= ? AND created_at < ?",
 			cashierName, models.OrderStatusCompleted, startTime, endTime).
 		Count(&orderCount)
@@ -790,11 +835,11 @@ func (h *FundHandler) GetCashierShiftSummary(c *gin.Context) {
 	var lastTx models.Transaction
 	var shiftStart, shiftEnd *time.Time
 
-	if err := h.db.Where("cashier_name = ? AND created_at >= ? AND created_at < ?",
+	if err := h.db.Scopes(database.ScopeByStore(storeID)).Where("cashier_name = ? AND created_at >= ? AND created_at < ?",
 		cashierName, startTime, endTime).Order("created_at asc").First(&firstTx).Error; err == nil {
 		shiftStart = &firstTx.CreatedAt
 	}
-	if err := h.db.Where("cashier_name = ? AND created_at >= ? AND created_at < ?",
+	if err := h.db.Scopes(database.ScopeByStore(storeID)).Where("cashier_name = ? AND created_at >= ? AND created_at < ?",
 		cashierName, startTime, endTime).Order("created_at desc").First(&lastTx).Error; err == nil {
 		shiftEnd = &lastTx.CreatedAt
 	}
@@ -815,6 +860,11 @@ func (h *FundHandler) GetCashierShiftSummary(c *gin.Context) {
 
 // GetPeriodSummary calculates monthly opening, inflows, outflows, and closing balances for all funds
 func (h *FundHandler) GetPeriodSummary(c *gin.Context) {
+	storeID := middleware.MustGetStoreID(c)
+	if storeID == 0 {
+		return
+	}
+
 	now := time.Now()
 	monthStr := c.DefaultQuery("month", now.Format("2006-01"))
 
@@ -833,12 +883,12 @@ func (h *FundHandler) GetPeriodSummary(c *gin.Context) {
 	endOfPrevMonth := startOfPrevMonth.AddDate(0, 1, 0).Add(-time.Nanosecond)
 
 	var funds []models.Fund
-	if err := h.db.Where("is_active = ?", true).Order("id asc").Find(&funds).Error; err != nil {
+	if err := h.db.Scopes(database.ScopeByStore(storeID)).Where("is_active = ?", true).Order("id asc").Find(&funds).Error; err != nil {
 		models.SendInternalError(c, "Failed to retrieve funds: "+err.Error())
 		return
 	}
 
-	// Native SQL aggregation push-down: compute all funds' periodic metrics in a single query
+	// Native SQL aggregation push-down: compute all funds' periodic metrics in a single query scoped to active store
 	type fundAggregation struct {
 		FundID                uint    `gorm:"column:fund_id"`
 		CurrInflow            float64 `gorm:"column:curr_inflow"`
@@ -851,6 +901,7 @@ func (h *FundHandler) GetPeriodSummary(c *gin.Context) {
 
 	var aggResults []fundAggregation
 	h.db.Model(&models.Transaction{}).
+		Scopes(database.ScopeByStore(storeID)).
 		Select(`
 			fund_id,
 			COALESCE(SUM(CASE WHEN transaction_type = 'inflow' AND created_at BETWEEN ? AND ? THEN amount ELSE 0 END), 0) AS curr_inflow,

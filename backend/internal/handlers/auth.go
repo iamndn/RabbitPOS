@@ -175,6 +175,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	cookieMaxAge := h.cfg.JWTExpiryHours * 3600
 	c.SetCookie("token", token, cookieMaxAge, "/", "", false, true)
 
+	stores, defID := h.populateUserStores(&user)
 	userResp := models.UserResponse{
 		ID:                 user.ID,
 		Username:           user.Username,
@@ -182,6 +183,8 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		Role:               user.Role,
 		IsActive:           user.IsActive,
 		NeedsPasswordSetup: user.NeedsPasswordSetup,
+		Stores:             stores,
+		DefaultStoreID:     defID,
 	}
 
 	// Record audit log
@@ -356,6 +359,7 @@ func (h *AuthHandler) GetMe(c *gin.Context) {
 		return
 	}
 
+	stores, defID := h.populateUserStores(&user)
 	userResp := models.UserResponse{
 		ID:                 user.ID,
 		Username:           user.Username,
@@ -363,7 +367,59 @@ func (h *AuthHandler) GetMe(c *gin.Context) {
 		Role:               user.Role,
 		IsActive:           user.IsActive,
 		NeedsPasswordSetup: user.NeedsPasswordSetup,
+		Stores:             stores,
+		DefaultStoreID:     defID,
 	}
 
 	models.SendSuccess(c, http.StatusOK, userResp, "Current user profile retrieved successfully")
+}
+
+func (h *AuthHandler) populateUserStores(user *models.User) ([]models.StoreResponse, *uint) {
+	var memberships []models.UserStore
+	_ = h.db.Where("user_id = ?", user.ID).Find(&memberships).Error
+	byStore := map[uint]models.UserStore{}
+	var defID *uint
+	for _, m := range memberships {
+		byStore[m.StoreID] = m
+		if m.IsDefault {
+			id := m.StoreID
+			defID = &id
+		}
+	}
+
+	var stores []models.Store
+	isSuper := user.Role.IsSuperAdmin()
+	q := h.db.Order("id ASC")
+	if !isSuper {
+		ids := make([]uint, 0, len(byStore))
+		for id := range byStore {
+			ids = append(ids, id)
+		}
+		if len(ids) == 0 {
+			return []models.StoreResponse{}, nil
+		}
+		q = q.Where("id IN ?", ids).Where("is_active = TRUE")
+	}
+	_ = q.Find(&stores).Error
+
+	out := make([]models.StoreResponse, 0, len(stores))
+	for _, s := range stores {
+		r := models.StoreResponse{Store: s}
+		if m, ok := byStore[s.ID]; ok {
+			r.Role, r.IsDefault = m.Role, m.IsDefault
+		}
+		if isSuper {
+			r.Role = models.StoreRoleSuperAdmin
+		}
+		if !isSuper && !s.IsActive {
+			continue
+		}
+		out = append(out, r)
+	}
+
+	if defID == nil && len(out) > 0 {
+		firstID := out[0].ID
+		defID = &firstID
+	}
+	return out, defID
 }

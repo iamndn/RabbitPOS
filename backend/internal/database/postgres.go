@@ -7,6 +7,7 @@ import (
 
 	"github.com/RabbitPOS/backend/internal/config"
 	"github.com/RabbitPOS/backend/internal/models"
+	"github.com/RabbitPOS/backend/migrations"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -72,8 +73,16 @@ func InitDB(cfg *config.Config) (*gorm.DB, error) {
 	sqlDB.SetConnMaxLifetime(10 * time.Minute)
 	sqlDB.SetConnMaxIdleTime(3 * time.Minute)
 
+	// Apply tracked SQL migrations BEFORE AutoMigrate: AutoMigrate alone cannot add NOT NULL columns
+	// to populated tables or swap unique indexes safely (see docs/MULTI_STORE_UPGRADE_PLAN.md §3.4).
+	if err := RunSQLMigrations(db, migrations.FS); err != nil {
+		log.Printf("Failed during SQL migrations: %v", err)
+		return nil, err
+	}
+
 	// Auto-migrate domain models to ensure schema is always up-to-date
 	err = db.AutoMigrate(
+		&models.Store{},
 		&models.Category{},
 		&models.Product{},
 		&models.ProductVariant{},
@@ -84,7 +93,9 @@ func InitDB(cfg *config.Config) (*gorm.DB, error) {
 		&models.OrderItem{},
 		&models.Transaction{},
 		&models.User{},
+		&models.UserStore{},
 		&models.Setting{},
+		&models.StoreSetting{},
 		&models.Topping{},
 		&models.TransactionCategoryItem{},
 		&models.Ingredient{},
@@ -99,6 +110,14 @@ func InitDB(cfg *config.Config) (*gorm.DB, error) {
 		log.Printf("Warning: Failed during DB auto-migration: %v", err)
 		return nil, err
 	}
+
+	// Multi-store: fail-closed create callback (strict mode is opt-in), tenant indexes and FKs
+	SetStrictStoreCreate(cfg.StoreStrictCreate)
+	if err := RegisterStoreScopeCallbacks(db); err != nil {
+		log.Printf("Warning: failed to register store scope callbacks: %v", err)
+	}
+	ensureStoreForeignKeys(db)
+	ensureStoreIndexes(db)
 
 	// Ensure foreign key constraint fk_orders_promotion has ON DELETE SET NULL & ON UPDATE CASCADE
 	db.Exec(`
@@ -129,10 +148,16 @@ func InitDB(cfg *config.Config) (*gorm.DB, error) {
 	// ── Essential Core Seeds (always run, all environments) ─────────────────
 	// These are required for the application to function at all.
 	// They are idempotent — only insert when the record/table is empty.
-	seedUsers(db, cfg)
-	seedFunds(db)
-	seedSettings(db)
-	seedTransactionCategories(db)
+	defaultStoreID, err := EnsureDefaultStore(db, cfg)
+	if err != nil {
+		log.Printf("Warning: failed to ensure default store: %v", err)
+		return nil, err
+	}
+	seedUsers(db, cfg, defaultStoreID)
+	if err := db.Transaction(func(tx *gorm.DB) error { return SeedStoreDefaults(tx, defaultStoreID) }); err != nil {
+		log.Printf("[SEED] ERROR: failed to seed default store %d: %v", defaultStoreID, err)
+	}
+	seedSettings(db, defaultStoreID)
 
 	// ── Development / Demo Seeds (controlled by ENABLE_SEEDING flag) ─────────
 	// Sample catalog data (products, categories) helps developers get started
@@ -149,7 +174,7 @@ func InitDB(cfg *config.Config) (*gorm.DB, error) {
 }
 
 // seedUsers manages initial accounts and ensures legacy default accounts are removed.
-func seedUsers(db *gorm.DB, cfg *config.Config) {
+func seedUsers(db *gorm.DB, cfg *config.Config, defaultStoreID uint) {
 	// Remove legacy default accounts 'admin', 'staff' and removed account 'DAT' if they exist
 	if result := db.Where("username IN ?", []string{"admin", "staff", "DAT", "dat"}).Delete(&models.User{}); result.Error == nil && result.RowsAffected > 0 {
 		log.Printf("[SEED] Removed %d legacy / deleted user account(s).", result.RowsAffected)
@@ -186,6 +211,7 @@ func seedUsers(db *gorm.DB, cfg *config.Config) {
 				log.Printf("[SEED] ERROR: Failed to create cashier account '%s': %v", cashier.Username, result.Error)
 			} else {
 				log.Printf("[SEED] Cashier account '%s' created (needs_password_setup=true).", cashier.Username)
+				assignSeedMembership(db, newCashier, defaultStoreID)
 			}
 		} else if cashierErr == nil {
 			log.Printf("[SEED] Cashier account '%s' already exists — skipping.", cashier.Username)
@@ -195,82 +221,19 @@ func seedUsers(db *gorm.DB, cfg *config.Config) {
 	}
 }
 
-// seedFunds creates the essential payment fund accounts if none exist.
-// These are required for POS checkout to function in any environment.
-func seedFunds(db *gorm.DB) {
-	var count int64
-	db.Model(&models.Fund{}).Count(&count)
-	if count > 0 {
+// seedSettings keeps the global settings table populated for the legacy (not yet store-aware)
+// handlers. Store identity keys are mirrored from the default store row (insert-missing only), so
+// no store name, address, phone or bank account is hardcoded. Google Sheets keys keep their defaults.
+func seedSettings(db *gorm.DB, defaultStoreID uint) {
+	var store models.Store
+	if err := db.First(&store, defaultStoreID).Error; err != nil {
+		log.Printf("[SEED] ERROR: default store %d not found while seeding settings: %v", defaultStoreID, err)
 		return
 	}
-
-	log.Println("[SEED] No funds found — seeding essential payment funds...")
-
-	defaultFunds := []models.Fund{
-		{
-			Name:           "Tiền mặt",
-			FundType:       models.FundTypeCash,
-			CurrentBalance: 0.00,
-			IsActive:       true,
-		},
-		{
-			Name:           "Chuyển khoản",
-			FundType:       models.FundTypeBank,
-			CurrentBalance: 0.00,
-			IsActive:       true,
-		},
-	}
-
-	for _, fund := range defaultFunds {
-		if result := db.Create(&fund); result.Error != nil {
-			log.Printf("[SEED] ERROR: Failed to seed fund '%s': %v", fund.Name, result.Error)
-		} else {
-			log.Printf("[SEED] Payment fund '%s' (%s) seeded successfully.", fund.Name, fund.FundType)
-		}
-	}
-}
-
-// seedSettings creates default system configuration if the settings table is empty.
-// Settings keys are essential application configuration — not demo data.
-func seedSettings(db *gorm.DB) {
-	var count int64
-	db.Model(&models.Setting{}).Count(&count)
-	if count > 0 {
-		return
-	}
-
-	log.Println("[SEED] No settings found — seeding default system configuration...")
-	now := time.Now()
-	defaultSettings := []models.Setting{
-		{Key: "store_name", Value: "Tho Juice & Coffee", UpdatedAt: now},
-		{Key: "store_address", Value: "Số 72 Ngõ 245 Định Công, P.Định Công, Hà Nội", UpdatedAt: now},
-		{Key: "store_phone", Value: "0869910956", UpdatedAt: now},
-		{Key: "currency_code", Value: "VND", UpdatedAt: now},
-		{Key: "currency_symbol", Value: "đ", UpdatedAt: now},
-		{Key: "currency_position", Value: "suffix", UpdatedAt: now},
-		{Key: "vietqr_bank_id", Value: "MB", UpdatedAt: now},
-		{Key: "vietqr_account_no", Value: "0298618519999", UpdatedAt: now},
-		{Key: "vietqr_account_name", Value: "TRAN THI HONG NHUNG", UpdatedAt: now},
-		{Key: "store_logo_url", Value: "", UpdatedAt: now},
-	}
-
-	for _, s := range defaultSettings {
-		if result := db.Create(&s); result.Error != nil {
-			log.Printf("[SEED] ERROR: Failed to seed setting '%s': %v", s.Key, result.Error)
-		}
-	}
-	log.Println("[SEED] Default system settings seeded successfully.")
-
-	// Ensure store_logo_url exists even if settings were already seeded previously
-	var logoSetting models.Setting
-	if err := db.Where("key = ?", "store_logo_url").First(&logoSetting).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			db.Create(&models.Setting{Key: "store_logo_url", Value: "", UpdatedAt: now})
-			log.Println("[SEED] Setting 'store_logo_url' added to existing settings.")
-		}
-	}
+	mirrorStoreToLegacySettings(db, store)
 
 	// Ensure Google Sheets sync settings exist even if settings were already seeded previously
+	now := time.Now()
 	googleSheetsDefaults := []models.Setting{
 		{Key: "google_sheets_sync_enabled", Value: "false", UpdatedAt: now},
 		{Key: "google_sheets_spreadsheet_id", Value: "", UpdatedAt: now},
@@ -434,29 +397,4 @@ func seedDemoCatalog(db *gorm.DB) {
 	}
 
 	log.Println("[SEED] Demo catalog seeded successfully.")
-}
-
-// seedTransactionCategories initializes default system transaction categories if table is empty
-func seedTransactionCategories(db *gorm.DB) {
-	var count int64
-	db.Model(&models.TransactionCategoryItem{}).Count(&count)
-	if count > 0 {
-		return
-	}
-
-	defaultCategories := []models.TransactionCategoryItem{
-		{Name: "Mua nguyên liệu", Type: "outflow", Code: "ingredient_purchase", IsDefault: true, IsSystem: false},
-		{Name: "Chi phí vận hành", Type: "outflow", Code: "utility_bill", IsDefault: false, IsSystem: false},
-		{Name: "Chi phí khác", Type: "outflow", Code: "other", IsDefault: false, IsSystem: false},
-		{Name: "Doanh thu bán hàng POS", Type: "inflow", Code: "sale", IsDefault: true, IsSystem: false},
-		{Name: "Thu nhập khác", Type: "inflow", Code: "other", IsDefault: false, IsSystem: false},
-		{Name: "Chênh lệch đối soát", Type: "both", Code: "reconciliation_variance", IsDefault: false, IsSystem: false},
-	}
-
-	for _, cat := range defaultCategories {
-		if err := db.Create(&cat).Error; err != nil {
-			log.Printf("[SEED] Failed to seed transaction category %s: %v", cat.Name, err)
-		}
-	}
-	log.Println("[SEED] Default transaction categories initialized successfully.")
 }

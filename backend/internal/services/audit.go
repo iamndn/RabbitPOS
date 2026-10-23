@@ -87,8 +87,9 @@ func jsonSanitizeMap(input map[string]interface{}) map[string]interface{} {
 	return out
 }
 
-// RecordLog records an audit log entry. Does not block or fail request if db is nil.
-func (s *AuditService) RecordLog(
+// RecordStoreLog records an audit log entry for a specific store. Does not block or fail request if db is nil.
+func (s *AuditService) RecordStoreLog(
+	storeID *uint,
 	actorID *uint,
 	actorUsername string,
 	role string,
@@ -107,6 +108,7 @@ func (s *AuditService) RecordLog(
 	metaJSON := SanitizeAuditMetadata(metadata)
 
 	logEntry := models.AuditLog{
+		StoreID:       storeID,
 		ActorID:       actorID,
 		ActorUsername: actorUsername,
 		Role:          role,
@@ -128,8 +130,25 @@ func (s *AuditService) RecordLog(
 	}(logEntry)
 }
 
-// RecordLogSync records an audit log synchronously (useful in test assertions and critical transactions)
-func (s *AuditService) RecordLogSync(
+// RecordLog records an audit log entry without a specific store.
+func (s *AuditService) RecordLog(
+	actorID *uint,
+	actorUsername string,
+	role string,
+	action string,
+	resource string,
+	resourceID *string,
+	status string,
+	ip string,
+	userAgent string,
+	metadata map[string]interface{},
+) {
+	s.RecordStoreLog(nil, actorID, actorUsername, role, action, resource, resourceID, status, ip, userAgent, metadata)
+}
+
+// RecordStoreLogSync records an audit log synchronously for a specific store
+func (s *AuditService) RecordStoreLogSync(
+	storeID *uint,
 	actorID *uint,
 	actorUsername string,
 	role string,
@@ -148,6 +167,7 @@ func (s *AuditService) RecordLogSync(
 	metaJSON := SanitizeAuditMetadata(metadata)
 
 	logEntry := models.AuditLog{
+		StoreID:       storeID,
 		ActorID:       actorID,
 		ActorUsername: actorUsername,
 		Role:          role,
@@ -162,4 +182,20 @@ func (s *AuditService) RecordLogSync(
 	}
 
 	return s.db.Create(&logEntry).Error
+}
+
+// RecordLogSync records an audit log synchronously without a specific store
+func (s *AuditService) RecordLogSync(
+	actorID *uint,
+	actorUsername string,
+	role string,
+	action string,
+	resource string,
+	resourceID *string,
+	status string,
+	ip string,
+	userAgent string,
+	metadata map[string]interface{},
+) error {
+	return s.RecordStoreLogSync(nil, actorID, actorUsername, role, action, resource, resourceID, status, ip, userAgent, metadata)
 }
