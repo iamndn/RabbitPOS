@@ -53,7 +53,7 @@ export default function InstallPWABanner() {
   return (
     <div
       role="dialog"
-      aria-label="Cài đặt ứng dụng ThoPOS"
+      aria-label="Cài đặt ứng dụng RabbitPOS"
       className={`fixed bottom-0 left-0 right-0 z-[9999] transition-transform duration-350 ease-in-out ${
         isVisible ? 'translate-y-0' : 'translate-y-full'
       }`}
@@ -78,13 +78,13 @@ export default function InstallPWABanner() {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/icons/apple-touch-icon.png"
-              alt="ThoPOS icon"
+              alt="RabbitPOS icon"
               className="w-full h-full object-cover"
             />
           </div>
           <div>
             <h2 className="font-extrabold text-slate-900 text-[15px] leading-tight">
-              📱 Cài đặt Ứng dụng Thỏ POS
+              📱 Cài đặt Ứng dụng RabbitPOS
             </h2>
             <p className="text-slate-500 text-xs mt-0.5">
               Truy cập nhanh hơn, như ứng dụng thật sự

@@ -1,7 +1,7 @@
 {
-  "name": "RabbitPOS - Thỏ Juice & Coffee",
-  "short_name": "ThoPOS",
-  "description": "Hệ thống Bán hàng & Quản trị Doanh thu Quán Thỏ Juice & Coffee",
+  "name": "RabbitPOS",
+  "short_name": "RabbitPOS",
+  "description": "Hệ thống Bán hàng & Quản trị Doanh thu RabbitPOS",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

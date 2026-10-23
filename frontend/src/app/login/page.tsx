@@ -22,6 +22,8 @@ interface LoginData {
   user: UserInfo;
 }
 
+import { getSavedStoreBrand } from '@/lib/store';
+
 interface NeedsSetupData {
   username: string;
   temp_token: string;
@@ -32,8 +34,8 @@ export default function LoginPage() {
   const { t } = useTranslation();
 
   // Store metadata
-  const [storeLogo, setStoreLogo] = useState<string | null>(null);
-  const [storeName, setStoreName] = useState<string>('Thỏ Juice & Coffee');
+  const [storeLogo, setStoreLogo] = useState<string | null>(() => getSavedStoreBrand()?.logo_url || null);
+  const [storeName, setStoreName] = useState<string>(() => getSavedStoreBrand()?.store_name || 'RabbitPOS');
 
   // Login form state
   const [username, setUsername] = useState<string>('');

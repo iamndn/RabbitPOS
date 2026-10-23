@@ -40,10 +40,12 @@ import { useToast } from '@/context/ToastContext';
 import ModernSelect from '@/components/common/ModernSelect';
 import ImageCropModal from '@/components/common/ImageCropModal';
 import HorizontalScroller from '@/components/common/HorizontalScroller';
+import { useStore } from '@/lib/StoreContext';
 
 export default function SettingsPage() {
   const { t } = useTranslation();
   const toast = useToast();
+  const { activeStore, isSuperAdmin, refreshStores } = useStore();
   const [activeTab, setActiveTab] = useState<'store' | 'currency' | 'vietqr' | 'email' | 'sheets' | 'backup'>('store');
   const [backupSubTab, setBackupSubTab] = useState<'json_backup' | 'excel_import'>('json_backup');
 
@@ -73,23 +75,23 @@ export default function SettingsPage() {
 
   // Form State
   const [form, setForm] = useState<SettingsMap>({
-    store_name: 'Thỏ Juice & Coffee',
-    store_address: '123 Võ Văn Kiệt, Q1, TP.HCM',
-    store_phone: '0901234567',
-    store_logo_url: '',
-    currency_code: 'VND',
-    currency_symbol: 'đ',
-    currency_position: 'suffix',
-    vietqr_bank_id: 'MB',
-    vietqr_account_no: '123456789',
-    vietqr_account_name: 'THO JUICE AND COFFEE',
+    store_name: activeStore?.name || '',
+    store_address: activeStore?.address || '',
+    store_phone: activeStore?.phone || '',
+    store_logo_url: activeStore?.logo_url || '',
+    currency_code: activeStore?.currency_code || 'VND',
+    currency_symbol: activeStore?.currency_symbol || 'đ',
+    currency_position: activeStore?.currency_position || 'suffix',
+    vietqr_bank_id: activeStore?.vietqr_bank_id || 'MB',
+    vietqr_account_no: activeStore?.vietqr_account_no || '',
+    vietqr_account_name: activeStore?.vietqr_account_name || '',
     smtp_host: 'smtp.gmail.com',
     smtp_port: '587',
     smtp_user: '',
     smtp_password: '',
     smtp_from_email: '',
-    smtp_from_name: 'Thỏ Juice & Coffee - RabbitPOS',
-    report_recipient_emails: 'nhanhdn.jfw@gmail.com,candynhung754@gmail.com',
+    smtp_from_name: 'RabbitPOS Notification',
+    report_recipient_emails: '',
     enable_daily_email_report: 'true',
     daily_report_time: '22:30',
     google_sheets_sync_enabled: 'false',
@@ -177,6 +179,7 @@ export default function SettingsPage() {
           ...prev,
           ...res.data,
         }));
+        refreshStores();
         toast.success(t('settings.save_success'));
       } else {
         toast.error(res.message || 'Lưu cài đặt thất bại');
@@ -568,36 +571,48 @@ export default function SettingsPage() {
                 <span>{t('google_sheets.tab_title') || 'Google Sheets'}</span>
               </button>
 
-              {/* Tab 6: Backup & Data Management */}
-              <button
-                type="button"
-                onClick={() => setActiveTab('backup')}
-                className={`py-2.5 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 shrink-0 ${
-                  activeTab === 'backup'
-                    ? 'bg-white text-violet-700 shadow-sm border border-slate-200/60'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
-                }`}
-              >
-                <Database className={`w-4 h-4 ${activeTab === 'backup' ? 'text-violet-600' : 'text-slate-400'}`} />
-                <span>{t('settings.tab_backup')}</span>
-              </button>
+              {/* Tab 6: Backup & Data Management (Super Admin only) */}
+              {isSuperAdmin && (
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('backup')}
+                  className={`py-2.5 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 shrink-0 ${
+                    activeTab === 'backup'
+                      ? 'bg-white text-violet-700 shadow-sm border border-slate-200/60'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+                  }`}
+                >
+                  <Database className={`w-4 h-4 ${activeTab === 'backup' ? 'text-violet-600' : 'text-slate-400'}`} />
+                  <span>{t('settings.tab_backup')}</span>
+                  <span className="text-[9px] bg-purple-100 text-purple-700 px-1.5 py-0.2 rounded font-extrabold">
+                    Platform
+                  </span>
+                </button>
+              )}
             </HorizontalScroller>
 
             {/* TAB 1: Store Information */}
             {activeTab === 'store' && (
               <div className="bg-white p-5 sm:p-7 rounded-2xl border border-slate-200/80 shadow-xs space-y-6 text-xs animate-in fade-in duration-150">
-                <div className="pb-4 border-b border-slate-100 flex items-center gap-3">
-                  <div className="p-2.5 bg-indigo-50 rounded-xl border border-indigo-100 text-indigo-600">
-                    <Store className="w-5 h-5" />
+                <div className="pb-4 border-b border-slate-100 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 bg-indigo-50 rounded-xl border border-indigo-100 text-indigo-600">
+                      <Store className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-slate-900 text-sm">
+                        {t('settings.tab_store')}
+                      </h3>
+                      <p className="text-slate-500 text-xs mt-0.5">
+                        Thông tin chi nhánh hiển thị trên hóa đơn và tiêu đề hệ thống.
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-bold text-slate-900 text-sm">
-                      {t('settings.tab_store')}
-                    </h3>
-                    <p className="text-slate-500 text-xs mt-0.5">
-                      Thông tin cơ bản hiển thị trên hóa đơn và tiêu đề hệ thống.
-                    </p>
-                  </div>
+                  {activeStore && (
+                    <span className="text-xs bg-emerald-50 text-emerald-800 font-bold px-2.5 py-1 rounded-xl border border-emerald-200">
+                      Chi nhánh: {activeStore.name} ({activeStore.code})
+                    </span>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -910,19 +925,25 @@ export default function SettingsPage() {
             {/* TAB 4: Email & Automated Reports */}
             {activeTab === 'email' && (
               <div className="space-y-6 text-xs animate-in fade-in duration-150">
-                {/* 1. SMTP Server Settings Card */}
-                <div className="bg-white p-5 sm:p-7 rounded-2xl border border-slate-200/80 shadow-xs space-y-5">
-                  <div className="pb-4 border-b border-slate-100 flex items-center gap-3">
-                    <div className="p-2.5 bg-emerald-50 rounded-xl border border-emerald-100 text-emerald-600">
-                      <Mail className="w-5 h-5" />
+                {/* 1. SMTP Server Settings Card (Super Admin only - Global Platform) */}
+                {isSuperAdmin && (
+                  <div className="bg-white p-5 sm:p-7 rounded-2xl border border-slate-200/80 shadow-xs space-y-5">
+                    <div className="pb-4 border-b border-slate-100 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2.5 bg-emerald-50 rounded-xl border border-emerald-100 text-emerald-600">
+                          <Mail className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-slate-900 text-sm">
+                            {t('email_report.settings_section_title')}
+                          </h3>
+                          <p className="text-slate-500 text-xs mt-0.5">{t('email_report.settings_section_desc')}</p>
+                        </div>
+                      </div>
+                      <span className="text-[10px] bg-purple-50 text-purple-700 border border-purple-200 px-2 py-0.5 rounded-md font-extrabold">
+                        Platform-Wide (Super Admin)
+                      </span>
                     </div>
-                    <div>
-                      <h3 className="font-bold text-slate-900 text-sm">
-                        {t('email_report.settings_section_title')}
-                      </h3>
-                      <p className="text-slate-500 text-xs mt-0.5">{t('email_report.settings_section_desc')}</p>
-                    </div>
-                  </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
@@ -981,6 +1002,7 @@ export default function SettingsPage() {
                     </button>
                   </div>
                 </div>
+              )}
 
                 {/* 2. Automated Daily Report Configuration */}
                 <div className="bg-white p-5 sm:p-7 rounded-2xl border border-slate-200/80 shadow-xs space-y-5">

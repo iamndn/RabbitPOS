@@ -1,7 +1,7 @@
 # Infrastructure & Deployment Plan (Proxmox Self-Host)
 
 ## 1. General Information
-- **Project Name:** RabbitPOS (Tho Juice & Coffee)
+- **Project Name:** RabbitPOS (Multi-Store Platform)
 - **Environment:** Proxmox VE 8.x / 9.x (Virtual Environment)
 - **Root Domain:** `ndnworks.com`
 - **Target Subdomains:**

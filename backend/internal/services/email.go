@@ -61,7 +61,7 @@ func (s *EmailService) loadSMTPConfig(optionalStoreID ...uint) smtpConfig {
 	cfg := smtpConfig{
 		Host:            "smtp.gmail.com",
 		Port:            "587",
-		FromName:        "Thỏ Juice & Coffee - RabbitPOS",
+		FromName:        "RabbitPOS Notification",
 		DailyReportTime: "22:30",
 	}
 
@@ -322,7 +322,7 @@ func (s *EmailService) aggregateDailyData(date time.Time, optionalStoreID ...uin
 		s.db.Raw(`SELECT value FROM settings WHERE key = 'store_name'`).Scan(&storeNameSetting)
 		data.StoreName = storeNameSetting.Value
 		if data.StoreName == "" {
-			data.StoreName = "Thỏ Juice & Coffee"
+			data.StoreName = "RabbitPOS"
 		}
 	}
 

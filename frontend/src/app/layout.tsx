@@ -19,13 +19,13 @@ export const viewport: Viewport = {
 // --- PWA Metadata: Apple Web App capabilities, manifest, Open Graph ---
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://rabbitpos.ndnworks.com'),
-  title: "ThoPOS - Thỏ Juice & Coffee",
+  title: "RabbitPOS - Cloud POS & F&B Operations",
   description: "Hệ thống Bán hàng & Quản lý Tài chính RabbitPOS",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "ThoPOS",
+    title: "RabbitPOS",
   },
   formatDetection: {
     telephone: false,
@@ -38,16 +38,16 @@ export const metadata: Metadata = {
     ],
   },
   openGraph: {
-    title: "Thỏ Juice & Coffee - RabbitPOS",
-    description: "Phần mềm quản lý bán hàng POS & Sổ thu chi cho Thỏ Juice & Coffee",
+    title: "RabbitPOS - Cloud POS & F&B Operations",
+    description: "Hệ thống Bán hàng Đa Chi Nhánh & Quản lý Tài chính Toàn Diện RabbitPOS",
     url: "https://rabbitpos.ndnworks.com",
-    siteName: "Thỏ Juice & Coffee",
+    siteName: "RabbitPOS",
     images: [
       {
         url: "/logo.png",
         width: 256,
         height: 256,
-        alt: "Thỏ Juice & Coffee Logo",
+        alt: "RabbitPOS Logo",
       },
     ],
     locale: "vi_VN",
@@ -55,8 +55,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary",
-    title: "Thỏ Juice & Coffee - RabbitPOS",
-    description: "Phần mềm quản lý bán hàng POS & Sổ thu chi cho Thỏ Juice & Coffee",
+    title: "RabbitPOS - Cloud POS & F&B Operations",
+    description: "Hệ thống Bán hàng Đa Chi Nhánh & Quản lý Tài chính Toàn Diện RabbitPOS",
     images: ["/logo.png"],
   },
   other: {

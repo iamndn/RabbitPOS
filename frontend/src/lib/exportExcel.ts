@@ -35,9 +35,10 @@ export async function exportTransactionsToExcel(
     views: [{ showGridLines: true }],
   });
 
-  const storeName = settings?.store_name || 'Thỏ Juice & Coffee';
+  const storeName = settings?.store_name || 'RabbitPOS';
   const storePhone = settings?.store_phone || '';
   const storeAddress = settings?.store_address || '';
+  const codePrefix = settings?.store_code ? `${settings.store_code}_` : '';
 
   // 1. Header Information Block
   worksheet.mergeCells('A1:I1');
@@ -204,7 +205,7 @@ export async function exportTransactionsToExcel(
   ];
 
   const nowStr = new Date().toISOString().slice(0, 10);
-  await downloadWorkbook(workbook, filename || `So_Thu_Chi_${nowStr}.xlsx`);
+  await downloadWorkbook(workbook, filename || `${codePrefix}So_Thu_Chi_${nowStr}.xlsx`);
 }
 
 /**
@@ -223,9 +224,10 @@ export async function exportOrdersToExcel(
     views: [{ showGridLines: true }],
   });
 
-  const storeName = settings?.store_name || 'Thỏ Juice & Coffee';
+  const storeName = settings?.store_name || 'RabbitPOS';
   const storePhone = settings?.store_phone || '';
   const storeAddress = settings?.store_address || '';
+  const codePrefix = settings?.store_code ? `${settings.store_code}_` : '';
 
   // 1. Header Info
   worksheet.mergeCells('A1:J1');
@@ -393,7 +395,7 @@ export async function exportOrdersToExcel(
   ];
 
   const nowStr = new Date().toISOString().slice(0, 10);
-  await downloadWorkbook(workbook, filename || `Don_Hang_${nowStr}.xlsx`);
+  await downloadWorkbook(workbook, filename || `${codePrefix}Don_Hang_${nowStr}.xlsx`);
 }
 
 /**
@@ -412,7 +414,8 @@ export async function exportProductsRankingToExcel(
     views: [{ showGridLines: true }],
   });
 
-  const storeName = settings?.store_name || 'Thỏ Juice & Coffee';
+  const storeName = settings?.store_name || 'RabbitPOS';
+  const codePrefix = settings?.store_code ? `${settings.store_code}_` : '';
 
   worksheet.mergeCells('A1:I1');
   const titleRow = worksheet.getCell('A1');
@@ -546,5 +549,5 @@ export async function exportProductsRankingToExcel(
   ];
 
   const nowStr = new Date().toISOString().slice(0, 10);
-  await downloadWorkbook(workbook, filename || `Xep_Hang_SanPham_${nowStr}.xlsx`);
+  await downloadWorkbook(workbook, filename || `${codePrefix}Xep_Hang_SanPham_${nowStr}.xlsx`);
 }

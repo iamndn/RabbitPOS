@@ -1,6 +1,6 @@
 # 🐰 RabbitPOS - Mobile-First Point of Sale & Management System
 
-> Modern, lightweight, high-performance Point of Sale (POS) and Financial Management System tailored for **Tho Juice & Coffee**. Built with Go 1.22+ (Clean Architecture), PostgreSQL 16, Next.js 14 (App Router), TypeScript, Tailwind CSS, and optimized for LXC Container deployment on Proxmox VE 8.x/9.x.
+> Modern, lightweight, high-performance Multi-Store Point of Sale (POS) and Financial Operations Platform. Built with Go 1.22+ (Clean Architecture), PostgreSQL 16, Next.js 14 (App Router), TypeScript, Tailwind CSS, and optimized for LXC Container deployment on Proxmox VE 8.x/9.x.
 
 ---
 
@@ -231,4 +231,4 @@ RabbitPOS/
 
 ## 📄 License
 
-Developed for **Tho Juice & Coffee** under the MIT License.
+Developed under the MIT License.

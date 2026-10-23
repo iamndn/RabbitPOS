@@ -127,7 +127,7 @@ func LoadConfig() (*Config, error) {
 	smtpUser := getEnv("SMTP_USER", "")
 	smtpPassword := getEnv("SMTP_PASSWORD", "")
 	smtpFromEmail := getEnv("SMTP_FROM_EMAIL", "")
-	smtpFromName := getEnv("SMTP_FROM_NAME", "Thỏ Juice & Coffee - RabbitPOS")
+	smtpFromName := getEnv("SMTP_FROM_NAME", "RabbitPOS Notification")
 	reportRecipients := getEnv("REPORT_RECIPIENT_EMAILS", "nhanhdn.jfw@gmail.com,candynhung754@gmail.com")
 	enableDailyReport, _ := strconv.ParseBool(getEnv("ENABLE_DAILY_EMAIL_REPORT", "true"))
 	dailyReportTime := getEnv("DAILY_REPORT_TIME", "22:30")
@@ -135,14 +135,9 @@ func LoadConfig() (*Config, error) {
 	initialStoreName := getEnv("INITIAL_STORE_NAME", "My Store")
 	initialStoreCode := strings.ToLower(getEnv("INITIAL_STORE_CODE", "main"))
 	storeStrictCreate, _ := strconv.ParseBool(getEnv("STORE_STRICT_CREATE", "false"))
-	enableMultiStoreStr := getEnv("ENABLE_MULTI_STORE", "")
-	var enableMultiStore bool
-	if enableMultiStoreStr == "" {
-		enableMultiStore = (appEnv != "production")
-	} else {
-		enableMultiStore, _ = strconv.ParseBool(enableMultiStoreStr)
-	}
-	storeHeaderRequired, _ := strconv.ParseBool(getEnv("STORE_HEADER_REQUIRED", "false"))
+	enableMultiStoreStr := getEnv("ENABLE_MULTI_STORE", "true")
+	enableMultiStore, _ := strconv.ParseBool(enableMultiStoreStr)
+	storeHeaderRequired, _ := strconv.ParseBool(getEnv("STORE_HEADER_REQUIRED", "true"))
 
 	jwtExpiryHours, err := strconv.Atoi(jwtExpiryStr)
 	if err != nil || jwtExpiryHours <= 0 {

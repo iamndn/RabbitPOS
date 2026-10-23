@@ -41,7 +41,7 @@
     "role_staff": "Nhân viên",
     "to": "đến",
     "date": "Ngày",
-    "app_title": "Thỏ POS"
+    "app_title": "RabbitPOS"
   },
   "pos": {
     "search_placeholder": "Tìm kiếm đồ uống, cà phê...",
@@ -124,7 +124,7 @@
   },
   "promotions": {
     "title": "Khuyến Mãi",
-    "subtitle": "Thiết lập chương trình giảm giá theo số tiền, phần trăm hoặc tặng món cho Thỏ Juice & Coffee.",
+    "subtitle": "Thiết lập chương trình giảm giá theo số tiền, phần trăm hoặc tặng món cho cửa hàng.",
     "create_btn": "Thêm Khuyến Mãi",
     "create_promo_title": "Tạo chương trình khuyến mãi",
     "edit_promo": "Chỉnh sửa khuyến mãi",
@@ -183,7 +183,7 @@
   },
   "products": {
     "title": "Danh mục & Sản phẩm",
-    "subtitle": "Quản lý thực đơn, giá vốn COGS, giá bán lẻ và biên lợi nhuận cho Thỏ Juice & Coffee.",
+    "subtitle": "Quản lý thực đơn, giá vốn COGS, giá bán lẻ và biên lợi nhuận cho cửa hàng.",
     "add_product": "Thêm sản phẩm",
     "add_category": "Thêm danh mục",
     "search_placeholder": "Tìm tên món hoặc mã SKU...",
@@ -454,7 +454,7 @@
   },
   "dashboard": {
     "title": "Báo cáo Kinh doanh",
-    "subtitle": "Báo cáo chuyên sâu doanh thu, phân tích lãi lỗ (P&L), giá vốn COGS và xếp hạng menu của Thỏ Juice & Coffee.",
+    "subtitle": "Báo cáo chuyên sâu doanh thu, phân tích lãi lỗ (P&L), giá vốn COGS và xếp hạng menu của cửa hàng.",
     "tab_overview": "Tổng quan",
     "tab_revenue": "Doanh thu",
     "tab_profit": "Lợi nhuận",
@@ -538,8 +538,8 @@
     "no_sales_data": "Chưa có dữ liệu bán hàng trong kỳ này."
   },
   "login": {
-    "title": "Đăng nhập Thỏ POS",
-    "subtitle": "Quản lý bán hàng cho Thỏ Juice & Coffee",
+    "title": "Đăng nhập RabbitPOS",
+    "subtitle": "Hệ thống quản lý bán hàng & tài chính POS",
     "username": "Tên đăng nhập",
     "password": "Mật khẩu",
     "sign_in": "Đăng nhập",
@@ -585,11 +585,11 @@
     "logo_upload_success": "Tải ảnh logo thành công!",
     "logo_upload_failed": "Tải ảnh logo thất bại!",
     "preview_label": "Xem trước định dạng hiển thị:",
-    "store_name_placeholder": "VD: Thỏ Juice & Coffee",
+    "store_name_placeholder": "VD: RabbitPOS Cafe & Bakery",
     "store_address_placeholder": "VD: 123 Võ Văn Kiệt, Q1, TP.HCM",
     "store_phone_placeholder": "VD: 0901234567",
     "vietqr_account_no_placeholder": "VD: 123456789",
-    "vietqr_account_name_placeholder": "VD: THO JUICE AND COFFEE",
+    "vietqr_account_name_placeholder": "VD: NGUYEN VAN A",
     "backup_section_title": "Sao Lưu Dữ Liệu",
     "backup_section_desc": "Tải về bản sao lưu toàn bộ cơ sở dữ liệu hệ thống (Thực đơn, Đơn hàng, Sổ thu chi, Quỹ tiền, Cài đặt).",
     "export_backup_btn": "Tải Xuống Bản Sao Lưu (.json)",
