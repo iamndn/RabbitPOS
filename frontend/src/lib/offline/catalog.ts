@@ -240,27 +240,30 @@ export async function loadCatalogFromOfflineCache(): Promise<OfflineCatalogData 
 /**
  * Save active POS cart into IndexedDB
  */
-export async function saveCartToOfflineCache(cart: Omit<StoredCartState, 'key' | 'updatedAt'>): Promise<void> {
+export async function saveCartToOfflineCache(
+  cart: Omit<StoredCartState, 'key' | 'updatedAt'>,
+  storeId?: number
+): Promise<void> {
   const fullCart: StoredCartState = {
     key: 'active_cart',
     ...cart,
     updatedAt: Date.now(),
   };
-  await idbPut(STORES.CART_STATE, fullCart);
+  await idbPut(STORES.CART_STATE, fullCart, storeId);
 }
 
 /**
  * Load active POS cart from IndexedDB
  */
-export async function loadCartFromOfflineCache(): Promise<StoredCartState | null> {
-  return idbGet<StoredCartState>(STORES.CART_STATE, 'active_cart');
+export async function loadCartFromOfflineCache(storeId?: number): Promise<StoredCartState | null> {
+  return idbGet<StoredCartState>(STORES.CART_STATE, 'active_cart', storeId);
 }
 
 /**
  * Clear saved POS cart from IndexedDB
  */
-export async function clearCartFromOfflineCache(): Promise<void> {
-  const db = await getOfflineDB();
+export async function clearCartFromOfflineCache(storeId?: number): Promise<void> {
+  const db = await getOfflineDB(storeId);
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORES.CART_STATE, 'readwrite');
     const store = tx.objectStore(STORES.CART_STATE);

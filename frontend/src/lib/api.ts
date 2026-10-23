@@ -1,5 +1,6 @@
 import { logout } from './auth';
 import { clientCache, getDefaultTtlForEndpoint } from './cache';
+import { getActiveStoreId } from './store';
 
 export interface ApiResponse<T> {
   status: 'success' | 'error';
@@ -54,9 +55,37 @@ export function getApiBaseUrl(): string {
   return 'https://rabbitpos-api.ndnworks.com/api/v1';
 }
 
+/**
+ * Returns standard authentication and store context headers.
+ * Safe to pass to both fetchApi and raw fetch() requests (e.g. file exports or multipart uploads).
+ */
+export function authHeaders(customStoreId?: number | null): Record<string, string> {
+  const headers: Record<string, string> = {};
+  const token = typeof window !== 'undefined' ? localStorage.getItem('rabbitpos_jwt_token') : null;
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  const storeId = customStoreId !== undefined ? customStoreId : getActiveStoreId();
+  if (storeId) {
+    headers['X-Store-ID'] = String(storeId);
+  }
+  return headers;
+}
+
+/**
+ * Appends `store_id` query parameter to direct download or QR image URLs.
+ */
+export function appendStoreParam(url: string, customStoreId?: number | null): string {
+  const storeId = customStoreId !== undefined ? customStoreId : getActiveStoreId();
+  if (!storeId) return url;
+  const separator = url.includes('?') ? '&' : '?';
+  return `${url}${separator}store_id=${storeId}`;
+}
+
 export interface FetchApiOptions extends RequestInit {
   cacheTtl?: number | null; // Set specific TTL, or false/null to bypass cache
   skipCache?: boolean;
+  storeId?: number | null; // Override active store ID for this request
 }
 
 export async function fetchApi<T>(
@@ -64,12 +93,13 @@ export async function fetchApi<T>(
   options: FetchApiOptions = {}
 ): Promise<ApiResponse<T>> {
   const method = (options.method || 'GET').toUpperCase();
+  const activeStoreId = options.storeId !== undefined ? options.storeId : getActiveStoreId();
 
   // 1. Check in-memory cache for GET requests
   if (method === 'GET' && !options.skipCache) {
     const ttl = options.cacheTtl !== undefined ? options.cacheTtl : getDefaultTtlForEndpoint(endpoint);
     if (ttl && ttl > 0) {
-      const cached = clientCache.get<ApiResponse<T>>(endpoint);
+      const cached = clientCache.get<ApiResponse<T>>(endpoint, activeStoreId);
       if (cached) {
         return cached;
       }
@@ -77,16 +107,11 @@ export async function fetchApi<T>(
   }
 
   const baseUrl = getApiBaseUrl();
-  const token = typeof window !== 'undefined' ? localStorage.getItem('rabbitpos_jwt_token') : null;
-
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
+    ...authHeaders(activeStoreId),
     ...(options.headers as Record<string, string>),
   };
-
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
 
   try {
     const res = await fetch(`${baseUrl}${endpoint}`, {
@@ -108,19 +133,19 @@ export async function fetchApi<T>(
     if (method === 'GET' && data.status === 'success' && !options.skipCache) {
       const ttl = options.cacheTtl !== undefined ? options.cacheTtl : getDefaultTtlForEndpoint(endpoint);
       if (ttl && ttl > 0) {
-        clientCache.set(endpoint, data, ttl);
+        clientCache.set(endpoint, data, ttl, activeStoreId);
       }
     }
 
     // 3. Invalidate relevant caches on mutation methods (POST, PUT, DELETE)
     if (method !== 'GET' && data.status === 'success') {
-      if (endpoint.includes('/categories')) clientCache.invalidate('categories');
-      if (endpoint.includes('/toppings')) clientCache.invalidate('toppings');
-      if (endpoint.includes('/settings')) clientCache.invalidate('settings');
+      if (endpoint.includes('/categories')) clientCache.invalidate('categories', activeStoreId);
+      if (endpoint.includes('/toppings')) clientCache.invalidate('toppings', activeStoreId);
+      if (endpoint.includes('/settings')) clientCache.invalidate('settings', activeStoreId);
       if (endpoint.includes('/funds') || endpoint.includes('/orders') || endpoint.includes('/transactions')) {
-        clientCache.invalidate('funds');
+        clientCache.invalidate('funds', activeStoreId);
       }
-      if (endpoint.includes('/promotions')) clientCache.invalidate('promotions');
+      if (endpoint.includes('/promotions')) clientCache.invalidate('promotions', activeStoreId);
     }
 
     return data;
@@ -175,15 +200,11 @@ export function getImageUrl(url?: string | null): string | null {
 
 export async function uploadImage(file: File): Promise<ApiResponse<{ url: string }>> {
   const baseUrl = getApiBaseUrl();
-  const token = typeof window !== 'undefined' ? localStorage.getItem('rabbitpos_jwt_token') : null;
 
   const formData = new FormData();
   formData.append('image', file);
 
-  const headers: Record<string, string> = {};
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
+  const headers = authHeaders();
 
   try {
     const res = await fetch(`${baseUrl}/upload`, {

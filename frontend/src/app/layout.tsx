@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { LanguageProvider } from "@/lib/i18n/LanguageContext";
+import { StoreProvider } from "@/lib/StoreContext";
 import { ConfirmProvider } from "@/context/ConfirmContext";
 import { ToastProvider } from "@/context/ToastContext";
 import PWARegister from "@/components/common/PWARegister";
@@ -74,13 +75,15 @@ export default function RootLayout({
         {/* Register service worker for offline shell caching */}
         <PWARegister />
         <LanguageProvider>
-          <ToastProvider>
-            <ConfirmProvider>
-              <main className="flex-1 flex flex-col w-full min-h-0 overflow-x-hidden bg-slate-50">
-                {children}
-              </main>
-            </ConfirmProvider>
-          </ToastProvider>
+          <StoreProvider>
+            <ToastProvider>
+              <ConfirmProvider>
+                <main className="flex-1 flex flex-col w-full min-h-0 overflow-x-hidden bg-slate-50">
+                  {children}
+                </main>
+              </ConfirmProvider>
+            </ToastProvider>
+          </StoreProvider>
         </LanguageProvider>
       </body>
     </html>

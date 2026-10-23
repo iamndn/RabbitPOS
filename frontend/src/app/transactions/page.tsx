@@ -48,6 +48,7 @@ import ModernDateRangePicker, { DatePeriod, computeDateRange, getLocalMonthStr, 
 import ModernSelect from '@/components/common/ModernSelect';
 import HorizontalScroller from '@/components/common/HorizontalScroller';
 import { fetchApi } from '@/lib/api';
+import { getActiveStoreId } from '@/lib/store';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
 import { useConfirm } from '@/context/ConfirmContext';
 import { exportToCsv } from '@/lib/exportCsv';
@@ -978,10 +979,11 @@ export default function TransactionsPage() {
       };
     });
 
-    // Save directly to localStorage
+    // Save directly to localStorage (isolated per active store)
     try {
+      const activeStoreId = getActiveStoreId() || 1;
       localStorage.setItem(
-        'rabbitpos_active_cart',
+        `rabbitpos_active_cart_${activeStoreId}`,
         JSON.stringify({
           cartItems: newCartItems,
           discountAmount: order.discount_amount || 0,

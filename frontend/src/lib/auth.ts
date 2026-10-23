@@ -1,8 +1,13 @@
+import { StoreMembership } from '@/types/store';
+import { clearActiveStoreId } from './store';
+
 export interface UserInfo {
   id: number;
   username: string;
-  role: 'admin' | 'staff';
+  role: 'admin' | 'staff' | 'super_admin';
   is_active: boolean;
+  stores?: StoreMembership[];
+  default_store_id?: number;
 }
 
 const TOKEN_KEY = 'rabbitpos_jwt_token';
@@ -42,12 +47,18 @@ export function isAuthenticated(): boolean {
 
 export function isAdmin(): boolean {
   const user = getAuthUser();
-  return user?.role === 'admin';
+  return user?.role === 'admin' || user?.role === 'super_admin';
+}
+
+export function isSuperAdmin(): boolean {
+  const user = getAuthUser();
+  return user?.role === 'super_admin' || user?.role === 'admin';
 }
 
 export function logout() {
   if (typeof window !== 'undefined') {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
+    clearActiveStoreId();
   }
 }

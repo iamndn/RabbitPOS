@@ -1,9 +1,11 @@
 /**
  * Offline Order Queue Repository
  * Manages storage, status transitions, retrieval and lifecycle of offline orders in IndexedDB.
+ * Fully isolated per store (Decision F5).
  */
 
 import { getOfflineDB, STORES } from './db';
+import { getActiveStoreId } from '../store';
 
 export type OfflineOrderStatus =
   | 'pending'
@@ -57,6 +59,7 @@ export interface OfflineOrderDisplaySnapshot {
 export interface OfflineOrder {
   offline_order_id: string; // UUID primary key
   idempotency_key: string;   // Unique UUID for server idempotency
+  store_id?: number;         // Multi-store tag (Decision F5)
   device_id: string;
   catalog_version: number;
   created_at_device: string; // ISO string
@@ -84,8 +87,11 @@ export interface OfflineQueueStats {
 /**
  * Enqueue a new offline order in IndexedDB
  */
-export async function enqueueOfflineOrder(order: OfflineOrder): Promise<void> {
-  const db = await getOfflineDB();
+export async function enqueueOfflineOrder(order: OfflineOrder, storeId?: number): Promise<void> {
+  const targetStoreId = storeId ?? order.store_id ?? getActiveStoreId() ?? 1;
+  order.store_id = targetStoreId;
+  const db = await getOfflineDB(targetStoreId);
+
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORES.OFFLINE_ORDERS, 'readwrite');
     const store = tx.objectStore(STORES.OFFLINE_ORDERS);
@@ -99,8 +105,13 @@ export async function enqueueOfflineOrder(order: OfflineOrder): Promise<void> {
 /**
  * Get all offline orders, optionally filtered by status, sorted FIFO by queued_at
  */
-export async function getOfflineOrders(statusFilter?: OfflineOrderStatus | OfflineOrderStatus[]): Promise<OfflineOrder[]> {
-  const db = await getOfflineDB();
+export async function getOfflineOrders(
+  statusFilter?: OfflineOrderStatus | OfflineOrderStatus[],
+  storeId?: number
+): Promise<OfflineOrder[]> {
+  const targetStoreId = storeId ?? getActiveStoreId() ?? 1;
+  const db = await getOfflineDB(targetStoreId);
+
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORES.OFFLINE_ORDERS, 'readonly');
     const store = tx.objectStore(STORES.OFFLINE_ORDERS);
@@ -127,8 +138,10 @@ export async function getOfflineOrders(statusFilter?: OfflineOrderStatus | Offli
 /**
  * Get a single offline order by ID
  */
-export async function getOfflineOrderById(offlineOrderId: string): Promise<OfflineOrder | null> {
-  const db = await getOfflineDB();
+export async function getOfflineOrderById(offlineOrderId: string, storeId?: number): Promise<OfflineOrder | null> {
+  const targetStoreId = storeId ?? getActiveStoreId() ?? 1;
+  const db = await getOfflineDB(targetStoreId);
+
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORES.OFFLINE_ORDERS, 'readonly');
     const store = tx.objectStore(STORES.OFFLINE_ORDERS);
@@ -144,9 +157,12 @@ export async function getOfflineOrderById(offlineOrderId: string): Promise<Offli
  */
 export async function updateOfflineOrderStatus(
   offlineOrderId: string,
-  updates: Partial<Omit<OfflineOrder, 'offline_order_id' | 'idempotency_key'>>
+  updates: Partial<Omit<OfflineOrder, 'offline_order_id' | 'idempotency_key'>>,
+  storeId?: number
 ): Promise<void> {
-  const db = await getOfflineDB();
+  const targetStoreId = storeId ?? getActiveStoreId() ?? 1;
+  const db = await getOfflineDB(targetStoreId);
+
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORES.OFFLINE_ORDERS, 'readwrite');
     const store = tx.objectStore(STORES.OFFLINE_ORDERS);
@@ -155,7 +171,7 @@ export async function updateOfflineOrderStatus(
     getReq.onsuccess = () => {
       const existing = getReq.result as OfflineOrder | undefined;
       if (!existing) {
-        reject(new Error(`Offline order ${offlineOrderId} not found`));
+        reject(new Error(`Offline order ${offlineOrderId} not found in store ${targetStoreId}`));
         return;
       }
 
@@ -176,8 +192,10 @@ export async function updateOfflineOrderStatus(
 /**
  * Delete an offline order (e.g. after cancellation or user resolution)
  */
-export async function deleteOfflineOrder(offlineOrderId: string): Promise<void> {
-  const db = await getOfflineDB();
+export async function deleteOfflineOrder(offlineOrderId: string, storeId?: number): Promise<void> {
+  const targetStoreId = storeId ?? getActiveStoreId() ?? 1;
+  const db = await getOfflineDB(targetStoreId);
+
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORES.OFFLINE_ORDERS, 'readwrite');
     const store = tx.objectStore(STORES.OFFLINE_ORDERS);
@@ -191,8 +209,8 @@ export async function deleteOfflineOrder(offlineOrderId: string): Promise<void> 
 /**
  * Get summary stats of offline order queue
  */
-export async function getOfflineQueueStats(): Promise<OfflineQueueStats> {
-  const orders = await getOfflineOrders();
+export async function getOfflineQueueStats(storeId?: number): Promise<OfflineQueueStats> {
+  const orders = await getOfflineOrders(undefined, storeId);
   const stats: OfflineQueueStats = {
     total: orders.length,
     pending: 0,

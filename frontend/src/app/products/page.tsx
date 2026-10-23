@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import AppShell from '@/components/AppShell';
 import { fetchApi, getImageUrl, uploadImage } from '@/lib/api';
+import { getActiveStoreId } from '@/lib/store';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
 import { useConfirm } from '@/context/ConfirmContext';
 import { formatCurrency, SettingsMap } from '@/lib/utils';
@@ -101,7 +102,8 @@ export default function ProductsPage() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       try {
-        const saved = sessionStorage.getItem('rabbitpos_filter_products');
+        const storeId = getActiveStoreId() || 1;
+        const saved = sessionStorage.getItem(`rabbitpos_filter_products_${storeId}`);
         if (saved) {
           const parsed = JSON.parse(saved);
           if (parsed.selectedCategory !== undefined) setSelectedCategory(parsed.selectedCategory);
@@ -118,8 +120,9 @@ export default function ProductsPage() {
     if (!isFilterInitialized) return;
     if (typeof window !== 'undefined') {
       try {
+        const storeId = getActiveStoreId() || 1;
         sessionStorage.setItem(
-          'rabbitpos_filter_products',
+          `rabbitpos_filter_products_${storeId}`,
           JSON.stringify({
             selectedCategory,
             selectedTag,

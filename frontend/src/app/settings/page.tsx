@@ -33,7 +33,7 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import AppShell from '@/components/AppShell';
-import { fetchApi, uploadImage, getImageUrl, getApiBaseUrl } from '@/lib/api';
+import { fetchApi, uploadImage, getImageUrl, getApiBaseUrl, authHeaders } from '@/lib/api';
 import { SettingsMap, formatCurrency } from '@/lib/utils';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
 import { useToast } from '@/context/ToastContext';
@@ -226,7 +226,6 @@ export default function SettingsPage() {
 
     try {
       const baseUrl = getApiBaseUrl();
-      const token = typeof window !== 'undefined' ? localStorage.getItem('rabbitpos_jwt_token') : null;
       const formData = new FormData();
       formData.append('backup_file', file);
       if (backupEncryptionKey) {
@@ -235,7 +234,7 @@ export default function SettingsPage() {
 
       const res = await fetch(`${baseUrl}/backup/preview`, {
         method: 'POST',
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        headers: authHeaders(),
         body: formData,
       });
 
@@ -293,9 +292,8 @@ export default function SettingsPage() {
     setDownloadingTemplate(true);
     try {
       const baseUrl = getApiBaseUrl();
-      const token = typeof window !== 'undefined' ? localStorage.getItem('rabbitpos_jwt_token') : null;
       const res = await fetch(`${baseUrl}/import/template`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        headers: authHeaders(),
       });
       if (!res.ok) throw new Error('Không thể tải file mẫu từ máy chủ');
       const blob = await res.blob();
@@ -330,7 +328,6 @@ export default function SettingsPage() {
 
     try {
       const baseUrl = getApiBaseUrl();
-      const token = typeof window !== 'undefined' ? localStorage.getItem('rabbitpos_jwt_token') : null;
       const formData = new FormData();
       formData.append('file', importFile);
       formData.append('target', importTarget);
@@ -339,7 +336,7 @@ export default function SettingsPage() {
 
       const res = await fetch(`${baseUrl}/import/excel`, {
         method: 'POST',
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        headers: authHeaders(),
         body: formData,
       });
 

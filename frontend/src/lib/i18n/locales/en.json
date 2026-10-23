@@ -8,6 +8,7 @@
     "funds": "Funds & Accounts",
     "dashboard": "Analytics & Reports",
     "settings": "System Settings",
+    "stores": "Stores",
     "logout": "Sign Out"
   },
   "common": {
@@ -744,5 +745,24 @@
     "btn_recipe": "Recipe",
     "recipe_modal_title": "Bill of Materials (BOM) Recipe",
     "history_modal_title": "Purchase Invoice History"
+  },
+  "storeSwitcher": {
+    "switch_store": "Switch Store",
+    "search_store": "Search store...",
+    "active": "Active",
+    "select_store": "Select store",
+    "manage_stores": "Manage Stores",
+    "no_stores_found": "No stores found",
+    "single_store_hint": "Managing 1 store",
+    "business_fb": "F&B",
+    "business_retail": "Retail",
+    "business_bakery": "Bakery",
+    "business_other": "Other"
+  },
+  "stores": {
+    "title": "Store Management",
+    "role_super_admin": "Super Admin",
+    "role_store_admin": "Store Admin",
+    "role_staff": "Staff"
   }
 }

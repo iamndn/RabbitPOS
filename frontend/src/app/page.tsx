@@ -54,6 +54,8 @@ import {
 import { syncOfflineOrders } from '@/lib/offline/sync';
 import { formatCurrency, SettingsMap } from '@/lib/utils';
 import { CustomTag, DEFAULT_SYSTEM_TAGS, getTagBadgeStyle } from '@/components/products/TagManagerModal';
+import { useStore } from '@/lib/StoreContext';
+import { getActiveStoreId } from '@/lib/store';
 
 // ── VIETNAMESE FUZZY SEARCH HELPER ──────────────────────────────────────────
 /**
@@ -331,6 +333,10 @@ export default function PosPage() {
   const { showAlert } = useConfirm();
   const toast = useToast();
   const network = useNetworkStatus();
+  const { activeStore } = useStore();
+  const currentStoreId = activeStore?.id ?? getActiveStoreId() ?? 1;
+  const cartStorageKey = `rabbitpos_active_cart_${currentStoreId}`;
+
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [customTags, setCustomTags] = useState<CustomTag[]>([]);
@@ -532,10 +538,23 @@ export default function PosPage() {
   useEffect(() => {
     loadData();
 
+    // 0. One-time legacy cart migration (rabbitpos_active_cart -> rabbitpos_active_cart_1)
+    if (typeof window !== 'undefined') {
+      try {
+        const legacyCart = localStorage.getItem('rabbitpos_active_cart');
+        if (legacyCart) {
+          if (!localStorage.getItem('rabbitpos_active_cart_1')) {
+            localStorage.setItem('rabbitpos_active_cart_1', legacyCart);
+          }
+          localStorage.removeItem('rabbitpos_active_cart');
+        }
+      } catch {}
+    }
+
     // 1. Restore Draft Cart Items from IndexedDB (with LocalStorage fallback)
     const restoreCart = async () => {
       try {
-        const cachedCart = await loadCartFromOfflineCache();
+        const cachedCart = await loadCartFromOfflineCache(currentStoreId);
         if (cachedCart && Array.isArray(cachedCart.items) && cachedCart.items.length > 0) {
           setCartItems(cachedCart.items);
           if (cachedCart.orderNote) setOrderNote(cachedCart.orderNote);
@@ -547,7 +566,7 @@ export default function PosPage() {
           return;
         }
 
-        const savedCart = localStorage.getItem('rabbitpos_active_cart');
+        const savedCart = localStorage.getItem(cartStorageKey);
         if (savedCart) {
           const parsed = JSON.parse(savedCart);
           if (parsed.cartItems && Array.isArray(parsed.cartItems) && parsed.cartItems.length > 0) {
@@ -557,7 +576,7 @@ export default function PosPage() {
             if (parsed.shippingFee) setShippingFee(parsed.shippingFee);
             if (parsed.surcharge) setSurcharge(parsed.surcharge);
           } else {
-            localStorage.removeItem('rabbitpos_active_cart');
+            localStorage.removeItem(cartStorageKey);
           }
         }
       } catch (e) {
@@ -566,7 +585,7 @@ export default function PosPage() {
     };
 
     restoreCart();
-  }, [loadData]);
+  }, [loadData, currentStoreId, cartStorageKey]);
 
   // 2. Persist Active Cart to IndexedDB & LocalStorage (Only draft items; auto-reset fees & discounts when empty)
   useEffect(() => {
@@ -581,10 +600,10 @@ export default function PosPage() {
           shippingFee,
           platformFeeDiscount,
           surcharge,
-        }).catch((e) => console.warn('Failed to cache cart in IndexedDB:', e));
+        }, currentStoreId).catch((e) => console.warn('Failed to cache cart in IndexedDB:', e));
 
         localStorage.setItem(
-          'rabbitpos_active_cart',
+          cartStorageKey,
           JSON.stringify({
             cartItems,
             discountAmount,
@@ -594,8 +613,8 @@ export default function PosPage() {
           })
         );
       } else {
-        clearCartFromOfflineCache().catch(() => {});
-        localStorage.removeItem('rabbitpos_active_cart');
+        clearCartFromOfflineCache(currentStoreId).catch(() => {});
+        localStorage.removeItem(cartStorageKey);
         // Reset all adjustments, fees, and discounts for each fresh order
         setDiscountAmount(0);
         setSelectedPromotion(null);
@@ -853,7 +872,7 @@ export default function PosPage() {
         synced_at: null,
       };
 
-      await enqueueOfflineOrder(offlineOrder);
+      await enqueueOfflineOrder(offlineOrder, currentStoreId);
 
       setCartItems([]);
       setOrderNote('');
@@ -872,8 +891,8 @@ export default function PosPage() {
       if (settings?.auto_show_receipt_after_checkout !== 'false') {
         setIsReceiptModalOpen(true);
       }
-      clearCartFromOfflineCache().catch(() => {});
-      localStorage.removeItem('rabbitpos_active_cart');
+      clearCartFromOfflineCache(currentStoreId).catch(() => {});
+      localStorage.removeItem(cartStorageKey);
       refreshQueueStats();
       toast.queuedOrder(provisionalCode);
       return;
@@ -954,8 +973,8 @@ export default function PosPage() {
       if (settings?.auto_show_receipt_after_checkout !== 'false') {
         setIsReceiptModalOpen(true);
       }
-      clearCartFromOfflineCache().catch(() => {});
-      localStorage.removeItem('rabbitpos_active_cart');
+      clearCartFromOfflineCache(currentStoreId).catch(() => {});
+      localStorage.removeItem(cartStorageKey);
       toast.success(t('pos.order_success', { code: res.data.order_code }));
     } else {
       toast.error(t('pos.order_failed', { message: res.message }));

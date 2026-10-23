@@ -17,7 +17,7 @@ export interface SettingsMap {
  */
 export function formatCurrency(
   amount: number,
-  settings?: SettingsMap | null
+  settings?: SettingsMap | { currency_code?: string; currency_symbol?: string; currency_position?: string; [key: string]: any } | null
 ): string {
   const symbol = settings?.currency_symbol ?? 'đ';
   const position = settings?.currency_position ?? 'suffix';

@@ -6,6 +6,7 @@ import { CartItem } from './VariantSelectorModal';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
 import { fetchApi, getImageUrl } from '@/lib/api';
 import { formatCurrency, SettingsMap } from '@/lib/utils';
+import { useStore } from '@/lib/StoreContext';
 
 export interface CompletedOrderData {
   order_code: string;
@@ -38,6 +39,7 @@ interface ReceiptModalProps {
 
 export default function ReceiptModal({ isOpen, onClose, order, settings: initialSettings }: ReceiptModalProps) {
   const { t } = useTranslation();
+  const { activeStore } = useStore();
   const [settings, setSettings] = useState<SettingsMap | null>(initialSettings || null);
 
   useEffect(() => {
@@ -70,9 +72,11 @@ export default function ReceiptModal({ isOpen, onClose, order, settings: initial
     ? new Date(order.created_at).toLocaleString('vi-VN')
     : new Date().toLocaleString('vi-VN');
 
-  const storeName = settings?.store_name || 'Thỏ Juice & Coffee';
-  const storeAddress = settings?.store_address || '123 Vo Van Kiet, D1, HCMC';
-  const storePhone = settings?.store_phone || '0901234567';
+  const storeName = activeStore?.name || settings?.store_name || 'RabbitPOS';
+  const storeAddress = activeStore?.address || settings?.store_address || '';
+  const storePhone = activeStore?.phone || settings?.store_phone || '';
+  const storeLogo = activeStore?.logo_url || settings?.store_logo_url;
+  const currencyConfig = activeStore || settings;
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
@@ -102,11 +106,11 @@ export default function ReceiptModal({ isOpen, onClose, order, settings: initial
           {/* Header */}
           <div className="text-center space-y-1 pb-3 border-b border-dashed border-slate-300">
             {/* Store logo */}
-            {settings?.store_logo_url && (
+            {storeLogo && (
               <div className="flex justify-center mb-2">
                 <img
-                  src={getImageUrl(settings.store_logo_url) || settings.store_logo_url}
-                  alt="Store logo"
+                  src={getImageUrl(storeLogo) || storeLogo}
+                  alt={storeName}
                   className="h-12 max-w-[120px] object-contain"
                   onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                 />
@@ -158,17 +162,17 @@ export default function ReceiptModal({ isOpen, onClose, order, settings: initial
                     {item.isGift && <span className="ml-1 text-emerald-600 font-bold text-[9px]">(🎁 Tặng)</span>}
                   </span>
                   <span className="text-[10px]">
-                    {item.quantity}x {item.isGift ? '0đ' : formatCurrency(item.unitPrice, settings)}
+                    {item.quantity}x {item.isGift ? '0đ' : formatCurrency(item.unitPrice, currencyConfig)}
                   </span>
                   <span className={item.isGift ? 'text-emerald-600' : ''}>
-                    {item.isGift ? '0đ' : formatCurrency(item.lineTotal, settings)}
+                    {item.isGift ? '0đ' : formatCurrency(item.lineTotal, currencyConfig)}
                   </span>
                 </div>
                 <div className="text-[10px] text-slate-500 pl-2 space-y-0.5">
                   <span className="block">{t('pos.size', { size: item.selectedVariant?.variant_name || '' })}</span>
                   {item.isGift && item.originalUnitPrice ? (
                     <span className="block text-slate-400 line-through text-[9px]">
-                      Giá gốc: {formatCurrency(item.originalUnitPrice, settings)}
+                      Giá gốc: {formatCurrency(item.originalUnitPrice, currencyConfig)}
                     </span>
                   ) : null}
                   {/* Sugar & ice level display */}
@@ -206,47 +210,47 @@ export default function ReceiptModal({ isOpen, onClose, order, settings: initial
           <div className="py-2 border-b border-dashed border-slate-300 space-y-1 text-right">
             <div className="flex justify-between">
               <span className="text-slate-600">{t('pos.cart_total')}:</span>
-              <span>{formatCurrency(order.subtotal, settings)}</span>
+              <span>{formatCurrency(order.subtotal, currencyConfig)}</span>
             </div>
 
             {order.discount_amount && order.discount_amount > 0 && (
               <div className="flex justify-between text-slate-600">
                 <span>{t('common.discount')}:</span>
-                <span>-{formatCurrency(order.discount_amount, settings)}</span>
+                <span>-{formatCurrency(order.discount_amount, currencyConfig)}</span>
               </div>
             )}
 
             {order.promotion_discount && order.promotion_discount > 0 && (
               <div className="flex justify-between text-slate-600">
                 <span>{order.promotion_name || t('pos.promotion_discount')}:</span>
-                <span>-{formatCurrency(order.promotion_discount, settings)}</span>
+                <span>-{formatCurrency(order.promotion_discount, currencyConfig)}</span>
               </div>
             )}
 
             {order.platform_fee_discount && order.platform_fee_discount > 0 && (
               <div className="flex justify-between text-slate-600">
                 <span>{t('pos.platform_discount')}:</span>
-                <span>-{formatCurrency(order.platform_fee_discount, settings)}</span>
+                <span>-{formatCurrency(order.platform_fee_discount, currencyConfig)}</span>
               </div>
             )}
 
             {order.shipping_fee && order.shipping_fee > 0 && (
               <div className="flex justify-between text-slate-600">
                 <span>{t('pos.shipping_fee')}:</span>
-                <span>+{formatCurrency(order.shipping_fee, settings)}</span>
+                <span>+{formatCurrency(order.shipping_fee, currencyConfig)}</span>
               </div>
             )}
 
             {order.surcharge && order.surcharge > 0 && (
               <div className="flex justify-between text-slate-600">
                 <span>{t('pos.surcharge')}:</span>
-                <span>+{formatCurrency(order.surcharge, settings)}</span>
+                <span>+{formatCurrency(order.surcharge, currencyConfig)}</span>
               </div>
             )}
 
             <div className="flex justify-between font-black text-sm pt-1 border-t border-slate-800 text-slate-900">
               <span className="uppercase">{t('common.total_amount')}:</span>
-              <span>{formatCurrency(order.final_total || order.total, settings)}</span>
+              <span>{formatCurrency(order.final_total || order.total, currencyConfig)}</span>
             </div>
 
             {/* Payment Method Badge */}

@@ -8,6 +8,7 @@
     "funds": "Quỹ tiền",
     "dashboard": "Báo cáo",
     "settings": "Cài đặt",
+    "stores": "Cửa hàng",
     "logout": "Đăng xuất"
   },
   "common": {
@@ -744,5 +745,24 @@
     "btn_recipe": "Công thức",
     "recipe_modal_title": "Định Lượng Công Thức (BOM)",
     "history_modal_title": "Lịch Sử Nhập Hàng"
+  },
+  "storeSwitcher": {
+    "switch_store": "Chuyển cửa hàng",
+    "search_store": "Tìm kiếm cửa hàng...",
+    "active": "Đang hoạt động",
+    "select_store": "Chọn cửa hàng",
+    "manage_stores": "Quản lý cửa hàng",
+    "no_stores_found": "Không tìm thấy cửa hàng",
+    "single_store_hint": "Bạn đang quản lý 1 cửa hàng",
+    "business_fb": "F&B / Ăn uống",
+    "business_retail": "Bán lẻ",
+    "business_bakery": "Tiệm bánh",
+    "business_other": "Khác"
+  },
+  "stores": {
+    "title": "Quản lý Cửa hàng",
+    "role_super_admin": "Tổng quản trị",
+    "role_store_admin": "Quản lý cửa hàng",
+    "role_staff": "Nhân viên"
   }
 }
