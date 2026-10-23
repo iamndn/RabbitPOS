@@ -58,6 +58,7 @@ backend/uploads/
 # Database Backups & Dumps
 backups/
 *.sql
+!backend/migrations/*.sql
 *.sql.gz
 *.dump
 *.tar
