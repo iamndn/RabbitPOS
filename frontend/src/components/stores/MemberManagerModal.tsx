@@ -63,6 +63,7 @@ export default function MemberManagerModal({
 
   // Create new user state
   const [newUsername, setNewUsername] = useState('');
+  const [newFullName, setNewFullName] = useState('');
   const [newEmail, setNewEmail] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [newRole, setNewRole] = useState<StoreRole>('staff');
@@ -156,6 +157,7 @@ export default function MemberManagerModal({
     try {
       const payload: CreateUserRequest = {
         username: newUsername.trim(),
+        full_name: newFullName.trim() || undefined,
         email: newEmail.trim() || undefined,
         role: newRole,
         temp_password: newPassword,
@@ -176,6 +178,7 @@ export default function MemberManagerModal({
       if (res.status === 'success') {
         toast.success(`Tạo tài khoản '${newUsername}' và gán vào cửa hàng thành công`);
         setNewUsername('');
+        setNewFullName('');
         setNewEmail('');
         setNewPassword('');
         setNewRole('staff');
@@ -531,17 +534,31 @@ export default function MemberManagerModal({
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Email thông báo (tùy chọn)
-                </label>
-                <input
-                  type="email"
-                  value={newEmail}
-                  onChange={(e) => setNewEmail(e.target.value)}
-                  placeholder="nhanvien@example.com"
-                  className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Họ và tên nhân sự (tùy chọn)
+                  </label>
+                  <input
+                    type="text"
+                    value={newFullName}
+                    onChange={(e) => setNewFullName(e.target.value)}
+                    placeholder="VD: Nguyễn Văn A"
+                    className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Email thông báo (tùy chọn)
+                  </label>
+                  <input
+                    type="email"
+                    value={newEmail}
+                    onChange={(e) => setNewEmail(e.target.value)}
+                    placeholder="nhanvien@example.com"
+                    className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  />
+                </div>
               </div>
 
               <div className="flex justify-end">

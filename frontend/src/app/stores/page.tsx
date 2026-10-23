@@ -22,6 +22,9 @@ import {
   Sparkles,
   BarChart3,
   Calendar,
+  Globe,
+  DollarSign,
+  PieChart,
 } from 'lucide-react';
 import AppShell from '@/components/AppShell';
 import { fetchApi, getImageUrl } from '@/lib/api';
@@ -29,6 +32,10 @@ import { useStore } from '@/lib/StoreContext';
 import { useToast } from '@/context/ToastContext';
 import { useConfirm } from '@/context/ConfirmContext';
 import { formatCurrency } from '@/lib/utils';
+import ModernDateRangePicker, {
+  DatePeriod,
+  computeDateRange,
+} from '@/components/common/ModernDateRangePicker';
 import StoreFormModal from '@/components/stores/StoreFormModal';
 import MemberManagerModal from '@/components/stores/MemberManagerModal';
 import {
@@ -39,6 +46,7 @@ import {
 
 function getBusinessBadge(type?: string) {
   switch (type) {
+    case 'fnb':
     case 'fb':
       return { label: 'F&B / Ăn uống', color: 'bg-amber-50 text-amber-700 border-amber-200' };
     case 'cafe':
@@ -61,8 +69,14 @@ export default function StoresPage() {
   const [stores, setStores] = useState<Store[]>([]);
   const [overview, setOverview] = useState<OverviewAllStoresResponse | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [overviewLoading, setOverviewLoading] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
+
+  // Date Range Filter for Cross-Store Executive Overview
+  const [period, setPeriod] = useState<DatePeriod>('today');
+  const [customFrom, setCustomFrom] = useState<string>('');
+  const [customTo, setCustomTo] = useState<string>('');
 
   // Modals state
   const [isFormModalOpen, setIsFormModalOpen] = useState<boolean>(false);
@@ -77,19 +91,12 @@ export default function StoresPage() {
     }
   }, [isSuperAdmin, router]);
 
-  const loadData = async () => {
+  const loadStores = async () => {
     setLoading(true);
     try {
-      const [storesRes, overviewRes] = await Promise.all([
-        fetchApi<Store[]>('/stores', { skipCache: true }),
-        fetchApi<OverviewAllStoresResponse>('/analytics/overview-all-stores', { skipCache: true }),
-      ]);
-
+      const storesRes = await fetchApi<Store[]>('/stores', { skipCache: true });
       if (storesRes.status === 'success' && storesRes.data) {
         setStores(storesRes.data);
-      }
-      if (overviewRes.status === 'success' && overviewRes.data) {
-        setOverview(overviewRes.data);
       }
     } catch (err: any) {
       toast.error('Không thể tải danh sách cửa hàng: ' + (err.message || ''));
@@ -98,11 +105,41 @@ export default function StoresPage() {
     }
   };
 
+  const loadOverview = async (start: string, end: string) => {
+    setOverviewLoading(true);
+    try {
+      const res = await fetchApi<OverviewAllStoresResponse>(
+        `/analytics/overview-all-stores?start_date=${start}&end_date=${end}`,
+        { skipCache: true }
+      );
+      if (res.status === 'success' && res.data) {
+        setOverview(res.data);
+      }
+    } catch (err: any) {
+      console.error('Failed to load overview:', err);
+    } finally {
+      setOverviewLoading(false);
+    }
+  };
+
+  const loadData = () => {
+    loadStores();
+    const { from: start, to: end } = computeDateRange(period, customFrom, customTo);
+    loadOverview(start, end);
+  };
+
   useEffect(() => {
     if (isSuperAdmin) {
-      loadData();
+      loadStores();
     }
   }, [isSuperAdmin]);
+
+  useEffect(() => {
+    if (isSuperAdmin) {
+      const { from: start, to: end } = computeDateRange(period, customFrom, customTo);
+      loadOverview(start, end);
+    }
+  }, [isSuperAdmin, period, customFrom, customTo]);
 
   const handleOpenCreateModal = () => {
     setStoreToEdit(null);
@@ -137,7 +174,9 @@ export default function StoresPage() {
 
       if (res.status === 'success') {
         toast.success(`${actionText} cửa hàng thành công`);
-        loadData();
+        loadStores();
+        const { from: start, to: end } = computeDateRange(period, customFrom, customTo);
+        loadOverview(start, end);
         refreshStores();
       } else {
         toast.error(res.message || 'Thao tác thất bại');
@@ -174,6 +213,19 @@ export default function StoresPage() {
 
   const totalMembers = stores.reduce((acc, s) => acc + (s.member_count || 0), 0);
   const activeCount = stores.filter((s) => s.is_active).length;
+
+  const periodLabel =
+    period === 'today' || period === 'day'
+      ? 'Hôm nay'
+      : period === 'yesterday'
+      ? 'Hôm qua'
+      : period === 'week'
+      ? 'Tuần này'
+      : period === 'month'
+      ? 'Tháng này'
+      : period === 'year'
+      ? 'Năm nay'
+      : 'Kỳ đã chọn';
 
   return (
     <AppShell>
@@ -247,7 +299,7 @@ export default function StoresPage() {
                 Tổng nhân sự gán
               </span>
               <span className="text-lg sm:text-2xl font-black text-slate-900">
-                {totalMembers}
+                {overview?.total_staff_count ?? totalMembers}
               </span>
             </div>
           </div>
@@ -258,75 +310,179 @@ export default function StoresPage() {
             </div>
             <div className="min-w-0">
               <span className="text-[11px] sm:text-xs text-slate-400 font-bold block truncate">
-                Doanh thu hôm nay (Toàn bộ)
+                Doanh thu ({periodLabel})
               </span>
               <span className="text-base sm:text-xl font-black text-amber-800 truncate block">
-                {formatCurrency(overview?.total_today_revenue || 0)}
+                {formatCurrency(overview?.total_range_revenue ?? overview?.total_today_revenue ?? 0)}
               </span>
             </div>
           </div>
         </div>
 
         {/* Cross-Store Executive Overview Section */}
-        {overview && overview.stores && overview.stores.length > 0 && (
+        {overview && (
           <div className="bg-white rounded-3xl border border-slate-200 shadow-xs p-5 sm:p-6 space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <BarChart3 className="w-5 h-5 text-emerald-700" />
-                <h2 className="text-sm sm:text-base font-black text-slate-900">
-                  Hiệu suất Kinh doanh Toàn Hệ thống
-                </h2>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+              <div className="flex items-center space-x-2.5">
+                <div className="p-2 bg-emerald-100 text-emerald-800 rounded-xl">
+                  <BarChart3 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-base font-black text-slate-900">
+                    Hiệu suất Kinh doanh Toàn Hệ thống
+                  </h2>
+                  <p className="text-xs text-slate-500">
+                    So sánh doanh thu, số đơn, giá trị đơn TB (AOV) và lợi nhuận gộp giữa các cửa hàng
+                  </p>
+                </div>
               </div>
-              <span className="text-xs font-bold text-slate-400">
-                {overview.total_today_orders} đơn hôm nay • {overview.total_month_orders} đơn tháng này
-              </span>
+
+              <div className="flex items-center gap-2">
+                <ModernDateRangePicker
+                  period={period}
+                  customFrom={customFrom}
+                  customTo={customTo}
+                  onChange={({ period: newP, from: f, to: t }) => {
+                    setPeriod(newP);
+                    setCustomFrom(f);
+                    setCustomTo(t);
+                  }}
+                  align="right"
+                />
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {overview.stores.map((item) => (
-                <div
-                  key={item.store_id}
-                  className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 hover:bg-white hover:shadow-xs transition space-y-3"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="min-w-0">
-                      <span className="text-xs font-bold text-slate-900 truncate block">
-                        {item.store_name}
-                      </span>
-                      <span className="text-[10px] font-mono text-slate-400 font-semibold">
-                        {item.store_code}
-                      </span>
-                    </div>
-                    <span
-                      className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded border ${
-                        item.is_active
-                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                          : 'bg-slate-100 text-slate-400 border-slate-200'
+            {/* Range Metrics Ribbon */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80">
+                <span className="text-[11px] font-bold text-slate-400 block">Doanh thu Toàn Hệ thống</span>
+                <span className="text-base sm:text-lg font-black text-slate-900">
+                  {formatCurrency(overview.total_range_revenue ?? overview.total_today_revenue ?? 0)}
+                </span>
+                <span className="text-[10px] text-slate-500 block mt-0.5">{periodLabel}</span>
+              </div>
+              <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80">
+                <span className="text-[11px] font-bold text-slate-400 block">Tổng Đơn hàng</span>
+                <span className="text-base sm:text-lg font-black text-blue-700">
+                  {(overview.total_range_orders ?? overview.total_today_orders ?? 0).toLocaleString()} đơn
+                </span>
+                <span className="text-[10px] text-slate-500 block mt-0.5">{periodLabel}</span>
+              </div>
+              <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80">
+                <span className="text-[11px] font-bold text-slate-400 block">Giá trị Đơn TB (AOV)</span>
+                <span className="text-base sm:text-lg font-black text-amber-700">
+                  {formatCurrency(
+                    (overview.total_range_orders && overview.total_range_orders > 0)
+                      ? (overview.total_range_revenue ?? 0) / overview.total_range_orders
+                      : 0
+                  )}
+                </span>
+                <span className="text-[10px] text-slate-500 block mt-0.5">Doanh thu / đơn</span>
+              </div>
+              <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80">
+                <span className="text-[11px] font-bold text-slate-400 block">Lợi nhuận Gộp Ước tính</span>
+                <span className="text-base sm:text-lg font-black text-emerald-700">
+                  {formatCurrency(overview.total_range_profit ?? 0)}
+                </span>
+                <span className="text-[10px] text-emerald-600 block mt-0.5">
+                  {(overview.total_range_revenue && overview.total_range_revenue > 0)
+                    ? `Biên LN: ${(((overview.total_range_profit ?? 0) / overview.total_range_revenue) * 100).toFixed(1)}%`
+                    : 'Biên LN: 0%'}
+                </span>
+              </div>
+            </div>
+
+            {/* Store Breakdown Cards */}
+            {overview.stores && overview.stores.length > 0 && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 pt-2">
+                {overview.stores.map((item) => {
+                  const itemRev = item.range_revenue ?? item.today_revenue;
+                  const itemOrd = item.range_orders ?? item.today_orders;
+                  const itemAov = item.range_aov ?? (itemOrd > 0 ? itemRev / itemOrd : 0);
+                  const itemProf = item.range_profit ?? 0;
+                  const itemMargin = itemRev > 0 ? (itemProf / itemRev) * 100 : 0;
+                  const isCurrent = item.store_id === activeStore?.id;
+                  const badge = getBusinessBadge(item.business_type);
+
+                  return (
+                    <div
+                      key={item.store_id}
+                      className={`p-4 rounded-2xl border transition space-y-3 ${
+                        isCurrent
+                          ? 'bg-emerald-50/50 border-emerald-300 ring-1 ring-emerald-500/20'
+                          : 'bg-slate-50 border-slate-200/80 hover:bg-white hover:shadow-xs'
                       }`}
                     >
-                      {item.is_active ? 'Hoạt động' : 'Tạm dừng'}
-                    </span>
-                  </div>
+                      <div className="flex items-center justify-between">
+                        <div className="min-w-0">
+                          <div className="flex items-center space-x-1.5">
+                            <span className="text-xs font-bold text-slate-900 truncate">
+                              {item.store_name}
+                            </span>
+                            {isCurrent && (
+                              <span className="text-[9px] font-bold text-emerald-800 bg-emerald-100 px-1 rounded">
+                                Đang chọn
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center space-x-1.5 mt-0.5">
+                            <span className="text-[10px] font-mono text-slate-400 font-semibold">
+                              {item.store_code}
+                            </span>
+                            <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded border ${badge.color}`}>
+                              {badge.label}
+                            </span>
+                          </div>
+                        </div>
+                        <span
+                          className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded border ${
+                            item.is_active
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                              : 'bg-slate-100 text-slate-400 border-slate-200'
+                          }`}
+                        >
+                          {item.is_active ? 'Hoạt động' : 'Tạm dừng'}
+                        </span>
+                      </div>
 
-                  <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-200/60">
-                    <div>
-                      <span className="text-[10px] text-slate-400 font-bold block">Hôm nay</span>
-                      <span className="text-xs font-black text-slate-900">
-                        {formatCurrency(item.today_revenue, { currency_symbol: item.currency })}
-                      </span>
-                      <span className="text-[9px] text-slate-500 block">{item.today_orders} đơn</span>
+                      <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-200/60">
+                        <div>
+                          <span className="text-[10px] text-slate-400 font-bold block">Doanh thu ({periodLabel})</span>
+                          <span className="text-xs font-black text-slate-900">
+                            {formatCurrency(itemRev, { currency_symbol: item.currency })}
+                          </span>
+                          <span className="text-[9px] text-slate-500 block">{itemOrd} đơn</span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] text-slate-400 font-bold block">Lợi nhuận & Biên LN</span>
+                          <span className="text-xs font-black text-emerald-700">
+                            {formatCurrency(itemProf, { currency_symbol: item.currency })}
+                          </span>
+                          <span className="text-[9px] text-emerald-600 block">Biên LN: {itemMargin.toFixed(1)}%</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between pt-2 border-t border-slate-200/60 text-[10px] text-slate-500">
+                        <span>AOV: <strong className="text-slate-800">{formatCurrency(itemAov, { currency_symbol: item.currency })}</strong></span>
+                        {!isCurrent && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const s = stores.find((x) => x.id === item.store_id);
+                              if (s) handleSwitchToStore(s);
+                            }}
+                            className="inline-flex items-center space-x-1 text-emerald-700 hover:text-emerald-800 font-bold cursor-pointer"
+                          >
+                            <span>Chuyển</span>
+                            <ArrowRight className="w-2.5 h-2.5" />
+                          </button>
+                        )}
+                      </div>
                     </div>
-                    <div>
-                      <span className="text-[10px] text-slate-400 font-bold block">Tháng này</span>
-                      <span className="text-xs font-black text-slate-900">
-                        {formatCurrency(item.month_revenue, { currency_symbol: item.currency })}
-                      </span>
-                      <span className="text-[9px] text-slate-500 block">{item.month_orders} đơn</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 
@@ -483,6 +639,11 @@ export default function StoresPage() {
                           </span>
                           <span className="flex items-center gap-1 font-semibold text-blue-700">
                             <Users className="w-3 h-3" /> {store.member_count || 0} nhân sự
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between text-[10px] text-slate-400 pt-0.5">
+                          <span>
+                            🌐 Múi giờ: <strong className="text-slate-600 font-mono">{store.timezone || 'Asia/Ho_Chi_Minh'}</strong>
                           </span>
                         </div>
                       </div>

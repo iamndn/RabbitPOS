@@ -139,9 +139,20 @@ export default function SettingsPage() {
     try {
       const res = await fetchApi<SettingsMap>('/settings');
       if (res.status === 'success' && res.data) {
+        const data = res.data;
         setForm((prev) => ({
           ...prev,
-          ...res.data,
+          ...data,
+          store_name: data.store_name || activeStore?.name || '',
+          store_address: data.store_address || activeStore?.address || '',
+          store_phone: data.store_phone || activeStore?.phone || '',
+          store_logo_url: data.store_logo_url || activeStore?.logo_url || '',
+          currency_code: data.currency_code || activeStore?.currency_code || 'VND',
+          currency_symbol: data.currency_symbol || activeStore?.currency_symbol || 'đ',
+          currency_position: data.currency_position || activeStore?.currency_position || 'suffix',
+          vietqr_bank_id: data.vietqr_bank_id || activeStore?.vietqr_bank_id || 'MB',
+          vietqr_account_no: data.vietqr_account_no || activeStore?.vietqr_account_no || '',
+          vietqr_account_name: data.vietqr_account_name || activeStore?.vietqr_account_name || '',
         }));
       } else {
         toast.error(res.message || 'Không thể tải thông tin cài đặt');
@@ -155,7 +166,7 @@ export default function SettingsPage() {
 
   useEffect(() => {
     loadSettings();
-  }, []);
+  }, [activeStore?.id]);
 
   const handleChange = (key: string, value: string) => {
     setForm((prev) => ({

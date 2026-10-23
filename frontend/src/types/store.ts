@@ -131,6 +131,7 @@ export interface UserListItem {
 
 export interface CreateUserRequest {
   username: string;
+  full_name?: string;
   email?: string;
   role: StoreRole;
   temp_password?: string;
@@ -148,14 +149,22 @@ export interface StoreOverviewItem {
   today_orders: number;
   month_revenue: number;
   month_orders: number;
+  range_revenue?: number;
+  range_orders?: number;
+  range_aov?: number;
+  range_profit?: number;
 }
 
 export interface OverviewAllStoresResponse {
   total_stores: number;
   active_stores: number;
+  total_staff_count?: number;
   total_today_revenue: number;
   total_today_orders: number;
   total_month_revenue: number;
   total_month_orders: number;
+  total_range_revenue?: number;
+  total_range_orders?: number;
+  total_range_profit?: number;
   stores: StoreOverviewItem[];
 }

@@ -168,6 +168,7 @@ type StoreMemberResponse struct {
 // whose authority comes only from the listed memberships.
 type CreateUserRequest struct {
 	Username     string           `json:"username" binding:"required,min=3,max=50"`
+	FullName     string           `json:"full_name"`
 	Email        string           `json:"email"`
 	TempPassword string           `json:"temp_password" binding:"required,min=6"`
 	Role         StoreRole        `json:"role" binding:"required"`

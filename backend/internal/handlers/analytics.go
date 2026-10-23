@@ -1290,30 +1290,42 @@ type StoreOverviewItem struct {
 	StoreID          uint    `json:"store_id"`
 	StoreCode        string  `json:"store_code"`
 	StoreName        string  `json:"store_name"`
+	BusinessType     string  `json:"business_type"`
+	Currency         string  `json:"currency"`
 	IsActive         bool    `json:"is_active"`
 	TodayRevenue     float64 `json:"today_revenue"`
 	TodayOrders      int64   `json:"today_orders"`
 	ThisMonthRevenue float64 `json:"this_month_revenue"`
 	ThisMonthOrders  int64   `json:"this_month_orders"`
+	RangeRevenue     float64 `json:"range_revenue"`
+	RangeOrders      int64   `json:"range_orders"`
+	RangeAOV         float64 `json:"range_aov"`
+	RangeProfit      float64 `json:"range_profit"`
 }
 
 type PlatformOverviewResponse struct {
 	TotalStores       int                 `json:"total_stores"`
 	ActiveStores      int                 `json:"active_stores"`
+	TotalStaffCount   int64               `json:"total_staff_count"`
 	TotalTodayRevenue float64             `json:"total_today_revenue"`
 	TotalTodayOrders  int64               `json:"total_today_orders"`
 	TotalMonthRevenue float64             `json:"total_month_revenue"`
 	TotalMonthOrders  int64               `json:"total_month_orders"`
+	TotalRangeRevenue float64             `json:"total_range_revenue"`
+	TotalRangeOrders  int64               `json:"total_range_orders"`
+	TotalRangeProfit  float64             `json:"total_range_profit"`
 	Stores            []StoreOverviewItem `json:"stores"`
 }
 
-// GetOverviewAllStores aggregates cross-store revenue and order count for super_admin
+// GetOverviewAllStores aggregates cross-store revenue, profit, AOV and order count for super_admin
 // GET /api/v1/analytics/overview-all-stores
 func (h *AnalyticsHandler) GetOverviewAllStores(c *gin.Context) {
 	loc := getAnalyticsLocation()
 	now := time.Now().In(loc)
 	startOfToday := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, loc)
 	startOfMonth := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, loc)
+
+	startDate, endDate, _, _ := parseDateRange(c)
 
 	var stores []models.Store
 	if err := h.db.Order("id asc").Find(&stores).Error; err != nil {
@@ -1351,10 +1363,44 @@ func (h *AnalyticsHandler) GetOverviewAllStores(c *gin.Context) {
 		monthMap[m.StoreID] = m
 	}
 
+	// Range metrics (for selected date range)
+	var rangeOrders []MetricRow
+	h.db.Table("orders").
+		Select("store_id, COALESCE(SUM(total_amount), 0) as revenue, COUNT(id) as orders").
+		Where("status = ? AND created_at BETWEEN ? AND ?", models.OrderStatusCompleted, startDate, endDate).
+		Group("store_id").
+		Scan(&rangeOrders)
+
+	rangeOrderMap := make(map[uint]MetricRow)
+	for _, m := range rangeOrders {
+		rangeOrderMap[m.StoreID] = m
+	}
+
+	type ProfitRow struct {
+		StoreID uint    `gorm:"column:store_id"`
+		Profit  float64 `gorm:"column:profit"`
+	}
+	var rangeProfits []ProfitRow
+	h.db.Table("order_items").
+		Select("orders.store_id, COALESCE(SUM(order_items.line_total - (COALESCE(product_variants.cogs_price, 0) * order_items.quantity)), 0) as profit").
+		Joins("JOIN orders ON orders.id = order_items.order_id").
+		Joins("LEFT JOIN product_variants ON product_variants.id = order_items.product_variant_id").
+		Where("orders.status = ? AND orders.created_at BETWEEN ? AND ?", models.OrderStatusCompleted, startDate, endDate).
+		Group("orders.store_id").
+		Scan(&rangeProfits)
+
+	rangeProfitMap := make(map[uint]float64)
+	for _, p := range rangeProfits {
+		rangeProfitMap[p.StoreID] = p.Profit
+	}
+
+	var totalStaffCount int64
+	h.db.Model(&models.UserStore{}).Distinct("user_id").Count(&totalStaffCount)
+
 	storeItems := make([]StoreOverviewItem, 0, len(stores))
 	var activeCount int
-	var totalTodayRev, totalMonthRev float64
-	var totalTodayOrd, totalMonthOrd int64
+	var totalTodayRev, totalMonthRev, totalRangeRev, totalRangeProf float64
+	var totalTodayOrd, totalMonthOrd, totalRangeOrd int64
 
 	for _, s := range stores {
 		if s.IsActive {
@@ -1362,31 +1408,56 @@ func (h *AnalyticsHandler) GetOverviewAllStores(c *gin.Context) {
 		}
 		t := todayMap[s.ID]
 		m := monthMap[s.ID]
+		ro := rangeOrderMap[s.ID]
+		rp := rangeProfitMap[s.ID]
+
+		var aov float64
+		if ro.Orders > 0 {
+			aov = ro.Revenue / float64(ro.Orders)
+		}
 
 		totalTodayRev += t.Revenue
 		totalTodayOrd += t.Orders
 		totalMonthRev += m.Revenue
 		totalMonthOrd += m.Orders
+		totalRangeRev += ro.Revenue
+		totalRangeOrd += ro.Orders
+		totalRangeProf += rp
+
+		curr := s.CurrencySymbol
+		if curr == "" {
+			curr = "đ"
+		}
 
 		storeItems = append(storeItems, StoreOverviewItem{
 			StoreID:          s.ID,
 			StoreCode:        s.Code,
 			StoreName:        s.Name,
+			BusinessType:     s.BusinessType,
+			Currency:         curr,
 			IsActive:         s.IsActive,
 			TodayRevenue:     t.Revenue,
 			TodayOrders:      t.Orders,
 			ThisMonthRevenue: m.Revenue,
 			ThisMonthOrders:  m.Orders,
+			RangeRevenue:     ro.Revenue,
+			RangeOrders:      ro.Orders,
+			RangeAOV:         aov,
+			RangeProfit:      rp,
 		})
 	}
 
 	resp := PlatformOverviewResponse{
 		TotalStores:       len(stores),
 		ActiveStores:      activeCount,
+		TotalStaffCount:   totalStaffCount,
 		TotalTodayRevenue: totalTodayRev,
 		TotalTodayOrders:  totalTodayOrd,
 		TotalMonthRevenue: totalMonthRev,
 		TotalMonthOrders:  totalMonthOrd,
+		TotalRangeRevenue: totalRangeRev,
+		TotalRangeOrders:  totalRangeOrd,
+		TotalRangeProfit:  totalRangeProf,
 		Stores:            storeItems,
 	}
 
