@@ -48,6 +48,7 @@ import ModernDateRangePicker, { DatePeriod, computeDateRange, getLocalMonthStr, 
 import ModernSelect from '@/components/common/ModernSelect';
 import HorizontalScroller from '@/components/common/HorizontalScroller';
 import { fetchApi } from '@/lib/api';
+import { getAuthUser, isStaffRole } from '@/lib/auth';
 import { getActiveStoreId } from '@/lib/store';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
 import { useConfirm } from '@/context/ConfirmContext';
@@ -252,6 +253,7 @@ export default function TransactionsPage() {
   const router = useRouter();
   const { t } = useTranslation();
   const { confirm, showAlert } = useConfirm();
+  const isStaff = isStaffRole(getAuthUser()?.role);
 
   // Active View Tab: 'ledger' (Default) | 'orders' | 'funds'
   const [activeTab, setActiveTab] = useState<TransactionTab>('ledger');
@@ -1183,13 +1185,15 @@ export default function TransactionsPage() {
                     align="right"
                   />
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setIsCategoryModalOpen(true)}
-                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-3 py-2 rounded-xl border border-slate-200 flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer w-full sm:w-auto"
-                >
-                  <Tag className="w-3.5 h-3.5 text-indigo-600 shrink-0" /> <span className="truncate">{t('tx_cat.btn_manage_categories') || 'Danh mục'}</span>
-                </button>
+                {!isStaff && (
+                  <button
+                    type="button"
+                    onClick={() => setIsCategoryModalOpen(true)}
+                    className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-3 py-2 rounded-xl border border-slate-200 flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer w-full sm:w-auto"
+                  >
+                    <Tag className="w-3.5 h-3.5 text-indigo-600 shrink-0" /> <span className="truncate">{t('tx_cat.btn_manage_categories') || 'Danh mục'}</span>
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={handleExportExcel}
@@ -1896,7 +1900,11 @@ export default function TransactionsPage() {
                               {isInflow ? '+' : '-'}{formatCurrency(tx.amount, settings)}
                             </td>
                             <td className="py-3 px-4 text-center">
-                              {isManual ? (
+                              {isStaff ? (
+                                <span className="text-[10px] text-slate-400 font-medium italic">
+                                  {t('common.view_only') || 'Chỉ xem'}
+                                </span>
+                              ) : isManual ? (
                                 <div className="flex items-center justify-center space-x-1.5">
                                   <button
                                     onClick={() => handleOpenEditModal(tx)}
@@ -2030,7 +2038,11 @@ export default function TransactionsPage() {
                             <span>•</span>
                             <span className="font-mono text-slate-400">{dateStr}</span>
                           </div>
-                          {isManual ? (
+                          {isStaff ? (
+                            <span className="text-[10px] text-slate-400 font-medium italic">
+                              {t('common.view_only') || 'Chỉ xem'}
+                            </span>
+                          ) : isManual ? (
                             <div className="flex items-center gap-1">
                               <button
                                 onClick={() => handleOpenEditModal(tx)}
@@ -2369,22 +2381,26 @@ export default function TransactionsPage() {
                                   >
                                     <RotateCcw className="w-4 h-4" />
                                   </button>
-                                  {!isCancelled && (
-                                    <button
-                                      onClick={() => setCancellingOrder(order)}
-                                      title={t('tx.cancel_order_tooltip') || 'Hủy đơn hàng'}
-                                      className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition"
-                                    >
-                                      <Ban className="w-4 h-4" />
-                                    </button>
+                                  {!isStaff && (
+                                    <>
+                                      {!isCancelled && (
+                                        <button
+                                          onClick={() => setCancellingOrder(order)}
+                                          title={t('tx.cancel_order_tooltip') || 'Hủy đơn hàng'}
+                                          className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition"
+                                        >
+                                          <Ban className="w-4 h-4" />
+                                        </button>
+                                      )}
+                                      <button
+                                        onClick={() => setDeletingOrder(order)}
+                                        title="Xóa vĩnh viễn đơn hàng"
+                                        className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"
+                                      >
+                                        <Trash2 className="w-4 h-4" />
+                                      </button>
+                                    </>
                                   )}
-                                  <button
-                                    onClick={() => setDeletingOrder(order)}
-                                    title="Xóa vĩnh viễn đơn hàng"
-                                    className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </button>
                                 </div>
                               </td>
                             </tr>
@@ -2668,24 +2684,28 @@ export default function TransactionsPage() {
                               <RotateCcw className="w-3 h-3" />
                               <span>Đặt lại</span>
                             </button>
-                            {!isCancelled && (
-                              <button
-                                type="button"
-                                onClick={() => setCancellingOrder(order)}
-                                className="px-2.5 py-1 text-[11px] font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg flex items-center gap-1 transition cursor-pointer"
-                              >
-                                <Ban className="w-3 h-3" />
-                                <span>Hủy đơn</span>
-                              </button>
+                            {!isStaff && (
+                              <>
+                                {!isCancelled && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setCancellingOrder(order)}
+                                    className="px-2.5 py-1 text-[11px] font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg flex items-center gap-1 transition cursor-pointer"
+                                  >
+                                    <Ban className="w-3 h-3" />
+                                    <span>Hủy đơn</span>
+                                  </button>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => setDeletingOrder(order)}
+                                  className="px-2.5 py-1 text-[11px] font-bold text-slate-500 hover:text-rose-600 bg-slate-100 hover:bg-rose-50 rounded-lg flex items-center gap-1 transition cursor-pointer"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                  <span>Xóa</span>
+                                </button>
+                              </>
                             )}
-                            <button
-                              type="button"
-                              onClick={() => setDeletingOrder(order)}
-                              className="px-2.5 py-1 text-[11px] font-bold text-slate-500 hover:text-rose-600 bg-slate-100 hover:bg-rose-50 rounded-lg flex items-center gap-1 transition cursor-pointer"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                              <span>Xóa</span>
-                            </button>
                           </div>
                         </div>
                       </div>
@@ -2793,57 +2813,59 @@ export default function TransactionsPage() {
                         </div>
 
                         {/* Action Buttons */}
-                        <div className="space-y-2 pt-2.5 border-t border-slate-200/60">
-                          <div className="grid grid-cols-2 gap-2">
-                            <button
-                              type="button"
-                              onClick={() => openReconcileModal(fund)}
-                              className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 shadow-2xs transition cursor-pointer active:scale-95"
-                              title={t('funds.reconcile_count')}
-                            >
-                              <Scale className="w-3.5 h-3.5" /> {t('funds.reconcile_count')}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => openUpdateReconcileModal(fund)}
-                              className="bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 text-xs font-bold py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 transition cursor-pointer active:scale-95 shadow-2xs"
-                              title={t('funds.update_reconcile_btn') || 'Cập nhật đối soát'}
-                            >
-                              <Pencil className="w-3.5 h-3.5" /> {t('funds.update_reconcile_btn')}
-                            </button>
-                          </div>
+                        {!isStaff && (
+                          <div className="space-y-2 pt-2.5 border-t border-slate-200/60">
+                            <div className="grid grid-cols-2 gap-2">
+                              <button
+                                type="button"
+                                onClick={() => openReconcileModal(fund)}
+                                className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 shadow-2xs transition cursor-pointer active:scale-95"
+                                title={t('funds.reconcile_count')}
+                              >
+                                <Scale className="w-3.5 h-3.5" /> {t('funds.reconcile_count')}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => openUpdateReconcileModal(fund)}
+                                className="bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 text-xs font-bold py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 transition cursor-pointer active:scale-95 shadow-2xs"
+                                title={t('funds.update_reconcile_btn') || 'Cập nhật đối soát'}
+                              >
+                                <Pencil className="w-3.5 h-3.5" /> {t('funds.update_reconcile_btn')}
+                              </button>
+                            </div>
 
-                          <div className="grid grid-cols-3 gap-1.5">
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteLatestReconciliation(fund)}
-                              className="bg-white hover:bg-rose-50 text-rose-600 hover:text-rose-700 text-[11px] font-semibold py-1.5 px-2 rounded-xl border border-rose-200 flex items-center justify-center gap-1 transition cursor-pointer shadow-2xs"
-                              title={t('funds.delete_latest_reconcile_btn') || 'Hoàn tác đối soát gần nhất'}
-                            >
-                              <RotateCcw className="w-3.5 h-3.5 shrink-0" />
-                              <span className="truncate">Hoàn tác</span>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleRestoreReconciliation(fund)}
-                              disabled={restoringReconcile}
-                              className="bg-white hover:bg-emerald-50 text-emerald-600 hover:text-emerald-700 text-[11px] font-semibold py-1.5 px-2 rounded-xl border border-emerald-200 flex items-center justify-center gap-1 transition cursor-pointer shadow-2xs disabled:opacity-50"
-                              title={t('funds.restore_reconcile_btn') || 'Khôi phục lệnh đối soát trước đó'}
-                            >
-                              <RotateCw className={`w-3.5 h-3.5 shrink-0 ${restoringReconcile ? 'animate-spin' : ''}`} />
-                              <span className="truncate">Khôi phục</span>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => openReconcileHistoryModal(fund)}
-                              className="bg-white hover:bg-slate-100 text-slate-700 text-[11px] font-semibold py-1.5 px-2 rounded-xl border border-slate-200 flex items-center justify-center gap-1 transition cursor-pointer shadow-2xs"
-                              title={t('funds.reconcile_history_btn') || 'Xem lịch sử đối soát két'}
-                            >
-                              <History className="w-3.5 h-3.5 shrink-0" />
-                              <span className="truncate">Lịch sử</span>
-                            </button>
+                            <div className="grid grid-cols-3 gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteLatestReconciliation(fund)}
+                                className="bg-white hover:bg-rose-50 text-rose-600 hover:text-rose-700 text-[11px] font-semibold py-1.5 px-2 rounded-xl border border-rose-200 flex items-center justify-center gap-1 transition cursor-pointer shadow-2xs"
+                                title={t('funds.delete_latest_reconcile_btn') || 'Hoàn tác đối soát gần nhất'}
+                              >
+                                <RotateCcw className="w-3.5 h-3.5 shrink-0" />
+                                <span className="truncate">Hoàn tác</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleRestoreReconciliation(fund)}
+                                disabled={restoringReconcile}
+                                className="bg-white hover:bg-emerald-50 text-emerald-600 hover:text-emerald-700 text-[11px] font-semibold py-1.5 px-2 rounded-xl border border-emerald-200 flex items-center justify-center gap-1 transition cursor-pointer shadow-2xs disabled:opacity-50"
+                                title={t('funds.restore_reconcile_btn') || 'Khôi phục lệnh đối soát trước đó'}
+                              >
+                                <RotateCw className={`w-3.5 h-3.5 shrink-0 ${restoringReconcile ? 'animate-spin' : ''}`} />
+                                <span className="truncate">Khôi phục</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => openReconcileHistoryModal(fund)}
+                                className="bg-white hover:bg-slate-100 text-slate-700 text-[11px] font-semibold py-1.5 px-2 rounded-xl border border-slate-200 flex items-center justify-center gap-1 transition cursor-pointer shadow-2xs"
+                                title={t('funds.reconcile_history_btn') || 'Xem lịch sử đối soát két'}
+                              >
+                                <History className="w-3.5 h-3.5 shrink-0" />
+                                <span className="truncate">Lịch sử</span>
+                              </button>
+                            </div>
                           </div>
-                        </div>
+                        )}
                       </div>
                     );
                   })}

@@ -1,11 +1,17 @@
 import { StoreMembership } from '@/types/store';
 import { clearActiveStoreId } from './store';
 
+export type UserRole = 'master' | 'owner' | 'staff' | 'admin' | 'super_admin';
+
 export interface UserInfo {
   id: number;
   username: string;
-  role: 'admin' | 'staff' | 'super_admin';
+  full_name?: string;
+  phone?: string;
+  email?: string;
+  role: UserRole;
   is_active: boolean;
+  has_pin?: boolean;
   stores?: StoreMembership[];
   default_store_id?: number;
 }
@@ -45,14 +51,31 @@ export function isAuthenticated(): boolean {
   return !!getToken();
 }
 
+export function isMasterRole(role?: string): boolean {
+  return role === 'master' || role === 'super_admin' || role === 'admin';
+}
+
+export function isOwnerRole(role?: string): boolean {
+  return role === 'owner' || role === 'store_admin';
+}
+
+export function isStaffRole(role?: string): boolean {
+  return role === 'staff' || role === 'cashier';
+}
+
 export function isAdmin(): boolean {
   const user = getAuthUser();
-  return user?.role === 'admin' || user?.role === 'super_admin';
+  return isMasterRole(user?.role) || isOwnerRole(user?.role);
 }
 
 export function isSuperAdmin(): boolean {
   const user = getAuthUser();
-  return user?.role === 'super_admin' || user?.role === 'admin';
+  return isMasterRole(user?.role);
+}
+
+export function canManageUsers(): boolean {
+  const user = getAuthUser();
+  return isMasterRole(user?.role) || isOwnerRole(user?.role);
 }
 
 export function logout() {

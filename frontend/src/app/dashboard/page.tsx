@@ -50,6 +50,7 @@ import {
   HourlyDistributionResponse,
   HourlyDistributionItem,
 } from '@/types/analytics';
+import { getAuthUser, isStaffRole } from '@/lib/auth';
 
 export default function DashboardPage() {
   const { t } = useTranslation();
@@ -63,6 +64,8 @@ export default function DashboardPage() {
   const [customTo, setCustomTo] = useState<string>(() => getLocalDateStr());
   const [isFilterInitialized, setIsFilterInitialized] = useState<boolean>(false);
 
+  const isStaff = isStaffRole(getAuthUser()?.role);
+
   // Restore saved dashboard filters on mount
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -73,14 +76,14 @@ export default function DashboardPage() {
           if (parsed.period !== undefined) setPeriod(parsed.period);
           if (parsed.customFrom !== undefined) setCustomFrom(parsed.customFrom);
           if (parsed.customTo !== undefined) setCustomTo(parsed.customTo);
-          if (parsed.activeTab === 'overview' || parsed.activeTab === 'revenue' || parsed.activeTab === 'profit') {
+          if (parsed.activeTab === 'overview' || parsed.activeTab === 'revenue' || (!isStaff && parsed.activeTab === 'profit')) {
             setActiveTab(parsed.activeTab);
           }
         }
       } catch {}
       setIsFilterInitialized(true);
     }
-  }, []);
+  }, [isStaff]);
 
   // Save dashboard filters to sessionStorage when changed
   useEffect(() => {
@@ -131,7 +134,9 @@ export default function DashboardPage() {
 
     const [revRes, profitRes, hourlyRes, settingsRes] = await Promise.all([
       fetchApi<RevenueAnalyticsResponse>(`/analytics/revenue${queryParams}`),
-      fetchApi<ProfitAnalyticsResponse>(`/analytics/profit${queryParams}`),
+      isStaff
+        ? Promise.resolve({ status: 'success', data: null, message: '' })
+        : fetchApi<ProfitAnalyticsResponse>(`/analytics/profit${queryParams}`),
       fetchApi<HourlyDistributionResponse>(`/analytics/hourly-distribution${queryParams}`),
       fetchApi<any>('/settings'),
     ]);
@@ -298,18 +303,20 @@ export default function DashboardPage() {
             <TrendingUp className="w-4 h-4" />
             {t('dashboard.tab_revenue')}
           </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('profit')}
-            className={`pb-3 px-3 sm:px-4 text-sm font-bold border-b-2 transition flex items-center gap-2 ${
-              activeTab === 'profit'
-                ? 'border-emerald-600 text-emerald-600'
-                : 'border-transparent text-slate-500 hover:text-slate-700'
-            }`}
-          >
-            <Coins className="w-4 h-4" />
-            {t('dashboard.tab_profit')}
-          </button>
+          {!isStaff && (
+            <button
+              type="button"
+              onClick={() => setActiveTab('profit')}
+              className={`pb-3 px-3 sm:px-4 text-sm font-bold border-b-2 transition flex items-center gap-2 ${
+                activeTab === 'profit'
+                  ? 'border-emerald-600 text-emerald-600'
+                  : 'border-transparent text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              <Coins className="w-4 h-4" />
+              {t('dashboard.tab_profit')}
+            </button>
+          )}
         </div>
 
         {/* Loading Skeletons */}
@@ -443,99 +450,142 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* Hero 3: Net Profit (Lợi nhuận ròng) */}
-              <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between space-y-3 relative overflow-hidden group hover:border-emerald-300 transition-all">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-700">{t('dashboard.kpi_net_profit')}</span>
-                  <div className="p-2.5 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100 group-hover:scale-110 transition-transform">
-                    <TrendingUp className="w-5 h-5" />
+              {/* Hero 3 & Hero 4: Staff Mode vs Management Profit Cards */}
+              {isStaff ? (
+                <>
+                  <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-700">Đơn hàng hoàn tất</span>
+                      <div className="p-2.5 rounded-xl bg-slate-100 text-slate-600">
+                        <Receipt className="w-5 h-5" />
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-3xl font-extrabold text-slate-900 tracking-tight">
+                        {revSummary?.completed_order_count || 0}
+                      </div>
+                      <p className="text-[11px] text-slate-400 font-medium mt-1">Đơn hàng ghi nhận trong ca</p>
+                    </div>
+                    <div className="pt-2.5 border-t border-slate-100 text-[10px] text-slate-500">
+                      Hiển thị theo bộ lọc thời gian đang chọn
+                    </div>
                   </div>
-                </div>
-                <div>
-                  <div
-                    className={`text-3xl font-extrabold tracking-tight ${
-                      (pSummary?.net_profit || 0) >= 0 ? 'text-emerald-600' : 'text-rose-600'
-                    }`}
-                  >
-                    {formatCurrency(pSummary?.net_profit || 0, settings)}
-                  </div>
-                  <div className="flex items-center gap-1.5 mt-1.5">
-                    <span className="text-xs font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
-                      {t('dashboard.net_margin_badge', { margin: pSummary?.net_margin_percentage || 0 })}
-                    </span>
-                    <span
-                      className={`inline-flex items-center text-[11px] font-bold px-1.5 py-0.5 rounded-md ${
-                        (pSummary?.net_profit_delta_pct || 0) >= 0
-                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                          : 'bg-rose-50 text-rose-700 border border-rose-200'
-                      }`}
-                    >
-                      {(pSummary?.net_profit_delta_pct || 0) >= 0 ? '+' : ''}
-                      {pSummary?.net_profit_delta_pct || 0}%
-                    </span>
-                  </div>
-                </div>
-                <div className="pt-2.5 border-t border-slate-100 space-y-1 text-[10px]">
-                  <div className="flex justify-between text-slate-600">
-                    <span>Lợi nhuận gộp:</span>
-                    <span className="font-semibold text-emerald-600">
-                      {formatCurrency(pSummary?.gross_profit || 0, settings)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-rose-600">
-                    <span>Chi phí vận hành:</span>
-                    <span className="font-semibold">
-                      -{formatCurrency(pSummary?.operating_expenses || 0, settings)}
-                    </span>
-                  </div>
-                  <div className="p-1.5 bg-emerald-50/70 rounded-lg text-emerald-900 text-[10px] leading-tight font-medium border border-emerald-100/80">
-                    <span className="font-bold">💡 Ròng / Thuần:</span> {pSummary?.net_margin_percentage || 0}% sau toàn bộ giá vốn & chi phí
-                  </div>
-                </div>
-              </div>
 
-              {/* Hero 4: Gross Profit & AOV (Lợi nhuận gộp & Giá trị TB đơn) */}
-              <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between space-y-3 relative overflow-hidden group hover:border-violet-300 transition-all">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-700">LN Gộp & Đơn hàng (AOV)</span>
-                  <div className="p-2.5 rounded-xl bg-violet-50 text-violet-600 border border-violet-100 group-hover:scale-110 transition-transform">
-                    <Coins className="w-5 h-5" />
+                  <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-700">Giá trị đơn TB (AOV)</span>
+                      <div className="p-2.5 rounded-xl bg-slate-100 text-slate-600">
+                        <DollarSign className="w-5 h-5" />
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-3xl font-extrabold text-slate-900 tracking-tight">
+                        {formatCurrency(revSummary?.average_order_value || 0, settings)}
+                      </div>
+                      <p className="text-[11px] text-slate-400 font-medium mt-1">Trung bình mỗi đơn thanh toán</p>
+                    </div>
+                    <div className="pt-2.5 border-t border-slate-100 text-[10px] text-slate-500">
+                      Doanh thu trung bình trên mỗi giao dịch
+                    </div>
                   </div>
-                </div>
-                <div>
-                  <div className="text-3xl font-extrabold text-violet-600 tracking-tight">
-                    {formatCurrency(pSummary?.gross_profit || 0, settings)}
+                </>
+              ) : (
+                <>
+                  {/* Hero 3: Net Profit (Lợi nhuận ròng) */}
+                  <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between space-y-3 relative overflow-hidden group hover:border-emerald-300 transition-all">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-700">{t('dashboard.kpi_net_profit')}</span>
+                      <div className="p-2.5 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100 group-hover:scale-110 transition-transform">
+                        <TrendingUp className="w-5 h-5" />
+                      </div>
+                    </div>
+                    <div>
+                      <div
+                        className={`text-3xl font-extrabold tracking-tight ${
+                          (pSummary?.net_profit || 0) >= 0 ? 'text-emerald-600' : 'text-rose-600'
+                        }`}
+                      >
+                        {formatCurrency(pSummary?.net_profit || 0, settings)}
+                      </div>
+                      <div className="flex items-center gap-1.5 mt-1.5">
+                        <span className="text-xs font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
+                          {t('dashboard.net_margin_badge', { margin: pSummary?.net_margin_percentage || 0 })}
+                        </span>
+                        <span
+                          className={`inline-flex items-center text-[11px] font-bold px-1.5 py-0.5 rounded-md ${
+                            (pSummary?.net_profit_delta_pct || 0) >= 0
+                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                              : 'bg-rose-50 text-rose-700 border border-rose-200'
+                          }`}
+                        >
+                          {(pSummary?.net_profit_delta_pct || 0) >= 0 ? '+' : ''}
+                          {pSummary?.net_profit_delta_pct || 0}%
+                        </span>
+                      </div>
+                    </div>
+                    <div className="pt-2.5 border-t border-slate-100 space-y-1 text-[10px]">
+                      <div className="flex justify-between text-slate-600">
+                        <span>Lợi nhuận gộp:</span>
+                        <span className="font-semibold text-emerald-600">
+                          {formatCurrency(pSummary?.gross_profit || 0, settings)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-rose-600">
+                        <span>Chi phí vận hành:</span>
+                        <span className="font-semibold">
+                          -{formatCurrency(pSummary?.operating_expenses || 0, settings)}
+                        </span>
+                      </div>
+                      <div className="p-1.5 bg-emerald-50/70 rounded-lg text-emerald-900 text-[10px] leading-tight font-medium border border-emerald-100/80">
+                        <span className="font-bold">💡 Ròng / Thuần:</span> {pSummary?.net_margin_percentage || 0}% sau toàn bộ giá vốn & chi phí
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1.5 mt-1.5">
-                    <span className="text-xs font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
-                      {t('dashboard.margin_badge', { margin: pSummary?.gross_margin_percentage || 0 })}
-                    </span>
-                    <span className="text-xs font-bold text-slate-500">
-                      · {revSummary?.completed_order_count || 0} đơn
-                    </span>
+
+                  {/* Hero 4: Gross Profit & AOV (Lợi nhuận gộp & Giá trị TB đơn) */}
+                  <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between space-y-3 relative overflow-hidden group hover:border-violet-300 transition-all">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-700">LN Gộp & Đơn hàng (AOV)</span>
+                      <div className="p-2.5 rounded-xl bg-violet-50 text-violet-600 border border-violet-100 group-hover:scale-110 transition-transform">
+                        <Coins className="w-5 h-5" />
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-3xl font-extrabold text-violet-600 tracking-tight">
+                        {formatCurrency(pSummary?.gross_profit || 0, settings)}
+                      </div>
+                      <div className="flex items-center gap-1.5 mt-1.5">
+                        <span className="text-xs font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
+                          {t('dashboard.margin_badge', { margin: pSummary?.gross_margin_percentage || 0 })}
+                        </span>
+                        <span className="text-xs font-bold text-slate-500">
+                          · {revSummary?.completed_order_count || 0} đơn
+                        </span>
+                      </div>
+                    </div>
+                    <div className="pt-2.5 border-t border-slate-100 space-y-1 text-[10px]">
+                      <div className="flex justify-between text-slate-600">
+                        <span>Giá trị TB / Đơn (AOV):</span>
+                        <span className="font-bold text-violet-700">
+                          {formatCurrency(revSummary?.average_order_value || 0, settings)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-slate-600">
+                        <span>Tổng COGS (Giá vốn):</span>
+                        <span className="font-semibold text-slate-800">
+                          {formatCurrency(pSummary?.total_cogs || 0, settings)}
+                        </span>
+                      </div>
+                      <div className="p-1.5 bg-violet-50/70 rounded-lg text-violet-900 text-[10px] leading-tight font-medium border border-violet-100/80">
+                        <span className="font-bold">💡 Tỷ lệ giá vốn:</span>{' '}
+                        {pSummary?.net_revenue && pSummary.net_revenue > 0
+                          ? ((pSummary.total_cogs / pSummary.net_revenue) * 100).toFixed(1)
+                          : '0'}% doanh thu thuần
+                      </div>
+                    </div>
                   </div>
-                </div>
-                <div className="pt-2.5 border-t border-slate-100 space-y-1 text-[10px]">
-                  <div className="flex justify-between text-slate-600">
-                    <span>Giá trị TB / Đơn (AOV):</span>
-                    <span className="font-bold text-violet-700">
-                      {formatCurrency(revSummary?.average_order_value || 0, settings)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-slate-600">
-                    <span>Tổng COGS (Giá vốn):</span>
-                    <span className="font-semibold text-slate-800">
-                      {formatCurrency(pSummary?.total_cogs || 0, settings)}
-                    </span>
-                  </div>
-                  <div className="p-1.5 bg-violet-50/70 rounded-lg text-violet-900 text-[10px] leading-tight font-medium border border-violet-100/80">
-                    <span className="font-bold">💡 Tỷ lệ giá vốn:</span>{' '}
-                    {pSummary?.net_revenue && pSummary.net_revenue > 0
-                      ? ((pSummary.total_cogs / pSummary.net_revenue) * 100).toFixed(1)
-                      : '0'}% doanh thu thuần
-                  </div>
-                </div>
-              </div>
+                </>
+              )}
             </div>
 
             {/* Integrated Overview Charts: Trend & Payment Methods */}
@@ -546,10 +596,12 @@ export default function DashboardPage() {
                   <div>
                     <h3 className="font-bold text-sm text-slate-900 flex items-center gap-2">
                       <TrendingUp className="w-4 h-4 text-indigo-600" />
-                      <span>Xu hướng Doanh thu, Giá vốn & Lợi nhuận</span>
+                      <span>{isStaff ? 'Xu hướng Doanh thu & Đơn hàng' : 'Xu hướng Doanh thu, Giá vốn & Lợi nhuận'}</span>
                     </h3>
                     <p className="text-xs text-slate-400">
-                      Biểu đồ cột đa chỉ số so sánh tương quan Doanh thu, Chi phí giá vốn và Lợi nhuận theo thời gian
+                      {isStaff
+                        ? 'Biểu đồ doanh thu và lượng đơn hàng ghi nhận theo thời gian'
+                        : 'Biểu đồ cột đa chỉ số so sánh tương quan Doanh thu, Chi phí giá vốn và Lợi nhuận theo thời gian'}
                     </p>
                   </div>
                   <div className="flex flex-wrap items-center gap-3 text-xs">
@@ -557,22 +609,84 @@ export default function DashboardPage() {
                       <span className="w-2.5 h-2.5 rounded-full bg-indigo-600" />
                       Doanh thu
                     </span>
-                    <span className="flex items-center gap-1.5 text-amber-500 font-semibold">
-                      <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
-                      Giá vốn COGS
-                    </span>
-                    <span className="flex items-center gap-1.5 text-emerald-600 font-semibold">
-                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-600" />
-                      Lợi nhuận ròng
-                    </span>
+                    {!isStaff && (
+                      <>
+                        <span className="flex items-center gap-1.5 text-amber-500 font-semibold">
+                          <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+                          Giá vốn COGS
+                        </span>
+                        <span className="flex items-center gap-1.5 text-emerald-600 font-semibold">
+                          <span className="w-2.5 h-2.5 rounded-full bg-emerald-600" />
+                          Lợi nhuận ròng
+                        </span>
+                      </>
+                    )}
                   </div>
                 </div>
 
-                {/* SVG Multi-Series Trend Bar */}
+                {/* SVG Trend Bar */}
                 <div className="relative h-64 w-full flex items-end pt-6">
-                  {profitData?.timeline && profitData.timeline.length > 0 ? (
+                  {isStaff ? (
+                    revenueData?.timeline && revenueData.timeline.length > 0 ? (
+                      (() => {
+                        const points = revenueData.timeline;
+                        const maxVal = Math.max(...points.map((p) => p.net_revenue), 10000);
+
+                        return (
+                          <div className="w-full h-full flex flex-col justify-between">
+                            <div className="relative flex-1 flex items-end justify-between gap-1 sm:gap-2 px-2 border-b border-slate-200">
+                              {points.map((p, idx) => {
+                                const revHeight = Math.max(4, (p.net_revenue / maxVal) * 100);
+                                const isHovered = hoveredOverviewIndex === idx;
+
+                                return (
+                                  <div
+                                    key={idx}
+                                    onMouseEnter={() => setHoveredOverviewIndex(idx)}
+                                    onMouseLeave={() => setHoveredOverviewIndex(null)}
+                                    className="relative flex-1 h-full flex items-end justify-center group cursor-pointer"
+                                  >
+                                    {isHovered && (
+                                      <div className="absolute -top-24 z-30 bg-slate-900 text-white text-[10px] p-2.5 rounded-xl shadow-xl whitespace-nowrap animate-in fade-in zoom-in-95 pointer-events-none space-y-1 border border-slate-700 text-left">
+                                        <div className="font-bold text-slate-300">{p.date}</div>
+                                        <div className="text-indigo-400 font-bold flex items-center justify-between gap-3">
+                                          <span>Doanh thu:</span> <span>{formatCurrency(p.net_revenue, settings)}</span>
+                                        </div>
+                                        <div className="text-slate-300 font-medium flex items-center justify-between gap-3">
+                                          <span>Đơn hàng:</span> <span>{p.orders_count} đơn</span>
+                                        </div>
+                                        {p.items_count !== undefined && (
+                                          <div className="text-amber-300 font-medium flex items-center justify-between gap-3">
+                                            <span>Số cốc bán:</span> <span>{p.items_count} cốc</span>
+                                          </div>
+                                        )}
+                                      </div>
+                                    )}
+                                    <div
+                                      style={{ height: `${revHeight}%` }}
+                                      className="w-full max-w-[18px] bg-indigo-600 hover:bg-indigo-500 rounded-t-sm transition-all"
+                                      title="Doanh thu"
+                                    />
+                                  </div>
+                                );
+                              })}
+                            </div>
+                            <div className="flex justify-between text-[10px] text-slate-400 pt-2 px-1">
+                              <span>{points[0]?.date}</span>
+                              {points.length > 2 && <span>{points[Math.floor(points.length / 2)]?.date}</span>}
+                              <span>{points[points.length - 1]?.date}</span>
+                            </div>
+                          </div>
+                        );
+                      })()
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-xs text-slate-400">
+                        {t('dashboard.no_sales_data')}
+                      </div>
+                    )
+                  ) : profitData?.timeline && profitData.timeline.length > 0 ? (
                     (() => {
-                      const points = profitData.timeline;
+                      const points = profitData?.timeline || [];
                       const maxVal = Math.max(...points.map((p) => Math.max(p.revenue, p.cogs, p.gross_profit)), 10000);
 
                       return (
@@ -811,7 +925,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Spotlight Showcase: Top Best-Selling & Most Profitable Products */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className={`grid grid-cols-1 ${isStaff ? '' : 'lg:grid-cols-2'} gap-6`}>
               {/* Top 5 Best-Selling Products */}
               <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4 flex flex-col justify-between">
                 <div>
@@ -873,64 +987,66 @@ export default function DashboardPage() {
               </div>
 
               {/* Top 5 Most Profitable Products */}
-              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4 flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                    <h3 className="font-bold text-sm text-slate-900 flex items-center gap-2">
-                      <Award className="w-4 h-4 text-emerald-600" />
-                      <span>Top 5 Món Sinh Lời Cao Nhất</span>
-                    </h3>
+              {!isStaff && (
+                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                      <h3 className="font-bold text-sm text-slate-900 flex items-center gap-2">
+                        <Award className="w-4 h-4 text-emerald-600" />
+                        <span>Top 5 Món Sinh Lời Cao Nhất</span>
+                      </h3>
+                      <button
+                        type="button"
+                        onClick={() => handleOpenRanking('profit')}
+                        className="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 hover:underline"
+                      >
+                        {t('common.all')} <ArrowRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2.5">
+                    {profitData?.top_products && profitData.top_products.length > 0 ? (
+                      profitData.top_products.slice(0, 5).map((tp, idx) => (
+                        <div
+                          key={idx}
+                          className="p-2.5 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between text-xs"
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0 pr-2">
+                            <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-extrabold flex items-center justify-center shrink-0">
+                              #{idx + 1}
+                            </span>
+                            <div className="truncate">
+                              <span className="font-bold text-slate-900 block truncate">{tp.product_name}</span>
+                              <span className="text-[10px] text-slate-500">
+                                {tp.variant_name} · {tp.quantity_sold} ly
+                              </span>
+                            </div>
+                          </div>
+                          <div className="text-right flex-shrink-0">
+                            <span className="font-extrabold text-emerald-600 block">
+                              +{formatCurrency(tp.total_profit, settings)}
+                            </span>
+                            <span className="text-[10px] text-slate-400 font-bold">{tp.margin_percentage}% LN</span>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-center text-slate-400 py-6 text-xs">{t('dashboard.no_sales_data')}</p>
+                    )}
+                  </div>
+
+                  <div className="pt-2 border-t border-slate-100 text-center">
                     <button
                       type="button"
                       onClick={() => handleOpenRanking('profit')}
-                      className="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 hover:underline"
+                      className="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center justify-center gap-1 w-full py-1"
                     >
-                      {t('common.all')} <ArrowRight className="w-3.5 h-3.5" />
+                      Xem tất cả xếp hạng lợi nhuận <ArrowRight className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 </div>
-
-                <div className="space-y-2.5">
-                  {profitData?.top_products && profitData.top_products.length > 0 ? (
-                    profitData.top_products.slice(0, 5).map((tp, idx) => (
-                      <div
-                        key={idx}
-                        className="p-2.5 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between text-xs"
-                      >
-                        <div className="flex items-center gap-2.5 min-w-0 pr-2">
-                          <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-extrabold flex items-center justify-center shrink-0">
-                            #{idx + 1}
-                          </span>
-                          <div className="truncate">
-                            <span className="font-bold text-slate-900 block truncate">{tp.product_name}</span>
-                            <span className="text-[10px] text-slate-500">
-                              {tp.variant_name} · {tp.quantity_sold} ly
-                            </span>
-                          </div>
-                        </div>
-                        <div className="text-right flex-shrink-0">
-                          <span className="font-extrabold text-emerald-600 block">
-                            +{formatCurrency(tp.total_profit, settings)}
-                          </span>
-                          <span className="text-[10px] text-slate-400 font-bold">{tp.margin_percentage}% LN</span>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-center text-slate-400 py-6 text-xs">{t('dashboard.no_sales_data')}</p>
-                  )}
-                </div>
-
-                <div className="pt-2 border-t border-slate-100 text-center">
-                  <button
-                    type="button"
-                    onClick={() => handleOpenRanking('profit')}
-                    className="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center justify-center gap-1 w-full py-1"
-                  >
-                    Xem tất cả xếp hạng lợi nhuận <ArrowRight className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </div>
+              )}
             </div>
           </div>
         )}
@@ -1326,7 +1442,7 @@ export default function DashboardPage() {
         )}
 
         {/* ── TAB 3: PROFIT & LOSS (P&L) ANALYTICS (LỢI NHUẬN) ────────── */}
-        {activeTab === 'profit' && (
+        {!isStaff && activeTab === 'profit' && (
           <div className="space-y-6">
             {/* P&L Primary KPI Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

@@ -149,6 +149,16 @@ func (h *TransactionHandler) CreateTransaction(c *gin.Context) {
 		return
 	}
 
+	// Staff role guard: Staff can only record operational outflow expenses
+	if userRoleVal, exists := c.Get("user_role"); exists {
+		if uRole, ok := userRoleVal.(models.UserRole); ok && !uRole.IsOwner() {
+			if req.TransactionType != models.TransactionTypeOutflow {
+				models.SendErrorCode(c, http.StatusForbidden, "AUTH_FORBIDDEN_STAFF_EXPENSE_ONLY", "Nhân viên chỉ có quyền tạo phiếu chi tiền (tiền ra)")
+				return
+			}
+		}
+	}
+
 	var fund models.Fund
 	if err := h.db.Scopes(database.ScopeByStore(storeID)).First(&fund, req.FundID).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {

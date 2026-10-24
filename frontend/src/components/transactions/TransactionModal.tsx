@@ -20,6 +20,7 @@ import HorizontalScroller from '@/components/common/HorizontalScroller';
 import { formatCurrency } from '@/lib/utils';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
 import { fetchApi } from '@/lib/api';
+import { getAuthUser, isStaffRole } from '@/lib/auth';
 import { Ingredient, IngredientConversionPreset } from '@/types/purchase';
 import { TransactionCategory } from '@/types/transaction_category';
 import {
@@ -131,6 +132,7 @@ export default function TransactionModal({
   const { t } = useTranslation();
 
   const isEditing = Boolean(initialData?.id);
+  const isStaff = isStaffRole(getAuthUser()?.role);
 
   // Form States
   const [modalType, setModalType] = useState<'inflow' | 'outflow'>('outflow');
@@ -172,7 +174,7 @@ export default function TransactionModal({
     setIsSubmitting(false);
 
     if (initialData) {
-      setModalType(initialData.transaction_type);
+      setModalType(isStaff ? 'outflow' : initialData.transaction_type);
       setModalFundId(initialData.fund_id || funds[0]?.id || 0);
       setModalCategory(initialData.category);
       setModalAmount(initialData.amount || 0);
@@ -528,6 +530,11 @@ export default function TransactionModal({
       return;
     }
 
+    if (isStaff && modalType !== 'outflow') {
+      setErrorMessage('Nhân viên chỉ có quyền tạo phiếu chi tiền (tiền ra)');
+      return;
+    }
+
     if (modalAmount <= 0) {
       setErrorMessage(t('tx.error_enter_amount') || 'Vui lòng nhập số tiền hợp lệ lớn hơn 0');
       return;
@@ -739,12 +746,16 @@ export default function TransactionModal({
             <div className="grid grid-cols-2 gap-2 bg-slate-100 p-1 rounded-2xl">
               <button
                 type="button"
+                disabled={isStaff}
                 onClick={() => setModalType('inflow')}
                 className={`py-2 text-xs font-extrabold rounded-xl transition ${
-                  modalType === 'inflow'
+                  isStaff
+                    ? 'opacity-40 cursor-not-allowed text-slate-400'
+                    : modalType === 'inflow'
                     ? 'bg-emerald-600 text-white shadow-xs'
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
+                title={isStaff ? 'Nhân viên chỉ được tạo phiếu chi (tiền ra)' : undefined}
               >
                 + {t('tx.type_inflow')} (Tiền Vào)
               </button>

@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
 import { Store, StoreRole } from '@/types/store';
 import { getActiveStoreId, setActiveStoreId, saveStoreBrand } from './store';
-import { getAuthUser, isAuthenticated } from './auth';
+import { getAuthUser, isAuthenticated, isMasterRole } from './auth';
 import { fetchApi } from './api';
 import { clientCache } from './cache';
 
@@ -26,7 +26,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const currentUser = getAuthUser();
   const superAdminFlag = useMemo(() => {
-    return currentUser?.role === 'super_admin' || currentUser?.role === 'admin';
+    return isMasterRole(currentUser?.role);
   }, [currentUser?.role]);
 
   const refreshStores = useCallback(async () => {

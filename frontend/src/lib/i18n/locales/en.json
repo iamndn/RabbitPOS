@@ -9,6 +9,7 @@
     "dashboard": "Analytics & Reports",
     "settings": "System Settings",
     "stores": "Stores",
+    "users": "Staff & Users",
     "logout": "Sign Out"
   },
   "common": {
@@ -38,7 +39,10 @@
     "are_you_sure": "Are you sure you want to proceed?",
     "action_cannot_be_undone": "This action cannot be undone.",
     "role_admin": "Admin",
-    "role_staff": "Staff",
+    "role_master": "Super Admin (Master)",
+    "role_owner": "Store Owner (Owner)",
+    "role_staff": "Cashier / Staff",
+    "view_only": "View only",
     "to": "to",
     "date": "Date",
     "app_title": "Rabbit POS"
@@ -783,5 +787,35 @@
     "role_super_admin": "Super Admin",
     "role_store_admin": "Store Admin",
     "role_staff": "Staff"
+  },
+  "users": {
+    "title": "Staff & Access Control",
+    "subtitle": "Manage staff accounts, multi-tier RBAC (Master / Owner / Staff), credentials and quick-login PINs",
+    "btn_add_user": "Add User",
+    "search_placeholder": "Search by name, username, phone number...",
+    "filter_all_roles": "All Roles",
+    "total_users": "Total Users",
+    "active_users": "Active",
+    "owner_users": "Store Owners",
+    "staff_users": "Staff / Cashiers",
+    "col_user": "Account / Full Name",
+    "col_contact": "Contact",
+    "col_role": "System Role",
+    "col_stores": "Assigned Stores",
+    "col_security": "Security & PIN",
+    "col_status": "Status",
+    "col_actions": "Actions",
+    "has_pin": "PIN Configured",
+    "no_pin": "No PIN",
+    "set_pin": "Set PIN",
+    "change_pin": "Change PIN",
+    "change_password": "Change Password",
+    "edit_user": "Edit Account",
+    "delete_user": "Delete Account",
+    "deactivate_user": "Deactivate Account",
+    "activate_user": "Activate Account",
+    "role_master_desc": "Full access to platform configuration, database backups, and all accounts",
+    "role_owner_desc": "Manage store menu, COGS pricing, cash flow ledger, funds, and staff accounts",
+    "role_staff_desc": "Create POS orders, print receipts, and record small operational expenses"
   }
 }

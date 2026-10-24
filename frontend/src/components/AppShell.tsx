@@ -23,9 +23,10 @@ import {
   ChevronDown,
   Globe,
   Store as StoreIcon,
+  Users,
 } from 'lucide-react';
 import { fetchApi, getImageUrl } from '@/lib/api';
-import { getAuthUser, isAuthenticated, logout as authLogout, UserInfo } from '@/lib/auth';
+import { getAuthUser, isAuthenticated, isMasterRole, isOwnerRole, logout as authLogout, UserInfo } from '@/lib/auth';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
 import { useStore } from '@/lib/StoreContext';
 import StoreSwitcher from '@/components/StoreSwitcher';
@@ -49,7 +50,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState<boolean>(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
-  const canManageStore = isSuperAdmin || storeRole === 'store_admin' || currentUser?.role === 'admin';
+  const isMaster = isMasterRole(currentUser?.role) || isSuperAdmin;
+  const isOwner = isOwnerRole(currentUser?.role) || storeRole === 'store_admin';
+  const canManageStore = isMaster || isOwner;
+  const canManageUsers = isMaster || isOwner;
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -113,7 +117,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
     // Role Guard Check: Restrict Staff from Store Management & Admin routes
     if (!canManageStore) {
-      const adminRoutes = ['/products', '/purchases', '/promotions', '/funds', '/dashboard', '/settings', '/stores'];
+      const adminRoutes = ['/products', '/purchases', '/promotions', '/funds', '/dashboard', '/settings', '/stores', '/users'];
       if (adminRoutes.some((route) => pathname.startsWith(route))) {
         router.push('/');
         return;
@@ -137,6 +141,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     { label: t('nav.transactions'), href: '/transactions', icon: ArrowUpRight, visible: true },
     { label: t('nav.catalog'), href: '/products', icon: Package, visible: canManageStore },
     { label: t('nav.purchases'), href: '/purchases', icon: ShoppingBag, visible: canManageStore },
+    { label: t('nav.users') || 'Nhân sự', href: '/users', icon: Users, visible: canManageUsers },
     { label: t('nav.dashboard'), href: '/dashboard', icon: LayoutDashboard, visible: canManageStore },
     { label: t('nav.stores') || 'Cửa hàng', href: '/stores', icon: StoreIcon, visible: isSuperAdmin },
   ];
@@ -248,17 +253,17 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                     <div className="flex-1 min-w-0">
                       <p className="font-bold text-sm text-slate-900 truncate">{currentUser?.username}</p>
                       <div className="flex items-center gap-1 mt-0.5">
-                        {isSuperAdmin ? (
+                        {isMaster ? (
                           <span className="inline-flex items-center gap-1 text-[10px] font-extrabold bg-purple-50 text-purple-700 px-2 py-0.5 rounded-md border border-purple-200">
-                            <Shield className="w-3 h-3" /> Super Admin
+                            <Shield className="w-3 h-3" /> Master
                           </span>
-                        ) : canManageStore ? (
+                        ) : isOwner ? (
                           <span className="inline-flex items-center gap-1 text-[10px] font-extrabold bg-blue-50 text-blue-700 px-2 py-0.5 rounded-md border border-blue-200">
-                            <Shield className="w-3 h-3" /> {t('common.role_admin')}
+                            <Shield className="w-3 h-3" /> Owner
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-1 text-[10px] font-extrabold bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-md border border-emerald-200">
-                            <User className="w-3 h-3" /> {t('common.role_staff')}
+                            <User className="w-3 h-3" /> Staff
                           </span>
                         )}
                       </div>
@@ -266,6 +271,18 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                   </div>
 
                   <div className="py-1">
+                    {/* Menu Item: Staff & User Management */}
+                    {canManageUsers && (
+                      <Link
+                        href="/users"
+                        onClick={() => setIsUserMenuOpen(false)}
+                        className="flex items-center space-x-3 px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:text-emerald-700 transition active:scale-95"
+                      >
+                        <Users className="w-4 h-4 text-slate-400 group-hover:text-emerald-700" />
+                        <span>{t('nav.users') || 'Quản lý nhân sự'}</span>
+                      </Link>
+                    )}
+
                     {/* Menu Item 1: System Settings (Store Admin or Super Admin) */}
                     {canManageStore && (
                       <Link

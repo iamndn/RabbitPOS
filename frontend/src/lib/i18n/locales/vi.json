@@ -9,6 +9,7 @@
     "dashboard": "Báo cáo",
     "settings": "Cài đặt",
     "stores": "Cửa hàng",
+    "users": "Nhân sự",
     "logout": "Đăng xuất"
   },
   "common": {
@@ -38,7 +39,10 @@
     "are_you_sure": "Bạn có chắc chắn muốn thực hiện?",
     "action_cannot_be_undone": "Hành động này không thể hoàn tác.",
     "role_admin": "Quản trị",
-    "role_staff": "Nhân viên",
+    "role_master": "Super Admin (Master)",
+    "role_owner": "Chủ cửa hàng (Owner)",
+    "role_staff": "Thu ngân / Nhân viên (Staff)",
+    "view_only": "Chỉ xem",
     "to": "đến",
     "date": "Ngày",
     "app_title": "RabbitPOS"
@@ -783,5 +787,35 @@
     "role_super_admin": "Tổng quản trị",
     "role_store_admin": "Quản lý cửa hàng",
     "role_staff": "Nhân viên"
+  },
+  "users": {
+    "title": "Quản Lý Nhân Sự & Phân Quyền",
+    "subtitle": "Quản lý danh sách tài khoản, vai trò đa cấp (Master / Owner / Staff), mật khẩu và mã PIN đăng nhập nhanh",
+    "btn_add_user": "Thêm nhân sự",
+    "search_placeholder": "Tìm kiếm theo tên, username, số điện thoại...",
+    "filter_all_roles": "Tất cả vai trò",
+    "total_users": "Tổng nhân sự",
+    "active_users": "Đang hoạt động",
+    "owner_users": "Chủ cửa hàng (Owner)",
+    "staff_users": "Thu ngân / Pha chế",
+    "col_user": "Tài khoản / Họ tên",
+    "col_contact": "Liên hệ",
+    "col_role": "Vai trò hệ thống",
+    "col_stores": "Cửa hàng phụ trách",
+    "col_security": "Bảo mật & PIN",
+    "col_status": "Trạng thái",
+    "col_actions": "Thao tác",
+    "has_pin": "Đã cài PIN",
+    "no_pin": "Chưa có PIN",
+    "set_pin": "Cài mã PIN",
+    "change_pin": "Đổi mã PIN",
+    "change_password": "Đổi mật khẩu",
+    "edit_user": "Chỉnh sửa tài khoản",
+    "delete_user": "Xóa tài khoản",
+    "deactivate_user": "Tạm dừng tài khoản",
+    "activate_user": "Kích hoạt tài khoản",
+    "role_master_desc": "Toàn quyền cấu hình hệ thống, sao lưu dữ liệu và mọi tài khoản",
+    "role_owner_desc": "Quản lý thực đơn, giá vốn, sổ thu chi, quỹ tiền và tài khoản nhân viên",
+    "role_staff_desc": "Tạo đơn POS bán hàng, in hóa đơn và tạo phiếu chi vận hành nhỏ"
   }
 }

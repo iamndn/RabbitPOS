@@ -152,6 +152,11 @@ func SetupRouter(cfg *config.Config, db *gorm.DB, emailSvc *services.EmailServic
 				// Ingredients: read list for expense logging autocomplete
 				storeScoped.GET("/purchases/ingredients", purchaseHandler.ListIngredients)
 
+				// Financial Ledger Transactions (List & Create operational expenses allowed for staff)
+				storeScoped.GET("/transactions", txHandler.ListTransactions)
+				storeScoped.POST("/transactions", txHandler.CreateTransaction)
+				storeScoped.GET("/transactions/category-breakdown", txHandler.GetCategoryBreakdown)
+
 				// Store Admin Routes (Management, Financial Ledger, Analytics & Settings Update)
 				storeAdmin := storeScoped.Group("")
 				storeAdmin.Use(middleware.RequireStoreRole(models.StoreRoleStoreAdmin))
@@ -217,12 +222,9 @@ func SetupRouter(cfg *config.Config, db *gorm.DB, emailSvc *services.EmailServic
 					storeAdmin.GET("/funds/:id/reconcile/history", fundHandler.GetReconciliationHistory)
 					storeAdmin.GET("/funds/period-summary", fundHandler.GetPeriodSummary)
 
-					// Financial Ledger Transactions & Category Breakdown
-					storeAdmin.GET("/transactions", txHandler.ListTransactions)
-					storeAdmin.POST("/transactions", txHandler.CreateTransaction)
+					// Financial Ledger Transactions (Update & Delete restricted to store_admin / master)
 					storeAdmin.PUT("/transactions/:id", txHandler.UpdateTransaction)
 					storeAdmin.DELETE("/transactions/:id", txHandler.DeleteTransaction)
-					storeAdmin.GET("/transactions/category-breakdown", txHandler.GetCategoryBreakdown)
 
 					// Executive Analytics & BI Dashboards
 					storeAdmin.GET("/analytics/revenue", analyticsHandler.GetRevenueAnalytics)
