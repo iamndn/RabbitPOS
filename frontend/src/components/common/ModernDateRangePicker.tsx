@@ -268,7 +268,7 @@ export default function ModernDateRangePicker({
       mode: 'year',
       labelVi: 'Năm',
       labelEn: 'Year',
-      icon: <Calendar className="w-4 h-4 text-emerald-500" />,
+      icon: <Calendar className="w-4 h-4 text-purple-500" />,
       descVi: 'Lọc theo cả năm (tiến/lùi 1 năm)',
       descEn: 'Filter by specific year (step 1 year)',
     },
@@ -755,15 +755,15 @@ export default function ModernDateRangePicker({
                         }}
                         className={`py-3 px-2 rounded-xl text-center font-bold text-xs transition cursor-pointer relative ${
                           isSelected
-                            ? 'bg-emerald-600 text-white shadow-xs font-black'
+                            ? 'bg-purple-600 text-white shadow-xs font-black'
                             : isThisYear
-                            ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200'
+                            ? 'bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-200'
                             : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-100'
                         }`}
                       >
                         <div className="text-sm font-black">{y}</div>
                         {isThisYear && (
-                          <div className="text-[9px] text-emerald-600 font-bold">
+                          <div className="text-[9px] text-purple-600 font-bold">
                             {locale === 'vi' ? 'Năm nay' : 'This year'}
                           </div>
                         )}
@@ -824,7 +824,7 @@ export default function ModernDateRangePicker({
                     </div>
                     <div className="min-w-0">
                       <label className="text-[10px] font-extrabold text-slate-600 uppercase flex items-center gap-1 mb-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span>
+                        <span className="w-1.5 h-1.5 rounded-full bg-purple-500 inline-block"></span>
                         {locale === 'vi' ? 'Đến ngày' : 'To Date'}
                       </label>
                       <input

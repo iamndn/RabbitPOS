@@ -89,7 +89,7 @@ export default function ReceiptModal({ isOpen, onClose, order, settings: initial
 
         {/* Top Actions (Hidden during print) */}
         <div className="flex items-center justify-between border-b border-slate-100 pb-3 print:hidden">
-          <div className="flex items-center space-x-2 text-emerald-700 font-bold text-sm">
+          <div className="flex items-center space-x-2 text-purple-700 font-bold text-sm">
             <CheckCircle2 className="w-5 h-5" />
             <span>{t('pos.order_completed')}</span>
           </div>
@@ -159,12 +159,12 @@ export default function ReceiptModal({ isOpen, onClose, order, settings: initial
                 <div className="flex justify-between font-bold">
                   <span className="truncate max-w-[130px]">
                     {item.product?.name || 'Món'}
-                    {item.isGift && <span className="ml-1 text-emerald-600 font-bold text-[9px]">(🎁 Tặng)</span>}
+                    {item.isGift && <span className="ml-1 text-purple-600 font-bold text-[9px]">(🎁 Tặng)</span>}
                   </span>
                   <span className="text-[10px]">
                     {item.quantity}x {item.isGift ? '0đ' : formatCurrency(item.unitPrice, currencyConfig)}
                   </span>
-                  <span className={item.isGift ? 'text-emerald-600' : ''}>
+                  <span className={item.isGift ? 'text-purple-600' : ''}>
                     {item.isGift ? '0đ' : formatCurrency(item.lineTotal, currencyConfig)}
                   </span>
                 </div>
@@ -279,7 +279,7 @@ export default function ReceiptModal({ isOpen, onClose, order, settings: initial
         <div className="flex space-x-2 pt-2 print:hidden">
           <button
             onClick={handlePrint}
-            className="flex-1 bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-3 px-4 rounded-xl shadow-md transition flex items-center justify-center space-x-2 text-xs active:scale-95"
+            className="flex-1 bg-purple-700 hover:bg-purple-800 text-white font-bold py-3 px-4 rounded-xl shadow-md transition flex items-center justify-center space-x-2 text-xs active:scale-95"
           >
             <Printer className="w-4 h-4" />
             <span>{t('pos.print_receipt')}</span>

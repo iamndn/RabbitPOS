@@ -60,7 +60,7 @@ export default function InstallPWABanner() {
       style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
     >
       {/* Backdrop blur overlay above the banner */}
-      <div className="bg-white/95 backdrop-blur-xl border-t border-emerald-100 shadow-2xl shadow-black/10 mx-0 rounded-t-2xl px-5 pt-5 pb-6">
+      <div className="bg-white/95 backdrop-blur-xl border-t border-purple-100 shadow-2xl shadow-black/10 mx-0 rounded-t-2xl px-5 pt-5 pb-6">
         {/* Dismiss button */}
         <button
           type="button"
@@ -96,7 +96,7 @@ export default function InstallPWABanner() {
         <ol className="space-y-3">
           {/* Step 1 */}
           <li className="flex items-start gap-3">
-            <span className="flex-shrink-0 w-6 h-6 rounded-full bg-emerald-600 text-white text-[11px] font-extrabold flex items-center justify-center mt-0.5">
+            <span className="flex-shrink-0 w-6 h-6 rounded-full bg-purple-600 text-white text-[11px] font-extrabold flex items-center justify-center mt-0.5">
               1
             </span>
             <div className="flex-1">
@@ -112,7 +112,7 @@ export default function InstallPWABanner() {
 
           {/* Step 2 */}
           <li className="flex items-start gap-3">
-            <span className="flex-shrink-0 w-6 h-6 rounded-full bg-emerald-600 text-white text-[11px] font-extrabold flex items-center justify-center mt-0.5">
+            <span className="flex-shrink-0 w-6 h-6 rounded-full bg-purple-600 text-white text-[11px] font-extrabold flex items-center justify-center mt-0.5">
               2
             </span>
             <div className="flex-1">

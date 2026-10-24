@@ -874,12 +874,12 @@ export default function PurchasesCostTab({
       {toast && (
         <div
           className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-2xl shadow-xl border flex items-center gap-2 text-xs font-bold transition-all animate-in slide-in-from-top duration-200 ${toast.type === 'success'
-            ? 'bg-emerald-50 text-emerald-900 border-emerald-200'
+            ? 'bg-purple-50 text-purple-900 border-purple-200'
             : 'bg-rose-50 text-rose-900 border-rose-200'
             }`}
         >
           {toast.type === 'success' ? (
-            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <CheckCircle2 className="w-4 h-4 text-purple-600 shrink-0" />
           ) : (
             <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
           )}
@@ -892,7 +892,7 @@ export default function PurchasesCostTab({
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
           <div className="space-y-1">
             <h1 className="text-xl sm:text-2xl font-black text-slate-900 flex items-center gap-2.5">
-              <Scale className="w-6 h-6 text-emerald-700 shrink-0" />
+              <Scale className="w-6 h-6 text-purple-700 shrink-0" />
               <span>Quản Lý Mua Hàng</span>
             </h1>
             <p className="text-xs sm:text-sm text-slate-500 font-medium">
@@ -905,7 +905,7 @@ export default function PurchasesCostTab({
               <button
                 type="button"
                 onClick={onOpenExpenseModal}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-2xl text-xs font-extrabold shadow-sm transition active:scale-95 cursor-pointer"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-purple-700 hover:bg-purple-800 text-white rounded-2xl text-xs font-extrabold shadow-sm transition active:scale-95 cursor-pointer"
               >
                 <Plus className="w-4 h-4" />
                 <span>+ Ghi Nhận Mua Hàng</span>
@@ -916,15 +916,15 @@ export default function PurchasesCostTab({
 
         {/* 3 Summary KPI Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-3 pt-1">
-          <div className="col-span-2 sm:col-span-1 bg-emerald-50/80 rounded-2xl p-3 sm:p-3.5 border border-emerald-200/90 flex items-center justify-between shadow-2xs">
+          <div className="col-span-2 sm:col-span-1 bg-purple-50/80 rounded-2xl p-3 sm:p-3.5 border border-purple-200/90 flex items-center justify-between shadow-2xs">
             <div>
-              <span className="text-[10px] sm:text-[11px] font-bold text-emerald-800 uppercase block">Biên Lãi Gộp TB Menu</span>
+              <span className="text-[10px] sm:text-[11px] font-bold text-purple-800 uppercase block">Biên Lãi Gộp TB Menu</span>
               <div className="flex items-baseline gap-1.5 mt-0.5">
-                <span className="text-lg sm:text-xl font-black text-emerald-950">{metrics.avgMargin}%</span>
-                <span className="text-[10px] text-emerald-700 font-semibold">(lợi nhuận gộp)</span>
+                <span className="text-lg sm:text-xl font-black text-purple-950">{metrics.avgMargin}%</span>
+                <span className="text-[10px] text-purple-700 font-semibold">(lợi nhuận gộp)</span>
               </div>
             </div>
-            <div className="w-9 h-9 rounded-xl bg-emerald-700 text-white flex items-center justify-center shadow-xs shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-purple-700 text-white flex items-center justify-center shadow-xs shrink-0">
               <TrendingUp className="w-5 h-5" />
             </div>
           </div>
@@ -965,7 +965,7 @@ export default function PurchasesCostTab({
             type="button"
             onClick={() => setActiveSubTab('profit-recovery')}
             className={`pb-2.5 sm:pb-3 px-2.5 sm:px-3 text-xs sm:text-sm font-extrabold flex items-center gap-1.5 sm:gap-2 border-b-2 transition shrink-0 cursor-pointer ${activeSubTab === 'profit-recovery'
-              ? 'border-emerald-700 text-emerald-800'
+              ? 'border-purple-700 text-purple-800'
               : 'border-transparent text-slate-500 hover:text-slate-900'
               }`}
           >
@@ -977,7 +977,7 @@ export default function PurchasesCostTab({
             type="button"
             onClick={() => setActiveSubTab('purchase-history')}
             className={`pb-2.5 sm:pb-3 px-2.5 sm:px-3 text-xs sm:text-sm font-extrabold flex items-center gap-1.5 sm:gap-2 border-b-2 transition shrink-0 cursor-pointer ${activeSubTab === 'purchase-history'
-              ? 'border-emerald-700 text-emerald-800'
+              ? 'border-purple-700 text-purple-800'
               : 'border-transparent text-slate-500 hover:text-slate-900'
               }`}
           >
@@ -992,7 +992,7 @@ export default function PurchasesCostTab({
             type="button"
             onClick={() => setActiveSubTab('ingredients')}
             className={`pb-2.5 sm:pb-3 px-2.5 sm:px-3 text-xs sm:text-sm font-extrabold flex items-center gap-1.5 sm:gap-2 border-b-2 transition shrink-0 cursor-pointer ${activeSubTab === 'ingredients'
-              ? 'border-emerald-700 text-emerald-800'
+              ? 'border-purple-700 text-purple-800'
               : 'border-transparent text-slate-500 hover:text-slate-900'
               }`}
           >
@@ -1043,14 +1043,14 @@ export default function PurchasesCostTab({
                 onClick={() => setIsCostFilterModalOpen(true)}
                 className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer shadow-2xs ${
                   costActiveFilterCount > 0
-                    ? 'bg-emerald-800 text-white shadow-sm ring-2 ring-emerald-600/30 font-extrabold'
+                    ? 'bg-purple-800 text-white shadow-sm ring-2 ring-purple-600/30 font-extrabold'
                     : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
                 }`}
               >
                 <Filter className="w-4 h-4" />
                 <span>Bộ lọc</span>
                 {costActiveFilterCount > 0 && (
-                  <span className="w-5 h-5 rounded-full bg-emerald-600 text-white text-[10px] font-extrabold flex items-center justify-center">
+                  <span className="w-5 h-5 rounded-full bg-purple-600 text-white text-[10px] font-extrabold flex items-center justify-center">
                     {costActiveFilterCount}
                   </span>
                 )}
@@ -1063,7 +1063,7 @@ export default function PurchasesCostTab({
                   onClick={() => setPricingBasis('latest')}
                   className={`px-2.5 sm:px-3 py-1.5 rounded-lg transition cursor-pointer text-xs ${
                     pricingBasis === 'latest'
-                      ? 'bg-white text-emerald-900 shadow-xs font-extrabold'
+                      ? 'bg-white text-purple-900 shadow-xs font-extrabold'
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
                   title="Tính theo giá quy đổi đợt nhập gần nhất"
@@ -1075,7 +1075,7 @@ export default function PurchasesCostTab({
                   onClick={() => setPricingBasis('average')}
                   className={`px-2.5 sm:px-3 py-1.5 rounded-lg transition cursor-pointer text-xs ${
                     pricingBasis === 'average'
-                      ? 'bg-white text-emerald-900 shadow-xs font-extrabold'
+                      ? 'bg-white text-purple-900 shadow-xs font-extrabold'
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
                   title="Tính theo giá quy đổi bình quân các lần nhập"
@@ -1089,7 +1089,7 @@ export default function PurchasesCostTab({
                 type="button"
                 onClick={handleBulkApplyAll}
                 disabled={bulkApplying}
-                className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-extrabold shadow-2xs transition active:scale-95 cursor-pointer shrink-0 ml-auto sm:ml-0"
+                className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-purple-700 hover:bg-purple-800 text-white rounded-xl text-xs font-extrabold shadow-2xs transition active:scale-95 cursor-pointer shrink-0 ml-auto sm:ml-0"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${bulkApplying ? 'animate-spin' : ''}`} />
                 <span className="hidden sm:inline">Đồng bộ giá vốn Menu</span>
@@ -1102,12 +1102,12 @@ export default function PurchasesCostTab({
               <div className="flex flex-wrap items-center gap-1.5 text-xs pt-2 border-t border-slate-100">
                 <span className="text-slate-400 font-semibold text-[11px]">Đang lọc:</span>
                 {selectedCategory !== 'all' && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-lg font-bold text-xs">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-purple-50 text-purple-800 border border-purple-200 rounded-lg font-bold text-xs">
                     <span>📂 Danh mục: {selectedCategory}</span>
                     <button
                       type="button"
                       onClick={() => setSelectedCategory('all')}
-                      className="hover:text-emerald-950 p-0.5 rounded cursor-pointer"
+                      className="hover:text-purple-950 p-0.5 rounded cursor-pointer"
                       title="Xóa lọc danh mục"
                     >
                       <X className="w-3 h-3" />
@@ -1182,7 +1182,7 @@ export default function PurchasesCostTab({
                 {/* Modal Header */}
                 <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                   <div className="flex items-center gap-2">
-                    <div className="p-2 bg-emerald-50 text-emerald-800 rounded-xl">
+                    <div className="p-2 bg-purple-50 text-purple-800 rounded-xl">
                       <Filter className="w-5 h-5" />
                     </div>
                     <div>
@@ -1212,14 +1212,14 @@ export default function PurchasesCostTab({
                         onClick={() => setSelectedCategory('all')}
                         className={`px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs ${
                           selectedCategory === 'all'
-                            ? 'bg-emerald-800 text-white shadow-sm font-black ring-2 ring-emerald-600/30'
+                            ? 'bg-purple-800 text-white shadow-sm font-black ring-2 ring-purple-600/30'
                             : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
                         }`}
                       >
                         <span>Tất cả danh mục</span>
                         <span
                           className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                            selectedCategory === 'all' ? 'bg-emerald-700 text-white' : 'bg-slate-100 text-slate-600'
+                            selectedCategory === 'all' ? 'bg-purple-700 text-white' : 'bg-slate-100 text-slate-600'
                           }`}
                         >
                           {costItems.length}
@@ -1235,14 +1235,14 @@ export default function PurchasesCostTab({
                             onClick={() => setSelectedCategory(isSelected ? 'all' : cat)}
                             className={`px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs ${
                               isSelected
-                                ? 'bg-emerald-800 text-white shadow-sm font-black ring-2 ring-emerald-600/30'
+                                ? 'bg-purple-800 text-white shadow-sm font-black ring-2 ring-purple-600/30'
                                 : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
                             }`}
                           >
                             <span>{cat}</span>
                             <span
                               className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                                isSelected ? 'bg-emerald-700 text-white' : 'bg-slate-100 text-slate-600'
+                                isSelected ? 'bg-purple-700 text-white' : 'bg-slate-100 text-slate-600'
                               }`}
                             >
                               {count}
@@ -1303,14 +1303,14 @@ export default function PurchasesCostTab({
                         onClick={() => setStatusFilter('high_margin')}
                         className={`px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs ${
                           statusFilter === 'high_margin'
-                            ? 'bg-emerald-600 text-white font-extrabold shadow-sm ring-2 ring-emerald-400/40'
-                            : 'bg-emerald-50/70 text-emerald-900 hover:bg-emerald-100 border border-emerald-200'
+                            ? 'bg-purple-600 text-white font-extrabold shadow-sm ring-2 ring-purple-400/40'
+                            : 'bg-purple-50/70 text-purple-900 hover:bg-purple-100 border border-purple-200'
                         }`}
                       >
                         <span>✅ Biên lãi cao ≥65%</span>
                         <span
                           className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                            statusFilter === 'high_margin' ? 'bg-emerald-700 text-white' : 'bg-emerald-200/80 text-emerald-900'
+                            statusFilter === 'high_margin' ? 'bg-purple-700 text-white' : 'bg-purple-200/80 text-purple-900'
                           }`}
                         >
                           {filterCounts.highMargin}
@@ -1369,7 +1369,7 @@ export default function PurchasesCostTab({
                         onClick={() => setPricingBasis('latest')}
                         className={`p-3 rounded-xl border text-left transition cursor-pointer ${
                           pricingBasis === 'latest'
-                            ? 'border-emerald-600 bg-emerald-50/70 ring-1 ring-emerald-600'
+                            ? 'border-purple-600 bg-purple-50/70 ring-1 ring-purple-600'
                             : 'border-slate-200 hover:border-slate-300'
                         }`}
                       >
@@ -1383,7 +1383,7 @@ export default function PurchasesCostTab({
                         onClick={() => setPricingBasis('average')}
                         className={`p-3 rounded-xl border text-left transition cursor-pointer ${
                           pricingBasis === 'average'
-                            ? 'border-emerald-600 bg-emerald-50/70 ring-1 ring-emerald-600'
+                            ? 'border-purple-600 bg-purple-50/70 ring-1 ring-purple-600'
                             : 'border-slate-200 hover:border-slate-300'
                         }`}
                       >
@@ -1420,7 +1420,7 @@ export default function PurchasesCostTab({
                             onClick={() => setCostSortBy(s.key as any)}
                             className={`p-2.5 rounded-xl border text-xs font-bold transition text-left cursor-pointer ${
                               isSelected
-                                ? 'bg-emerald-800 text-white border-emerald-800 shadow-xs'
+                                ? 'bg-purple-800 text-white border-purple-800 shadow-xs'
                                 : 'bg-white text-slate-700 hover:bg-slate-50 border-slate-200'
                             }`}
                           >
@@ -1448,7 +1448,7 @@ export default function PurchasesCostTab({
                   <button
                     type="button"
                     onClick={() => setIsCostFilterModalOpen(false)}
-                    className="px-5 py-2 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl text-xs font-extrabold shadow-sm transition active:scale-95 cursor-pointer"
+                    className="px-5 py-2 bg-purple-800 hover:bg-purple-900 text-white rounded-xl text-xs font-extrabold shadow-sm transition active:scale-95 cursor-pointer"
                   >
                     Áp dụng ({filteredCostItems.length} món)
                   </button>
@@ -1459,7 +1459,7 @@ export default function PurchasesCostTab({
 
           {loading ? (
             <div className="flex items-center justify-center py-16 bg-white rounded-2xl border border-slate-200 shadow-sm">
-              <RefreshCw className="w-7 h-7 text-emerald-600 animate-spin" />
+              <RefreshCw className="w-7 h-7 text-purple-600 animate-spin" />
             </div>
           ) : filteredCostItems.length === 0 ? (
             <div className="py-14 text-center bg-white rounded-2xl border border-slate-200 shadow-sm text-slate-400 font-semibold text-xs sm:text-sm">
@@ -1506,7 +1506,7 @@ export default function PurchasesCostTab({
                                       className="w-9 h-9 rounded-xl object-cover border border-slate-100 shrink-0"
                                     />
                                   ) : (
-                                    <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-700 font-black flex items-center justify-center text-xs border border-emerald-100 shrink-0">
+                                    <div className="w-9 h-9 rounded-xl bg-purple-50 text-purple-700 font-black flex items-center justify-center text-xs border border-purple-100 shrink-0">
                                       {item.product_name.slice(0, 2).toUpperCase()}
                                     </div>
                                   )}
@@ -1535,12 +1535,12 @@ export default function PurchasesCostTab({
                                   <span className="text-slate-400 font-normal italic">Chưa định lượng</span>
                                 )}
                               </td>
-                              <td className="py-3 px-3 text-right font-black text-emerald-700">
+                              <td className="py-3 px-3 text-right font-black text-purple-700">
                                 {hasRecipe ? `+${formatCurrency(unitProfit, settings)}` : '—'}
                               </td>
                               <td className="py-3 px-3 text-center">
                                 {hasRecipe ? (
-                                  <span className="inline-flex items-center font-black text-emerald-800 bg-emerald-100/90 border border-emerald-200/80 px-2 py-0.5 rounded-lg text-xs">
+                                  <span className="inline-flex items-center font-black text-purple-800 bg-purple-100/90 border border-purple-200/80 px-2 py-0.5 rounded-lg text-xs">
                                     {marginPct}%
                                   </span>
                                 ) : (
@@ -1549,8 +1549,8 @@ export default function PurchasesCostTab({
                               </td>
                               <td className="py-3 px-3 text-center">
                                 {hasRecipe ? (
-                                  <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                                    <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                  <span className="inline-flex items-center gap-1 text-[11px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-200">
+                                    <CheckCircle2 className="w-3 h-3 text-purple-600" />
                                     {item.recipe_item_count} NL
                                   </span>
                                 ) : (
@@ -1566,7 +1566,7 @@ export default function PurchasesCostTab({
                                       type="button"
                                       onClick={() => handleApplySingleCost(item)}
                                       disabled={applyingCostId === `${item.target_type}-${item.target_id}`}
-                                      className="p-1.5 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition active:scale-95 cursor-pointer"
+                                      className="p-1.5 text-purple-700 bg-purple-50 hover:bg-purple-100 rounded-lg transition active:scale-95 cursor-pointer"
                                       title="Áp dụng giá vốn tính toán vào Menu bán hàng"
                                     >
                                       <CheckCircle2 className="w-3.5 h-3.5" />
@@ -1577,7 +1577,7 @@ export default function PurchasesCostTab({
                                     onClick={() => handleOpenRecipeEditor(item)}
                                     className="px-2.5 py-1 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition cursor-pointer flex items-center gap-1"
                                   >
-                                    <Scale className="w-3.5 h-3.5 text-emerald-700" />
+                                    <Scale className="w-3.5 h-3.5 text-purple-700" />
                                     <span>{hasRecipe ? 'Công thức' : '+ Định lượng'}</span>
                                   </button>
                                   {hasRecipe && (
@@ -1617,7 +1617,7 @@ export default function PurchasesCostTab({
                                               {formatCurrency(rd.effective_unit_cost, settings)}/{rd.base_unit || rd.unit}
                                             </span>
                                           </div>
-                                          <span className="font-black text-emerald-800 text-xs shrink-0">
+                                          <span className="font-black text-purple-800 text-xs shrink-0">
                                             {formatCurrency(rd.line_cost, settings)}
                                           </span>
                                         </div>
@@ -1659,7 +1659,7 @@ export default function PurchasesCostTab({
                               className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl object-cover border border-slate-100 shrink-0"
                             />
                           ) : (
-                            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-emerald-50 text-emerald-700 font-black flex items-center justify-center text-xs sm:text-sm border border-emerald-100 shrink-0">
+                            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-purple-50 text-purple-700 font-black flex items-center justify-center text-xs sm:text-sm border border-purple-100 shrink-0">
                               {item.product_name.slice(0, 2).toUpperCase()}
                             </div>
                           )}
@@ -1696,10 +1696,10 @@ export default function PurchasesCostTab({
                             </div>
                             {hasRecipe && (
                               <div className="flex items-center gap-1.5 justify-start sm:justify-end text-[11px] mt-0.5">
-                                <span className="font-bold text-emerald-700">
+                                <span className="font-bold text-purple-700">
                                   Lãi: +{formatCurrency(unitProfit, settings)}
                                 </span>
-                                <span className="font-black text-emerald-800 bg-emerald-100 px-1.5 py-0.2 rounded text-[10px]">
+                                <span className="font-black text-purple-800 bg-purple-100 px-1.5 py-0.2 rounded text-[10px]">
                                   {marginPct}%
                                 </span>
                               </div>
@@ -1712,7 +1712,7 @@ export default function PurchasesCostTab({
                                 type="button"
                                 onClick={() => handleApplySingleCost(item)}
                                 disabled={applyingCostId === `${item.target_type}-${item.target_id}`}
-                                className="p-2 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-xl text-xs font-bold transition active:scale-95 cursor-pointer"
+                                className="p-2 text-purple-700 bg-purple-50 hover:bg-purple-100 rounded-xl text-xs font-bold transition active:scale-95 cursor-pointer"
                                 title="Áp dụng giá vốn tính toán vào Menu bán hàng"
                               >
                                 <CheckCircle2 className="w-4 h-4" />
@@ -1724,7 +1724,7 @@ export default function PurchasesCostTab({
                               onClick={() => handleOpenRecipeEditor(item)}
                               className="px-2.5 sm:px-3 py-1.5 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition cursor-pointer flex items-center gap-1"
                             >
-                              <Scale className="w-3.5 h-3.5 text-emerald-700" />
+                              <Scale className="w-3.5 h-3.5 text-purple-700" />
                               <span>{hasRecipe ? 'Công thức' : '+ Định lượng'}</span>
                             </button>
 
@@ -1765,7 +1765,7 @@ export default function PurchasesCostTab({
                                     {formatCurrency(rd.effective_unit_cost, settings)}/{rd.base_unit || rd.unit}
                                   </span>
                                 </div>
-                                <span className="font-black text-emerald-800 text-xs shrink-0">
+                                <span className="font-black text-purple-800 text-xs shrink-0">
                                   {formatCurrency(rd.line_cost, settings)}
                                 </span>
                               </div>
@@ -1820,14 +1820,14 @@ export default function PurchasesCostTab({
                   onClick={() => setIsHistoryFilterModalOpen(true)}
                   className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer shadow-2xs ${
                     historyActiveFilterCount > 0
-                      ? 'bg-emerald-800 text-white shadow-sm ring-2 ring-emerald-600/30 font-extrabold'
+                      ? 'bg-purple-800 text-white shadow-sm ring-2 ring-purple-600/30 font-extrabold'
                       : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
                   }`}
                 >
                   <Filter className="w-4 h-4" />
                   <span>Bộ lọc</span>
                   {historyActiveFilterCount > 0 && (
-                    <span className="w-5 h-5 rounded-full bg-emerald-600 text-white text-[10px] font-extrabold flex items-center justify-center">
+                    <span className="w-5 h-5 rounded-full bg-purple-600 text-white text-[10px] font-extrabold flex items-center justify-center">
                       {historyActiveFilterCount}
                     </span>
                   )}
@@ -1897,12 +1897,12 @@ export default function PurchasesCostTab({
                 )}
 
                 {historyFundFilter !== 'all' && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-lg font-bold text-xs">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-purple-50 text-purple-800 border border-purple-200 rounded-lg font-bold text-xs">
                     <span>💳 Quỹ: {historyFundFilter}</span>
                     <button
                       type="button"
                       onClick={() => setHistoryFundFilter('all')}
-                      className="hover:text-emerald-950 p-0.5 rounded cursor-pointer"
+                      className="hover:text-purple-950 p-0.5 rounded cursor-pointer"
                       title="Xóa lọc quỹ"
                     >
                       <X className="w-3 h-3" />
@@ -1954,7 +1954,7 @@ export default function PurchasesCostTab({
                 {/* Header */}
                 <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                   <div className="flex items-center gap-2">
-                    <div className="p-2 bg-emerald-50 text-emerald-800 rounded-xl">
+                    <div className="p-2 bg-purple-50 text-purple-800 rounded-xl">
                       <Filter className="w-5 h-5" />
                     </div>
                     <div>
@@ -1994,7 +1994,7 @@ export default function PurchasesCostTab({
                             onClick={() => setHistoryDateFilter(item.key as any)}
                             className={`px-3.5 py-2 rounded-xl font-bold transition cursor-pointer shadow-2xs ${
                               isSelected
-                                ? 'bg-emerald-800 text-white shadow-sm font-black ring-2 ring-emerald-600/30'
+                                ? 'bg-purple-800 text-white shadow-sm font-black ring-2 ring-purple-600/30'
                                 : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
                             }`}
                           >
@@ -2029,7 +2029,7 @@ export default function PurchasesCostTab({
                             onClick={() => setHistoryCategoryFilter(cat.key as any)}
                             className={`px-3.5 py-2 rounded-xl font-bold transition cursor-pointer shadow-2xs ${
                               isSelected
-                                ? 'bg-emerald-800 text-white shadow-sm font-black ring-2 ring-emerald-600/30'
+                                ? 'bg-purple-800 text-white shadow-sm font-black ring-2 ring-purple-600/30'
                                 : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
                             }`}
                           >
@@ -2054,14 +2054,14 @@ export default function PurchasesCostTab({
                         onClick={() => setHistoryFundFilter('all')}
                         className={`px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs ${
                           historyFundFilter === 'all'
-                            ? 'bg-emerald-800 text-white shadow-sm font-black ring-2 ring-emerald-600/30'
+                            ? 'bg-purple-800 text-white shadow-sm font-black ring-2 ring-purple-600/30'
                             : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
                         }`}
                       >
                         <span>Tất cả quỹ</span>
                         <span
                           className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                            historyFundFilter === 'all' ? 'bg-emerald-700 text-white' : 'bg-slate-100 text-slate-600'
+                            historyFundFilter === 'all' ? 'bg-purple-700 text-white' : 'bg-slate-100 text-slate-600'
                           }`}
                         >
                           {allHistory.length}
@@ -2077,14 +2077,14 @@ export default function PurchasesCostTab({
                             onClick={() => setHistoryFundFilter(isSelected ? 'all' : fName)}
                             className={`px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs ${
                               isSelected
-                                ? 'bg-emerald-800 text-white shadow-sm font-black ring-2 ring-emerald-600/30'
+                                ? 'bg-purple-800 text-white shadow-sm font-black ring-2 ring-purple-600/30'
                                 : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
                             }`}
                           >
                             <span>{fName}</span>
                             <span
                               className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                                isSelected ? 'bg-emerald-700 text-white' : 'bg-slate-100 text-slate-600'
+                                isSelected ? 'bg-purple-700 text-white' : 'bg-slate-100 text-slate-600'
                               }`}
                             >
                               {count}
@@ -2118,7 +2118,7 @@ export default function PurchasesCostTab({
                             onClick={() => setHistorySortBy(item.key as any)}
                             className={`p-2.5 rounded-xl border text-xs font-bold transition text-left cursor-pointer ${
                               isSelected
-                                ? 'bg-emerald-800 text-white border-emerald-800 shadow-xs'
+                                ? 'bg-purple-800 text-white border-purple-800 shadow-xs'
                                 : 'bg-white text-slate-700 hover:bg-slate-50 border-slate-200'
                             }`}
                           >
@@ -2147,7 +2147,7 @@ export default function PurchasesCostTab({
                   <button
                     type="button"
                     onClick={() => setIsHistoryFilterModalOpen(false)}
-                    className="px-5 py-2 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl text-xs font-extrabold shadow-sm transition active:scale-95 cursor-pointer"
+                    className="px-5 py-2 bg-purple-800 hover:bg-purple-900 text-white rounded-xl text-xs font-extrabold shadow-sm transition active:scale-95 cursor-pointer"
                   >
                     Áp dụng ({filteredHistory.length} đợt)
                   </button>
@@ -2158,7 +2158,7 @@ export default function PurchasesCostTab({
 
           {loading ? (
             <div className="flex items-center justify-center py-16 bg-white rounded-2xl border border-slate-200 shadow-sm">
-              <RefreshCw className="w-7 h-7 text-emerald-600 animate-spin" />
+              <RefreshCw className="w-7 h-7 text-purple-600 animate-spin" />
             </div>
           ) : filteredHistory.length === 0 ? (
             <div className="py-14 text-center bg-white rounded-2xl border border-slate-200 shadow-sm text-slate-400 font-semibold text-xs sm:text-sm">
@@ -2227,7 +2227,7 @@ export default function PurchasesCostTab({
                       {/* Cost breakdown */}
                       <div className="flex items-center justify-between pt-1 text-xs">
                         <span className="text-[11px] font-bold text-slate-500">Giá vốn quy đổi:</span>
-                        <span className="font-extrabold text-emerald-900 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-lg text-xs">
+                        <span className="font-extrabold text-purple-900 bg-purple-50 border border-purple-200 px-2 py-0.5 rounded-lg text-xs">
                           {formatCurrency(effectivePrice, settings)}/{baseUnit}
                         </span>
                       </div>
@@ -2283,8 +2283,8 @@ export default function PurchasesCostTab({
                             <td className="py-3 px-3 text-right font-black text-rose-600">
                               {formatCurrency(rec.subtotal, settings)}
                             </td>
-                            <td className="py-3 px-3 text-right font-extrabold text-emerald-800">
-                              <span className="bg-emerald-50 text-emerald-900 border border-emerald-200 px-2 py-0.5 rounded-md">
+                            <td className="py-3 px-3 text-right font-extrabold text-purple-800">
+                              <span className="bg-purple-50 text-purple-900 border border-purple-200 px-2 py-0.5 rounded-md">
                                 {formatCurrency(effectivePrice, settings)}/{baseUnit}
                               </span>
                             </td>
@@ -2338,14 +2338,14 @@ export default function PurchasesCostTab({
                 onClick={() => setIsIngFilterModalOpen(true)}
                 className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer shadow-2xs ${
                   ingActiveFilterCount > 0
-                    ? 'bg-emerald-800 text-white shadow-sm ring-2 ring-emerald-600/30 font-extrabold'
+                    ? 'bg-purple-800 text-white shadow-sm ring-2 ring-purple-600/30 font-extrabold'
                     : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
                 }`}
               >
                 <Filter className="w-4 h-4" />
                 <span>Bộ lọc</span>
                 {ingActiveFilterCount > 0 && (
-                  <span className="w-5 h-5 rounded-full bg-emerald-600 text-white text-[10px] font-extrabold flex items-center justify-center">
+                  <span className="w-5 h-5 rounded-full bg-purple-600 text-white text-[10px] font-extrabold flex items-center justify-center">
                     {ingActiveFilterCount}
                   </span>
                 )}
@@ -2355,7 +2355,7 @@ export default function PurchasesCostTab({
             <button
               type="button"
               onClick={handleOpenAddIngredient}
-              className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-extrabold shadow-2xs transition active:scale-95 cursor-pointer shrink-0"
+              className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-purple-700 hover:bg-purple-800 text-white rounded-xl text-xs font-extrabold shadow-2xs transition active:scale-95 cursor-pointer shrink-0"
             >
               <Plus className="w-4 h-4" />
               <span>+ Thêm Nguyên Liệu</span>
@@ -2367,7 +2367,7 @@ export default function PurchasesCostTab({
             <div className="flex flex-wrap items-center gap-1.5 text-xs pt-2 border-t border-slate-100 bg-white rounded-2xl border border-slate-200 shadow-sm p-3">
               <span className="text-slate-400 font-semibold text-[11px]">Đang lọc:</span>
               {ingCategoryFilter !== 'all' && (
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-lg font-bold text-xs">
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-purple-50 text-purple-800 border border-purple-200 rounded-lg font-bold text-xs">
                   <span>
                     🏷️ Phân loại:{' '}
                     {ingCategoryFilter === 'fruit'
@@ -2381,7 +2381,7 @@ export default function PurchasesCostTab({
                   <button
                     type="button"
                     onClick={() => setIngCategoryFilter('all')}
-                    className="hover:text-emerald-950 p-0.5 rounded cursor-pointer"
+                    className="hover:text-purple-950 p-0.5 rounded cursor-pointer"
                     title="Xóa lọc phân loại"
                   >
                     <X className="w-3 h-3" />
@@ -2447,7 +2447,7 @@ export default function PurchasesCostTab({
                 {/* Modal Header */}
                 <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                   <div className="flex items-center gap-2">
-                    <div className="p-2 bg-emerald-50 text-emerald-800 rounded-xl">
+                    <div className="p-2 bg-purple-50 text-purple-800 rounded-xl">
                       <Filter className="w-5 h-5" />
                     </div>
                     <div>
@@ -2487,7 +2487,7 @@ export default function PurchasesCostTab({
                             onClick={() => setIngCategoryFilter(cat.key)}
                             className={`p-3 rounded-2xl border text-left transition flex items-center justify-between cursor-pointer ${
                               isSelected
-                                ? 'border-emerald-600 bg-emerald-50 text-emerald-950 font-bold ring-2 ring-emerald-600/30'
+                                ? 'border-purple-600 bg-purple-50 text-purple-950 font-bold ring-2 ring-purple-600/30'
                                 : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
                             }`}
                           >
@@ -2497,7 +2497,7 @@ export default function PurchasesCostTab({
                             </span>
                             <span
                               className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
-                                isSelected ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600'
+                                isSelected ? 'bg-purple-600 text-white' : 'bg-slate-100 text-slate-600'
                               }`}
                             >
                               {cat.count}
@@ -2530,7 +2530,7 @@ export default function PurchasesCostTab({
                             onClick={() => setIngLossFilter(item.key as any)}
                             className={`p-2.5 rounded-xl border text-xs font-bold transition text-center cursor-pointer ${
                               isSelected
-                                ? 'bg-emerald-800 text-white border-emerald-800 shadow-xs'
+                                ? 'bg-purple-800 text-white border-purple-800 shadow-xs'
                                 : 'bg-white text-slate-700 hover:bg-slate-50 border-slate-200'
                             }`}
                           >
@@ -2564,7 +2564,7 @@ export default function PurchasesCostTab({
                             onClick={() => setIngSortBy(item.key as any)}
                             className={`p-2.5 rounded-xl border text-xs font-bold transition text-left cursor-pointer ${
                               isSelected
-                                ? 'bg-emerald-800 text-white border-emerald-800 shadow-xs'
+                                ? 'bg-purple-800 text-white border-purple-800 shadow-xs'
                                 : 'bg-white text-slate-700 hover:bg-slate-50 border-slate-200'
                             }`}
                           >
@@ -2592,7 +2592,7 @@ export default function PurchasesCostTab({
                   <button
                     type="button"
                     onClick={() => setIsIngFilterModalOpen(false)}
-                    className="px-5 py-2 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl text-xs font-extrabold shadow-sm transition active:scale-95 cursor-pointer"
+                    className="px-5 py-2 bg-purple-800 hover:bg-purple-900 text-white rounded-xl text-xs font-extrabold shadow-sm transition active:scale-95 cursor-pointer"
                   >
                     Áp dụng ({filteredIngredients.length} nguyên liệu)
                   </button>
@@ -2603,7 +2603,7 @@ export default function PurchasesCostTab({
 
           {loading ? (
             <div className="flex items-center justify-center py-16 bg-white rounded-2xl border border-slate-200 shadow-sm">
-              <RefreshCw className="w-7 h-7 text-emerald-600 animate-spin" />
+              <RefreshCw className="w-7 h-7 text-purple-600 animate-spin" />
             </div>
           ) : filteredIngredients.length === 0 ? (
             <div className="py-14 text-center bg-white rounded-2xl border border-slate-200 shadow-sm text-slate-400 font-semibold text-xs sm:text-sm">
@@ -2624,14 +2624,14 @@ export default function PurchasesCostTab({
                     return (
                       <div
                         key={ing.id}
-                        className="bg-emerald-50/50 rounded-2xl border-2 border-emerald-500 p-3 sm:p-4 shadow-md space-y-3"
+                        className="bg-purple-50/50 rounded-2xl border-2 border-purple-500 p-3 sm:p-4 shadow-md space-y-3"
                       >
-                        <div className="flex items-center justify-between border-b border-emerald-200 pb-2">
-                          <span className="text-xs font-black text-emerald-900 flex items-center gap-1.5">
-                            <Edit className="w-3.5 h-3.5 text-emerald-700" />
+                        <div className="flex items-center justify-between border-b border-purple-200 pb-2">
+                          <span className="text-xs font-black text-purple-900 flex items-center gap-1.5">
+                            <Edit className="w-3.5 h-3.5 text-purple-700" />
                             <span>Chỉnh sửa nhanh nguyên liệu</span>
                           </span>
-                          <span className="text-[10px] text-emerald-700 font-bold bg-white px-2 py-0.5 rounded border border-emerald-300">
+                          <span className="text-[10px] text-purple-700 font-bold bg-white px-2 py-0.5 rounded border border-purple-300">
                             ID #{ing.id}
                           </span>
                         </div>
@@ -2643,7 +2643,7 @@ export default function PurchasesCostTab({
                               type="text"
                               value={inlineForm.name}
                               onChange={(e) => setInlineForm({ ...inlineForm, name: e.target.value })}
-                              className="w-full h-8 px-2.5 border border-slate-300 rounded-xl font-bold bg-white focus:ring-2 focus:ring-emerald-500"
+                              className="w-full h-8 px-2.5 border border-slate-300 rounded-xl font-bold bg-white focus:ring-2 focus:ring-purple-500"
                             />
                           </div>
 
@@ -2666,7 +2666,7 @@ export default function PurchasesCostTab({
                               <select
                                 value={inlineForm.base_unit}
                                 onChange={(e) => setInlineForm({ ...inlineForm, base_unit: e.target.value })}
-                                className="w-full h-8 px-2 border border-slate-300 rounded-xl bg-white font-bold text-emerald-950"
+                                className="w-full h-8 px-2 border border-slate-300 rounded-xl bg-white font-bold text-purple-950"
                               >
                                 {COMMON_BASE_UNITS.map((u) => (
                                   <option key={u.value} value={u.value}>{u.label}</option>
@@ -2711,7 +2711,7 @@ export default function PurchasesCostTab({
                                 step="any"
                                 value={inlineForm.latest_price === 0 ? '' : inlineForm.latest_price}
                                 onChange={(e) => setInlineForm({ ...inlineForm, latest_price: parseFloat(e.target.value) || 0 })}
-                                className="w-full h-8 px-2 border border-slate-300 rounded-xl text-right font-extrabold text-emerald-700 bg-white"
+                                className="w-full h-8 px-2 border border-slate-300 rounded-xl text-right font-extrabold text-purple-700 bg-white"
                               />
                             </div>
                             <div>
@@ -2728,7 +2728,7 @@ export default function PurchasesCostTab({
                           </div>
                         </div>
 
-                        <div className="flex items-center justify-end gap-2 pt-2 border-t border-emerald-200">
+                        <div className="flex items-center justify-end gap-2 pt-2 border-t border-purple-200">
                           <button
                             type="button"
                             onClick={handleCancelInlineEdit}
@@ -2740,7 +2740,7 @@ export default function PurchasesCostTab({
                             type="button"
                             onClick={handleSaveInlineEdit}
                             disabled={savingInlineId === ing.id}
-                            className="px-4 py-1.5 text-xs font-extrabold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-xs transition cursor-pointer flex items-center gap-1"
+                            className="px-4 py-1.5 text-xs font-extrabold text-white bg-purple-600 hover:bg-purple-700 rounded-xl shadow-xs transition cursor-pointer flex items-center gap-1"
                           >
                             <Check className="w-3.5 h-3.5" />
                             <span>{savingInlineId === ing.id ? 'Đang lưu...' : 'Lưu'}</span>
@@ -2759,7 +2759,7 @@ export default function PurchasesCostTab({
                         <div className="min-w-0 flex-1">
                           <h4 className="font-extrabold text-slate-900 text-sm truncate">{ing.name}</h4>
                           <div className="flex items-center gap-1.5 text-[11px] text-slate-500 mt-0.5 flex-wrap">
-                            <span className="font-bold text-emerald-900 bg-emerald-50 px-2 py-0.2 rounded border border-emerald-200">
+                            <span className="font-bold text-purple-900 bg-purple-50 px-2 py-0.2 rounded border border-purple-200">
                               Base: {baseUnit}
                             </span>
                             <span>•</span>
@@ -2771,7 +2771,7 @@ export default function PurchasesCostTab({
                             ? 'bg-amber-50 text-amber-800 border-amber-200'
                             : ing.category === 'packaging'
                               ? 'bg-blue-50 text-blue-800 border-blue-200'
-                              : 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                              : 'bg-purple-50 text-purple-800 border-purple-200'
                             }`}
                         >
                           {ing.category === 'fruit'
@@ -2785,7 +2785,7 @@ export default function PurchasesCostTab({
                       <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200/80 grid grid-cols-3 gap-2 text-xs">
                         <div>
                           <span className="text-[10px] font-semibold text-slate-400 block">Giá gần nhất</span>
-                          <span className="font-extrabold text-emerald-700 text-xs">
+                          <span className="font-extrabold text-purple-700 text-xs">
                             {formatCurrency(ing.latest_purchase_price, settings)}
                           </span>
                         </div>
@@ -2814,7 +2814,7 @@ export default function PurchasesCostTab({
                         <button
                           type="button"
                           onClick={() => handleStartInlineEdit(ing)}
-                          className="px-2.5 py-1.5 text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+                          className="px-2.5 py-1.5 text-purple-800 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer"
                           title="Sửa nhanh các thông số"
                         >
                           <Edit className="w-3.5 h-3.5" />
@@ -2868,14 +2868,14 @@ export default function PurchasesCostTab({
 
                         if (isInline && inlineForm) {
                           return (
-                            <tr key={ing.id} className="bg-emerald-50/40 border-y-2 border-emerald-400">
+                            <tr key={ing.id} className="bg-purple-50/40 border-y-2 border-purple-400">
                               <td className="py-2 px-3">
                                 <input
                                   type="text"
                                   required
                                   value={inlineForm.name}
                                   onChange={(e) => setInlineForm({ ...inlineForm, name: e.target.value })}
-                                  className="w-full h-8 px-2 border border-slate-300 rounded-lg text-xs font-bold bg-white focus:ring-2 focus:ring-emerald-500"
+                                  className="w-full h-8 px-2 border border-slate-300 rounded-lg text-xs font-bold bg-white focus:ring-2 focus:ring-purple-500"
                                 />
                               </td>
                               <td className="py-2 px-2">
@@ -2894,7 +2894,7 @@ export default function PurchasesCostTab({
                                 <select
                                   value={inlineForm.base_unit}
                                   onChange={(e) => setInlineForm({ ...inlineForm, base_unit: e.target.value })}
-                                  className="w-full h-8 px-1 border border-slate-300 rounded-lg text-xs font-bold bg-white text-emerald-950"
+                                  className="w-full h-8 px-1 border border-slate-300 rounded-lg text-xs font-bold bg-white text-purple-950"
                                 >
                                   {COMMON_BASE_UNITS.map((u) => (
                                     <option key={u.value} value={u.value}>{u.label}</option>
@@ -2930,7 +2930,7 @@ export default function PurchasesCostTab({
                                   step="any"
                                   value={inlineForm.latest_price === 0 ? '' : inlineForm.latest_price}
                                   onChange={(e) => setInlineForm({ ...inlineForm, latest_price: parseFloat(e.target.value) || 0 })}
-                                  className="w-24 h-8 px-2 border border-slate-300 rounded-lg text-xs font-extrabold text-right text-emerald-700 bg-white"
+                                  className="w-24 h-8 px-2 border border-slate-300 rounded-lg text-xs font-extrabold text-right text-purple-700 bg-white"
                                 />
                               </td>
                               <td className="py-2 px-2 text-right">
@@ -2949,7 +2949,7 @@ export default function PurchasesCostTab({
                                     type="button"
                                     onClick={handleSaveInlineEdit}
                                     disabled={savingInlineId === ing.id}
-                                    className="px-2.5 py-1 text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition active:scale-95 cursor-pointer shadow-xs flex items-center gap-1 font-bold text-[11px]"
+                                    className="px-2.5 py-1 text-white bg-purple-600 hover:bg-purple-700 rounded-lg transition active:scale-95 cursor-pointer shadow-xs flex items-center gap-1 font-bold text-[11px]"
                                     title="Lưu thay đổi"
                                   >
                                     <Check className="w-3.5 h-3.5" />
@@ -2978,7 +2978,7 @@ export default function PurchasesCostTab({
                                   ? 'bg-amber-50 text-amber-800 border-amber-200'
                                   : ing.category === 'packaging'
                                     ? 'bg-blue-50 text-blue-800 border-blue-200'
-                                    : 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                                    : 'bg-purple-50 text-purple-800 border-purple-200'
                                   }`}
                               >
                                 {ing.category === 'fruit'
@@ -2988,8 +2988,8 @@ export default function PurchasesCostTab({
                                     : 'Nguyên liệu'}
                               </span>
                             </td>
-                            <td className="py-3 px-2 font-bold text-emerald-900">
-                              <span className="bg-emerald-50 text-emerald-800 px-2 py-0.5 rounded-md border border-emerald-200">
+                            <td className="py-3 px-2 font-bold text-purple-900">
+                              <span className="bg-purple-50 text-purple-800 px-2 py-0.5 rounded-md border border-purple-200">
                                 {baseUnit}
                               </span>
                             </td>
@@ -2997,7 +2997,7 @@ export default function PurchasesCostTab({
                             <td className="py-3 px-2 text-right font-bold text-amber-700">
                               {ing.loss_rate > 0 ? `${Math.round(ing.loss_rate * 100)}%` : '0%'}
                             </td>
-                            <td className="py-3 px-3 text-right font-extrabold text-emerald-700">
+                            <td className="py-3 px-3 text-right font-extrabold text-purple-700">
                               {formatCurrency(ing.latest_purchase_price, settings)}/{baseUnit}
                             </td>
                             <td className="py-3 px-3 text-right font-bold text-slate-600">
@@ -3016,7 +3016,7 @@ export default function PurchasesCostTab({
                                 <button
                                   type="button"
                                   onClick={() => handleStartInlineEdit(ing)}
-                                  className="p-1.5 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition active:scale-95 cursor-pointer"
+                                  className="p-1.5 text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-lg transition active:scale-95 cursor-pointer"
                                   title="Sửa nhanh trực tiếp các thông số"
                                 >
                                   <Edit className="w-3.5 h-3.5" />
@@ -3058,7 +3058,7 @@ export default function PurchasesCostTab({
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div>
                 <h3 className="font-extrabold text-slate-900 text-base flex items-center gap-2">
-                  <Scale className="w-5 h-5 text-emerald-700" />
+                  <Scale className="w-5 h-5 text-purple-700" />
                   Định Lượng Công Thức (BOM)
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
@@ -3118,15 +3118,15 @@ export default function PurchasesCostTab({
             </div>
 
             {/* Interactive Live Cost & Profit Simulator Widget */}
-            <div className="bg-gradient-to-br from-emerald-50/90 to-slate-50 rounded-2xl p-3.5 border border-emerald-200/90 shadow-2xs space-y-2.5">
-              <div className="flex items-center justify-between gap-2 border-b border-emerald-200/50 pb-2">
-                <span className="text-[11px] font-black text-emerald-950 flex items-center gap-1.5">
-                  <Calculator className="w-3.5 h-3.5 text-emerald-700" />
+            <div className="bg-gradient-to-br from-purple-50/90 to-slate-50 rounded-2xl p-3.5 border border-purple-200/90 shadow-2xs space-y-2.5">
+              <div className="flex items-center justify-between gap-2 border-b border-purple-200/50 pb-2">
+                <span className="text-[11px] font-black text-purple-950 flex items-center gap-1.5">
+                  <Calculator className="w-3.5 h-3.5 text-purple-700" />
                   <span>Mô Phỏng Giá Bán & Biên Lợi Nhuận Thực Tế</span>
                 </span>
                 <span
                   className={`text-[10px] font-black px-2 py-0.5 rounded-full border shadow-2xs ${simulatedMarginPct >= 65
-                    ? 'bg-emerald-600 text-white border-emerald-700'
+                    ? 'bg-purple-600 text-white border-purple-700'
                     : simulatedMarginPct >= 50
                       ? 'bg-amber-500 text-white border-amber-600'
                       : 'bg-rose-600 text-white border-rose-700'
@@ -3141,14 +3141,14 @@ export default function PurchasesCostTab({
               </div>
 
               <div className="grid grid-cols-3 gap-2 text-xs">
-                <div className="bg-white/80 p-2 rounded-xl border border-emerald-100/80">
+                <div className="bg-white/80 p-2 rounded-xl border border-purple-100/80">
                   <span className="text-[10px] font-bold text-slate-500 block">Tiền vốn 1 ly (COGS)</span>
-                  <span className="text-base sm:text-lg font-black text-emerald-950 block mt-0.5">
+                  <span className="text-base sm:text-lg font-black text-purple-950 block mt-0.5">
                     {formatCurrency(recipePreviewCost, settings)}
                   </span>
                 </div>
 
-                <div className="bg-white/80 p-2 rounded-xl border border-emerald-100/80">
+                <div className="bg-white/80 p-2 rounded-xl border border-purple-100/80">
                   <span className="text-[10px] font-bold text-slate-500 block">Giá bán mô phỏng</span>
                   <div className="flex items-center gap-1 mt-0.5">
                     <input
@@ -3162,13 +3162,13 @@ export default function PurchasesCostTab({
                   </div>
                 </div>
 
-                <div className="bg-white/80 p-2 rounded-xl border border-emerald-100/80 text-right">
+                <div className="bg-white/80 p-2 rounded-xl border border-purple-100/80 text-right">
                   <span className="text-[10px] font-bold text-slate-500 block">Tiền lời / Tỷ suất</span>
                   <div className="flex items-baseline justify-end gap-1 mt-0.5">
-                    <span className="text-sm sm:text-base font-black text-emerald-900">
+                    <span className="text-sm sm:text-base font-black text-purple-900">
                       {formatCurrency(simulatedProfit, settings)}
                     </span>
-                    <span className="text-[11px] font-extrabold text-emerald-700">
+                    <span className="text-[11px] font-extrabold text-purple-700">
                       ({simulatedMarginPct}%)
                     </span>
                   </div>
@@ -3238,7 +3238,7 @@ export default function PurchasesCostTab({
                       </div>
                     </div>
 
-                    <span className="text-[11px] font-black text-emerald-800 w-16 text-right shrink-0">
+                    <span className="text-[11px] font-black text-purple-800 w-16 text-right shrink-0">
                       {formatCurrency(lineCost)}
                     </span>
 
@@ -3264,7 +3264,7 @@ export default function PurchasesCostTab({
                     { ingredient_id: ingredients[0]?.id || 0, usage_quantity: 30 },
                   ]);
                 }}
-                className="w-full py-2.5 px-3 border border-dashed border-slate-300 hover:border-emerald-500 text-slate-600 hover:text-emerald-700 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 bg-white cursor-pointer"
+                className="w-full py-2.5 px-3 border border-dashed border-slate-300 hover:border-purple-500 text-slate-600 hover:text-purple-700 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 bg-white cursor-pointer"
               >
                 <PlusCircle className="w-4 h-4" />
                 <span>+ Thêm nguyên liệu vào công thức</span>
@@ -3283,7 +3283,7 @@ export default function PurchasesCostTab({
                 type="button"
                 onClick={handleSaveRecipe}
                 disabled={savingRecipe}
-                className="px-5 py-2.5 text-xs font-extrabold text-white bg-emerald-700 hover:bg-emerald-800 rounded-xl shadow-xs transition active:scale-95 cursor-pointer flex items-center gap-1.5"
+                className="px-5 py-2.5 text-xs font-extrabold text-white bg-purple-700 hover:bg-purple-800 rounded-xl shadow-xs transition active:scale-95 cursor-pointer flex items-center gap-1.5"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${savingRecipe ? 'animate-spin' : ''}`} />
                 <span>Lưu Công Thức</span>
@@ -3299,7 +3299,7 @@ export default function PurchasesCostTab({
           <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-lg w-full p-4 sm:p-6 shadow-2xl space-y-4 max-h-[92dvh] sm:max-h-[90vh] overflow-y-auto pb-safe">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="font-extrabold text-slate-900 text-base flex items-center gap-2">
-                <Package className="w-5 h-5 text-emerald-700" />
+                <Package className="w-5 h-5 text-purple-700" />
                 <span>{editingIngredient ? 'Chỉnh Sửa Thông Tin Nguyên Liệu' : 'Thêm Nguyên Liệu Mới'}</span>
               </h3>
               <button
@@ -3318,7 +3318,7 @@ export default function PurchasesCostTab({
                 onClick={() => setIngFormMode('basic')}
                 className={`flex-1 py-1.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
                   ingFormMode === 'basic'
-                    ? 'bg-white text-emerald-800 shadow-xs border border-emerald-200'
+                    ? 'bg-white text-purple-800 shadow-xs border border-purple-200'
                     : 'text-slate-500 hover:text-slate-800'
                 }`}
               >
@@ -3348,7 +3348,7 @@ export default function PurchasesCostTab({
                   placeholder="VD: Cốt cà phê, Sữa đặc, Sữa tươi, Ly 500ml, Chanh tươi..."
                   value={ingFormName}
                   onChange={(e) => setIngFormName(e.target.value)}
-                  className="w-full h-9.5 px-3 border border-slate-200 rounded-xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="w-full h-9.5 px-3 border border-slate-200 rounded-xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
               </div>
 
@@ -3374,7 +3374,7 @@ export default function PurchasesCostTab({
                   <select
                     value={ingFormBaseUnit}
                     onChange={(e) => setIngFormBaseUnit(e.target.value)}
-                    className="w-full h-9 px-2 border border-slate-200 rounded-xl text-xs font-bold bg-white text-emerald-950"
+                    className="w-full h-9 px-2 border border-slate-200 rounded-xl text-xs font-bold bg-white text-purple-950"
                   >
                     {COMMON_BASE_UNITS.map((u) => (
                       <option key={u.value} value={u.value}>
@@ -3397,7 +3397,7 @@ export default function PurchasesCostTab({
                     placeholder="VD: 120"
                     value={ingFormPrice === 0 ? '' : ingFormPrice}
                     onChange={(e) => setIngFormPrice(parseFloat(e.target.value) || 0)}
-                    className="w-full h-9 px-3 border border-slate-200 rounded-xl text-xs font-extrabold text-right text-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    className="w-full h-9 px-3 border border-slate-200 rounded-xl text-xs font-extrabold text-right text-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
                   />
                 </div>
 
@@ -3412,7 +3412,7 @@ export default function PurchasesCostTab({
                     placeholder="VD: 115"
                     value={ingFormAvgPrice === 0 ? '' : ingFormAvgPrice}
                     onChange={(e) => setIngFormAvgPrice(parseFloat(e.target.value) || 0)}
-                    className="w-full h-9 px-3 border border-slate-200 rounded-xl text-xs font-bold text-right text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    className="w-full h-9 px-3 border border-slate-200 rounded-xl text-xs font-bold text-right text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
                   />
                 </div>
               </div>
@@ -3443,11 +3443,11 @@ export default function PurchasesCostTab({
 
               {/* Mode Specific Section */}
               {ingFormMode === 'basic' ? (
-                <div className="p-3 bg-emerald-50/70 rounded-2xl border border-emerald-200/90 text-emerald-900 text-xs flex items-start gap-2.5">
-                  <Sparkles className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                <div className="p-3 bg-purple-50/70 rounded-2xl border border-purple-200/90 text-purple-900 text-xs flex items-start gap-2.5">
+                  <Sparkles className="w-4 h-4 text-purple-600 shrink-0 mt-0.5" />
                   <div>
                     <span className="font-bold block">Chế độ cơ bản kích hoạt</span>
-                    <span className="text-[11px] text-emerald-800/90 leading-relaxed block mt-0.5">
+                    <span className="text-[11px] text-purple-800/90 leading-relaxed block mt-0.5">
                       Quy cách mua hàng tự động mặc định theo 1 {ingFormBaseUnit}. Bạn không cần cấu hình tỷ lệ đóng gói thùng, chai, lon phức tạp.
                     </span>
                   </div>
@@ -3502,9 +3502,9 @@ export default function PurchasesCostTab({
                     </div>
                   </div>
 
-                  <div className="bg-emerald-50/60 p-3 rounded-2xl border border-emerald-200/80 space-y-2">
+                  <div className="bg-purple-50/60 p-3 rounded-2xl border border-purple-200/80 space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-bold text-emerald-950">
+                      <span className="text-[11px] font-bold text-purple-950">
                         Các quy cách mua hàng lưu sẵn (Presets):
                       </span>
                       <button
@@ -3522,7 +3522,7 @@ export default function PurchasesCostTab({
                             },
                           ]);
                         }}
-                        className="text-[10px] font-bold text-emerald-800 bg-white hover:bg-emerald-100 px-2 py-0.5 rounded-md border border-emerald-300 transition cursor-pointer"
+                        className="text-[10px] font-bold text-purple-800 bg-white hover:bg-purple-100 px-2 py-0.5 rounded-md border border-purple-300 transition cursor-pointer"
                       >
                         + Thêm quy cách
                       </button>
@@ -3537,9 +3537,9 @@ export default function PurchasesCostTab({
                         {ingFormPresets.map((pr, pIdx) => (
                           <div
                             key={pIdx}
-                            className="bg-white p-2 rounded-xl border border-emerald-200 text-xs flex items-center justify-between gap-2"
+                            className="bg-white p-2 rounded-xl border border-purple-200 text-xs flex items-center justify-between gap-2"
                           >
-                            <span className="font-bold text-emerald-900">
+                            <span className="font-bold text-purple-900">
                               {pr.purchase_unit} ({pr.pack_qty > 1 ? `${pr.pack_qty}x ` : ''}{pr.capacity_qty}{pr.capacity_unit})
                             </span>
                             <button
@@ -3568,7 +3568,7 @@ export default function PurchasesCostTab({
                 <button
                   type="submit"
                   disabled={savingIngredient}
-                  className="px-5 py-2.5 text-xs font-extrabold text-white bg-emerald-700 hover:bg-emerald-800 rounded-xl shadow-xs transition active:scale-95 cursor-pointer flex items-center gap-1.5"
+                  className="px-5 py-2.5 text-xs font-extrabold text-white bg-purple-700 hover:bg-purple-800 rounded-xl shadow-xs transition active:scale-95 cursor-pointer flex items-center gap-1.5"
                 >
                   <RefreshCw className={`w-3.5 h-3.5 ${savingIngredient ? 'animate-spin' : ''}`} />
                   <span>{editingIngredient ? 'Lưu Thay Đổi' : 'Thêm Mới'}</span>
@@ -3646,8 +3646,8 @@ export default function PurchasesCostTab({
                             <td className="py-2.5 px-3 text-right font-black text-rose-600">
                               {formatCurrency(rec.subtotal, settings)}
                             </td>
-                            <td className="py-2.5 px-3 text-right font-extrabold text-emerald-800">
-                              <span className="bg-emerald-50 text-emerald-900 border border-emerald-200 px-1.5 py-0.5 rounded text-[11px]">
+                            <td className="py-2.5 px-3 text-right font-extrabold text-purple-800">
+                              <span className="bg-purple-50 text-purple-900 border border-purple-200 px-1.5 py-0.5 rounded text-[11px]">
                                 {formatCurrency(effectivePrice, settings)}/{baseUnit}
                               </span>
                             </td>

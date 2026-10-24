@@ -8,7 +8,7 @@ import { useConfirm } from '@/context/ConfirmContext';
 export interface CustomTag {
   id: string;
   name: string;
-  color: string; // 'rose' | 'amber' | 'emerald' | 'indigo' | 'purple' | 'sky' | 'teal' | 'orange' | 'slate'
+  color: string; // 'rose' | 'amber' | 'green' | 'indigo' | 'purple' | 'sky' | 'teal' | 'orange' | 'slate'
   icon: string;
   is_system?: boolean;
 }
@@ -23,7 +23,7 @@ export const DEFAULT_SYSTEM_TAGS: CustomTag[] = [
 export const TAG_COLORS: { id: string; name: string; bg: string; text: string; border: string; preview: string }[] = [
   { id: 'rose', name: 'Đỏ Hồng (Rose)', bg: 'bg-rose-50', text: 'text-rose-700', border: 'border-rose-200', preview: 'bg-rose-500' },
   { id: 'amber', name: 'Vàng Cam (Amber)', bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200', preview: 'bg-amber-500' },
-  { id: 'emerald', name: 'Xanh Lá (Emerald)', bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', preview: 'bg-emerald-500' },
+  { id: 'green', name: 'Xanh Lá (Green)', bg: 'bg-green-50', text: 'text-green-700', border: 'border-green-200', preview: 'bg-green-500' },
   { id: 'indigo', name: 'Xanh Chàm (Indigo)', bg: 'bg-indigo-50', text: 'text-indigo-700', border: 'border-indigo-200', preview: 'bg-indigo-500' },
   { id: 'purple', name: 'Tím (Purple)', bg: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-200', preview: 'bg-purple-500' },
   { id: 'sky', name: 'Xanh Trời (Sky)', bg: 'bg-sky-50', text: 'text-sky-700', border: 'border-sky-200', preview: 'bg-sky-500' },
@@ -37,8 +37,8 @@ export const TAG_ICONS = ['🏷️', '🔥', '⭐', '✨', '👑', '🍹', '☕'
 export function getTagBadgeStyle(tagId: string, customTags: CustomTag[] = []) {
   const allTags = customTags && customTags.length > 0 ? customTags : DEFAULT_SYSTEM_TAGS;
   const found = allTags.find((t) => t.id === tagId) || DEFAULT_SYSTEM_TAGS.find((t) => t.id === tagId);
-  const colorId = found ? found.color : 'emerald';
-  const colorDef = TAG_COLORS.find((c) => c.id === colorId) || TAG_COLORS[0];
+  const colorId = found ? found.color : 'purple';
+  const colorDef = TAG_COLORS.find((c) => c.id === colorId) || (colorId === 'emerald' ? TAG_COLORS.find(c => c.id === 'green') : null) || TAG_COLORS[0];
   return {
     label: found ? `${found.icon} ${found.name}` : tagId.replace('_', ' '),
     icon: found?.icon || '🏷️',
@@ -84,7 +84,7 @@ export default function TagManagerModal({
   const [editingTag, setEditingTag] = useState<CustomTag | null>(null);
   const [tagName, setTagName] = useState<string>('');
   const [tagId, setTagId] = useState<string>('');
-  const [tagColor, setTagColor] = useState<string>('emerald');
+  const [tagColor, setTagColor] = useState<string>('purple');
   const [tagIcon, setTagIcon] = useState<string>('🏷️');
   const [saving, setSaving] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string>('');
@@ -161,7 +161,7 @@ export default function TagManagerModal({
     setEditingTag(null);
     setTagName('');
     setTagId('');
-    setTagColor('emerald');
+    setTagColor('purple');
     setTagIcon('🏷️');
     setErrorMsg('');
   };

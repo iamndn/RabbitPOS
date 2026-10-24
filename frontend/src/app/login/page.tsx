@@ -211,7 +211,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md sm:max-w-lg bg-white rounded-3xl p-5 sm:p-8 shadow-2xl space-y-5 animate-in zoom-in-95 duration-200 border border-slate-100 my-6">
         {/* Brand Header */}
         <div className="text-center space-y-1.5">
-          <div className="inline-flex p-3 bg-emerald-50 text-emerald-600 rounded-2xl border border-emerald-100 shadow-xs items-center justify-center">
+          <div className="inline-flex p-3 bg-purple-50 text-purple-600 rounded-2xl border border-purple-100 shadow-xs items-center justify-center">
             {storeLogo ? (
               <img
                 src={getImageUrl(storeLogo) || storeLogo}
@@ -222,7 +222,7 @@ export default function LoginPage() {
                 }}
               />
             ) : (
-              <Coffee className="w-8 h-8 text-emerald-600" />
+              <Coffee className="w-8 h-8 text-purple-600" />
             )}
           </div>
           <h1 className="text-2xl font-black text-slate-900 tracking-tight">RabbitPOS</h1>
@@ -256,7 +256,7 @@ export default function LoginPage() {
             }}
             className={`flex-1 py-2 sm:py-2.5 text-xs font-bold rounded-xl transition cursor-pointer active:scale-95 flex items-center justify-center space-x-1.5 ${
               mode === 'register'
-                ? 'bg-emerald-700 text-white shadow-xs'
+                ? 'bg-purple-700 text-white shadow-xs'
                 : 'text-slate-500 hover:text-slate-900'
             }`}
           >
@@ -288,7 +288,7 @@ export default function LoginPage() {
                   placeholder={t('login.username_placeholder')}
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600 bg-slate-50 focus:bg-white transition"
+                  className="w-full pl-10 pr-4 py-3 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-600 bg-slate-50 focus:bg-white transition"
                 />
               </div>
             </div>
@@ -305,7 +305,7 @@ export default function LoginPage() {
                   placeholder={t('login.password_placeholder')}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-10 py-3 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600 bg-slate-50 focus:bg-white transition"
+                  className="w-full pl-10 pr-10 py-3 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-600 bg-slate-50 focus:bg-white transition"
                 />
                 <button
                   type="button"
@@ -321,7 +321,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-emerald-700 hover:bg-emerald-800 disabled:bg-slate-300 text-white font-bold py-3.5 px-4 rounded-xl shadow-lg shadow-emerald-700/20 transition flex items-center justify-center space-x-2 text-sm cursor-pointer active:scale-95"
+              className="w-full bg-purple-700 hover:bg-purple-800 disabled:bg-slate-300 text-white font-bold py-3.5 px-4 rounded-xl shadow-lg shadow-purple-700/20 transition flex items-center justify-center space-x-2 text-sm cursor-pointer active:scale-95"
             >
               {loading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <LogIn className="w-4 h-4" />}
               <span>{t('login.sign_in')}</span>
@@ -334,7 +334,7 @@ export default function LoginPage() {
                   setMode('register');
                   setError(null);
                 }}
-                className="text-xs font-bold text-emerald-700 hover:text-emerald-800 hover:underline cursor-pointer"
+                className="text-xs font-bold text-purple-700 hover:text-purple-800 hover:underline cursor-pointer"
               >
                 {t('login.prompt_no_account') || 'Chưa có tài khoản? Đăng ký khởi tạo quán ngay'}
               </button>
@@ -347,7 +347,7 @@ export default function LoginPage() {
           <form onSubmit={handleRegister} className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
             <div className="space-y-3">
               <span className="text-[11px] font-black uppercase text-slate-400 tracking-wider flex items-center gap-1.5">
-                <User className="w-3.5 h-3.5 text-emerald-600" />
+                <User className="w-3.5 h-3.5 text-purple-600" />
                 <span>1. Thông tin Chủ Tài Khoản</span>
               </span>
 
@@ -363,7 +363,7 @@ export default function LoginPage() {
                     placeholder="Nguyễn Văn A"
                     value={regFullName}
                     onChange={(e) => setRegFullName(e.target.value)}
-                    className="w-full px-3.5 py-2.5 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600 bg-slate-50 focus:bg-white transition"
+                    className="w-full px-3.5 py-2.5 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-600 bg-slate-50 focus:bg-white transition"
                   />
                 </div>
                 <div>
@@ -377,7 +377,7 @@ export default function LoginPage() {
                     placeholder="chu_quan_01"
                     value={regUsername}
                     onChange={(e) => setRegUsername(e.target.value)}
-                    className="w-full px-3.5 py-2.5 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600 bg-slate-50 focus:bg-white transition"
+                    className="w-full px-3.5 py-2.5 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-600 bg-slate-50 focus:bg-white transition"
                   />
                 </div>
               </div>
@@ -393,7 +393,7 @@ export default function LoginPage() {
                       placeholder="0912345678"
                       value={regPhone}
                       onChange={(e) => setRegPhone(e.target.value)}
-                      className="w-full pl-9 pr-3 py-2.5 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600 bg-slate-50 focus:bg-white transition"
+                      className="w-full pl-9 pr-3 py-2.5 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-600 bg-slate-50 focus:bg-white transition"
                     />
                   </div>
                 </div>
@@ -406,7 +406,7 @@ export default function LoginPage() {
                       placeholder="chuquan@gmail.com"
                       value={regEmail}
                       onChange={(e) => setRegEmail(e.target.value)}
-                      className="w-full pl-9 pr-3 py-2.5 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600 bg-slate-50 focus:bg-white transition"
+                      className="w-full pl-9 pr-3 py-2.5 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-600 bg-slate-50 focus:bg-white transition"
                     />
                   </div>
                 </div>
@@ -426,7 +426,7 @@ export default function LoginPage() {
                       placeholder="••••••••"
                       value={regPassword}
                       onChange={(e) => setRegPassword(e.target.value)}
-                      className="w-full pl-3 pr-9 py-2.5 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600 bg-slate-50 focus:bg-white transition"
+                      className="w-full pl-3 pr-9 py-2.5 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-600 bg-slate-50 focus:bg-white transition"
                     />
                     <button
                       type="button"
@@ -450,7 +450,7 @@ export default function LoginPage() {
                       placeholder="••••••••"
                       value={regConfirmPassword}
                       onChange={(e) => setRegConfirmPassword(e.target.value)}
-                      className="w-full pl-3 pr-9 py-2.5 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600 bg-slate-50 focus:bg-white transition"
+                      className="w-full pl-3 pr-9 py-2.5 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-600 bg-slate-50 focus:bg-white transition"
                     />
                     <button
                       type="button"
@@ -477,7 +477,7 @@ export default function LoginPage() {
                     placeholder="vd: 1234 (dùng mở khóa máy POS nhanh)"
                     value={regPinCode}
                     onChange={(e) => setRegPinCode(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2.5 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600 bg-slate-50 focus:bg-white transition"
+                    className="w-full pl-9 pr-3 py-2.5 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-600 bg-slate-50 focus:bg-white transition"
                   />
                 </div>
               </div>
@@ -486,7 +486,7 @@ export default function LoginPage() {
             {/* Store Information Section */}
             <div className="space-y-3 pt-3 border-t border-slate-200">
               <span className="text-[11px] font-black uppercase text-slate-400 tracking-wider flex items-center gap-1.5">
-                <StoreIcon className="w-3.5 h-3.5 text-emerald-600" />
+                <StoreIcon className="w-3.5 h-3.5 text-purple-600" />
                 <span>2. Thông tin Cửa Hàng Khởi Tạo</span>
               </span>
 
@@ -500,7 +500,7 @@ export default function LoginPage() {
                   placeholder="vd: Rabbit Coffee & Tea"
                   value={regStoreName}
                   onChange={(e) => setRegStoreName(e.target.value)}
-                  className="w-full px-3.5 py-2.5 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600 bg-slate-50 focus:bg-white transition"
+                  className="w-full px-3.5 py-2.5 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-600 bg-slate-50 focus:bg-white transition"
                 />
               </div>
 
@@ -511,7 +511,7 @@ export default function LoginPage() {
                 <select
                   value={regBusinessType}
                   onChange={(e) => setRegBusinessType(e.target.value)}
-                  className="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600 bg-slate-50 focus:bg-white font-medium cursor-pointer transition"
+                  className="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-600 bg-slate-50 focus:bg-white font-medium cursor-pointer transition"
                 >
                   <option value="cafe">Quán Cà phê / Trà sữa / Đồ uống</option>
                   <option value="fnb">F&B / Nhà hàng / Quán ăn</option>
@@ -525,7 +525,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-emerald-700 hover:bg-emerald-800 disabled:bg-slate-300 text-white font-bold py-3.5 px-4 rounded-xl shadow-lg shadow-emerald-700/20 transition flex items-center justify-center space-x-2 text-sm cursor-pointer active:scale-95 mt-4"
+              className="w-full bg-purple-700 hover:bg-purple-800 disabled:bg-slate-300 text-white font-bold py-3.5 px-4 rounded-xl shadow-lg shadow-purple-700/20 transition flex items-center justify-center space-x-2 text-sm cursor-pointer active:scale-95 mt-4"
             >
               {loading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
               <span>Đăng Ký & Tạo Cửa Hàng</span>
@@ -538,7 +538,7 @@ export default function LoginPage() {
                   setMode('login');
                   setError(null);
                 }}
-                className="text-xs font-bold text-emerald-700 hover:text-emerald-800 hover:underline cursor-pointer"
+                className="text-xs font-bold text-purple-700 hover:text-purple-800 hover:underline cursor-pointer"
               >
                 Đã có tài khoản? Quay lại đăng nhập
               </button>
@@ -570,8 +570,8 @@ export default function LoginPage() {
             {/* Success state */}
             {setupSuccess ? (
               <div className="flex flex-col items-center space-y-3 py-4">
-                <CheckCircle2 className="w-10 h-10 text-emerald-500" />
-                <p className="text-sm font-bold text-emerald-700">{t('login.setup_success')}</p>
+                <CheckCircle2 className="w-10 h-10 text-purple-500" />
+                <p className="text-sm font-bold text-purple-700">{t('login.setup_success')}</p>
               </div>
             ) : (
               <>

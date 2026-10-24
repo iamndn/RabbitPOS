@@ -61,7 +61,7 @@ export default function WaterfallReconciliationWidget({
             <div>
               <h3 className="font-extrabold text-sm sm:text-base text-slate-900 flex items-center gap-2">
                 <span>Đối Soát Doanh Thu vs Thực Thu</span>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200 flex items-center gap-1">
                   <CheckCircle2 className="w-3 h-3" />
                   Khớp Sổ Thu Chi
                 </span>
@@ -167,26 +167,26 @@ export default function WaterfallReconciliationWidget({
           </div>
 
           {/* Step 4: Net Revenue / Cash Flow Inflow */}
-          <div className="bg-emerald-50/90 border-2 border-emerald-300 rounded-xl p-3.5 flex flex-col justify-between space-y-2 relative group hover:border-emerald-400 transition shadow-xs">
+          <div className="bg-purple-50/90 border-2 border-purple-300 rounded-xl p-3.5 flex flex-col justify-between space-y-2 relative group hover:border-purple-400 transition shadow-xs">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-emerald-900 uppercase tracking-wider flex items-center gap-1">
-                <Equal className="w-3 h-3 text-emerald-700 stroke-[3]" />
+              <span className="text-[11px] font-bold text-purple-900 uppercase tracking-wider flex items-center gap-1">
+                <Equal className="w-3 h-3 text-purple-700 stroke-[3]" />
                 4. Thực Thu Vào Quỹ
               </span>
-              <div className="p-1.5 rounded-lg bg-emerald-600 text-white shadow-2xs">
+              <div className="p-1.5 rounded-lg bg-purple-600 text-white shadow-2xs">
                 <Coins className="w-4 h-4" />
               </div>
             </div>
             <div>
-              <div className="text-lg sm:text-xl font-black text-emerald-700">
+              <div className="text-lg sm:text-xl font-black text-purple-700">
                 {formatCurrency(netRevenue, settings)}
               </div>
-              <div className="text-[11px] text-emerald-800 font-bold mt-0.5 flex items-center gap-1">
-                <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+              <div className="text-[11px] text-purple-800 font-bold mt-0.5 flex items-center gap-1">
+                <CheckCircle2 className="w-3 h-3 text-purple-600" />
                 <span>Khớp 100% Sổ Thu Chi</span>
               </div>
             </div>
-            <div className="text-[10px] text-emerald-800 bg-white px-2 py-1 rounded-md border border-emerald-200 font-semibold">
+            <div className="text-[10px] text-purple-800 bg-white px-2 py-1 rounded-md border border-purple-200 font-semibold">
               Tiền thực nhận vào két & ngân hàng
             </div>
           </div>

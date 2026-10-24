@@ -287,9 +287,9 @@ export default function CartDrawer({
         {/* Drawer Header */}
         <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-between bg-slate-50">
           <div className="flex items-center space-x-2">
-            <ShoppingBag className="w-5 h-5 text-emerald-800" />
+            <ShoppingBag className="w-5 h-5 text-purple-800" />
             <h2 className="font-bold text-slate-900 text-base">{t('pos.view_cart')}</h2>
-            <span className="bg-emerald-100 text-emerald-800 text-xs font-bold px-2 py-0.5 rounded-full">
+            <span className="bg-purple-100 text-purple-800 text-xs font-bold px-2 py-0.5 rounded-full">
               {t('pos.items_count', { count: totalItemCount })}
             </span>
           </div>
@@ -334,7 +334,7 @@ export default function CartDrawer({
                         )}
                       </div>
                       <div className="text-right shrink-0">
-                        <div className="text-xs font-black text-emerald-600">
+                        <div className="text-xs font-black text-purple-600">
                           0đ (Miễn phí)
                         </div>
                         {item.originalUnitPrice && item.originalUnitPrice > 0 && (
@@ -390,7 +390,7 @@ export default function CartDrawer({
                       <p className="text-xs text-slate-500 font-medium">
                         {item.selectedVariant.variant_name}
                         {item.selectedToppings && item.selectedToppings.length > 0 && (
-                          <span className="text-emerald-700 font-semibold block sm:inline sm:ml-1">
+                          <span className="text-purple-700 font-semibold block sm:inline sm:ml-1">
                             + {item.selectedToppings.map((t) => t.name).join(', ')}
                           </span>
                         )}
@@ -421,12 +421,12 @@ export default function CartDrawer({
                           type="number"
                           value={tempUnitPrice || ''}
                           onChange={(e) => setTempUnitPrice(Number(e.target.value))}
-                          className="w-20 p-1 text-xs border border-emerald-600 rounded bg-emerald-50 focus:outline-none font-bold"
+                          className="w-20 p-1 text-xs border border-purple-600 rounded bg-purple-50 focus:outline-none font-bold"
                           autoFocus
                         />
                         <button
                           onClick={() => handleSaveUnitPrice(item.id)}
-                          className="px-2 py-1 bg-emerald-700 text-white rounded text-[11px] font-bold"
+                          className="px-2 py-1 bg-purple-700 text-white rounded text-[11px] font-bold"
                         >
                           Lưu
                         </button>
@@ -440,7 +440,7 @@ export default function CartDrawer({
                     ) : (
                       <button
                         onClick={() => handleStartEditPrice(item)}
-                        className="text-[11px] text-slate-400 hover:text-emerald-700 flex items-center gap-1 font-medium transition cursor-pointer"
+                        className="text-[11px] text-slate-400 hover:text-purple-700 flex items-center gap-1 font-medium transition cursor-pointer"
                       >
                         <Edit2 className="w-3 h-3" />
                         <span>Sửa giá ({formatCurrency(item.unitPrice, settings)})</span>
@@ -485,20 +485,20 @@ export default function CartDrawer({
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
                 <span className="flex items-center gap-1">
-                  <Tag className="w-3.5 h-3.5 text-emerald-700" />
+                  <Tag className="w-3.5 h-3.5 text-purple-700" />
                   {t('pos.apply_promotion')}
                 </span>
                 {eligiblePromotions.length > 1 ? (
                   <button
                     type="button"
                     onClick={() => setShowAllEligiblePromos((prev) => !prev)}
-                    className="text-[11px] text-emerald-700 font-bold hover:underline cursor-pointer flex items-center gap-0.5"
+                    className="text-[11px] text-purple-700 font-bold hover:underline cursor-pointer flex items-center gap-0.5"
                   >
                     <span>{showAllEligiblePromos ? 'Thu gọn' : `Xem tất cả (${eligiblePromotions.length} CTKM)`}</span>
                     {showAllEligiblePromos ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
                   </button>
                 ) : eligiblePromotions.length === 1 ? (
-                  <span className="text-[10px] text-emerald-700 font-semibold">
+                  <span className="text-[10px] text-purple-700 font-semibold">
                     1 khuyến mãi phù hợp
                   </span>
                 ) : null}
@@ -516,15 +516,15 @@ export default function CartDrawer({
                         key={promo.id}
                         className={`p-3 rounded-2xl border transition flex items-center justify-between gap-3 ${
                           isSelected
-                            ? 'bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 border-emerald-300 shadow-2xs'
-                            : 'bg-white border-slate-200 hover:border-emerald-200'
+                            ? 'bg-gradient-to-r from-purple-50 via-violet-50 to-purple-50 border-purple-300 shadow-2xs'
+                            : 'bg-white border-slate-200 hover:border-purple-200'
                         }`}
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
                           <div
                             className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-sm shrink-0 ${
                               isSelected
-                                ? 'bg-emerald-600 text-white shadow-xs'
+                                ? 'bg-purple-600 text-white shadow-xs'
                                 : isGiftPromo
                                 ? 'bg-amber-100 text-amber-700'
                                 : 'bg-slate-100 text-slate-700'
@@ -535,11 +535,11 @@ export default function CartDrawer({
                           <div className="min-w-0">
                             <div className="text-xs font-bold text-slate-900 truncate flex items-center gap-1.5">
                               <span className="truncate">{promo.name}</span>
-                              <span className="text-[10px] font-extrabold px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800 shrink-0">
+                              <span className="text-[10px] font-extrabold px-1.5 py-0.2 rounded bg-purple-100 text-purple-800 shrink-0">
                                 Đủ điều kiện
                               </span>
                             </div>
-                            <p className="text-[11px] font-bold text-emerald-700 truncate">
+                            <p className="text-[11px] font-bold text-purple-700 truncate">
                               {promo.promo_type === 'discount_percent'
                                 ? `Giảm -${promo.discount_value}% (-${formatCurrency(
                                     (subtotal * promo.discount_value) / 100,
@@ -575,7 +575,7 @@ export default function CartDrawer({
                             onClick={() => handleApplyPromo(promo)}
                             className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer shrink-0 active:scale-95 flex items-center gap-1 shadow-2xs ${
                               isSelected
-                                ? 'bg-emerald-700 hover:bg-emerald-800 text-white'
+                                ? 'bg-purple-700 hover:bg-purple-800 text-white'
                                 : 'bg-slate-900 hover:bg-slate-800 text-white'
                             }`}
                           >
@@ -635,7 +635,7 @@ export default function CartDrawer({
                 placeholder={t('pos.order_note_placeholder')}
                 value={orderNote}
                 onChange={(e) => onOrderNoteChange(e.target.value)}
-                className="w-full p-2 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-600 bg-white"
+                className="w-full p-2 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-purple-600 bg-white"
               />
 
               {/* Fast Note Preset Chips */}
@@ -653,7 +653,7 @@ export default function CartDrawer({
                       onClick={() => handleToggleFastNote(preset)}
                       className={`px-2 py-1 rounded-lg text-[10px] font-bold transition active:scale-95 cursor-pointer flex items-center gap-1 ${
                         isActive
-                          ? 'bg-emerald-700 text-white shadow-2xs'
+                          ? 'bg-purple-700 text-white shadow-2xs'
                           : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200/60'
                       }`}
                     >
@@ -668,20 +668,20 @@ export default function CartDrawer({
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-bold text-slate-700 flex items-center gap-1">
-                  <Clock className="w-3.5 h-3.5 text-emerald-700" />
+                  <Clock className="w-3.5 h-3.5 text-purple-700" />
                   {t('pos.order_time')}
                 </label>
                 {orderCreatedAt ? (
                   <button
                     type="button"
                     onClick={() => onOrderCreatedAtChange?.(null)}
-                    className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-2 py-0.5 rounded-md transition active:scale-95 border border-emerald-200"
+                    className="inline-flex items-center gap-1 text-[10px] font-bold text-purple-700 hover:text-purple-800 bg-purple-50 hover:bg-purple-100 px-2 py-0.5 rounded-md transition active:scale-95 border border-purple-200"
                   >
                     <RotateCcw className="w-3 h-3" />
                     <span>{t('pos.order_time_reset')}</span>
                   </button>
                 ) : (
-                  <span className="text-[10px] font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">
+                  <span className="text-[10px] font-medium text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-100">
                     {t('pos.order_time_auto')}
                   </span>
                 )}
@@ -711,7 +711,7 @@ export default function CartDrawer({
                       onOrderCreatedAtChange?.(new Date(e.target.value).toISOString());
                     }
                   }}
-                  className="w-full p-2 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-600 bg-white"
+                  className="w-full p-2 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-600 bg-white"
                 />
 
                 {/* Quick Presets */}
@@ -725,7 +725,7 @@ export default function CartDrawer({
                     onClick={() => onOrderCreatedAtChange?.(null)}
                     className={`px-2 py-1 rounded-lg text-[10px] font-semibold transition active:scale-95 whitespace-nowrap ${
                       !orderCreatedAt
-                        ? 'bg-emerald-700 text-white shadow-xs'
+                        ? 'bg-purple-700 text-white shadow-xs'
                         : 'bg-slate-200/70 text-slate-700 hover:bg-slate-200'
                     }`}
                   >
@@ -773,10 +773,10 @@ export default function CartDrawer({
                 className="w-full p-2.5 flex items-center justify-between text-xs font-bold text-slate-700 hover:bg-slate-50 transition active:scale-98"
               >
                 <div className="flex items-center gap-1.5">
-                  <Percent className="w-3.5 h-3.5 text-emerald-700" />
+                  <Percent className="w-3.5 h-3.5 text-purple-700" />
                   <span>{t('pos.order_adjustments')}</span>
                   {(discountAmount > 0 || shippingFee > 0 || surcharge > 0 || platformFeeDiscount > 0) && (
-                    <span className="w-2 h-2 rounded-full bg-emerald-600 inline-block animate-pulse" />
+                    <span className="w-2 h-2 rounded-full bg-purple-600 inline-block animate-pulse" />
                   )}
                 </div>
                 {isAdjustmentsOpen ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
@@ -799,7 +799,7 @@ export default function CartDrawer({
                         const raw = e.target.value.replace(/\D/g, '');
                         onDiscountChange(raw === '' ? 0 : parseInt(raw, 10));
                       }}
-                      className="w-28 p-1.5 text-right font-bold text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-600 bg-white"
+                      className="w-28 p-1.5 text-right font-bold text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 bg-white"
                     />
                   </div>
 
@@ -818,7 +818,7 @@ export default function CartDrawer({
                         const raw = e.target.value.replace(/\D/g, '');
                         onPlatformFeeDiscountChange(raw === '' ? 0 : parseInt(raw, 10));
                       }}
-                      className="w-28 p-1.5 text-right font-bold text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-600 bg-white"
+                      className="w-28 p-1.5 text-right font-bold text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 bg-white"
                     />
                   </div>
 
@@ -837,14 +837,14 @@ export default function CartDrawer({
                         const raw = e.target.value.replace(/\D/g, '');
                         onShippingFeeChange(raw === '' ? 0 : parseInt(raw, 10));
                       }}
-                      className="w-28 p-1.5 text-right font-bold text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-600 bg-white"
+                      className="w-28 p-1.5 text-right font-bold text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 bg-white"
                     />
                   </div>
 
                   {/* Surcharge (Holiday/Late Night) */}
                   <div className="flex items-center justify-between">
                     <span className="text-slate-600 font-medium flex items-center gap-1">
-                      <Plus className="w-3.5 h-3.5 text-emerald-700" /> {t('pos.surcharge')}
+                      <Plus className="w-3.5 h-3.5 text-purple-700" /> {t('pos.surcharge')}
                     </span>
                     <input
                       type="number"
@@ -856,7 +856,7 @@ export default function CartDrawer({
                         const raw = e.target.value.replace(/\D/g, '');
                         onSurchargeChange(raw === '' ? 0 : parseInt(raw, 10));
                       }}
-                      className="w-28 p-1.5 text-right font-bold text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-600 bg-white"
+                      className="w-28 p-1.5 text-right font-bold text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 bg-white"
                     />
                   </div>
                 </div>
@@ -878,7 +878,7 @@ export default function CartDrawer({
               )}
 
               {promotionDiscount > 0 && (
-                <div className="flex justify-between text-emerald-600 font-medium">
+                <div className="flex justify-between text-purple-600 font-medium">
                   <span className="truncate max-w-[200px]">
                     {selectedPromotion?.name || t('pos.promotion_discount')}
                   </span>
@@ -901,7 +901,7 @@ export default function CartDrawer({
               )}
 
               {surcharge > 0 && (
-                <div className="flex justify-between text-emerald-700 font-medium">
+                <div className="flex justify-between text-purple-700 font-medium">
                   <span>{t('pos.surcharge')}</span>
                   <span>+{formatCurrency(surcharge, settings)}</span>
                 </div>
@@ -909,14 +909,14 @@ export default function CartDrawer({
 
               <div className="flex justify-between text-slate-900 font-bold text-base pt-1 border-t border-slate-200">
                 <span>{t('common.total_amount')}</span>
-                <span className="text-emerald-800">{formatCurrency(finalTotal, settings)}</span>
+                <span className="text-purple-800">{formatCurrency(finalTotal, settings)}</span>
               </div>
             </div>
 
             {/* 4. Checkout Button */}
             <button
               onClick={onProceedCheckout}
-              className="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-3.5 px-4 rounded-2xl shadow-lg transition flex items-center justify-center space-x-2 text-sm active:scale-95"
+              className="w-full bg-purple-700 hover:bg-purple-800 text-white font-bold py-3.5 px-4 rounded-2xl shadow-lg transition flex items-center justify-center space-x-2 text-sm active:scale-95"
             >
               <span>{t('pos.checkout')}</span>
               <ArrowRight className="w-4 h-4" />

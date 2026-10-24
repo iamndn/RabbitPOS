@@ -242,8 +242,8 @@ export default function EmailReportModal({
           )}
 
           {successMsg && (
-            <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-700 flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-500" />
+            <div className="p-3 bg-purple-50 border border-purple-200 rounded-xl text-xs text-purple-700 flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 shrink-0 text-purple-500" />
               <span>{successMsg}</span>
             </div>
           )}
@@ -318,7 +318,7 @@ export default function EmailReportModal({
                 <span className="text-[10px] text-slate-500 font-semibold block">Lợi nhuận ròng</span>
                 <span
                   className={`text-xs sm:text-sm font-black mt-0.5 block ${
-                    previewProfit >= 0 ? 'text-emerald-600' : 'text-rose-600'
+                    previewProfit >= 0 ? 'text-purple-600' : 'text-rose-600'
                   }`}
                 >
                   {formatCurrency(previewProfit, settings)}

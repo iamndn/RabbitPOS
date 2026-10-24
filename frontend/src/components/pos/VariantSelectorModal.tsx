@@ -206,15 +206,15 @@ export default function VariantSelectorModal({ product, onClose, onAddToCart, se
                 onClick={() => setSelectedVariant(v)}
                 className={`p-3 rounded-xl border text-left transition flex items-center justify-between active:scale-95 ${
                   selectedVariant.id === v.id
-                    ? 'border-emerald-700 bg-emerald-50/70 ring-2 ring-emerald-600/30'
+                    ? 'border-purple-700 bg-purple-50/70 ring-2 ring-purple-600/30'
                     : 'border-slate-200 hover:bg-slate-50'
                 }`}
               >
                 <div>
                   <span className="block text-xs font-bold text-slate-900">{v.variant_name}</span>
-                  <span className="text-xs text-emerald-700 font-semibold">{formatCurrency(v.retail_price, settings)}</span>
+                  <span className="text-xs text-purple-700 font-semibold">{formatCurrency(v.retail_price, settings)}</span>
                 </div>
-                {selectedVariant.id === v.id && <Check className="w-4 h-4 text-emerald-700" />}
+                {selectedVariant.id === v.id && <Check className="w-4 h-4 text-purple-700" />}
               </button>
             ))}
           </div>
@@ -231,12 +231,12 @@ export default function VariantSelectorModal({ product, onClose, onAddToCart, se
                 onClick={() => setSugarLevel(lvl.value)}
                 className={`py-1.5 sm:py-2 px-0.5 sm:px-1 rounded-xl text-center transition active:scale-95 flex flex-col items-center justify-center ${
                   sugarLevel === lvl.value
-                    ? 'border-emerald-700 bg-emerald-700 text-white shadow-xs font-bold'
+                    ? 'border-purple-700 bg-purple-700 text-white shadow-xs font-bold'
                     : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
                 }`}
               >
                 <span className="text-xs font-bold leading-tight">{lvl.label}</span>
-                <span className={`text-[9px] leading-tight ${sugarLevel === lvl.value ? 'text-emerald-100' : 'text-slate-400'}`}>
+                <span className={`text-[9px] leading-tight ${sugarLevel === lvl.value ? 'text-purple-100' : 'text-slate-400'}`}>
                   {lvl.sub}
                 </span>
               </button>
@@ -286,13 +286,13 @@ export default function VariantSelectorModal({ product, onClose, onAddToCart, se
                     onClick={() => toggleTopping(topping)}
                     className={`w-full p-2.5 rounded-xl border flex items-center justify-between transition text-xs active:scale-98 ${
                       isSelected
-                        ? 'border-emerald-700 bg-emerald-50/70 text-emerald-950 font-semibold'
+                        ? 'border-purple-700 bg-purple-50/70 text-purple-950 font-semibold'
                         : 'border-slate-200 text-slate-700 hover:bg-slate-50'
                     }`}
                   >
                     <div className="flex items-center space-x-2.5">
                       <div className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${
-                        isSelected ? 'bg-emerald-700 border-emerald-700' : 'border-slate-300 bg-white'
+                        isSelected ? 'bg-purple-700 border-purple-700' : 'border-slate-300 bg-white'
                       }`}>
                         {isSelected && <Check className="w-2.5 h-2.5 text-white" />}
                       </div>
@@ -301,7 +301,7 @@ export default function VariantSelectorModal({ product, onClose, onAddToCart, se
                         <span className="text-[9px] bg-slate-100 text-slate-500 px-1 rounded">toàn cầu</span>
                       )}
                     </div>
-                    <span className="text-emerald-700 font-bold">+{formatCurrency(topping.price, settings)}</span>
+                    <span className="text-purple-700 font-bold">+{formatCurrency(topping.price, settings)}</span>
                   </button>
                 );
               })}
@@ -329,7 +329,7 @@ export default function VariantSelectorModal({ product, onClose, onAddToCart, se
 
           <button
             onClick={handleAdd}
-            className="flex-1 bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-3.5 px-4 rounded-xl shadow-md transition flex items-center justify-between text-sm active:scale-95"
+            className="flex-1 bg-purple-700 hover:bg-purple-800 text-white font-bold py-3.5 px-4 rounded-xl shadow-md transition flex items-center justify-between text-sm active:scale-95"
           >
             <span>{t('pos.add_to_order')}</span>
             <span>{formatCurrency(lineTotal, settings)}</span>

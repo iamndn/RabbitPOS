@@ -47,7 +47,7 @@ function useDebounce<T>(value: T, delay: number): T {
 }
 
 function marginBadgeClass(margin: number): string {
-  if (margin >= 60) return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+  if (margin >= 60) return 'bg-purple-50 text-purple-700 border-purple-200';
   if (margin >= 40) return 'bg-teal-50 text-teal-700 border-teal-200';
   if (margin >= 20) return 'bg-amber-50 text-amber-700 border-amber-200';
   return 'bg-rose-50 text-rose-700 border-rose-200';
@@ -215,7 +215,7 @@ export default function ProductSalesPerformanceSection({
             <button
               onClick={handleExportCsv}
               disabled={!data?.items?.length}
-              className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-3 py-2 rounded-xl transition disabled:opacity-40 disabled:cursor-not-allowed"
+              className="flex items-center gap-1.5 text-xs font-bold text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200 px-3 py-2 rounded-xl transition disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <Download className="w-3.5 h-3.5" />
               {t('product_perf.export_csv')}
@@ -295,7 +295,7 @@ export default function ProductSalesPerformanceSection({
               <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">
                 {t('product_perf.kpi_profit')}
               </span>
-              <div className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600">
+              <div className="p-1.5 rounded-lg bg-purple-50 text-purple-600">
                 <TrendingUp className="w-4 h-4" />
               </div>
             </div>
@@ -303,7 +303,7 @@ export default function ProductSalesPerformanceSection({
               <div className="h-7 bg-slate-200 rounded w-28 animate-pulse mt-1" />
             ) : (
               <>
-                <div className="text-2xl font-extrabold text-emerald-600">
+                <div className="text-2xl font-extrabold text-purple-600">
                   {formatCurrency(summary?.total_products_profit ?? 0, settings)}
                 </div>
                 <span className="text-[11px] text-slate-400 font-medium">
@@ -458,7 +458,7 @@ export default function ProductSalesPerformanceSection({
                     </td>
 
                     {/* Profit */}
-                    <td className={`py-3 px-3 text-right text-xs font-extrabold ${item.total_profit >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                    <td className={`py-3 px-3 text-right text-xs font-extrabold ${item.total_profit >= 0 ? 'text-purple-600' : 'text-rose-600'}`}>
                       {item.total_profit >= 0 ? '+' : ''}{formatCurrency(item.total_profit, settings)}
                     </td>
 
@@ -485,7 +485,7 @@ export default function ProductSalesPerformanceSection({
                 type="button"
                 onClick={() => handleSort('total_profit')}
                 className={`px-2.5 py-1 rounded-lg font-bold transition flex items-center gap-1 cursor-pointer ${
-                  sortField === 'total_profit' ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white text-slate-600 border border-slate-200'
+                  sortField === 'total_profit' ? 'bg-purple-600 text-white shadow-xs' : 'bg-white text-slate-600 border border-slate-200'
                 }`}
               >
                 Lợi nhuận
@@ -590,7 +590,7 @@ export default function ProductSalesPerformanceSection({
 
                   <div className="text-right">
                     <span className="text-[10px] text-slate-400 block">Lợi nhuận gộp</span>
-                    <div className={`font-extrabold text-sm ${item.total_profit >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                    <div className={`font-extrabold text-sm ${item.total_profit >= 0 ? 'text-purple-600' : 'text-rose-600'}`}>
                       {item.total_profit >= 0 ? '+' : ''}{formatCurrency(item.total_profit, settings)}
                     </div>
                     <span className="text-[11px] text-slate-500">

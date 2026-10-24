@@ -566,11 +566,11 @@ export default function SettingsPage() {
                 onClick={() => setActiveTab('email')}
                 className={`py-2.5 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 shrink-0 ${
                   activeTab === 'email'
-                    ? 'bg-white text-emerald-700 shadow-sm border border-slate-200/60'
+                    ? 'bg-white text-purple-700 shadow-sm border border-slate-200/60'
                     : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
                 }`}
               >
-                <Mail className={`w-4 h-4 ${activeTab === 'email' ? 'text-emerald-600' : 'text-slate-400'}`} />
+                <Mail className={`w-4 h-4 ${activeTab === 'email' ? 'text-purple-600' : 'text-slate-400'}`} />
                 <span>{t('settings.tab_email') || 'Cấu hình Email'}</span>
               </button>
 
@@ -626,7 +626,7 @@ export default function SettingsPage() {
                     </div>
                   </div>
                   {activeStore && (
-                    <span className="text-xs bg-emerald-50 text-emerald-800 font-bold px-2.5 py-1 rounded-xl border border-emerald-200">
+                    <span className="text-xs bg-purple-50 text-purple-800 font-bold px-2.5 py-1 rounded-xl border border-purple-200">
                       Chi nhánh: {activeStore.name} ({activeStore.code})
                     </span>
                   )}
@@ -741,7 +741,7 @@ export default function SettingsPage() {
                   {/* POS & Receipt Printing Settings */}
                   <div className="md:col-span-2 pt-4 border-t border-slate-100 space-y-3">
                     <label className="font-bold text-slate-800 text-sm flex items-center gap-2">
-                      <Receipt className="w-4 h-4 text-emerald-600" />
+                      <Receipt className="w-4 h-4 text-purple-600" />
                       <span>Cài đặt Bán hàng & In Hóa đơn POS</span>
                     </label>
 
@@ -761,7 +761,7 @@ export default function SettingsPage() {
                           onChange={(e) => handleChange('auto_show_receipt_after_checkout', e.target.checked ? 'true' : 'false')}
                           className="sr-only peer"
                         />
-                        <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                        <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
                       </label>
                     </div>
                   </div>
@@ -824,7 +824,7 @@ export default function SettingsPage() {
                       onChange={(val) => handleChange('currency_position', String(val))}
                       options={[
                         { value: 'suffix', label: t('settings.position_suffix') || 'Hậu tố (35.000 đ)', badge: 'Suffix', badgeColor: 'indigo' },
-                        { value: 'prefix', label: t('settings.position_prefix') || 'Tiền tố ($35.000)', badge: 'Prefix', badgeColor: 'emerald' },
+                        { value: 'prefix', label: t('settings.position_prefix') || 'Tiền tố ($35.000)', badge: 'Prefix', badgeColor: 'purple' },
                       ]}
                     />
                   </div>
@@ -947,7 +947,7 @@ export default function SettingsPage() {
                   <div className="bg-white p-5 sm:p-7 rounded-2xl border border-slate-200/80 shadow-xs space-y-5">
                     <div className="pb-4 border-b border-slate-100 flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="p-2.5 bg-emerald-50 rounded-xl border border-emerald-100 text-emerald-600">
+                        <div className="p-2.5 bg-purple-50 rounded-xl border border-purple-100 text-purple-600">
                           <Mail className="w-5 h-5" />
                         </div>
                         <div>
@@ -966,46 +966,46 @@ export default function SettingsPage() {
                     <div>
                       <label className="font-semibold text-slate-700 mb-1.5 block">{t('email_report.smtp_host')}</label>
                       <input type="text" value={form.smtp_host || ''} onChange={(e) => handleChange('smtp_host', e.target.value)}
-                        className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 bg-slate-50/50 hover:bg-white focus:bg-white transition"
+                        className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 bg-slate-50/50 hover:bg-white focus:bg-white transition"
                         placeholder="smtp.gmail.com" />
                     </div>
                     <div>
                       <label className="font-semibold text-slate-700 mb-1.5 block">{t('email_report.smtp_port')}</label>
                       <input type="text" value={form.smtp_port || ''} onChange={(e) => handleChange('smtp_port', e.target.value)}
-                        className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 bg-slate-50/50 hover:bg-white focus:bg-white transition"
+                        className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 bg-slate-50/50 hover:bg-white focus:bg-white transition"
                         placeholder="587" />
                     </div>
                     <div>
                       <label className="font-semibold text-slate-700 mb-1.5 block">{t('email_report.smtp_user')}</label>
                       <input type="email" value={form.smtp_user || ''} onChange={(e) => handleChange('smtp_user', e.target.value)}
-                        className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 bg-slate-50/50 hover:bg-white focus:bg-white transition"
+                        className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 bg-slate-50/50 hover:bg-white focus:bg-white transition"
                         placeholder="your-email@gmail.com" />
                     </div>
                     <div>
                       <div className="flex items-center justify-between mb-1.5">
                         <label className="font-semibold text-slate-700 block">{t('email_report.smtp_password')}</label>
                         {form.smtp_password_configured === 'true' && (
-                          <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-md flex items-center gap-1">
-                            <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                          <span className="text-[10px] bg-purple-100 text-purple-800 font-bold px-2 py-0.5 rounded-md flex items-center gap-1">
+                            <CheckCircle2 className="w-3 h-3 text-purple-600" />
                             Đã mã hóa & cấu hình
                           </span>
                         )}
                       </div>
                       <input type="password" value={form.smtp_password || ''} onChange={(e) => handleChange('smtp_password', e.target.value)}
-                        className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 bg-slate-50/50 hover:bg-white focus:bg-white transition"
+                        className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 bg-slate-50/50 hover:bg-white focus:bg-white transition"
                         placeholder={form.smtp_password_configured === 'true' ? '•••••••• (Để trống để giữ nguyên mật khẩu cũ)' : 'xxxx xxxx xxxx xxxx'} />
                       <p className="text-slate-400 text-[11px] mt-1">{t('email_report.smtp_password_hint')}</p>
                     </div>
                     <div>
                       <label className="font-semibold text-slate-700 mb-1.5 block">{t('email_report.smtp_from_email')}</label>
                       <input type="email" value={form.smtp_from_email || ''} onChange={(e) => handleChange('smtp_from_email', e.target.value)}
-                        className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 bg-slate-50/50 hover:bg-white focus:bg-white transition"
+                        className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 bg-slate-50/50 hover:bg-white focus:bg-white transition"
                         placeholder="rabbitpos@yourdomain.com" />
                     </div>
                     <div>
                       <label className="font-semibold text-slate-700 mb-1.5 block">{t('email_report.smtp_from_name')}</label>
                       <input type="text" value={form.smtp_from_name || ''} onChange={(e) => handleChange('smtp_from_name', e.target.value)}
-                        className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 bg-slate-50/50 hover:bg-white focus:bg-white transition"
+                        className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 bg-slate-50/50 hover:bg-white focus:bg-white transition"
                         placeholder="RabbitPOS" />
                     </div>
                   </div>
@@ -1013,7 +1013,7 @@ export default function SettingsPage() {
                   {/* Test SMTP button */}
                   <div className="pt-2 flex justify-end">
                     <button type="button" onClick={handleTestSMTP} disabled={testingSmtp}
-                      className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white font-bold text-xs py-2.5 px-4 rounded-xl transition flex items-center gap-2 shadow-xs">
+                      className="bg-purple-600 hover:bg-purple-700 disabled:bg-slate-300 text-white font-bold text-xs py-2.5 px-4 rounded-xl transition flex items-center gap-2 shadow-xs">
                       {testingSmtp ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
                       <span>{testingSmtp ? t('email_report.sending') : t('email_report.test_smtp_button')}</span>
                     </button>
@@ -1041,7 +1041,7 @@ export default function SettingsPage() {
                 {/* 2. Automated Daily Report Configuration */}
                 <div className="bg-white p-5 sm:p-7 rounded-2xl border border-slate-200/80 shadow-xs space-y-5">
                   <div className="pb-4 border-b border-slate-100 flex items-center gap-3">
-                    <div className="p-2.5 bg-emerald-50 rounded-xl border border-emerald-100 text-emerald-600">
+                    <div className="p-2.5 bg-purple-50 rounded-xl border border-purple-100 text-purple-600">
                       <Clock className="w-5 h-5" />
                     </div>
                     <div>
@@ -1056,26 +1056,26 @@ export default function SettingsPage() {
                     <div>
                       <label className="font-semibold text-slate-700 mb-1.5 block">{t('email_report.recipients')}</label>
                       <input type="text" value={form.report_recipient_emails || ''} onChange={(e) => handleChange('report_recipient_emails', e.target.value)}
-                        className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 bg-slate-50/50 hover:bg-white focus:bg-white transition"
+                        className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 bg-slate-50/50 hover:bg-white focus:bg-white transition"
                         placeholder="admin1@email.com,admin2@email.com" />
                       <p className="text-[11px] text-slate-400 mt-1">Nhiều email cách nhau bằng dấu phẩy (,)</p>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <label className="flex items-center gap-3 cursor-pointer bg-emerald-50/70 border border-emerald-200/80 rounded-2xl p-4 transition hover:bg-emerald-50">
+                      <label className="flex items-center gap-3 cursor-pointer bg-purple-50/70 border border-purple-200/80 rounded-2xl p-4 transition hover:bg-purple-50">
                         <input type="checkbox" checked={form.enable_daily_email_report === 'true'}
                           onChange={(e) => handleChange('enable_daily_email_report', e.target.checked ? 'true' : 'false')}
-                          className="w-4 h-4 accent-emerald-600 rounded" />
+                          className="w-4 h-4 accent-purple-600 rounded" />
                         <div>
-                          <span className="text-xs font-bold text-emerald-900 block">{t('email_report.enable_auto_report')}</span>
-                          <span className="text-[11px] text-emerald-700">Tự động gửi báo cáo mỗi ngày</span>
+                          <span className="text-xs font-bold text-purple-900 block">{t('email_report.enable_auto_report')}</span>
+                          <span className="text-[11px] text-purple-700">Tự động gửi báo cáo mỗi ngày</span>
                         </div>
                       </label>
 
                       <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/70 space-y-1.5">
                         <label className="font-semibold text-slate-700 block">{t('email_report.report_time')}</label>
                         <input type="time" value={form.daily_report_time || '22:30'} onChange={(e) => handleChange('daily_report_time', e.target.value)}
-                          className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 bg-white" />
+                          className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 bg-white" />
                       </div>
                     </div>
                   </div>
@@ -1107,12 +1107,12 @@ export default function SettingsPage() {
                     <div className="flex items-center gap-2">
                       <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold text-xs border ${
                         form.google_sheets_sync_enabled === 'true' && form.google_sheets_spreadsheet_id
-                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                          ? 'bg-purple-50 text-purple-700 border-purple-200'
                           : 'bg-slate-50 text-slate-600 border-slate-200'
                       }`}>
                         <span className={`w-2 h-2 rounded-full ${
                           form.google_sheets_sync_enabled === 'true' && form.google_sheets_spreadsheet_id
-                            ? 'bg-emerald-500 animate-pulse'
+                            ? 'bg-purple-500 animate-pulse'
                             : 'bg-slate-400'
                         }`} />
                         {form.google_sheets_sync_enabled === 'true' && form.google_sheets_spreadsheet_id
@@ -1143,19 +1143,19 @@ export default function SettingsPage() {
                     </label>
 
                     {/* Real-time Append Switch */}
-                    <label className="flex items-start gap-3 cursor-pointer bg-emerald-50/70 border border-emerald-200/80 rounded-2xl p-4 transition hover:bg-emerald-50">
+                    <label className="flex items-start gap-3 cursor-pointer bg-purple-50/70 border border-purple-200/80 rounded-2xl p-4 transition hover:bg-purple-50">
                       <input
                         type="checkbox"
                         checked={form.google_sheets_auto_realtime_sync !== 'false'}
                         onChange={(e) => handleChange('google_sheets_auto_realtime_sync', e.target.checked ? 'true' : 'false')}
-                        className="w-4 h-4 accent-emerald-600 rounded mt-0.5"
+                        className="w-4 h-4 accent-purple-600 rounded mt-0.5"
                       />
                       <div>
-                        <span className="text-xs font-bold text-emerald-950 block flex items-center gap-1.5">
+                        <span className="text-xs font-bold text-purple-950 block flex items-center gap-1.5">
                           <Zap className="w-3.5 h-3.5 text-amber-500 shrink-0" />
                           {t('google_sheets.realtime_sync')}
                         </span>
-                        <span className="text-[11px] text-emerald-700">
+                        <span className="text-[11px] text-purple-700">
                           {t('google_sheets.realtime_sync_desc')}
                         </span>
                       </div>
@@ -1253,18 +1253,18 @@ export default function SettingsPage() {
                       {sheetsTestResult && (
                         <div className={`p-3 rounded-xl border flex items-start gap-2 text-[11px] font-semibold animate-in fade-in ${
                           sheetsTestResult.type === 'success'
-                            ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                            ? 'bg-purple-50 border-purple-200 text-purple-800'
                             : 'bg-rose-50 border-rose-200 text-rose-800'
                         }`}>
                           {sheetsTestResult.type === 'success' ? (
-                            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                            <CheckCircle2 className="w-4 h-4 text-purple-600 shrink-0 mt-0.5" />
                           ) : (
                             <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
                           )}
                           <div>
                             <span>{sheetsTestResult.message}</span>
                             {sheetsTestResult.details?.sheets && (
-                              <p className="font-normal text-emerald-700 mt-0.5 text-[10px]">
+                              <p className="font-normal text-purple-700 mt-0.5 text-[10px]">
                                 Các trang tính: {sheetsTestResult.details.sheets.join(', ')}
                               </p>
                             )}
@@ -1314,7 +1314,7 @@ export default function SettingsPage() {
                       <span className="font-extrabold text-sm text-slate-800 flex items-center gap-2">
                         <span className={`w-2.5 h-2.5 rounded-full ${
                           form.google_sheets_last_sync_status === 'success'
-                            ? 'bg-emerald-500'
+                            ? 'bg-purple-500'
                             : form.google_sheets_last_sync_status === 'error'
                             ? 'bg-rose-500'
                             : 'bg-slate-400'
@@ -1450,7 +1450,7 @@ export default function SettingsPage() {
                     onClick={() => setBackupSubTab('excel_import')}
                     className={`flex-1 sm:flex-none py-2 px-4 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 ${
                       backupSubTab === 'excel_import'
-                        ? 'bg-white text-emerald-700 shadow-xs'
+                        ? 'bg-white text-purple-700 shadow-xs'
                         : 'text-slate-600 hover:text-slate-900'
                     }`}
                   >
@@ -1580,7 +1580,7 @@ export default function SettingsPage() {
                             <div className="flex items-center gap-2">
                               <span className="font-bold text-slate-800 text-xs">Phiên bản:</span>
                               {backupPreview.format_version === '2.0' ? (
-                                <span className="bg-emerald-100 text-emerald-800 text-[11px] font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                                <span className="bg-purple-100 text-purple-800 text-[11px] font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1">
                                   <ShieldCheck className="w-3.5 h-3.5" /> Chuẩn V2.0 (16 Bảng dữ liệu)
                                 </span>
                               ) : (
@@ -1591,7 +1591,7 @@ export default function SettingsPage() {
                             </div>
                             <div className="text-[11px] text-slate-500">
                               {backupPreview.checksum_valid ? (
-                                <span className="text-emerald-600 font-semibold flex items-center gap-1">
+                                <span className="text-purple-600 font-semibold flex items-center gap-1">
                                   <Check className="w-3.5 h-3.5" /> Checksum SHA-256 Hợp Lệ
                                 </span>
                               ) : (
@@ -1680,35 +1680,35 @@ export default function SettingsPage() {
 
                       {/* Restore Result Summary */}
                       {restoreResult && (
-                        <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 space-y-2 animate-in fade-in">
-                          <div className="flex items-center gap-2 text-emerald-800 font-bold text-xs">
-                            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                        <div className="bg-purple-50 border border-purple-200 rounded-2xl p-4 space-y-2 animate-in fade-in">
+                          <div className="flex items-center gap-2 text-purple-800 font-bold text-xs">
+                            <CheckCircle2 className="w-4 h-4 text-purple-600" />
                             {t('settings.restore_success')}
                           </div>
                           {restoreResult.restored_stats && (
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] text-slate-600 pt-1">
-                              <div className="bg-white/80 p-2 rounded-lg border border-emerald-100">
+                              <div className="bg-white/80 p-2 rounded-lg border border-purple-100">
                                 <span className="font-semibold text-slate-800">{restoreResult.restored_stats.categories}</span> Danh mục
                               </div>
-                              <div className="bg-white/80 p-2 rounded-lg border border-emerald-100">
+                              <div className="bg-white/80 p-2 rounded-lg border border-purple-100">
                                 <span className="font-semibold text-slate-800">{restoreResult.restored_stats.products}</span> Sản phẩm
                               </div>
-                              <div className="bg-white/80 p-2 rounded-lg border border-emerald-100">
+                              <div className="bg-white/80 p-2 rounded-lg border border-purple-100">
                                 <span className="font-semibold text-slate-800">{restoreResult.restored_stats.ingredients || 0}</span> NVL
                               </div>
-                              <div className="bg-white/80 p-2 rounded-lg border border-emerald-100">
+                              <div className="bg-white/80 p-2 rounded-lg border border-purple-100">
                                 <span className="font-semibold text-slate-800">{restoreResult.restored_stats.recipe_items || 0}</span> BOM
                               </div>
-                              <div className="bg-white/80 p-2 rounded-lg border border-emerald-100">
+                              <div className="bg-white/80 p-2 rounded-lg border border-purple-100">
                                 <span className="font-semibold text-slate-800">{restoreResult.restored_stats.orders}</span> Đơn hàng
                               </div>
-                              <div className="bg-white/80 p-2 rounded-lg border border-emerald-100">
+                              <div className="bg-white/80 p-2 rounded-lg border border-purple-100">
                                 <span className="font-semibold text-slate-800">{restoreResult.restored_stats.transactions}</span> Giao dịch
                               </div>
-                              <div className="bg-white/80 p-2 rounded-lg border border-emerald-100">
+                              <div className="bg-white/80 p-2 rounded-lg border border-purple-100">
                                 <span className="font-semibold text-slate-800">{restoreResult.restored_stats.funds}</span> Quỹ tiền
                               </div>
-                              <div className="bg-white/80 p-2 rounded-lg border border-emerald-100">
+                              <div className="bg-white/80 p-2 rounded-lg border border-purple-100">
                                 <span className="font-semibold text-slate-800">{restoreResult.restored_stats.settings}</span> Cài đặt
                               </div>
                             </div>
@@ -1726,7 +1726,7 @@ export default function SettingsPage() {
                     <div className="bg-white p-5 sm:p-7 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
                       <div className="pb-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div className="flex items-center gap-3">
-                          <div className="p-2.5 bg-emerald-50 rounded-xl border border-emerald-100 text-emerald-600">
+                          <div className="p-2.5 bg-purple-50 rounded-xl border border-purple-100 text-purple-600">
                             <FileSpreadsheet className="w-5 h-5" />
                           </div>
                           <div>
@@ -1744,7 +1744,7 @@ export default function SettingsPage() {
                             download="mau_import_don_hang.xlsx"
                             className="bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs py-2.5 px-3.5 rounded-xl border border-slate-200 shadow-2xs transition flex items-center gap-1.5 shrink-0"
                           >
-                            <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+                            <FileSpreadsheet className="w-4 h-4 text-purple-600" />
                             <span>Mẫu đơn hàng (.xlsx)</span>
                           </a>
                           <a
@@ -1759,7 +1759,7 @@ export default function SettingsPage() {
                             type="button"
                             onClick={handleDownloadTemplate}
                             disabled={downloadingTemplate}
-                            className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white font-bold text-xs py-2.5 px-4 rounded-xl shadow-xs transition flex items-center gap-2 shrink-0 self-start sm:self-auto"
+                            className="bg-purple-600 hover:bg-purple-700 disabled:bg-slate-300 text-white font-bold text-xs py-2.5 px-4 rounded-xl shadow-xs transition flex items-center gap-2 shrink-0 self-start sm:self-auto"
                           >
                             {downloadingTemplate ? (
                               <RefreshCw className="w-4 h-4 animate-spin" />
@@ -1781,8 +1781,8 @@ export default function SettingsPage() {
                           <span className="font-bold text-violet-900 block text-xs">🧋 Topping</span>
                           <p className="text-slate-500 text-[11px]">Giá bán, giá vốn COGS, phân loại</p>
                         </div>
-                        <div className="bg-emerald-50/70 border border-emerald-100 rounded-xl p-3 space-y-1">
-                          <span className="font-bold text-emerald-900 block text-xs">🍹 Sản Phẩm & Size</span>
+                        <div className="bg-purple-50/70 border border-purple-100 rounded-xl p-3 space-y-1">
+                          <span className="font-bold text-purple-900 block text-xs">🍹 Sản Phẩm & Size</span>
                           <p className="text-slate-500 text-[11px]">Món ăn, Size M/L, giá vốn, giá bán</p>
                         </div>
                         <div className="bg-amber-50/70 border border-amber-100 rounded-xl p-3 space-y-1">
@@ -1799,7 +1799,7 @@ export default function SettingsPage() {
                     {/* 2. File Upload & Ingestion Settings Card */}
                     <div className="bg-white p-5 sm:p-7 rounded-2xl border border-slate-200/80 shadow-xs space-y-5">
                       <div className="pb-4 border-b border-slate-100 flex items-center gap-3">
-                        <div className="p-2.5 bg-emerald-50 rounded-xl border border-emerald-100 text-emerald-600">
+                        <div className="p-2.5 bg-purple-50 rounded-xl border border-purple-100 text-purple-600">
                           <UploadCloud className="w-5 h-5" />
                         </div>
                         <div>
@@ -1815,7 +1815,7 @@ export default function SettingsPage() {
                       {/* File Dropzone */}
                       <div
                         onClick={() => importInputRef.current?.click()}
-                        className="border-2 border-dashed border-slate-200 hover:border-emerald-400 rounded-2xl p-7 text-center cursor-pointer transition bg-slate-50/50 hover:bg-emerald-50/20 space-y-2"
+                        className="border-2 border-dashed border-slate-200 hover:border-purple-400 rounded-2xl p-7 text-center cursor-pointer transition bg-slate-50/50 hover:bg-purple-50/20 space-y-2"
                       >
                         <input
                           ref={importInputRef}
@@ -1824,7 +1824,7 @@ export default function SettingsPage() {
                           onChange={handleImportFileSelect}
                           className="hidden"
                         />
-                        <div className="w-12 h-12 rounded-2xl bg-white border border-slate-200 text-emerald-600 flex items-center justify-center mx-auto shadow-2xs">
+                        <div className="w-12 h-12 rounded-2xl bg-white border border-slate-200 text-purple-600 flex items-center justify-center mx-auto shadow-2xs">
                           <FileSpreadsheet className="w-6 h-6" />
                         </div>
                         <div>
@@ -1866,7 +1866,7 @@ export default function SettingsPage() {
                               type="checkbox"
                               checked={upsertProducts}
                               onChange={(e) => setUpsertProducts(e.target.checked)}
-                              className="w-4 h-4 accent-emerald-600 rounded"
+                              className="w-4 h-4 accent-purple-600 rounded"
                             />
                             <span className="text-slate-700 font-medium">
                               {t('settings.opt_upsert_products')}
@@ -1878,7 +1878,7 @@ export default function SettingsPage() {
                               type="checkbox"
                               checked={updateFunds}
                               onChange={(e) => setUpdateFunds(e.target.checked)}
-                              className="w-4 h-4 accent-emerald-600 rounded"
+                              className="w-4 h-4 accent-purple-600 rounded"
                             />
                             <span className="text-slate-700 font-medium">
                               {t('settings.opt_update_funds')}
@@ -1893,7 +1893,7 @@ export default function SettingsPage() {
                           type="button"
                           onClick={handleExecuteImport}
                           disabled={!importFile || importingData}
-                          className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white font-bold text-xs py-3 px-6 rounded-xl shadow-xs transition flex items-center gap-2"
+                          className="bg-purple-600 hover:bg-purple-700 disabled:bg-slate-300 text-white font-bold text-xs py-3 px-6 rounded-xl shadow-xs transition flex items-center gap-2"
                         >
                           {importingData ? (
                             <RefreshCw className="w-4 h-4 animate-spin" />
@@ -1907,37 +1907,37 @@ export default function SettingsPage() {
                       {/* Import Result Breakdown */}
                       {importResult && (
                         <div className="space-y-4 pt-2 animate-in fade-in">
-                          <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 space-y-3">
+                          <div className="bg-purple-50 border border-purple-200 rounded-2xl p-4 space-y-3">
                             <div className="flex items-center justify-between">
-                              <span className="flex items-center gap-2 text-emerald-800 font-bold text-xs">
-                                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                              <span className="flex items-center gap-2 text-purple-800 font-bold text-xs">
+                                <CheckCircle2 className="w-4 h-4 text-purple-600" />
                                 {importResult.message || t('settings.import_success_title')}
                               </span>
                             </div>
 
                             {importResult.stats && (
                               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-[11px] text-slate-600">
-                                <div className="bg-white/80 p-2.5 rounded-xl border border-emerald-100">
+                                <div className="bg-white/80 p-2.5 rounded-xl border border-purple-100">
                                   <span className="font-bold text-slate-900 text-sm block">{importResult.stats.categories_count}</span>
                                   Danh mục món
                                 </div>
-                                <div className="bg-white/80 p-2.5 rounded-xl border border-emerald-100">
+                                <div className="bg-white/80 p-2.5 rounded-xl border border-purple-100">
                                   <span className="font-bold text-slate-900 text-sm block">{importResult.stats.toppings_count}</span>
                                   Topping
                                 </div>
-                                <div className="bg-white/80 p-2.5 rounded-xl border border-emerald-100">
+                                <div className="bg-white/80 p-2.5 rounded-xl border border-purple-100">
                                   <span className="font-bold text-slate-900 text-sm block">{importResult.stats.products_count}</span>
                                   Món ăn ({importResult.stats.variants_count} size)
                                 </div>
-                                <div className="bg-white/80 p-2.5 rounded-xl border border-emerald-100">
+                                <div className="bg-white/80 p-2.5 rounded-xl border border-purple-100">
                                   <span className="font-bold text-slate-900 text-sm block">{importResult.stats.transactions_count}</span>
                                   Giao dịch thu chi
                                 </div>
-                                <div className="bg-white/80 p-2.5 rounded-xl border border-emerald-100">
+                                <div className="bg-white/80 p-2.5 rounded-xl border border-purple-100">
                                   <span className="font-bold text-slate-900 text-sm block">{importResult.stats.orders_count}</span>
                                   Đơn hàng ({importResult.stats.order_items_count} chi tiết món)
                                 </div>
-                                <div className="bg-white/80 p-2.5 rounded-xl border border-emerald-100">
+                                <div className="bg-white/80 p-2.5 rounded-xl border border-purple-100">
                                   <span className="font-bold text-slate-900 text-sm block">{importResult.stats.total_errors}</span>
                                   Cảnh báo / Lỗi
                                 </div>
@@ -2019,7 +2019,7 @@ export default function SettingsPage() {
               <div className="flex items-center justify-between text-xs bg-slate-50 p-2.5 rounded-xl border border-slate-200">
                 <span className="font-medium text-slate-600">Phiên bản:</span>
                 {backupPreview.format_version === '2.0' ? (
-                  <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                  <span className="bg-purple-100 text-purple-800 text-[10px] font-bold px-2 py-0.5 rounded-full">
                     V2.0 (16 Bảng dữ liệu)
                   </span>
                 ) : (
@@ -2076,7 +2076,7 @@ export default function SettingsPage() {
         {/* SMTP Test Result toast */}
         {smtpTestResult && (
           <div className={`fixed top-4 right-4 z-[60] px-4 py-3 rounded-2xl shadow-2xl text-sm font-semibold animate-in fade-in slide-in-from-top-2 ${
-            smtpTestResult.type === 'success' ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'
+            smtpTestResult.type === 'success' ? 'bg-purple-600 text-white' : 'bg-red-600 text-white'
           }`}>
             {smtpTestResult.message}
           </div>

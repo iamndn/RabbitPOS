@@ -13,7 +13,7 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: "cover",
-  themeColor: "#064e3b",
+  themeColor: "#3b0764",
 };
 
 // --- PWA Metadata: Apple Web App capabilities, manifest, Open Graph ---
@@ -71,7 +71,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="vi">
-      <body className="min-h-screen bg-slate-50 text-slate-900 antialiased selection:bg-emerald-600 selection:text-white flex flex-col">
+      <body className="min-h-screen bg-slate-50 text-slate-900 antialiased selection:bg-purple-600 selection:text-white flex flex-col">
         {/* Register service worker for offline shell caching */}
         <PWARegister />
         <LanguageProvider>

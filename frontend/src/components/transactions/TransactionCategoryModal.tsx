@@ -256,7 +256,7 @@ export default function TransactionCategoryModal({
         );
       case 'inflow':
         return (
-          <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-100">
+          <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-purple-50 text-purple-600 border border-purple-100">
             {t('tx_cat.type_inflow') || 'Khoản thu (+)'}
           </span>
         );
@@ -358,7 +358,7 @@ export default function TransactionCategoryModal({
                     onChange={(val) => setFormData({ ...formData, type: val as any })}
                     options={[
                       { value: 'outflow', label: t('tx_cat.type_outflow') || 'Khoản chi (-)', badge: '-', badgeColor: 'rose' },
-                      { value: 'inflow', label: t('tx_cat.type_inflow') || 'Khoản thu (+)', badge: '+', badgeColor: 'emerald' },
+                      { value: 'inflow', label: t('tx_cat.type_inflow') || 'Khoản thu (+)', badge: '+', badgeColor: 'purple' },
                       { value: 'both', label: t('tx_cat.type_both') || 'Cả hai (+/-)', badge: '+/-', badgeColor: 'indigo' },
                     ]}
                   />
@@ -430,7 +430,7 @@ export default function TransactionCategoryModal({
                 <button
                   onClick={() => setActiveFilter('inflow')}
                   className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${activeFilter === 'inflow'
-                      ? 'bg-white text-emerald-600 shadow-sm'
+                      ? 'bg-white text-purple-600 shadow-sm'
                       : 'text-slate-500 hover:text-slate-700'
                     }`}
                 >

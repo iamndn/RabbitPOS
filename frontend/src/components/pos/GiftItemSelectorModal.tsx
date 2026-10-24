@@ -106,7 +106,7 @@ export default function GiftItemSelectorModal({
     <div className="fixed inset-0 z-60 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-200">
       <div className="bg-white w-full max-w-2xl max-h-[90vh] rounded-3xl shadow-2xl flex flex-col overflow-hidden border border-slate-200 animate-in zoom-in-95 duration-200">
         {/* Header */}
-        <div className="px-5 py-4 border-b border-slate-200/80 bg-gradient-to-r from-amber-500/10 via-orange-500/5 to-emerald-500/10 flex items-center justify-between">
+        <div className="px-5 py-4 border-b border-slate-200/80 bg-gradient-to-r from-amber-500/10 via-orange-500/5 to-purple-500/10 flex items-center justify-between">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-10 h-10 rounded-2xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-md shadow-amber-500/20">
               <Gift className="w-5 h-5" />
@@ -116,7 +116,7 @@ export default function GiftItemSelectorModal({
                 <h3 className="font-extrabold text-slate-900 text-base leading-tight truncate">
                   {t('promotions.select_gift_modal_title') || 'Chọn món quà tặng'}
                 </h3>
-                <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200 shrink-0">
+                <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 border border-purple-200 shrink-0">
                   0đ Miễn phí
                 </span>
               </div>
@@ -225,7 +225,7 @@ export default function GiftItemSelectorModal({
                     }}
                     className={`p-3 rounded-2xl border transition flex items-center justify-between gap-3 cursor-pointer select-none active:scale-[0.98] ${
                       isCurrentSelected
-                        ? 'bg-emerald-50/70 border-emerald-400 ring-2 ring-emerald-500/20 shadow-xs'
+                        ? 'bg-purple-50/70 border-purple-400 ring-2 ring-purple-500/20 shadow-xs'
                         : 'bg-white border-slate-200 hover:border-amber-300 hover:shadow-xs'
                     }`}
                   >
@@ -261,7 +261,7 @@ export default function GiftItemSelectorModal({
                           <span className="text-[10px] text-slate-400 line-through">
                             {formatCurrency(variant.retail_price, settings)}
                           </span>
-                          <span className="text-[11px] font-black text-emerald-600">
+                          <span className="text-[11px] font-black text-purple-600">
                             0đ (Tặng)
                           </span>
                         </div>
@@ -273,7 +273,7 @@ export default function GiftItemSelectorModal({
                       type="button"
                       className={`px-3 py-1.5 rounded-xl text-xs font-bold transition shrink-0 cursor-pointer flex items-center gap-1 shadow-2xs ${
                         isCurrentSelected
-                          ? 'bg-emerald-600 text-white'
+                          ? 'bg-purple-600 text-white'
                           : 'bg-slate-900 hover:bg-amber-600 text-white'
                       }`}
                     >

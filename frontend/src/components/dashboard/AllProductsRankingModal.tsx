@@ -225,10 +225,10 @@ export default function AllProductsRankingModal({
               type="button"
               onClick={handleExportExcel}
               disabled={exportingExcel}
-              className="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold px-3 py-2 rounded-xl border border-emerald-200 flex items-center gap-1.5 transition active:scale-95 cursor-pointer shrink-0 shadow-2xs disabled:opacity-50"
+              className="bg-purple-50 hover:bg-purple-100 text-purple-800 text-xs font-bold px-3 py-2 rounded-xl border border-purple-200 flex items-center gap-1.5 transition active:scale-95 cursor-pointer shrink-0 shadow-2xs disabled:opacity-50"
               title="Xuất file Excel (.xlsx)"
             >
-              {exportingExcel ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />}
+              {exportingExcel ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <FileSpreadsheet className="w-3.5 h-3.5 text-purple-600" />}
               <span className="hidden sm:inline">Xuất Excel</span>
             </button>
           </div>
@@ -484,14 +484,14 @@ export default function AllProductsRankingModal({
                         <td className="py-3 px-4 text-right text-slate-500 font-medium">
                           {formatCurrency(it.total_cogs, settings)}
                         </td>
-                        <td className="py-3 px-4 text-right font-extrabold text-emerald-600">
+                        <td className="py-3 px-4 text-right font-extrabold text-purple-600">
                           +{formatCurrency(it.total_profit, settings)}
                         </td>
                         <td className="py-3 px-4 text-right">
                           <span
                             className={`inline-block px-2 py-0.5 rounded-full font-bold text-[11px] ${
                               it.margin_percentage >= 50
-                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                ? 'bg-purple-50 text-purple-700 border border-purple-200'
                                 : it.margin_percentage >= 30
                                 ? 'bg-amber-50 text-amber-700 border border-amber-200'
                                 : 'bg-rose-50 text-rose-700 border border-rose-200'
@@ -549,7 +549,7 @@ export default function AllProductsRankingModal({
                       <span
                         className={`shrink-0 inline-block px-2 py-0.5 rounded-lg font-bold text-[10px] border ${
                           it.margin_percentage >= 50
-                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            ? 'bg-purple-50 text-purple-700 border-purple-200'
                             : it.margin_percentage >= 30
                             ? 'bg-amber-50 text-amber-700 border-amber-200'
                             : 'bg-rose-50 text-rose-700 border-rose-200'
@@ -572,7 +572,7 @@ export default function AllProductsRankingModal({
                       </div>
                       <div className="text-right">
                         <span className="text-[10px] text-slate-400 block">Lợi nhuận gộp</span>
-                        <div className="font-extrabold text-emerald-600 text-xs">
+                        <div className="font-extrabold text-purple-600 text-xs">
                           +{formatCurrency(it.total_profit, settings)}
                         </div>
                         <span className="text-[11px] text-slate-500">

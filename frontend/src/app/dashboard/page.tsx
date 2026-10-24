@@ -209,7 +209,7 @@ export default function DashboardPage() {
             {/* Email Report Button */}
             <button
               onClick={() => { setEmailDate(new Date().toISOString().slice(0, 10)); setShowEmailModal(true); }}
-              className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold px-3.5 py-2.5 rounded-xl border border-emerald-200 flex items-center gap-1.5 transition"
+              className="bg-purple-50 hover:bg-purple-100 text-purple-700 text-xs font-bold px-3.5 py-2.5 rounded-xl border border-purple-200 flex items-center gap-1.5 transition"
               title={t('email_report.send_button')}
             >
               <Mail className="w-4 h-4" />
@@ -246,7 +246,7 @@ export default function DashboardPage() {
         {/* Toast Notification */}
         {emailToast && (
           <div className={`fixed top-4 right-4 z-[60] flex items-center gap-3 px-4 py-3 rounded-2xl shadow-2xl text-sm font-semibold transition-all ${
-            emailToast.type === 'success' ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'
+            emailToast.type === 'success' ? 'bg-purple-600 text-white' : 'bg-red-600 text-white'
           }`}>
             {emailToast.message}
           </div>
@@ -309,7 +309,7 @@ export default function DashboardPage() {
               onClick={() => setActiveTab('profit')}
               className={`pb-3 px-3 sm:px-4 text-sm font-bold border-b-2 transition flex items-center gap-2 ${
                 activeTab === 'profit'
-                  ? 'border-emerald-600 text-emerald-600'
+                  ? 'border-purple-600 text-purple-600'
                   : 'border-transparent text-slate-500 hover:text-slate-700'
               }`}
             >
@@ -369,7 +369,7 @@ export default function DashboardPage() {
                     <span
                       className={`inline-flex items-center gap-0.5 text-[11px] font-bold px-1.5 py-0.5 rounded-md ${
                         (revSummary?.items_delta_pct || 0) >= 0
-                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                          ? 'bg-purple-50 text-purple-700 border border-purple-200'
                           : 'bg-rose-50 text-rose-700 border border-rose-200'
                       }`}
                     >
@@ -416,7 +416,7 @@ export default function DashboardPage() {
                     <span
                       className={`inline-flex items-center gap-0.5 text-[11px] font-bold px-1.5 py-0.5 rounded-md ${
                         (revSummary?.revenue_delta_pct || 0) >= 0
-                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                          ? 'bg-purple-50 text-purple-700 border border-purple-200'
                           : 'bg-rose-50 text-rose-700 border border-rose-200'
                       }`}
                     >
@@ -492,17 +492,17 @@ export default function DashboardPage() {
               ) : (
                 <>
                   {/* Hero 3: Net Profit (Lợi nhuận ròng) */}
-                  <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between space-y-3 relative overflow-hidden group hover:border-emerald-300 transition-all">
+                  <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between space-y-3 relative overflow-hidden group hover:border-purple-300 transition-all">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold text-slate-700">{t('dashboard.kpi_net_profit')}</span>
-                      <div className="p-2.5 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100 group-hover:scale-110 transition-transform">
+                      <div className="p-2.5 rounded-xl bg-purple-50 text-purple-600 border border-purple-100 group-hover:scale-110 transition-transform">
                         <TrendingUp className="w-5 h-5" />
                       </div>
                     </div>
                     <div>
                       <div
                         className={`text-3xl font-extrabold tracking-tight ${
-                          (pSummary?.net_profit || 0) >= 0 ? 'text-emerald-600' : 'text-rose-600'
+                          (pSummary?.net_profit || 0) >= 0 ? 'text-purple-600' : 'text-rose-600'
                         }`}
                       >
                         {formatCurrency(pSummary?.net_profit || 0, settings)}
@@ -514,7 +514,7 @@ export default function DashboardPage() {
                         <span
                           className={`inline-flex items-center text-[11px] font-bold px-1.5 py-0.5 rounded-md ${
                             (pSummary?.net_profit_delta_pct || 0) >= 0
-                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                              ? 'bg-purple-50 text-purple-700 border border-purple-200'
                               : 'bg-rose-50 text-rose-700 border border-rose-200'
                           }`}
                         >
@@ -526,7 +526,7 @@ export default function DashboardPage() {
                     <div className="pt-2.5 border-t border-slate-100 space-y-1 text-[10px]">
                       <div className="flex justify-between text-slate-600">
                         <span>Lợi nhuận gộp:</span>
-                        <span className="font-semibold text-emerald-600">
+                        <span className="font-semibold text-purple-600">
                           {formatCurrency(pSummary?.gross_profit || 0, settings)}
                         </span>
                       </div>
@@ -536,7 +536,7 @@ export default function DashboardPage() {
                           -{formatCurrency(pSummary?.operating_expenses || 0, settings)}
                         </span>
                       </div>
-                      <div className="p-1.5 bg-emerald-50/70 rounded-lg text-emerald-900 text-[10px] leading-tight font-medium border border-emerald-100/80">
+                      <div className="p-1.5 bg-purple-50/70 rounded-lg text-purple-900 text-[10px] leading-tight font-medium border border-purple-100/80">
                         <span className="font-bold">💡 Ròng / Thuần:</span> {pSummary?.net_margin_percentage || 0}% sau toàn bộ giá vốn & chi phí
                       </div>
                     </div>
@@ -615,8 +615,8 @@ export default function DashboardPage() {
                           <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
                           Giá vốn COGS
                         </span>
-                        <span className="flex items-center gap-1.5 text-emerald-600 font-semibold">
-                          <span className="w-2.5 h-2.5 rounded-full bg-emerald-600" />
+                        <span className="flex items-center gap-1.5 text-purple-600 font-semibold">
+                          <span className="w-2.5 h-2.5 rounded-full bg-purple-600" />
                           Lợi nhuận ròng
                         </span>
                       </>
@@ -714,7 +714,7 @@ export default function DashboardPage() {
                                       <div className="text-amber-400 font-bold flex items-center justify-between gap-3">
                                         <span>Giá vốn COGS:</span> <span>{formatCurrency(p.cogs, settings)}</span>
                                       </div>
-                                      <div className="text-emerald-400 font-extrabold flex items-center justify-between gap-3">
+                                      <div className="text-purple-400 font-extrabold flex items-center justify-between gap-3">
                                         <span>Lợi nhuận ròng:</span> <span>{formatCurrency(p.net_profit, settings)}</span>
                                       </div>
                                       {revenueData?.timeline && revenueData.timeline[idx] && (
@@ -740,7 +740,7 @@ export default function DashboardPage() {
                                   />
                                   <div
                                     style={{ height: `${profitHeight}%` }}
-                                    className="w-1/3 max-w-[10px] bg-emerald-500 rounded-t-sm"
+                                    className="w-1/3 max-w-[10px] bg-purple-500 rounded-t-sm"
                                     title="Lợi nhuận ròng"
                                   />
                                 </div>
@@ -786,7 +786,7 @@ export default function DashboardPage() {
                                 idx === 0
                                   ? 'bg-indigo-600'
                                   : idx === 1
-                                  ? 'bg-emerald-500'
+                                  ? 'bg-purple-500'
                                   : 'bg-violet-500'
                               }`}
                             />
@@ -803,7 +803,7 @@ export default function DashboardPage() {
                               idx === 0
                                 ? 'bg-indigo-600'
                                 : idx === 1
-                                ? 'bg-emerald-500'
+                                ? 'bg-purple-500'
                                 : 'bg-violet-500'
                             }`}
                           />
@@ -878,7 +878,7 @@ export default function DashboardPage() {
                                     <div className="text-white font-bold mt-0.5">
                                       {it.order_count} đơn hàng ({it.percentage}% doanh thu)
                                     </div>
-                                    <div className="text-emerald-400 font-extrabold">
+                                    <div className="text-purple-400 font-extrabold">
                                       {formatCurrency(it.revenue, settings)}
                                     </div>
                                   </div>
@@ -892,7 +892,7 @@ export default function DashboardPage() {
                                       : isPeak
                                       ? 'bg-gradient-to-t from-amber-600 to-amber-400 shadow-sm'
                                       : it.order_count > 0
-                                      ? 'bg-gradient-to-t from-emerald-700 to-emerald-500 hover:from-emerald-600 hover:to-emerald-400'
+                                      ? 'bg-gradient-to-t from-purple-700 to-purple-500 hover:from-purple-600 hover:to-purple-400'
                                       : 'bg-slate-100'
                                   }`}
                                 />
@@ -992,7 +992,7 @@ export default function DashboardPage() {
                   <div>
                     <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                       <h3 className="font-bold text-sm text-slate-900 flex items-center gap-2">
-                        <Award className="w-4 h-4 text-emerald-600" />
+                        <Award className="w-4 h-4 text-purple-600" />
                         <span>Top 5 Món Sinh Lời Cao Nhất</span>
                       </h3>
                       <button
@@ -1013,7 +1013,7 @@ export default function DashboardPage() {
                           className="p-2.5 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between text-xs"
                         >
                           <div className="flex items-center gap-2.5 min-w-0 pr-2">
-                            <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-extrabold flex items-center justify-center shrink-0">
+                            <span className="w-5 h-5 rounded-full bg-purple-100 text-purple-800 text-[10px] font-extrabold flex items-center justify-center shrink-0">
                               #{idx + 1}
                             </span>
                             <div className="truncate">
@@ -1024,7 +1024,7 @@ export default function DashboardPage() {
                             </div>
                           </div>
                           <div className="text-right flex-shrink-0">
-                            <span className="font-extrabold text-emerald-600 block">
+                            <span className="font-extrabold text-purple-600 block">
                               +{formatCurrency(tp.total_profit, settings)}
                             </span>
                             <span className="text-[10px] text-slate-400 font-bold">{tp.margin_percentage}% LN</span>
@@ -1074,7 +1074,7 @@ export default function DashboardPage() {
                     <span
                       className={`inline-flex items-center gap-0.5 text-[11px] font-bold px-1.5 py-0.5 rounded-md ${
                         (revSummary?.revenue_delta_pct || 0) >= 0
-                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                          ? 'bg-purple-50 text-purple-700 border border-purple-200'
                           : 'bg-rose-50 text-rose-700 border border-rose-200'
                       }`}
                     >
@@ -1132,7 +1132,7 @@ export default function DashboardPage() {
                     <span
                       className={`inline-flex items-center gap-0.5 text-[11px] font-bold px-1.5 py-0.5 rounded-md ${
                         (revSummary?.aov_delta_pct || 0) >= 0
-                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                          ? 'bg-purple-50 text-purple-700 border border-purple-200'
                           : 'bg-rose-50 text-rose-700 border border-rose-200'
                       }`}
                     >
@@ -1160,19 +1160,19 @@ export default function DashboardPage() {
               <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-semibold text-slate-700">{t('dashboard.kpi_completed_orders')}</span>
-                  <div className="p-2.5 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100">
+                  <div className="p-2.5 rounded-xl bg-purple-50 text-purple-600 border border-purple-100">
                     <ShoppingBag className="w-5 h-5" />
                   </div>
                 </div>
                 <div>
-                  <div className="text-2xl font-extrabold text-emerald-600">
+                  <div className="text-2xl font-extrabold text-purple-600">
                     {revSummary?.completed_order_count || 0}
                   </div>
                   <div className="flex items-center gap-1.5 mt-1.5">
                     <span
                       className={`inline-flex items-center gap-0.5 text-[11px] font-bold px-1.5 py-0.5 rounded-md ${
                         (revSummary?.orders_delta_pct || 0) >= 0
-                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                          ? 'bg-purple-50 text-purple-700 border border-purple-200'
                           : 'bg-rose-50 text-rose-700 border border-rose-200'
                       }`}
                     >
@@ -1187,7 +1187,7 @@ export default function DashboardPage() {
                   </div>
                 </div>
                 <div className="pt-2.5 border-t border-slate-100 space-y-1.5 text-[10px]">
-                  <div className="p-1.5 bg-emerald-50/70 rounded-lg text-emerald-900 text-[10px] leading-tight font-medium border border-emerald-100/80">
+                  <div className="p-1.5 bg-purple-50/70 rounded-lg text-purple-900 text-[10px] leading-tight font-medium border border-purple-100/80">
                     <span className="font-bold">💡 Nguồn gốc:</span> Tổng các đơn đã thanh toán thành công tại POS
                   </div>
                   <p className="text-[10px] text-slate-400 pt-0.5 leading-snug">
@@ -1294,7 +1294,7 @@ export default function DashboardPage() {
                                   {isHovered && (
                                     <div className="absolute -top-16 z-20 bg-slate-900 text-white text-[10px] p-2 rounded-xl shadow-xl whitespace-nowrap animate-in fade-in zoom-in-95 pointer-events-none">
                                       <div className="font-bold">{p.date}</div>
-                                      <div className="text-emerald-400 font-extrabold">
+                                      <div className="text-purple-400 font-extrabold">
                                         {formatCurrency(p.net_revenue, settings)}
                                       </div>
                                       <div className="text-slate-300">{p.orders_count} đơn hàng · {p.items_count || 0} cốc</div>
@@ -1450,12 +1450,12 @@ export default function DashboardPage() {
               <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-semibold text-slate-700">{t('dashboard.kpi_gross_profit')}</span>
-                  <div className="p-2.5 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100">
+                  <div className="p-2.5 rounded-xl bg-purple-50 text-purple-600 border border-purple-100">
                     <Coins className="w-5 h-5" />
                   </div>
                 </div>
                 <div>
-                  <div className="text-2xl font-extrabold text-emerald-600">
+                  <div className="text-2xl font-extrabold text-purple-600">
                     {formatCurrency(pSummary?.gross_profit || 0, settings)}
                   </div>
                   <div className="flex items-center gap-1.5 mt-1.5">
@@ -1465,7 +1465,7 @@ export default function DashboardPage() {
                     <span
                       className={`inline-flex items-center text-[11px] font-bold px-1.5 py-0.5 rounded-md ${
                         (pSummary?.gross_profit_delta_pct || 0) >= 0
-                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                          ? 'bg-purple-50 text-purple-700 border border-purple-200'
                           : 'bg-rose-50 text-rose-700 border border-rose-200'
                       }`}
                     >
@@ -1475,7 +1475,7 @@ export default function DashboardPage() {
                   </div>
                 </div>
                 <div className="pt-2.5 border-t border-slate-100 space-y-1.5 text-[10px]">
-                  <div className="p-1.5 bg-emerald-50/70 rounded-lg text-emerald-900 text-[10px] leading-tight font-medium border border-emerald-100/80">
+                  <div className="p-1.5 bg-purple-50/70 rounded-lg text-purple-900 text-[10px] leading-tight font-medium border border-purple-100/80">
                     <span className="font-bold">💡 Nguồn gốc:</span> Doanh thu ({formatCurrency(pSummary?.net_revenue || 0, settings)}) - Giá vốn COGS ({formatCurrency(pSummary?.total_cogs || 0, settings)})
                   </div>
                   <p className="text-[10px] text-slate-400 pt-0.5 leading-snug">
@@ -1507,7 +1507,7 @@ export default function DashboardPage() {
                     <span
                       className={`inline-flex items-center text-[11px] font-bold px-1.5 py-0.5 rounded-md ${
                         (pSummary?.net_profit_delta_pct || 0) >= 0
-                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                          ? 'bg-purple-50 text-purple-700 border border-purple-200'
                           : 'bg-rose-50 text-rose-700 border border-rose-200'
                       }`}
                     >
@@ -1640,7 +1640,7 @@ export default function DashboardPage() {
                                   ? 'text-indigo-600 font-extrabold'
                                   : 'text-rose-600 font-extrabold'
                                 : row.item_code === 'GP'
-                                ? 'text-emerald-600'
+                                ? 'text-purple-600'
                                 : ''
                             }`}
                           >
@@ -1661,7 +1661,7 @@ export default function DashboardPage() {
                 <div>
                   <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                     <h3 className="font-bold text-sm text-slate-900 flex items-center gap-2">
-                      <Award className="w-4 h-4 text-emerald-600" />
+                      <Award className="w-4 h-4 text-purple-600" />
                       {t('dashboard.top_profitable_products_title')}
                     </h3>
                     <button
@@ -1688,7 +1688,7 @@ export default function DashboardPage() {
                           </span>
                         </div>
                         <div className="text-right flex-shrink-0">
-                          <span className="font-extrabold text-emerald-600 block">
+                          <span className="font-extrabold text-purple-600 block">
                             +{formatCurrency(tp.total_profit, settings)}
                           </span>
                           <span className="text-[10px] text-slate-400 font-bold">{tp.margin_percentage}% LN</span>

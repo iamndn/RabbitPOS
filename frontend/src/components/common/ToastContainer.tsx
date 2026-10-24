@@ -71,10 +71,10 @@ function ToastCard({
       case 'loading':
         return {
           container: 'bg-slate-900/95 text-slate-50 border-slate-700/60 shadow-xl shadow-slate-950/30',
-          icon: <Loader2 className="w-5 h-5 text-teal-400 animate-spin shrink-0 mt-0.5" />,
-          progress: 'bg-teal-400/70',
+          icon: <Loader2 className="w-5 h-5 text-purple-400 animate-spin shrink-0 mt-0.5" />,
+          progress: 'bg-purple-400/70',
           button: 'text-slate-300 hover:text-white hover:bg-slate-800/50',
-          actionBtn: 'bg-teal-600 hover:bg-teal-500 text-white',
+          actionBtn: 'bg-purple-600 hover:bg-purple-500 text-white',
         };
       case 'info':
       default:

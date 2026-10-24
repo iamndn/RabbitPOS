@@ -156,7 +156,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex flex-col flex-1 min-h-0 w-full max-w-full overflow-x-hidden bg-slate-50 text-slate-800">
       {/* Top Application Header — pt-safe ensures content clears Notch / Dynamic Island in PWA mode */}
-      <header className="sticky top-0 z-50 bg-emerald-900 text-white shadow-md pt-safe w-full">
+      <header className="sticky top-0 z-50 bg-purple-900 text-white shadow-md pt-safe w-full">
         <div className="w-full max-w-7xl 2xl:max-w-[1800px] 3xl:max-w-[2400px] 4k:max-w-[3200px] mx-auto px-3 sm:px-4 lg:px-6 2xl:px-8 py-2 flex items-center justify-between">
           {/* Brand Logo, App Title & Store Switcher */}
           <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
@@ -172,14 +172,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 </div>
               ) : (
                 <div className="p-1.5 sm:p-2 bg-white/10 rounded-xl flex items-center justify-center shrink-0">
-                  <Coffee className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-200" />
+                  <Coffee className="w-4 h-4 sm:w-5 sm:h-5 text-purple-200" />
                 </div>
               )}
               <div className="hidden lg:flex flex-col justify-center min-w-0 text-left">
-                <span className="text-sm font-black tracking-tight group-hover:text-emerald-100 transition truncate leading-tight">
+                <span className="text-sm font-black tracking-tight group-hover:text-purple-100 transition truncate leading-tight">
                   {currentStoreName}
                 </span>
-                <span className="text-[10px] text-emerald-200/90 font-semibold truncate leading-tight">
+                <span className="text-[10px] text-purple-200/90 font-semibold truncate leading-tight">
                   RabbitPOS
                 </span>
               </div>
@@ -201,7 +201,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                   className={`flex items-center space-x-2 px-3 py-1.5 rounded-lg text-xs font-medium transition active:scale-95 ${
                     isActive
                       ? 'bg-white/20 text-white shadow-sm font-bold'
-                      : 'text-emerald-100 hover:bg-white/10 hover:text-white'
+                      : 'text-purple-100 hover:bg-white/10 hover:text-white'
                   }`}
                 >
                   <Icon className="w-4 h-4" />
@@ -216,15 +216,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             <button
               type="button"
               onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-              className="flex items-center space-x-2 sm:space-x-2.5 bg-emerald-800/90 hover:bg-emerald-800 border border-emerald-700/60 py-1.5 px-2.5 sm:px-3 rounded-xl transition cursor-pointer text-left focus:outline-none focus:ring-2 focus:ring-white/40 active:scale-95"
+              className="flex items-center space-x-2 sm:space-x-2.5 bg-purple-800/90 hover:bg-purple-800 border border-purple-700/60 py-1.5 px-2.5 sm:px-3 rounded-xl transition cursor-pointer text-left focus:outline-none focus:ring-2 focus:ring-white/40 active:scale-95"
               aria-expanded={isUserMenuOpen}
             >
-              <div className="w-7 h-7 rounded-lg bg-emerald-700 text-emerald-100 font-black flex items-center justify-center text-xs uppercase border border-emerald-600/50 shrink-0">
+              <div className="w-7 h-7 rounded-lg bg-purple-700 text-purple-100 font-black flex items-center justify-center text-xs uppercase border border-purple-600/50 shrink-0">
                 {currentUser?.username ? currentUser.username.slice(0, 2) : <User className="w-4 h-4" />}
               </div>
               <div className="hidden sm:flex flex-col">
                 <span className="font-bold text-xs leading-none text-white">{currentUser?.username || 'User'}</span>
-                <span className="text-[10px] text-emerald-200 uppercase font-semibold leading-tight mt-0.5">
+                <span className="text-[10px] text-purple-200 uppercase font-semibold leading-tight mt-0.5">
                   {isSuperAdmin
                     ? 'Super Admin'
                     : canManageStore
@@ -232,7 +232,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                     : t('common.role_staff')}
                 </span>
               </div>
-              <ChevronDown className={`w-3.5 h-3.5 text-emerald-200 transition-transform duration-200 ${isUserMenuOpen ? 'rotate-180' : ''}`} />
+              <ChevronDown className={`w-3.5 h-3.5 text-purple-200 transition-transform duration-200 ${isUserMenuOpen ? 'rotate-180' : ''}`} />
             </button>
 
             {/* Dropdown Menu Modal */}
@@ -246,7 +246,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 <div className="fixed sm:absolute right-3 sm:right-0 top-14 sm:top-auto sm:mt-2 w-[calc(100vw-1.5rem)] sm:w-64 max-w-xs bg-white rounded-2xl shadow-2xl border border-slate-200 py-2 z-[100] text-slate-800 animate-in fade-in zoom-in-95 duration-150 hardware-accelerated">
                   {/* Header: User Profile Info */}
                   <div className="px-4 py-3 border-b border-slate-100 flex items-center space-x-3">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-600 to-emerald-800 text-white font-black flex items-center justify-center text-sm shadow-md shadow-emerald-100 shrink-0">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-600 to-purple-800 text-white font-black flex items-center justify-center text-sm shadow-md shadow-purple-100 shrink-0">
                       {currentUser?.username ? currentUser.username.slice(0, 2).toUpperCase() : <User className="w-5 h-5" />}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -261,7 +261,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                             <Shield className="w-3 h-3" /> Owner
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-extrabold bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-md border border-emerald-200">
+                          <span className="inline-flex items-center gap-1 text-[10px] font-extrabold bg-purple-50 text-purple-700 px-2 py-0.5 rounded-md border border-purple-200">
                             <User className="w-3 h-3" /> Staff
                           </span>
                         )}
@@ -276,10 +276,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                         href="/stores"
                         onClick={() => setIsUserMenuOpen(false)}
                         className={`flex items-center space-x-3 px-4 py-2.5 text-xs font-semibold transition active:scale-95 ${
-                          pathname === '/stores' ? 'bg-emerald-50 text-emerald-700 font-bold' : 'text-slate-700 hover:bg-slate-50 hover:text-emerald-700'
+                          pathname === '/stores' ? 'bg-purple-50 text-purple-700 font-bold' : 'text-slate-700 hover:bg-slate-50 hover:text-purple-700'
                         }`}
                       >
-                        <StoreIcon className="w-4 h-4 text-emerald-600" />
+                        <StoreIcon className="w-4 h-4 text-purple-600" />
                         <span>{t('nav.stores') || 'Quản lý cửa hàng'}</span>
                       </Link>
                     )}
@@ -290,7 +290,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                         href="/users"
                         onClick={() => setIsUserMenuOpen(false)}
                         className={`flex items-center space-x-3 px-4 py-2.5 text-xs font-semibold transition active:scale-95 ${
-                          pathname === '/users' ? 'bg-emerald-50 text-emerald-700 font-bold' : 'text-slate-700 hover:bg-slate-50 hover:text-emerald-700'
+                          pathname === '/users' ? 'bg-purple-50 text-purple-700 font-bold' : 'text-slate-700 hover:bg-slate-50 hover:text-purple-700'
                         }`}
                       >
                         <Users className="w-4 h-4 text-blue-600" />
@@ -304,7 +304,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                         href="/settings"
                         onClick={() => setIsUserMenuOpen(false)}
                         className={`flex items-center space-x-3 px-4 py-2.5 text-xs font-semibold transition active:scale-95 ${
-                          pathname === '/settings' ? 'bg-emerald-50 text-emerald-700 font-bold' : 'text-slate-700 hover:bg-slate-50 hover:text-emerald-700'
+                          pathname === '/settings' ? 'bg-purple-50 text-purple-700 font-bold' : 'text-slate-700 hover:bg-slate-50 hover:text-purple-700'
                         }`}
                       >
                         <Settings className="w-4 h-4 text-slate-400" />
@@ -327,7 +327,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                           onClick={() => setLocale('vi')}
                           className={`px-2 py-0.5 rounded-md font-bold transition active:scale-95 cursor-pointer ${
                             locale === 'vi'
-                              ? 'bg-emerald-700 text-white shadow-xs'
+                              ? 'bg-purple-700 text-white shadow-xs'
                               : 'text-slate-500 hover:text-slate-900'
                           }`}
                         >
@@ -338,7 +338,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                           onClick={() => setLocale('en')}
                           className={`px-2 py-0.5 rounded-md font-bold transition active:scale-95 cursor-pointer ${
                             locale === 'en'
-                              ? 'bg-emerald-700 text-white shadow-xs'
+                              ? 'bg-purple-700 text-white shadow-xs'
                               : 'text-slate-500 hover:text-slate-900'
                           }`}
                         >
@@ -390,11 +390,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               href={item.href}
               className={`flex flex-col items-center py-1.5 px-3 rounded-xl text-[10px] font-medium transition active:scale-90 ${
                 isActive
-                  ? 'text-emerald-800 font-bold bg-emerald-50/80 shadow-xs'
+                  ? 'text-purple-800 font-bold bg-purple-50/80 shadow-xs'
                   : 'text-slate-500 hover:text-slate-800'
               }`}
             >
-              <Icon className={`w-5 h-5 mb-0.5 ${isActive ? 'text-emerald-700' : 'text-slate-400'}`} />
+              <Icon className={`w-5 h-5 mb-0.5 ${isActive ? 'text-purple-700' : 'text-slate-400'}`} />
               <span className="truncate max-w-[68px]">{item.label}</span>
             </Link>
           );

@@ -356,17 +356,17 @@ export default function DiscountedOrdersModal({
             </div>
           </div>
 
-          <div className="bg-emerald-50/60 border border-emerald-100 rounded-2xl p-3.5 flex items-center gap-3">
-            <div className="p-2.5 bg-white text-emerald-600 rounded-xl shadow-2xs">
+          <div className="bg-purple-50/60 border border-purple-100 rounded-2xl p-3.5 flex items-center gap-3">
+            <div className="p-2.5 bg-white text-purple-600 rounded-xl shadow-2xs">
               <Sparkles className="w-5 h-5" />
             </div>
             <div>
-              <span className="text-[11px] font-semibold text-emerald-800">Mức Giảm Trung Bình</span>
-              <div className="text-lg font-black text-emerald-600">
+              <span className="text-[11px] font-semibold text-purple-800">Mức Giảm Trung Bình</span>
+              <div className="text-lg font-black text-purple-600">
                 {formatCurrency(totalSummary.avgDiscount, settings)}{' '}
-                <span className="text-xs font-semibold text-emerald-500">/ đơn</span>
+                <span className="text-xs font-semibold text-purple-500">/ đơn</span>
               </div>
-              <span className="text-[10px] text-emerald-600 font-medium">
+              <span className="text-[10px] text-purple-600 font-medium">
                 Tương đương ~1 ly nước ưu đãi
               </span>
             </div>
@@ -534,7 +534,7 @@ export default function DiscountedOrdersModal({
 
                         {/* Net Paid */}
                         <td className="py-3 px-3.5 text-right font-black text-slate-900 whitespace-nowrap">
-                          <div className="text-emerald-700 font-extrabold">
+                          <div className="text-purple-700 font-extrabold">
                             +{formatCurrency(o.total_amount, settings)}
                           </div>
                           <div className="text-[10px] text-slate-400 font-normal">

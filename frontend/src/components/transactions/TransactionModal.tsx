@@ -705,7 +705,7 @@ export default function TransactionModal({
           <div className="flex items-center space-x-2.5">
             <div
               className={`w-8 h-8 sm:w-9 sm:h-9 rounded-2xl flex items-center justify-center font-bold text-white shadow-xs shrink-0 ${
-                modalType === 'inflow' ? 'bg-emerald-600' : 'bg-rose-600'
+                modalType === 'inflow' ? 'bg-purple-600' : 'bg-rose-600'
               }`}
             >
               {modalType === 'inflow' ? '+' : '-'}
@@ -752,7 +752,7 @@ export default function TransactionModal({
                   isStaff
                     ? 'opacity-40 cursor-not-allowed text-slate-400'
                     : modalType === 'inflow'
-                    ? 'bg-emerald-600 text-white shadow-xs'
+                    ? 'bg-purple-600 text-white shadow-xs'
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
                 title={isStaff ? 'Nhân viên chỉ được tạo phiếu chi (tiền ra)' : undefined}
@@ -786,7 +786,7 @@ export default function TransactionModal({
                   value: f.id,
                   label: f.name,
                   badge: formatCurrency(f.current_balance),
-                  badgeColor: f.current_balance >= 0 ? 'emerald' : 'rose',
+                  badgeColor: f.current_balance >= 0 ? 'purple' : 'rose',
                 }))}
               />
             </div>
@@ -807,21 +807,21 @@ export default function TransactionModal({
 
           {/* Integrated Itemized Purchases Toggle & Detailed Conversion Engine */}
           {modalType === 'outflow' && (
-            <div className="bg-emerald-50/60 border border-emerald-200/80 rounded-2xl p-3 sm:p-4 space-y-3 w-full max-w-full min-w-0 box-border">
+            <div className="bg-purple-50/60 border border-purple-200/80 rounded-2xl p-3 sm:p-4 space-y-3 w-full max-w-full min-w-0 box-border">
               {/* Header Toggle */}
               <div className="flex items-center justify-between gap-2 w-full min-w-0">
                 <div className="flex items-center space-x-2 min-w-0">
-                  <div className="w-7 h-7 rounded-xl bg-emerald-700 text-white flex items-center justify-center shadow-xs shrink-0">
+                  <div className="w-7 h-7 rounded-xl bg-purple-700 text-white flex items-center justify-center shadow-xs shrink-0">
                     <ShoppingBag className="w-4 h-4" />
                   </div>
                   <div className="min-w-0">
-                    <span className="font-extrabold text-emerald-950 text-xs flex items-center gap-1.5 flex-wrap">
+                    <span className="font-extrabold text-purple-950 text-xs flex items-center gap-1.5 flex-wrap">
                       Chi Mua Nguyên Liệu (Tự Tính Giá Vốn)
-                      <span className="bg-emerald-200/80 text-emerald-900 text-[10px] font-bold px-1.5 py-0.2 rounded-md">
+                      <span className="bg-purple-200/80 text-purple-900 text-[10px] font-bold px-1.5 py-0.2 rounded-md">
                         Tự tính cost
                       </span>
                     </span>
-                    <p className="text-[11px] text-emerald-700 truncate">
+                    <p className="text-[11px] text-purple-700 truncate">
                       Tự động tính tiền vốn 1 ly (ml, g, cái) khi mua hàng
                     </p>
                   </div>
@@ -839,13 +839,13 @@ export default function TransactionModal({
                     }}
                     className="sr-only peer"
                   />
-                  <div className="w-10 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-4 peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-700"></div>
+                  <div className="w-10 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-4 peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-700"></div>
                 </label>
               </div>
 
               {/* Purchase Items List */}
               {isPurchaseLogging && (
-                <div className="space-y-3 pt-2 border-t border-emerald-200/60 w-full min-w-0">
+                <div className="space-y-3 pt-2 border-t border-purple-200/60 w-full min-w-0">
                   {purchaseItems.map((item, idx) => {
                     const matchedIng = knownIngredients.find(
                       (i) => i.id === item.ingredient_id || i.name.toLowerCase() === item.ingredient_name.toLowerCase()
@@ -887,8 +887,8 @@ export default function TransactionModal({
                         key={idx}
                         className={`bg-white rounded-2xl p-3 border shadow-2xs space-y-2.5 transition-all w-full max-w-full min-w-0 box-border overflow-hidden ${
                           isBasic
-                            ? 'border-slate-200 hover:border-emerald-300'
-                            : 'border-emerald-200/90 hover:border-emerald-300'
+                            ? 'border-slate-200 hover:border-purple-300'
+                            : 'border-purple-200/90 hover:border-purple-300'
                         }`}
                       >
                         {/* Row 1: Ingredient Select + Category + Mode Toggle + Delete */}
@@ -921,7 +921,7 @@ export default function TransactionModal({
                                       return updated;
                                     });
                                   }}
-                                  className="text-[10px] font-bold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-2 py-1.5 rounded-lg border border-emerald-200 shrink-0 cursor-pointer whitespace-nowrap"
+                                  className="text-[10px] font-bold text-purple-800 bg-purple-50 hover:bg-purple-100 px-2 py-1.5 rounded-lg border border-purple-200 shrink-0 cursor-pointer whitespace-nowrap"
                                 >
                                   ↺ Có sẵn
                                 </button>
@@ -931,7 +931,7 @@ export default function TransactionModal({
                                 required
                                 value={item.ingredient_id || ''}
                                 onChange={(e) => handleSelectIngredient(idx, e.target.value)}
-                                className="w-full min-w-0 h-9 px-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white cursor-pointer"
+                                className="w-full min-w-0 h-9 px-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white cursor-pointer"
                               >
                                 <option value="">— Chọn nguyên liệu có sẵn —</option>
                                 {knownIngredients.map((ing) => (
@@ -1017,7 +1017,7 @@ export default function TransactionModal({
                                   )
                                 }
                                 placeholder="SL"
-                                className="w-16 h-9 px-2 border border-slate-200 rounded-xl text-xs font-black text-center text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                className="w-16 h-9 px-2 border border-slate-200 rounded-xl text-xs font-black text-center text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500"
                               />
 
                               {/* Purchase Unit */}
@@ -1030,7 +1030,7 @@ export default function TransactionModal({
                                   handleItemChange(idx, 'capacity_unit', newUnit);
                                   handleItemChange(idx, 'base_unit', newUnit.toLowerCase());
                                 }}
-                                className="w-20 h-9 px-1.5 border border-slate-200 rounded-xl text-xs font-bold bg-white text-slate-900 cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                className="w-20 h-9 px-1.5 border border-slate-200 rounded-xl text-xs font-bold bg-white text-slate-900 cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-500"
                               >
                                 {COMMON_PURCHASE_UNITS.map((u) => (
                                   <option key={u} value={u}>{u}</option>
@@ -1055,7 +1055,7 @@ export default function TransactionModal({
                                     )
                                   }
                                   placeholder="Đơn giá"
-                                  className="w-full h-9 px-2 pr-14 border border-slate-200 rounded-xl text-xs font-black text-right text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                  className="w-full h-9 px-2 pr-14 border border-slate-200 rounded-xl text-xs font-black text-right text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500"
                                 />
                                 <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-slate-400 pointer-events-none">
                                   đ/{item.purchase_unit}
@@ -1065,8 +1065,8 @@ export default function TransactionModal({
                               <span className="text-slate-400 font-bold text-xs">=</span>
 
                               {/* Subtotal (display) */}
-                              <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2 min-w-[90px] text-right shrink-0">
-                                <div className="text-xs font-black text-emerald-800">
+                              <div className="bg-purple-50 border border-purple-200 rounded-xl px-3 py-2 min-w-[90px] text-right shrink-0">
+                                <div className="text-xs font-black text-purple-800">
                                   {formatCurrency(item.subtotal)}
                                 </div>
                               </div>
@@ -1074,14 +1074,14 @@ export default function TransactionModal({
 
                             {/* Basic Mode Cost Summary */}
                             {item.subtotal > 0 && (
-                              <div className="flex items-center justify-between px-2 py-1 bg-emerald-50/80 rounded-lg border border-emerald-100 text-[11px]">
-                                <div className="flex items-center gap-1.5 text-emerald-900 font-semibold">
-                                  <Zap className="w-3 h-3 text-emerald-600" />
+                              <div className="flex items-center justify-between px-2 py-1 bg-purple-50/80 rounded-lg border border-purple-100 text-[11px]">
+                                <div className="flex items-center gap-1.5 text-purple-900 font-semibold">
+                                  <Zap className="w-3 h-3 text-purple-600" />
                                   <span>
                                     {item.purchase_quantity} {item.purchase_unit} × {formatCurrency(item.purchase_unit_price)} = {formatCurrency(item.subtotal)}
                                   </span>
                                 </div>
-                                <span className="bg-emerald-700 text-white font-black text-[10px] px-2 py-0.5 rounded-lg shadow-2xs">
+                                <span className="bg-purple-700 text-white font-black text-[10px] px-2 py-0.5 rounded-lg shadow-2xs">
                                   Vốn: {formatCurrency(item.purchase_unit_price)}/{item.purchase_unit}
                                 </span>
                               </div>
@@ -1120,8 +1120,8 @@ export default function TransactionModal({
                                         }}
                                         className={`text-[10px] font-bold px-2 py-0.5 rounded-lg border transition active:scale-95 shrink-0 cursor-pointer whitespace-nowrap ${
                                           isSelected
-                                            ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs'
-                                            : 'bg-emerald-50 text-emerald-800 border-emerald-200/80 hover:bg-emerald-100'
+                                            ? 'bg-purple-600 text-white border-purple-600 shadow-2xs'
+                                            : 'bg-purple-50 text-purple-800 border-purple-200/80 hover:bg-purple-100'
                                         }`}
                                       >
                                         {pr.label}
@@ -1209,9 +1209,9 @@ export default function TransactionModal({
                               </div>
 
                               {/* Col 3: Subtotal + Loss Rate */}
-                              <div className="bg-emerald-50/50 p-2 rounded-xl border border-emerald-200 space-y-1">
+                              <div className="bg-purple-50/50 p-2 rounded-xl border border-purple-200 space-y-1">
                                 <div className="flex items-center justify-between">
-                                  <label className="text-[10px] font-bold text-emerald-800 uppercase block truncate">
+                                  <label className="text-[10px] font-bold text-purple-800 uppercase block truncate">
                                     3. Thành tiền
                                   </label>
                                   {item.category === 'fruit' && (
@@ -1244,15 +1244,15 @@ export default function TransactionModal({
                                       e.target.value === '' ? 0 : parseFloat(e.target.value)
                                     )
                                   }
-                                  className="w-full h-8 px-2 border border-emerald-300 bg-white rounded-lg text-xs font-black text-right text-emerald-950 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                  className="w-full h-8 px-2 border border-purple-300 bg-white rounded-lg text-xs font-black text-right text-purple-950 focus:outline-none focus:ring-2 focus:ring-purple-500"
                                 />
                               </div>
                             </div>
 
                             {/* Advanced Cost Summary */}
-                            <div className="bg-emerald-50 rounded-xl px-2.5 py-1.5 border border-emerald-200/80 flex items-center justify-between gap-2 text-xs w-full min-w-0 flex-wrap">
-                              <div className="flex items-center gap-1.5 text-emerald-950 font-bold text-[11px] min-w-0 flex-1 flex-wrap">
-                                <Sparkles className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+                            <div className="bg-purple-50 rounded-xl px-2.5 py-1.5 border border-purple-200/80 flex items-center justify-between gap-2 text-xs w-full min-w-0 flex-wrap">
+                              <div className="flex items-center gap-1.5 text-purple-950 font-bold text-[11px] min-w-0 flex-1 flex-wrap">
+                                <Sparkles className="w-3.5 h-3.5 text-purple-700 shrink-0" />
                                 <span className="min-w-0">
                                   {item.purchase_quantity} {item.purchase_unit} ={' '}
                                   <strong>{formatQuantityWithUnit(item.total_base_quantity, item.base_unit)}</strong>
@@ -1265,7 +1265,7 @@ export default function TransactionModal({
                               </div>
 
                               <div className="flex items-center gap-2 shrink-0">
-                                <span className="bg-emerald-700 text-white font-black text-[10px] px-2 py-0.5 rounded-lg shadow-2xs shrink-0 whitespace-nowrap">
+                                <span className="bg-purple-700 text-white font-black text-[10px] px-2 py-0.5 rounded-lg shadow-2xs shrink-0 whitespace-nowrap">
                                   {item.loss_rate > 0
                                     ? `Vốn: ${formatCurrency(item.effective_base_price)}/${item.base_unit}`
                                     : `Vốn: ${formatCurrency(item.base_unit_price)}/${item.base_unit}`}
@@ -1283,7 +1283,7 @@ export default function TransactionModal({
                     <button
                       type="button"
                       onClick={() => handleAddRow(false)}
-                      className="inline-flex items-center justify-center gap-1.5 text-xs font-extrabold text-emerald-800 hover:text-emerald-950 bg-white hover:bg-emerald-100/60 px-3 py-2.5 rounded-xl border border-emerald-300 transition active:scale-95 shadow-2xs cursor-pointer text-center"
+                      className="inline-flex items-center justify-center gap-1.5 text-xs font-extrabold text-purple-800 hover:text-purple-950 bg-white hover:bg-purple-100/60 px-3 py-2.5 rounded-xl border border-purple-300 transition active:scale-95 shadow-2xs cursor-pointer text-center"
                     >
                       <Plus className="w-3.5 h-3.5" />
                       <span>+ Thêm mặt hàng</span>
@@ -1309,7 +1309,7 @@ export default function TransactionModal({
                 {t('tx.modal_amount_label')} (VNĐ) *
               </label>
               {isPurchaseLogging && modalType === 'outflow' && (
-                <span className="text-[10px] text-emerald-700 font-semibold bg-emerald-100 px-2 py-0.5 rounded-md">
+                <span className="text-[10px] text-purple-700 font-semibold bg-purple-100 px-2 py-0.5 rounded-md">
                   ⚡ Tự động tính từ danh sách
                 </span>
               )}
@@ -1418,7 +1418,7 @@ export default function TransactionModal({
               disabled={isSubmitting}
               className={`px-4 sm:px-5 py-2 text-xs font-extrabold text-white rounded-xl shadow-xs transition active:scale-95 cursor-pointer flex items-center gap-1.5 ${
                 modalType === 'inflow'
-                  ? 'bg-emerald-600 hover:bg-emerald-700'
+                  ? 'bg-purple-600 hover:bg-purple-700'
                   : 'bg-rose-600 hover:bg-rose-700'
               }`}
             >

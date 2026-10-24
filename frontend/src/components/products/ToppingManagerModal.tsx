@@ -546,7 +546,7 @@ export default function ToppingManagerModal({
                             <GripVertical className="w-4 h-4 text-slate-300 group-hover:text-slate-500 shrink-0 cursor-grab active:cursor-grabbing" />
                             <span
                               className={`w-2.5 h-2.5 rounded-full shrink-0 ${
-                                tp.is_active ? 'bg-emerald-500 ring-2 ring-emerald-100' : 'bg-slate-300'
+                                tp.is_active ? 'bg-purple-500 ring-2 ring-purple-100' : 'bg-slate-300'
                               }`}
                             />
                             <span className={`font-bold text-xs truncate ${tp.is_active ? 'text-slate-900' : 'text-slate-400 line-through'}`}>
@@ -562,7 +562,7 @@ export default function ToppingManagerModal({
                             }}
                             className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold transition cursor-pointer shrink-0 ${
                               tp.is_active
-                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-2xs'
+                                ? 'bg-purple-50 text-purple-700 border border-purple-200 shadow-2xs'
                                 : 'bg-slate-100 text-slate-500 border border-slate-200'
                             }`}
                           >
@@ -671,7 +671,7 @@ export default function ToppingManagerModal({
                               <div className="flex items-center gap-2">
                                 <span
                                   className={`w-2 h-2 rounded-full shrink-0 ${
-                                    tp.is_active ? 'bg-emerald-500 ring-2 ring-emerald-100' : 'bg-slate-300'
+                                    tp.is_active ? 'bg-purple-500 ring-2 ring-purple-100' : 'bg-slate-300'
                                   }`}
                                 />
                                 <span className={tp.is_active ? 'text-slate-900' : 'text-slate-400 line-through'}>
@@ -710,14 +710,14 @@ export default function ToppingManagerModal({
                                 }}
                                 className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-extrabold transition cursor-pointer ${
                                   tp.is_active
-                                    ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 shadow-2xs'
+                                    ? 'bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200 shadow-2xs'
                                     : 'bg-slate-100 text-slate-500 hover:bg-slate-200 border border-slate-200'
                                 }`}
                                 title={tp.is_active ? 'Bấm để Tắt' : 'Bấm để Bật'}
                               >
                                 <span
                                   className={`w-1.5 h-1.5 rounded-full ${
-                                    tp.is_active ? 'bg-emerald-500' : 'bg-slate-400'
+                                    tp.is_active ? 'bg-purple-500' : 'bg-slate-400'
                                   }`}
                                 />
                                 <span>{tp.is_active ? 'Đang bán' : 'Tạm hết'}</span>

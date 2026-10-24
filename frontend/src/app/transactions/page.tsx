@@ -1151,7 +1151,7 @@ export default function TransactionsPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs">
           <div>
             <h1 className="text-lg sm:text-xl font-black text-slate-900 flex items-center gap-2">
-              <TrendingUp className="w-6 h-6 text-emerald-700 shrink-0" />
+              <TrendingUp className="w-6 h-6 text-purple-700 shrink-0" />
               {t('tx.title') || 'Sổ Thu Chi & Giao Dịch'}
             </h1>
             <p className="text-xs text-slate-500 mt-0.5">
@@ -1198,16 +1198,16 @@ export default function TransactionsPage() {
                   type="button"
                   onClick={handleExportExcel}
                   disabled={exportingExcel}
-                  className="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold px-3 py-2 rounded-xl border border-emerald-200 flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer w-full sm:w-auto shadow-2xs disabled:opacity-50"
+                  className="bg-purple-50 hover:bg-purple-100 text-purple-800 text-xs font-bold px-3 py-2 rounded-xl border border-purple-200 flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer w-full sm:w-auto shadow-2xs disabled:opacity-50"
                   title="Xuất dữ liệu ra file Excel (.xlsx)"
                 >
-                  {exportingExcel ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600 shrink-0" />}
+                  {exportingExcel ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <FileSpreadsheet className="w-3.5 h-3.5 text-purple-600 shrink-0" />}
                   <span className="truncate">Xuất Excel</span>
                 </button>
                 <button
                   type="button"
                   onClick={handleOpenCreateModal}
-                  className="col-span-2 sm:col-span-1 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-black px-3.5 py-2 rounded-xl flex items-center justify-center gap-1.5 shadow-xs transition active:scale-95 cursor-pointer w-full sm:w-auto"
+                  className="col-span-2 sm:col-span-1 bg-purple-700 hover:bg-purple-800 text-white text-xs font-black px-3.5 py-2 rounded-xl flex items-center justify-center gap-1.5 shadow-xs transition active:scale-95 cursor-pointer w-full sm:w-auto"
                 >
                   <Plus className="w-3.5 h-3.5 shrink-0" /> <span className="truncate">{t('tx.add_expense')}</span>
                 </button>
@@ -1233,10 +1233,10 @@ export default function TransactionsPage() {
                   type="button"
                   onClick={handleExportExcel}
                   disabled={exportingExcel}
-                  className="col-span-2 sm:col-span-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold px-3 py-2 rounded-xl border border-emerald-200 flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer w-full sm:w-auto shadow-2xs disabled:opacity-50"
+                  className="col-span-2 sm:col-span-1 bg-purple-50 hover:bg-purple-100 text-purple-800 text-xs font-bold px-3 py-2 rounded-xl border border-purple-200 flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer w-full sm:w-auto shadow-2xs disabled:opacity-50"
                   title="Xuất dữ liệu ra file Excel (.xlsx)"
                 >
-                  {exportingExcel ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600 shrink-0" />}
+                  {exportingExcel ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <FileSpreadsheet className="w-3.5 h-3.5 text-purple-600 shrink-0" />}
                   <span className="truncate">Xuất Excel</span>
                 </button>
               </>
@@ -1269,7 +1269,7 @@ export default function TransactionsPage() {
               type="button"
               onClick={() => handleTabChange('ledger')}
               className={`flex-1 min-w-[130px] py-2 px-3 text-xs sm:text-sm font-bold rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${activeTab === 'ledger'
-                  ? 'bg-white text-emerald-900 shadow-sm font-extrabold'
+                  ? 'bg-white text-purple-900 shadow-sm font-extrabold'
                   : 'text-slate-600 hover:text-slate-900'
                 }`}
             >
@@ -1301,13 +1301,13 @@ export default function TransactionsPage() {
               type="button"
               onClick={() => handleTabChange('funds')}
               className={`flex-1 min-w-[130px] py-2 px-3 text-xs sm:text-sm font-bold rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${activeTab === 'funds'
-                  ? 'bg-white text-emerald-900 shadow-sm font-extrabold'
+                  ? 'bg-white text-purple-900 shadow-sm font-extrabold'
                   : 'text-slate-600 hover:text-slate-900'
                 }`}
             >
-              <Wallet className="w-4 h-4 text-emerald-600 shrink-0" />
+              <Wallet className="w-4 h-4 text-purple-600 shrink-0" />
               <span>{t('tx.tab_funds') || '💳 Quản lý quỹ'}</span>
-              <span className="bg-emerald-50 text-emerald-700 text-[10px] sm:text-xs px-1.5 py-0.2 rounded-full font-bold">
+              <span className="bg-purple-50 text-purple-700 text-[10px] sm:text-xs px-1.5 py-0.2 rounded-full font-bold">
                 {safeFunds.length}
               </span>
             </button>
@@ -1319,11 +1319,11 @@ export default function TransactionsPage() {
           <div className="space-y-4 sm:space-y-6">
             {/* Active Fund Filter Banner if filtered by a specific fund */}
             {selectedFundId !== null && (
-              <div className="bg-gradient-to-r from-indigo-50 to-emerald-50 border border-indigo-200/80 p-3 sm:p-3.5 rounded-2xl flex items-center justify-between gap-3 text-xs shadow-xs">
+              <div className="bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200/80 p-3 sm:p-3.5 rounded-2xl flex items-center justify-between gap-3 text-xs shadow-xs">
                 <div className="flex items-center gap-2 text-indigo-950 font-bold">
                   <Wallet className="w-4 h-4 text-indigo-600 shrink-0" />
                   <span>
-                    Đang xem giao dịch của quỹ: <span className="text-emerald-800 font-extrabold underline">{safeFunds.find((f) => f.id === selectedFundId)?.name || 'Quỹ #' + selectedFundId}</span>
+                    Đang xem giao dịch của quỹ: <span className="text-purple-800 font-extrabold underline">{safeFunds.find((f) => f.id === selectedFundId)?.name || 'Quỹ #' + selectedFundId}</span>
                   </span>
                 </div>
                 <button
@@ -1341,9 +1341,9 @@ export default function TransactionsPage() {
               <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
                 <div>
                   <span className="text-xs font-semibold text-slate-500">{t('tx.inflows')}</span>
-                  <div className="text-2xl font-extrabold text-emerald-600 mt-1">{formatCurrency(totalInflow, settings)}</div>
+                  <div className="text-2xl font-extrabold text-purple-600 mt-1">{formatCurrency(totalInflow, settings)}</div>
                 </div>
-                <div className="p-3 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-100">
+                <div className="p-3 rounded-2xl bg-purple-50 text-purple-600 border border-purple-100">
                   <ArrowDownLeft className="w-6 h-6" />
                 </div>
               </div>
@@ -1387,13 +1387,13 @@ export default function TransactionsPage() {
                         type="button"
                         onClick={() => setSelectedFundId(isSelected ? null : fi.id)}
                         className={`px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition cursor-pointer shadow-2xs active:scale-95 ${isSelected
-                            ? 'bg-emerald-700 text-white shadow-xs ring-2 ring-emerald-500/30'
+                            ? 'bg-purple-700 text-white shadow-xs ring-2 ring-purple-500/30'
                             : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200'
                           }`}
                         title={`Bấm để ${isSelected ? 'bỏ lọc' : 'lọc riêng'} quỹ ${fi.name}`}
                       >
-                        <span className={isSelected ? 'text-emerald-100' : 'text-slate-500 font-semibold'}>{fi.name}:</span>
-                        <span className={isSelected ? 'text-white font-extrabold' : 'text-emerald-700 font-extrabold'}>
+                        <span className={isSelected ? 'text-purple-100' : 'text-slate-500 font-semibold'}>{fi.name}:</span>
+                        <span className={isSelected ? 'text-white font-extrabold' : 'text-purple-700 font-extrabold'}>
                           {formatCurrency(fi.inflowAmount, settings)}
                         </span>
                       </button>
@@ -1441,11 +1441,11 @@ export default function TransactionsPage() {
                       type="button"
                       onClick={() => setBreakdownType('inflow')}
                       className={`flex-1 px-3 py-1.5 rounded-lg font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${breakdownType === 'inflow'
-                        ? 'bg-white text-emerald-600 shadow-sm'
+                        ? 'bg-white text-purple-600 shadow-sm'
                         : 'text-slate-600 hover:text-slate-900'
                         }`}
                     >
-                      <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                      <span className="w-2 h-2 rounded-full bg-purple-500 shrink-0" />
                       <span>{t('tx.inflows')}</span>
                     </button>
                   </div>
@@ -1479,14 +1479,14 @@ export default function TransactionsPage() {
                             <span
                               className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded ${breakdownType === 'outflow'
                                 ? 'bg-rose-50 text-rose-700 border border-rose-200'
-                                : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                : 'bg-purple-50 text-purple-700 border border-purple-200'
                                 }`}
                             >
                               {c.percentage}%
                             </span>
                           </div>
                           <div
-                            className={`text-base font-extrabold mt-1 ${breakdownType === 'outflow' ? 'text-rose-600' : 'text-emerald-600'
+                            className={`text-base font-extrabold mt-1 ${breakdownType === 'outflow' ? 'text-rose-600' : 'text-purple-600'
                               }`}
                           >
                             {formatCurrency(c.total_amount, settings)}
@@ -1495,7 +1495,7 @@ export default function TransactionsPage() {
                         <div className="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
                           <div
                             style={{ width: `${c.percentage}%` }}
-                            className={`h-full rounded-full ${breakdownType === 'outflow' ? 'bg-rose-500' : 'bg-emerald-500'
+                            className={`h-full rounded-full ${breakdownType === 'outflow' ? 'bg-rose-500' : 'bg-purple-500'
                               }`}
                           />
                         </div>
@@ -1543,14 +1543,14 @@ export default function TransactionsPage() {
                 type="button"
                 onClick={() => setIsLedgerFilterModalOpen(true)}
                 className={`px-3.5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer shadow-2xs ${selectedFundId !== null || selectedType !== 'all' || selectedCategory !== 'all'
-                    ? 'bg-emerald-800 text-white shadow-sm ring-2 ring-emerald-600/30 font-extrabold'
+                    ? 'bg-purple-800 text-white shadow-sm ring-2 ring-purple-600/30 font-extrabold'
                     : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
                   }`}
               >
                 <Filter className="w-4 h-4" />
                 <span>Bộ lọc</span>
                 {(selectedFundId !== null || selectedType !== 'all' || selectedCategory !== 'all') && (
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="w-2 h-2 rounded-full bg-purple-400 animate-pulse" />
                 )}
               </button>
             </div>
@@ -1568,9 +1568,9 @@ export default function TransactionsPage() {
                   </span>
                 )}
                 {selectedType !== 'all' && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-lg font-bold">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-purple-50 text-purple-800 border border-purple-200 rounded-lg font-bold">
                     <span>Loại: {selectedType === 'inflow' ? 'Khoản thu (+)' : 'Khoản chi (-)'}</span>
-                    <button type="button" onClick={() => setSelectedType('all')} className="hover:text-emerald-950">
+                    <button type="button" onClick={() => setSelectedType('all')} className="hover:text-purple-950">
                       <X className="w-3 h-3" />
                     </button>
                   </span>
@@ -1606,7 +1606,7 @@ export default function TransactionsPage() {
                   {/* Modal Header */}
                   <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                     <div className="flex items-center gap-2">
-                      <div className="p-2 bg-emerald-50 text-emerald-700 rounded-xl">
+                      <div className="p-2 bg-purple-50 text-purple-700 rounded-xl">
                         <Filter className="w-5 h-5" />
                       </div>
                       <div>
@@ -1694,11 +1694,11 @@ export default function TransactionsPage() {
                           type="button"
                           onClick={() => setSelectedType('inflow')}
                           className={`px-3.5 py-2 rounded-xl font-bold transition whitespace-nowrap cursor-pointer flex items-center gap-1 shadow-2xs ${selectedType === 'inflow'
-                              ? 'bg-emerald-600 text-white shadow-xs'
-                              : 'bg-white text-emerald-700 hover:bg-emerald-50 border border-emerald-200'
+                              ? 'bg-purple-600 text-white shadow-xs'
+                              : 'bg-white text-purple-700 hover:bg-purple-50 border border-purple-200'
                             }`}
                         >
-                          <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                          <span className="w-2 h-2 rounded-full bg-purple-400" />
                           <span>{t('tx.type_inflow') || 'Khoản thu (+)'}</span>
                           <span className="text-[10px] opacity-85">({safeTransactions.filter((tx) => tx.transaction_type === 'inflow').length})</span>
                         </button>
@@ -1771,7 +1771,7 @@ export default function TransactionsPage() {
                                   }`}
                               >
                                 <span
-                                  className={`w-1.5 h-1.5 rounded-full ${cat.type === 'inflow' ? 'bg-emerald-500' : cat.type === 'outflow' ? 'bg-rose-500' : 'bg-indigo-500'
+                                  className={`w-1.5 h-1.5 rounded-full ${cat.type === 'inflow' ? 'bg-purple-500' : cat.type === 'outflow' ? 'bg-rose-500' : 'bg-indigo-500'
                                     }`}
                                 />
                                 <span>{cat.name}</span>
@@ -1804,7 +1804,7 @@ export default function TransactionsPage() {
                     <button
                       type="button"
                       onClick={() => setIsLedgerFilterModalOpen(false)}
-                      className="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-extrabold px-5 py-2.5 rounded-xl shadow-xs transition active:scale-95 cursor-pointer text-center justify-center flex items-center"
+                      className="bg-purple-700 hover:bg-purple-800 text-white text-xs font-extrabold px-5 py-2.5 rounded-xl shadow-xs transition active:scale-95 cursor-pointer text-center justify-center flex items-center"
                     >
                       Áp dụng ({filteredTransactions.length})
                     </button>
@@ -1854,7 +1854,7 @@ export default function TransactionsPage() {
                             <td className="py-3 px-4">
                               <span
                                 className={`px-2.5 py-1 rounded-full text-[11px] font-bold flex items-center gap-1 w-fit ${isInflow
-                                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                  ? 'bg-purple-50 text-purple-700 border border-purple-200'
                                   : 'bg-rose-50 text-rose-700 border border-rose-200'
                                   }`}
                               >
@@ -1878,7 +1878,7 @@ export default function TransactionsPage() {
                                     <span className="inline-flex items-center gap-1 text-[10px] font-semibold bg-rose-50 text-rose-700 border border-rose-200 px-1.5 py-0.5 rounded">
                                       <span>Món: {formatCurrency(tx.reference_order.subtotal || 0, settings)}</span>
                                       <span className="font-bold text-rose-600">- Giảm: {formatCurrency((tx.reference_order.discount_amount || 0) + (tx.reference_order.promotion_discount || 0) + (tx.reference_order.platform_fee_discount || 0), settings)}</span>
-                                      <span className="text-emerald-700 font-extrabold">= Quỹ: +{formatCurrency(tx.amount, settings)}</span>
+                                      <span className="text-purple-700 font-extrabold">= Quỹ: +{formatCurrency(tx.amount, settings)}</span>
                                     </span>
                                   )}
                                 </div>
@@ -1888,7 +1888,7 @@ export default function TransactionsPage() {
                                   {tx.purchase_items.map((pi, pidx) => (
                                     <span
                                       key={pidx}
-                                      className="inline-flex items-center text-[10px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200 px-1.5 py-0.5 rounded-md"
+                                      className="inline-flex items-center text-[10px] font-semibold bg-purple-50 text-purple-800 border border-purple-200 px-1.5 py-0.5 rounded-md"
                                     >
                                       📦 {pi.ingredient?.name || pi.ingredient_name}: {pi.quantity} {pi.unit || pi.ingredient?.unit} @ {formatCurrency(pi.unit_price, settings)}
                                     </span>
@@ -1896,7 +1896,7 @@ export default function TransactionsPage() {
                                 </div>
                               )}
                             </td>
-                            <td className={`py-3 px-4 text-right font-extrabold text-sm ${isInflow ? 'text-emerald-600' : 'text-rose-600'}`}>
+                            <td className={`py-3 px-4 text-right font-extrabold text-sm ${isInflow ? 'text-purple-600' : 'text-rose-600'}`}>
                               {isInflow ? '+' : '-'}{formatCurrency(tx.amount, settings)}
                             </td>
                             <td className="py-3 px-4 text-center">
@@ -1984,7 +1984,7 @@ export default function TransactionsPage() {
                           <div className="flex items-center gap-2 flex-wrap">
                             <span
                               className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold flex items-center gap-1 ${isInflow
-                                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                  ? 'bg-purple-50 text-purple-700 border border-purple-200'
                                   : 'bg-rose-50 text-rose-700 border border-rose-200'
                                 }`}
                             >
@@ -1995,7 +1995,7 @@ export default function TransactionsPage() {
                               {getCategoryName(tx.category)}
                             </span>
                           </div>
-                          <span className={`font-extrabold text-base ${isInflow ? 'text-emerald-600' : 'text-rose-600'}`}>
+                          <span className={`font-extrabold text-base ${isInflow ? 'text-purple-600' : 'text-rose-600'}`}>
                             {isInflow ? '+' : '-'}{formatCurrency(tx.amount, settings)}
                           </span>
                         </div>
@@ -2012,7 +2012,7 @@ export default function TransactionsPage() {
                                   <span className="inline-flex items-center gap-1 text-[10px] font-semibold bg-rose-50 text-rose-700 border border-rose-200 px-1.5 py-0.5 rounded">
                                     <span>Món: {formatCurrency(tx.reference_order.subtotal || 0, settings)}</span>
                                     <span className="font-bold text-rose-600">- Giảm: {formatCurrency((tx.reference_order.discount_amount || 0) + (tx.reference_order.promotion_discount || 0) + (tx.reference_order.platform_fee_discount || 0), settings)}</span>
-                                    <span className="text-emerald-700 font-extrabold">= Quỹ: +{formatCurrency(tx.amount, settings)}</span>
+                                    <span className="text-purple-700 font-extrabold">= Quỹ: +{formatCurrency(tx.amount, settings)}</span>
                                   </span>
                                 )}
                               </div>
@@ -2022,7 +2022,7 @@ export default function TransactionsPage() {
                                 {tx.purchase_items.map((pi, pidx) => (
                                   <span
                                     key={pidx}
-                                    className="inline-flex items-center text-[10px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200 px-1.5 py-0.5 rounded-md"
+                                    className="inline-flex items-center text-[10px] font-semibold bg-purple-50 text-purple-800 border border-purple-200 px-1.5 py-0.5 rounded-md"
                                   >
                                     📦 {pi.ingredient?.name || pi.ingredient_name}: {pi.quantity} {pi.unit || pi.ingredient?.unit} @ {formatCurrency(pi.unit_price, settings)}
                                   </span>
@@ -2244,11 +2244,11 @@ export default function TransactionsPage() {
                           type="button"
                           onClick={() => setOrderStatusFilter('completed')}
                           className={`px-3.5 py-2 rounded-xl font-bold transition whitespace-nowrap cursor-pointer flex items-center gap-1 shadow-2xs ${orderStatusFilter === 'completed'
-                              ? 'bg-emerald-600 text-white shadow-xs'
-                              : 'bg-white text-emerald-700 hover:bg-emerald-50 border border-emerald-200'
+                              ? 'bg-purple-600 text-white shadow-xs'
+                              : 'bg-white text-purple-700 hover:bg-purple-50 border border-purple-200'
                             }`}
                         >
-                          <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                          <span className="w-2 h-2 rounded-full bg-purple-400" />
                           <span>{t('tx.order_status_completed') || 'Hoàn thành'}</span>
                           <span className="text-[10px] opacity-85">({safeOrders.filter((o) => o.status === 'completed').length})</span>
                         </button>
@@ -2356,7 +2356,7 @@ export default function TransactionsPage() {
                                     {t('tx.order_status_cancelled') || 'Đã hủy'}
                                   </span>
                                 ) : (
-                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-200">
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-purple-50 text-purple-600 border border-purple-200">
                                     <CheckCircle2 className="w-3 h-3 mr-1" />
                                     {t('tx.order_status_completed') || 'Hoàn thành'}
                                   </span>
@@ -2370,7 +2370,7 @@ export default function TransactionsPage() {
                                   <button
                                     onClick={() => setReprintOrder(order)}
                                     title="In lại hóa đơn"
-                                    className="p-1.5 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 rounded-lg transition cursor-pointer"
+                                    className="p-1.5 text-purple-600 hover:text-purple-800 hover:bg-purple-50 rounded-lg transition cursor-pointer"
                                   >
                                     <Printer className="w-4 h-4" />
                                   </button>
@@ -2437,9 +2437,9 @@ export default function TransactionsPage() {
                                         </>
                                       )}
                                       <span className="text-slate-400 font-black text-sm">=</span>
-                                      <div className="flex items-center gap-1.5 font-black text-emerald-800 bg-emerald-50 px-3 py-1 rounded-lg border-2 border-emerald-300 shadow-2xs">
+                                      <div className="flex items-center gap-1.5 font-black text-purple-800 bg-purple-50 px-3 py-1 rounded-lg border-2 border-purple-300 shadow-2xs">
                                         <span>Tiền vào quỹ két:</span>
-                                        <span className="text-emerald-700 text-sm font-black">+{formatCurrency(order.total_amount, settings)}</span>
+                                        <span className="text-purple-700 text-sm font-black">+{formatCurrency(order.total_amount, settings)}</span>
                                       </div>
                                     </div>
                                     <div className="text-[11px] text-slate-500 font-medium">
@@ -2553,7 +2553,7 @@ export default function TransactionsPage() {
                               Đã hủy
                             </span>
                           ) : (
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-200">
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 text-purple-600 border border-purple-200">
                               Hoàn thành
                             </span>
                           )}
@@ -2602,7 +2602,7 @@ export default function TransactionsPage() {
                                   <span className="font-bold">+{formatCurrency((order.shipping_fee || 0) + (order.surcharge || 0), settings)}</span>
                                 </div>
                               )}
-                              <div className="flex justify-between items-center text-xs font-black text-emerald-700 pt-1 border-t border-slate-200">
+                              <div className="flex justify-between items-center text-xs font-black text-purple-700 pt-1 border-t border-slate-200">
                                 <span>= Tiền vào quỹ két:</span>
                                 <span className="text-sm">+{formatCurrency(order.total_amount, settings)}</span>
                               </div>
@@ -2671,7 +2671,7 @@ export default function TransactionsPage() {
                             <button
                               type="button"
                               onClick={() => setReprintOrder(order)}
-                              className="px-2.5 py-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg flex items-center gap-1 transition cursor-pointer"
+                              className="px-2.5 py-1 text-[11px] font-bold text-purple-700 bg-purple-50 hover:bg-purple-100 rounded-lg flex items-center gap-1 transition cursor-pointer"
                             >
                               <Printer className="w-3 h-3" />
                               <span>In lại</span>
@@ -2751,7 +2751,7 @@ export default function TransactionsPage() {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
                 <div>
                   <h3 className="text-sm sm:text-base font-black text-slate-900 flex items-center gap-2">
-                    <Wallet className="w-5 h-5 text-emerald-700" />
+                    <Wallet className="w-5 h-5 text-purple-700" />
                     <span>Quản Lý Tài Khoản Quỹ & Đối Soát Thực Tế</span>
                   </h3>
                   <p className="text-xs text-slate-500">
@@ -2786,7 +2786,7 @@ export default function TransactionsPage() {
                       >
                         <div className="flex items-start justify-between">
                           <div className="flex items-center space-x-3">
-                            <div className={`p-2.5 rounded-xl ${isBank ? 'bg-blue-50 text-blue-600 border border-blue-100' : 'bg-emerald-50 text-emerald-600 border border-emerald-100'}`}>
+                            <div className={`p-2.5 rounded-xl ${isBank ? 'bg-blue-50 text-blue-600 border border-blue-100' : 'bg-purple-50 text-purple-600 border border-purple-100'}`}>
                               {isBank ? <Building2 className="w-5 h-5" /> : <Wallet className="w-5 h-5" />}
                             </div>
                             <div>
@@ -2797,7 +2797,7 @@ export default function TransactionsPage() {
                             </div>
                           </div>
 
-                          <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                          <span className="bg-purple-50 text-purple-700 border border-purple-200 text-[11px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
                             <CheckCircle2 className="w-3 h-3" /> {t('funds.active_badge')}
                           </span>
                         </div>
@@ -2848,7 +2848,7 @@ export default function TransactionsPage() {
                                 type="button"
                                 onClick={() => handleRestoreReconciliation(fund)}
                                 disabled={restoringReconcile}
-                                className="bg-white hover:bg-emerald-50 text-emerald-600 hover:text-emerald-700 text-[11px] font-semibold py-1.5 px-2 rounded-xl border border-emerald-200 flex items-center justify-center gap-1 transition cursor-pointer shadow-2xs disabled:opacity-50"
+                                className="bg-white hover:bg-purple-50 text-purple-600 hover:text-purple-700 text-[11px] font-semibold py-1.5 px-2 rounded-xl border border-purple-200 flex items-center justify-center gap-1 transition cursor-pointer shadow-2xs disabled:opacity-50"
                                 title={t('funds.restore_reconcile_btn') || 'Khôi phục lệnh đối soát trước đó'}
                               >
                                 <RotateCw className={`w-3.5 h-3.5 shrink-0 ${restoringReconcile ? 'animate-spin' : ''}`} />
@@ -2907,7 +2907,7 @@ export default function TransactionsPage() {
                     <tr>
                       <th className="py-2.5 px-3">{t('funds.fund_name')}</th>
                       <th className="py-2.5 px-3 text-right">{t('funds.opening_balance')}</th>
-                      <th className="py-2.5 px-3 text-right text-emerald-600">(+) {t('funds.period_inflow')}</th>
+                      <th className="py-2.5 px-3 text-right text-purple-600">(+) {t('funds.period_inflow')}</th>
                       <th className="py-2.5 px-3 text-right text-rose-600">(-) {t('funds.period_outflow')}</th>
                       <th className="py-2.5 px-3 text-right">{t('funds.closing_balance')}</th>
                       <th className="py-2.5 px-3 text-right">{t('funds.prev_closing_balance')}</th>
@@ -2927,14 +2927,14 @@ export default function TransactionsPage() {
                           <tr key={f.fund_id} className="hover:bg-slate-50 transition">
                             <td className="py-2.5 px-3 font-bold text-slate-900 flex items-center gap-2">
                               <span
-                                className={`w-2 h-2 rounded-full ${f.fund_type === 'bank' ? 'bg-blue-500' : 'bg-emerald-500'}`}
+                                className={`w-2 h-2 rounded-full ${f.fund_type === 'bank' ? 'bg-blue-500' : 'bg-purple-500'}`}
                               />
                               {f.fund_name}
                             </td>
                             <td className="py-2.5 px-3 text-right text-slate-600 font-medium">
                               {formatCurrency(f.current_month.opening_balance, settings)}
                             </td>
-                            <td className="py-2.5 px-3 text-right font-semibold text-emerald-600">
+                            <td className="py-2.5 px-3 text-right font-semibold text-purple-600">
                               +{formatCurrency(f.current_month.total_inflow, settings)}
                             </td>
                             <td className="py-2.5 px-3 text-right font-semibold text-rose-600">
@@ -2949,7 +2949,7 @@ export default function TransactionsPage() {
                             <td className="py-2.5 px-3 text-right">
                               <span
                                 className={`inline-block px-2 py-0.5 rounded-full font-bold text-[10px] ${f.growth_pct >= 0
-                                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                  ? 'bg-purple-50 text-purple-700 border border-purple-200'
                                   : 'bg-rose-50 text-rose-700 border border-rose-200'
                                   }`}
                               >
@@ -2966,7 +2966,7 @@ export default function TransactionsPage() {
                             <td className="py-2.5 px-3 text-right">
                               {formatCurrency(periodSummary.totals.current_month.opening_balance, settings)}
                             </td>
-                            <td className="py-2.5 px-3 text-right text-emerald-600">
+                            <td className="py-2.5 px-3 text-right text-purple-600">
                               +{formatCurrency(periodSummary.totals.current_month.total_inflow, settings)}
                             </td>
                             <td className="py-2.5 px-3 text-right text-rose-600">
@@ -2981,7 +2981,7 @@ export default function TransactionsPage() {
                             <td className="py-2.5 px-3 text-right">
                               <span
                                 className={`inline-block px-2 py-0.5 rounded-full font-bold text-[10px] ${periodSummary.totals.growth_pct >= 0
-                                  ? 'bg-emerald-100 text-emerald-800'
+                                  ? 'bg-purple-100 text-purple-800'
                                   : 'bg-rose-100 text-rose-800'
                                   }`}
                               >
@@ -3263,7 +3263,7 @@ export default function TransactionsPage() {
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">Trạng thái:</span>
-                <span className={`font-bold ${deletingOrder.status === 'cancelled' ? 'text-rose-600' : 'text-emerald-600'}`}>
+                <span className={`font-bold ${deletingOrder.status === 'cancelled' ? 'text-rose-600' : 'text-purple-600'}`}>
                   {deletingOrder.status === 'cancelled' ? 'Đã hủy' : 'Hoàn thành'}
                 </span>
               </div>
@@ -3359,8 +3359,8 @@ export default function TransactionsPage() {
                 const variance = actualBalanceInput - selectedFundForReconcile.current_balance;
                 if (variance === 0) {
                   return (
-                    <div className="p-2.5 sm:p-3 bg-emerald-50 text-emerald-800 rounded-xl border border-emerald-200 flex items-center gap-2 font-medium text-xs">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <div className="p-2.5 sm:p-3 bg-purple-50 text-purple-800 rounded-xl border border-purple-200 flex items-center gap-2 font-medium text-xs">
+                      <CheckCircle2 className="w-4 h-4 text-purple-600 shrink-0" />
                       <span>{t('funds.variance_none')}</span>
                     </div>
                   );
@@ -3393,15 +3393,15 @@ export default function TransactionsPage() {
               </div>
 
               {/* Email report option after reconciliation */}
-              <label className="flex items-center gap-2.5 cursor-pointer bg-emerald-50 border border-emerald-200 rounded-xl p-2.5 sm:p-3">
+              <label className="flex items-center gap-2.5 cursor-pointer bg-purple-50 border border-purple-200 rounded-xl p-2.5 sm:p-3">
                 <input
                   type="checkbox"
                   checked={sendEmailAfterReconcile}
                   onChange={(e) => setSendEmailAfterReconcile(e.target.checked)}
-                  className="w-4 h-4 accent-emerald-600 rounded cursor-pointer"
+                  className="w-4 h-4 accent-purple-600 rounded cursor-pointer"
                 />
-                <Mail className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span className="text-xs font-semibold text-emerald-800">{t('email_report.funds_prompt_label')}</span>
+                <Mail className="w-4 h-4 text-purple-600 shrink-0" />
+                <span className="text-xs font-semibold text-purple-800">{t('email_report.funds_prompt_label')}</span>
               </label>
 
               {/* Modal Buttons (Balanced on mobile) */}
@@ -3490,8 +3490,8 @@ export default function TransactionsPage() {
                   );
                 } else if (diff > 0) {
                   return (
-                    <div className="p-2.5 sm:p-3 bg-emerald-50 text-emerald-800 rounded-xl border border-emerald-200 flex items-center gap-2 font-medium text-xs">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <div className="p-2.5 sm:p-3 bg-purple-50 text-purple-800 rounded-xl border border-purple-200 flex items-center gap-2 font-medium text-xs">
+                      <CheckCircle2 className="w-4 h-4 text-purple-600 shrink-0" />
                       <span>Số dư két sẽ điều chỉnh tăng thêm: +{formatCurrency(diff, settings)}</span>
                     </div>
                   );
@@ -3579,7 +3579,7 @@ export default function TransactionsPage() {
                     switch (rec.status) {
                       case 'active':
                         return (
-                          <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                          <span className="bg-purple-50 text-purple-700 border border-purple-200 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
                             <CheckCircle2 className="w-3 h-3" />
                             {t('funds.reconcile_status_active') || 'Đang áp dụng'}
                           </span>
@@ -3643,7 +3643,7 @@ export default function TransactionsPage() {
                           <div
                             className={`font-black text-[11px] mt-0.5 ${
                               rec.variance > 0
-                                ? 'text-emerald-600'
+                                ? 'text-purple-600'
                                 : rec.variance < 0
                                 ? 'text-rose-600'
                                 : 'text-slate-500'
@@ -3684,7 +3684,7 @@ export default function TransactionsPage() {
                             type="button"
                             onClick={() => handleRestoreReconciliation(viewingHistoryFund)}
                             disabled={restoringReconcile}
-                            className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-xs font-semibold py-1.5 px-3 rounded-xl flex items-center gap-1.5 transition cursor-pointer"
+                            className="bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 text-xs font-semibold py-1.5 px-3 rounded-xl flex items-center gap-1.5 transition cursor-pointer"
                           >
                             <RotateCw className={`w-3.5 h-3.5 ${restoringReconcile ? 'animate-spin' : ''}`} />
                             <span>{t('funds.restore_reconcile_btn') || 'Khôi phục lệnh này'}</span>
@@ -3712,7 +3712,7 @@ export default function TransactionsPage() {
 
       {/* Reconciliation Toast Notification */}
       {reconcileToast && (
-        <div className={`fixed top-4 right-4 z-[60] px-4 py-3 rounded-2xl shadow-2xl text-sm font-semibold ${reconcileToast.type === 'success' ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'
+        <div className={`fixed top-4 right-4 z-[60] px-4 py-3 rounded-2xl shadow-2xl text-sm font-semibold ${reconcileToast.type === 'success' ? 'bg-purple-600 text-white' : 'bg-red-600 text-white'
           }`}>
           {reconcileToast.message}
         </div>

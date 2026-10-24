@@ -152,7 +152,7 @@ export default function OfflineQueueModal({
     switch (status) {
       case 'synced':
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-purple-100 text-purple-800 border border-purple-300">
             <CheckCircle2 className="w-3.5 h-3.5" />
             Đã đồng bộ {serverCode ? `(#${serverCode})` : ''}
           </span>
@@ -208,7 +208,7 @@ export default function OfflineQueueModal({
               type="button"
               onClick={handleSyncAll}
               disabled={isSyncing || orders.length === 0}
-              className="px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-50 transition flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
+              className="px-3 py-1.5 rounded-xl text-xs font-bold bg-purple-600 hover:bg-purple-700 text-white disabled:opacity-50 transition flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
             >
               <RotateCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
               <span>{isSyncing ? 'Đang đồng bộ...' : 'Đồng bộ ngay'}</span>
@@ -256,7 +256,7 @@ export default function OfflineQueueModal({
             type="button"
             onClick={() => setActiveTab('synced')}
             className={`flex-1 py-1.5 rounded-lg transition ${
-              activeTab === 'synced' ? 'bg-white text-emerald-700 shadow-2xs' : 'text-slate-500 hover:text-slate-800'
+              activeTab === 'synced' ? 'bg-white text-purple-700 shadow-2xs' : 'text-slate-500 hover:text-slate-800'
             }`}
           >
             Đã xong ({stats.synced})
@@ -272,7 +272,7 @@ export default function OfflineQueueModal({
             </div>
           ) : filteredOrders.length === 0 ? (
             <div className="flex flex-col items-center justify-center p-8 text-center bg-slate-50 rounded-2xl border border-slate-200/80 my-4">
-              <CheckCircle2 className="w-8 h-8 text-emerald-500 mb-2" />
+              <CheckCircle2 className="w-8 h-8 text-purple-500 mb-2" />
               <p className="text-xs font-bold text-slate-700">Hàng đợi trống</p>
               <p className="text-[11px] text-slate-400 mt-0.5">Không có đơn hàng nào cần xử lý trong mục này.</p>
             </div>
@@ -297,7 +297,7 @@ export default function OfflineQueueModal({
                     </p>
                   </div>
                   <div className="text-right">
-                    <span className="text-sm font-extrabold text-emerald-700">
+                    <span className="text-sm font-extrabold text-purple-700">
                       {formatCurrency(order.display_snapshot.final_total, settings)}
                     </span>
                     <p className="text-[10px] text-slate-400 uppercase">

@@ -501,7 +501,7 @@ export default function PromotionsModal({ isOpen, onClose, settings: initialSett
                               ? 'bg-amber-50 text-amber-800 border-amber-200'
                               : isPercent
                               ? 'bg-indigo-50 text-indigo-800 border-indigo-200'
-                              : 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                              : 'bg-purple-50 text-purple-800 border-purple-200'
                           }`}
                         >
                           {isGift ? <Gift className="w-3 h-3" /> : isPercent ? <Percent className="w-3 h-3" /> : <Coins className="w-3 h-3" />}
@@ -523,7 +523,7 @@ export default function PromotionsModal({ isOpen, onClose, settings: initialSett
                         }}
                         className={`text-[11px] font-bold px-2 py-0.5 rounded-full transition cursor-pointer shrink-0 ${
                           promo.is_active
-                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                            ? 'bg-purple-50 text-purple-700 border border-purple-200'
                             : 'bg-slate-100 text-slate-500 border border-slate-200'
                         }`}
                       >
@@ -644,7 +644,7 @@ export default function PromotionsModal({ isOpen, onClose, settings: initialSett
                       onClick={() => setFormType('discount_amount')}
                       className={`p-2 sm:p-2.5 rounded-xl border text-center font-bold transition flex flex-col items-center gap-1 cursor-pointer text-[11px] sm:text-xs ${
                         formType === 'discount_amount'
-                          ? 'border-emerald-600 bg-emerald-50 text-emerald-700 ring-2 ring-emerald-500/20'
+                          ? 'border-purple-600 bg-purple-50 text-purple-700 ring-2 ring-purple-500/20'
                           : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
                       }`}
                     >
@@ -902,7 +902,7 @@ export default function PromotionsModal({ isOpen, onClose, settings: initialSett
                       type="checkbox"
                       checked={formIsActive}
                       onChange={(e) => setFormIsActive(e.target.checked)}
-                      className="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500 cursor-pointer"
+                      className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500 cursor-pointer"
                     />
                   </div>
                 </div>

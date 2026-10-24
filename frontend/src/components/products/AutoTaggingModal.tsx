@@ -366,7 +366,7 @@ export default function AutoTaggingModal({
                   aria-checked={config.enabled}
                   onClick={() => setConfig({ ...config, enabled: !config.enabled })}
                   className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-                    config.enabled ? 'bg-emerald-500' : 'bg-slate-300'
+                    config.enabled ? 'bg-purple-500' : 'bg-slate-300'
                   }`}
                 >
                   <span
@@ -465,7 +465,7 @@ export default function AutoTaggingModal({
 
                   {/* High Profit Rule */}
                   <div className="space-y-1.5 bg-white p-3 rounded-xl border border-slate-200 shadow-2xs">
-                    <label className="text-xs font-bold text-emerald-600 flex items-center gap-1.5">
+                    <label className="text-xs font-bold text-purple-600 flex items-center gap-1.5">
                       <Star className="w-3.5 h-3.5" />
                       Lợi Nhuận Cao (Featured)
                     </label>
@@ -564,9 +564,9 @@ export default function AutoTaggingModal({
                 {evaluations.filter((e) => e.tag_locked).length} món
               </p>
             </div>
-            <div className="bg-emerald-50 p-3.5 rounded-2xl border border-emerald-200/80 shadow-2xs">
-              <span className="text-[11px] text-emerald-800 font-semibold block">Khung thời gian</span>
-              <p className="text-base font-black text-emerald-700 mt-1 truncate">
+            <div className="bg-purple-50 p-3.5 rounded-2xl border border-purple-200/80 shadow-2xs">
+              <span className="text-[11px] text-purple-800 font-semibold block">Khung thời gian</span>
+              <p className="text-base font-black text-purple-700 mt-1 truncate">
                 {config.time_window_days} ngày qua
               </p>
             </div>
@@ -728,7 +728,7 @@ export default function AutoTaggingModal({
                             )}
                           </div>
                           <div>
-                            Biên LN: <strong className={ev.margin_percent >= 60 ? 'text-emerald-600' : 'text-slate-900'}>{ev.margin_percent}%</strong>
+                            Biên LN: <strong className={ev.margin_percent >= 60 ? 'text-purple-600' : 'text-slate-900'}>{ev.margin_percent}%</strong>
                           </div>
                         </div>
 
@@ -826,7 +826,7 @@ export default function AutoTaggingModal({
                                 <div
                                   className={`text-[10px] font-bold mt-0.5 ${
                                     ev.margin_percent >= 60
-                                      ? 'text-emerald-600'
+                                      ? 'text-purple-600'
                                       : ev.margin_percent >= 40
                                       ? 'text-amber-600'
                                       : 'text-slate-500'

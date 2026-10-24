@@ -74,7 +74,7 @@ export default function ConfirmModal({
       case 'warning':
         return <AlertTriangle className="w-6 h-6 text-amber-600" />;
       case 'success':
-        return <CheckCircle2 className="w-6 h-6 text-emerald-600" />;
+        return <CheckCircle2 className="w-6 h-6 text-purple-600" />;
       case 'info':
       default:
         return <Info className="w-6 h-6 text-blue-600" />;
@@ -88,7 +88,7 @@ export default function ConfirmModal({
       case 'warning':
         return 'bg-amber-100 border-amber-200 text-amber-700';
       case 'success':
-        return 'bg-emerald-100 border-emerald-200 text-emerald-700';
+        return 'bg-purple-100 border-purple-200 text-purple-700';
       case 'info':
       default:
         return 'bg-blue-100 border-blue-200 text-blue-700';
@@ -102,7 +102,7 @@ export default function ConfirmModal({
       case 'warning':
         return 'bg-amber-600 hover:bg-amber-700 focus:ring-amber-500 text-white shadow-sm active:scale-98';
       case 'success':
-        return 'bg-emerald-700 hover:bg-emerald-800 focus:ring-emerald-500 text-white shadow-sm active:scale-98';
+        return 'bg-purple-700 hover:bg-purple-800 focus:ring-purple-500 text-white shadow-sm active:scale-98';
       case 'info':
       default:
         return 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500 text-white shadow-sm active:scale-98';

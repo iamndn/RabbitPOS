@@ -303,7 +303,7 @@ export default function StoreFormModal({
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
           <div className="flex items-center space-x-2.5">
-            <div className="p-2 bg-emerald-100 text-emerald-800 rounded-xl">
+            <div className="p-2 bg-purple-100 text-purple-800 rounded-xl">
               <StoreIcon className="w-5 h-5" />
             </div>
             <div>
@@ -330,7 +330,7 @@ export default function StoreFormModal({
           {/* Section 1: Basic Information */}
           <div className="space-y-3.5">
             <h4 className="text-xs font-black uppercase text-slate-400 tracking-wider flex items-center gap-1.5">
-              <Building2 className="w-3.5 h-3.5 text-emerald-600" />
+              <Building2 className="w-3.5 h-3.5 text-purple-600" />
               Thông tin nhận diện
             </h4>
 
@@ -345,7 +345,7 @@ export default function StoreFormModal({
                   value={name}
                   onChange={(e) => handleNameChange(e.target.value)}
                   placeholder="Ví dụ: Rabbit Coffee - Chi nhánh 2"
-                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 font-semibold"
+                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-600 font-semibold"
                   required
                 />
               </div>
@@ -360,7 +360,7 @@ export default function StoreFormModal({
                   value={code}
                   onChange={(e) => handleCodeChange(e.target.value)}
                   placeholder="slug: cn2, bakery-d1..."
-                  className="w-full px-3 py-2 text-xs font-mono bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 font-bold"
+                  className="w-full px-3 py-2 text-xs font-mono bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-600 font-bold"
                   required
                 />
                 <span className="text-[10px] text-slate-400 mt-0.5 block">
@@ -395,7 +395,7 @@ export default function StoreFormModal({
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     placeholder="0901234567"
-                    className="w-full pl-8.5 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
+                    className="w-full pl-8.5 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-600"
                   />
                 </div>
               </div>
@@ -411,7 +411,7 @@ export default function StoreFormModal({
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
                   placeholder="Số nhà, Tên đường, Phường/Xã, Quận/Huyện, Tỉnh/TP..."
-                  className="w-full pl-8.5 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
+                  className="w-full pl-8.5 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-600"
                 />
               </div>
             </div>
@@ -445,7 +445,7 @@ export default function StoreFormModal({
                 <div className="flex-1">
                   <label className="inline-flex items-center space-x-2 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl cursor-pointer transition active:scale-95">
                     {uploadingLogo ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-600" />
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-purple-600" />
                     ) : (
                       <Upload className="w-3.5 h-3.5" />
                     )}
@@ -551,7 +551,7 @@ export default function StoreFormModal({
                 <label
                   className={`flex items-start space-x-3 p-3 rounded-2xl border cursor-pointer transition ${
                     cloneMode === 'blank'
-                      ? 'bg-emerald-50/70 border-emerald-500 ring-2 ring-emerald-500/20'
+                      ? 'bg-purple-50/70 border-purple-500 ring-2 ring-purple-500/20'
                       : 'bg-white border-slate-200 hover:bg-slate-50'
                   }`}
                 >
@@ -561,7 +561,7 @@ export default function StoreFormModal({
                     value="blank"
                     checked={cloneMode === 'blank'}
                     onChange={() => setCloneMode('blank')}
-                    className="mt-0.5 text-emerald-600 focus:ring-emerald-500"
+                    className="mt-0.5 text-purple-600 focus:ring-purple-500"
                   />
                   <div>
                     <span className="block text-xs font-bold text-slate-900">
@@ -687,7 +687,7 @@ export default function StoreFormModal({
             <button
               type="submit"
               disabled={isSubmitting}
-              className="inline-flex items-center space-x-2 px-5 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs shadow-md shadow-emerald-700/20 transition active:scale-95 cursor-pointer disabled:opacity-50"
+              className="inline-flex items-center space-x-2 px-5 py-2 rounded-xl bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs shadow-md shadow-purple-700/20 transition active:scale-95 cursor-pointer disabled:opacity-50"
             >
               {isSubmitting ? (
                 <>

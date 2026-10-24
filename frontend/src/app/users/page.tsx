@@ -372,8 +372,8 @@ export default function UsersPage() {
         );
       default:
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
-            <Users className="w-3.5 h-3.5 text-emerald-600" />
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-purple-100 text-purple-800 border border-purple-200">
+            <Users className="w-3.5 h-3.5 text-purple-600" />
             {t('users.role_staff_badge') || 'Staff (Thu ngân)'}
           </span>
         );
@@ -402,7 +402,7 @@ export default function UsersPage() {
         {/* Page Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-xs">
           <div className="flex items-center space-x-3.5">
-            <div className="p-3 bg-emerald-600 text-white rounded-2xl shadow-md shadow-emerald-200 shrink-0">
+            <div className="p-3 bg-purple-600 text-white rounded-2xl shadow-md shadow-purple-200 shrink-0">
               <Users className="w-6 h-6" />
             </div>
             <div>
@@ -420,7 +420,7 @@ export default function UsersPage() {
               type="button"
               onClick={loadUsers}
               disabled={isLoading}
-              className="p-2.5 text-slate-600 hover:text-emerald-700 hover:bg-slate-50 border border-slate-200 rounded-xl transition cursor-pointer active:scale-95"
+              className="p-2.5 text-slate-600 hover:text-purple-700 hover:bg-slate-50 border border-slate-200 rounded-xl transition cursor-pointer active:scale-95"
               title={t('users.reload_tooltip') || 'Tải lại danh sách'}
             >
               <RotateCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
@@ -428,7 +428,7 @@ export default function UsersPage() {
             <button
               type="button"
               onClick={handleOpenCreate}
-              className="flex items-center space-x-2 px-4 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-200 transition cursor-pointer active:scale-95"
+              className="flex items-center space-x-2 px-4 py-2.5 bg-purple-700 hover:bg-purple-800 text-white text-xs font-bold rounded-xl shadow-md shadow-purple-200 transition cursor-pointer active:scale-95"
             >
               <UserPlus className="w-4 h-4" />
               <span>{t('users.btn_add_user') || 'Thêm Nhân Viên'}</span>
@@ -468,13 +468,13 @@ export default function UsersPage() {
             </div>
           </div>
 
-          <div className="bg-white p-4 rounded-2xl border border-emerald-100 shadow-xs flex items-center space-x-3.5">
-            <div className="p-2.5 bg-emerald-100 text-emerald-700 rounded-xl">
+          <div className="bg-white p-4 rounded-2xl border border-purple-100 shadow-xs flex items-center space-x-3.5">
+            <div className="p-2.5 bg-purple-100 text-purple-700 rounded-xl">
               <Users className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-[11px] font-bold text-emerald-600 uppercase">{t('users.stat_staff') || 'Cashier / Staff'}</p>
-              <p className="text-xl font-black text-emerald-900">{stats.staff}</p>
+              <p className="text-[11px] font-bold text-purple-600 uppercase">{t('users.stat_staff') || 'Cashier / Staff'}</p>
+              <p className="text-xl font-black text-purple-900">{stats.staff}</p>
             </div>
           </div>
         </div>
@@ -488,7 +488,7 @@ export default function UsersPage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={t('users.search_placeholder') || 'Tìm theo tên đăng nhập, họ tên, SĐT hoặc email...'}
-              className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:bg-white transition"
+              className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-purple-600 focus:bg-white transition"
             />
           </div>
 
@@ -496,7 +496,7 @@ export default function UsersPage() {
             <select
               value={roleFilter}
               onChange={(e) => setRoleFilter(e.target.value)}
-              className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-600 cursor-pointer flex-1 md:flex-initial"
+              className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-600 cursor-pointer flex-1 md:flex-initial"
             >
               <option value="all">{t('users.filter_all_roles') || 'Tất cả vai trò'}</option>
               <option value="master">{t('users.role_master') || 'Master'}</option>
@@ -507,7 +507,7 @@ export default function UsersPage() {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-600 cursor-pointer flex-1 md:flex-initial"
+              className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-600 cursor-pointer flex-1 md:flex-initial"
             >
               <option value="all">{t('users.filter_all_status') || 'Tất cả trạng thái'}</option>
               <option value="active">{t('users.filter_active') || 'Đang hoạt động'}</option>
@@ -539,14 +539,14 @@ export default function UsersPage() {
                   {/* Card Top: Avatar, Name, Role badge, Status */}
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center space-x-3 min-w-0">
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-600 to-emerald-800 text-white font-black flex items-center justify-center text-xs shadow-xs shrink-0">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-600 to-purple-800 text-white font-black flex items-center justify-center text-xs shadow-xs shrink-0">
                         {u.username.slice(0, 2).toUpperCase()}
                       </div>
                       <div className="min-w-0">
                         <p className="font-bold text-slate-900 text-sm truncate flex items-center gap-1.5">
                           <span className="truncate">{u.full_name || u.username}</span>
                           {isSelf && (
-                            <span className="text-[10px] px-1.5 py-0.5 bg-emerald-50 text-emerald-700 font-extrabold rounded-md border border-emerald-200 shrink-0">
+                            <span className="text-[10px] px-1.5 py-0.5 bg-purple-50 text-purple-700 font-extrabold rounded-md border border-purple-200 shrink-0">
                               {t('users.self_tag') || 'Bạn'}
                             </span>
                           )}
@@ -558,8 +558,8 @@ export default function UsersPage() {
                     <div className="flex flex-col items-end gap-1 shrink-0">
                       {getRoleBadge(u.role)}
                       {u.is_active ? (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-200">
+                          <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse"></span>
                           {t('users.status_active') || 'Hoạt động'}
                         </span>
                       ) : (
@@ -576,7 +576,7 @@ export default function UsersPage() {
                     <div>
                       <span className="text-[10px] text-slate-400 block font-semibold uppercase">Số điện thoại</span>
                       {u.phone ? (
-                        <a href={`tel:${u.phone}`} className="font-semibold text-emerald-700 flex items-center gap-1 mt-0.5">
+                        <a href={`tel:${u.phone}`} className="font-semibold text-purple-700 flex items-center gap-1 mt-0.5">
                           <Phone className="w-3 h-3 text-slate-400" />
                           <span>{u.phone}</span>
                         </a>
@@ -587,8 +587,8 @@ export default function UsersPage() {
                     <div>
                       <span className="text-[10px] text-slate-400 block font-semibold uppercase">Mã PIN POS</span>
                       {u.has_pin ? (
-                        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-200 mt-0.5">
-                          <KeyRound className="w-3 h-3 text-emerald-600" />
+                        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-lg border border-purple-200 mt-0.5">
+                          <KeyRound className="w-3 h-3 text-purple-600" />
                           {t('users.has_pin') || 'Đã cài PIN'}
                         </span>
                       ) : (
@@ -634,7 +634,7 @@ export default function UsersPage() {
                           className={`flex items-center justify-center space-x-1 py-2 px-2 text-xs font-bold rounded-xl border transition active:scale-95 cursor-pointer min-h-[38px] ${
                             u.is_active
                               ? 'text-rose-700 bg-rose-50 hover:bg-rose-100 border-rose-200'
-                              : 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border-emerald-200'
+                              : 'text-purple-700 bg-purple-50 hover:bg-purple-100 border-purple-200'
                           }`}
                         >
                           <Power className="w-3.5 h-3.5" />
@@ -695,14 +695,14 @@ export default function UsersPage() {
                         {/* User Identity */}
                         <td className="py-3.5 px-4">
                           <div className="flex items-center space-x-3">
-                            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-600 to-emerald-800 text-white font-black flex items-center justify-center text-xs shadow-xs shrink-0">
+                            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-600 to-purple-800 text-white font-black flex items-center justify-center text-xs shadow-xs shrink-0">
                               {u.username.slice(0, 2).toUpperCase()}
                             </div>
                             <div className="min-w-0">
                               <p className="font-bold text-slate-900 truncate">
                                 {u.full_name || u.username}
                                 {isSelf && (
-                                  <span className="ml-1.5 text-[10px] px-1.5 py-0.5 bg-emerald-50 text-emerald-700 font-extrabold rounded-md border border-emerald-200">
+                                  <span className="ml-1.5 text-[10px] px-1.5 py-0.5 bg-purple-50 text-purple-700 font-extrabold rounded-md border border-purple-200">
                                     {t('users.self_tag') || 'Bạn'}
                                   </span>
                                 )}
@@ -738,8 +738,8 @@ export default function UsersPage() {
                         {/* PIN Code Badge */}
                         <td className="py-3.5 px-4">
                           {u.has_pin ? (
-                            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
-                              <KeyRound className="w-3 h-3 text-emerald-600" />
+                            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-purple-700 bg-purple-50 px-2.5 py-1 rounded-lg border border-purple-200">
+                              <KeyRound className="w-3 h-3 text-purple-600" />
                               {t('users.has_pin') || 'Đã cài PIN'}
                             </span>
                           ) : (
@@ -752,8 +752,8 @@ export default function UsersPage() {
                         {/* Status */}
                         <td className="py-3.5 px-4">
                           {u.is_active ? (
-                            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700">
-                              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-purple-700">
+                              <span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse"></span>
                               {t('users.status_active') || 'Hoạt động'}
                             </span>
                           ) : (
@@ -800,7 +800,7 @@ export default function UsersPage() {
                                     className={`p-1.5 rounded-lg transition active:scale-95 cursor-pointer ${
                                       u.is_active
                                         ? 'text-slate-500 hover:text-rose-600 hover:bg-rose-50'
-                                        : 'text-slate-500 hover:text-emerald-600 hover:bg-emerald-50'
+                                        : 'text-slate-500 hover:text-purple-600 hover:bg-purple-50'
                                     }`}
                                     title={u.is_active ? (t('users.confirm_lock_title') || 'Khóa tài khoản') : (t('users.confirm_unlock_title') || 'Kích hoạt tài khoản')}
                                   >
@@ -828,7 +828,7 @@ export default function UsersPage() {
             <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-150">
               <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
                 <div className="flex items-center space-x-2.5">
-                  <div className="p-2 bg-emerald-600 text-white rounded-xl shadow-xs">
+                  <div className="p-2 bg-purple-600 text-white rounded-xl shadow-xs">
                     <UserPlus className="w-5 h-5" />
                   </div>
                   <div>
@@ -866,7 +866,7 @@ export default function UsersPage() {
                       value={formData.username}
                       onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                       placeholder={t('users.field_username_placeholder') || 'vd: thu_ngan_01'}
-                      className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-600 disabled:opacity-60"
+                      className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-purple-600 disabled:opacity-60"
                       required
                     />
                   </div>
@@ -881,7 +881,7 @@ export default function UsersPage() {
                       value={formData.full_name}
                       onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
                       placeholder={t('users.field_fullname_placeholder') || 'vd: Nguyễn Văn A'}
-                      className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                      className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-purple-600"
                     />
                   </div>
                 </div>
@@ -897,7 +897,7 @@ export default function UsersPage() {
                       value={formData.phone}
                       onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                       placeholder={t('users.field_phone_placeholder') || 'vd: 0912345678'}
-                      className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                      className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-purple-600"
                     />
                   </div>
 
@@ -911,7 +911,7 @@ export default function UsersPage() {
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                       placeholder={t('users.field_email_placeholder') || 'vd: nhanvien@rabbitpos.vn'}
-                      className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                      className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-purple-600"
                     />
                   </div>
                 </div>
@@ -969,7 +969,7 @@ export default function UsersPage() {
                     <label
                       className={`border rounded-xl p-3 flex flex-col cursor-pointer transition text-center ${
                         formData.role === 'staff'
-                          ? 'border-emerald-600 bg-emerald-50/60 ring-2 ring-emerald-600/20'
+                          ? 'border-purple-600 bg-purple-50/60 ring-2 ring-purple-600/20'
                           : 'border-slate-200 hover:bg-slate-50'
                       }`}
                     >
@@ -981,8 +981,8 @@ export default function UsersPage() {
                         onChange={() => setFormData({ ...formData, role: 'staff' })}
                         className="sr-only"
                       />
-                      <span className="text-xs font-black text-emerald-900">{t('users.role_staff') || 'Staff'}</span>
-                      <span className="text-[10px] text-emerald-600 font-medium mt-0.5">
+                      <span className="text-xs font-black text-purple-900">{t('users.role_staff') || 'Staff'}</span>
+                      <span className="text-[10px] text-purple-600 font-medium mt-0.5">
                         {t('users.role_staff_desc') || 'Thu ngân / Pha chế'}
                       </span>
                     </label>
@@ -1002,7 +1002,7 @@ export default function UsersPage() {
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                     placeholder={editingUser ? 'Nhập mật khẩu mới...' : (t('users.field_password_placeholder') || 'Tối thiểu 6 ký tự')}
-                    className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                    className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-purple-600"
                     required={!editingUser}
                   />
                 </div>
@@ -1023,7 +1023,7 @@ export default function UsersPage() {
                     value={formData.pin_code}
                     onChange={(e) => setFormData({ ...formData, pin_code: e.target.value.replace(/\D/g, '') })}
                     placeholder={editingUser ? 'Nhập PIN mới hoặc bỏ trống...' : (t('users.field_pin_placeholder') || 'vd: 1234')}
-                    className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold tracking-widest focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                    className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold tracking-widest focus:outline-none focus:ring-2 focus:ring-purple-600"
                   />
                 </div>
 
@@ -1041,7 +1041,7 @@ export default function UsersPage() {
                     type="button"
                     onClick={() => setFormData({ ...formData, is_active: !formData.is_active })}
                     className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer ${
-                      formData.is_active ? 'bg-emerald-600' : 'bg-slate-300'
+                      formData.is_active ? 'bg-purple-600' : 'bg-slate-300'
                     }`}
                   >
                     <span
@@ -1064,7 +1064,7 @@ export default function UsersPage() {
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="px-5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-200 transition cursor-pointer disabled:opacity-50"
+                    className="px-5 py-2 bg-purple-700 hover:bg-purple-800 text-white text-xs font-bold rounded-xl shadow-md shadow-purple-200 transition cursor-pointer disabled:opacity-50"
                   >
                     {isSubmitting
                       ? (t('users.btn_saving') || 'Đang lưu...')

@@ -99,7 +99,7 @@ const SORT_OPTIONS: { id: ProductSortOption; label: string; icon: React.ReactNod
   { id: 'default', label: 'Mặc định', icon: <RefreshCw className="w-3.5 h-3.5 text-slate-500" />, desc: 'Thứ tự ban đầu' },
   { id: 'name-asc', label: 'Tên: A → Z', icon: <ArrowUpAZ className="w-3.5 h-3.5 text-indigo-500" />, desc: 'Bảng chữ cái từ A đến Z' },
   { id: 'name-desc', label: 'Tên: Z → A', icon: <ArrowDownAZ className="w-3.5 h-3.5 text-indigo-500" />, desc: 'Bảng chữ cái từ Z đến A' },
-  { id: 'category', label: 'Theo Danh mục', icon: <FolderTree className="w-3.5 h-3.5 text-emerald-500" />, desc: 'Nhóm theo danh mục món' },
+  { id: 'category', label: 'Theo Danh mục', icon: <FolderTree className="w-3.5 h-3.5 text-purple-500" />, desc: 'Nhóm theo danh mục món' },
   { id: 'tag', label: 'Theo Nhãn', icon: <Tag className="w-3.5 h-3.5 text-amber-500" />, desc: 'Nhóm theo nhãn sản phẩm' },
   { id: 'price-asc', label: 'Giá: Thấp → Cao', icon: <TrendingUp className="w-3.5 h-3.5 text-teal-500" />, desc: 'Từ giá rẻ nhất' },
   { id: 'price-desc', label: 'Giá: Cao → Thấp', icon: <TrendingDown className="w-3.5 h-3.5 text-rose-500" />, desc: 'Từ giá cao nhất' },
@@ -130,13 +130,13 @@ const CategorySidebar = React.memo(function CategorySidebar({
         onClick={() => onSelectCategory(null)}
         className={`w-full px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-xl text-[11px] sm:text-xs font-bold text-left flex items-center justify-between gap-1.5 transition active:scale-[0.97] cursor-pointer ${
           activeCategoryId === null
-            ? 'bg-emerald-700 text-white shadow-sm ring-2 ring-emerald-500/30'
+            ? 'bg-purple-700 text-white shadow-sm ring-2 ring-purple-500/30'
             : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200/80'
         }`}
       >
         <span className="truncate leading-snug">{allLabel}</span>
         <span className={`shrink-0 text-[9px] sm:text-[10px] min-w-[1.2rem] sm:min-w-[1.3rem] text-center px-1 py-0.5 rounded-full font-bold ${
-          activeCategoryId === null ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-500'
+          activeCategoryId === null ? 'bg-purple-600 text-white' : 'bg-slate-100 text-slate-500'
         }`}>
           {totalProductsCount}
         </span>
@@ -154,13 +154,13 @@ const CategorySidebar = React.memo(function CategorySidebar({
             onClick={() => onSelectCategory(cat.id)}
             className={`w-full px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-xl text-[11px] sm:text-xs font-bold text-left flex items-center justify-between gap-1.5 transition active:scale-[0.97] cursor-pointer ${
               isSelected
-                ? 'bg-emerald-700 text-white shadow-sm ring-2 ring-emerald-500/30'
+                ? 'bg-purple-700 text-white shadow-sm ring-2 ring-purple-500/30'
                 : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200/80'
             }`}
           >
             <span className="flex-1 truncate leading-snug">{cat.name}</span>
             <span className={`shrink-0 text-[9px] sm:text-[10px] min-w-[1.2rem] sm:min-w-[1.3rem] text-center px-1 py-0.5 rounded-full font-bold ${
-              isSelected ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-500'
+              isSelected ? 'bg-purple-600 text-white' : 'bg-slate-100 text-slate-500'
             }`}>
               {catCount}
             </span>
@@ -235,7 +235,7 @@ const ProductCard = React.memo(function ProductCard({
   return (
     <div
       onClick={handleClick}
-      className={`bg-white p-2 sm:p-2.5 rounded-2xl border border-slate-200/90 shadow-2xs hover:shadow-md hover:border-emerald-400 transition-all active:scale-[0.98] flex flex-col justify-between cursor-pointer group hardware-accelerated min-w-0 w-full relative select-none ${
+      className={`bg-white p-2 sm:p-2.5 rounded-2xl border border-slate-200/90 shadow-2xs hover:shadow-md hover:border-purple-400 transition-all active:scale-[0.98] flex flex-col justify-between cursor-pointer group hardware-accelerated min-w-0 w-full relative select-none ${
         isSuspended ? 'opacity-70 bg-slate-50/70' : ''
       }`}
     >
@@ -271,7 +271,7 @@ const ProductCard = React.memo(function ProductCard({
           </div>
         )}
 
-        <h3 className="font-bold text-slate-900 text-xs leading-snug group-hover:text-emerald-700 transition line-clamp-2 break-words">
+        <h3 className="font-bold text-slate-900 text-xs leading-snug group-hover:text-purple-700 transition line-clamp-2 break-words">
           {product.name}
         </h3>
       </div>
@@ -286,7 +286,7 @@ const ProductCard = React.memo(function ProductCard({
             </span>
           )}
           <span
-            className="font-black text-emerald-700 text-xs sm:text-sm tracking-tight truncate leading-tight"
+            className="font-black text-purple-700 text-xs sm:text-sm tracking-tight truncate leading-tight"
             title={formatCurrency(startingPrice, settings)}
           >
             {formatCurrency(startingPrice, settings)}
@@ -306,7 +306,7 @@ const ProductCard = React.memo(function ProductCard({
           <button
             type="button"
             onClick={handleClick}
-            className="w-full py-1.5 px-2 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-[11px] sm:text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1 shadow-2xs active:scale-95 cursor-pointer"
+            className="w-full py-1.5 px-2 bg-purple-600 hover:bg-purple-700 active:bg-purple-800 text-white text-[11px] sm:text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1 shadow-2xs active:scale-95 cursor-pointer"
             title={orderBtnLabel || t('pos.order_button') || 'Gọi món'}
           >
             <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
@@ -316,7 +316,7 @@ const ProductCard = React.memo(function ProductCard({
           <button
             type="button"
             onClick={handleOpenCustomize}
-            className="w-full py-1.5 px-2 bg-emerald-50 hover:bg-emerald-600 hover:text-white group-hover:bg-emerald-600 group-hover:text-white text-emerald-700 text-[11px] sm:text-xs font-bold rounded-xl border border-emerald-200/80 transition-all flex items-center justify-center gap-1 shadow-2xs active:scale-95 cursor-pointer"
+            className="w-full py-1.5 px-2 bg-purple-50 hover:bg-purple-600 hover:text-white group-hover:bg-purple-600 group-hover:text-white text-purple-700 text-[11px] sm:text-xs font-bold rounded-xl border border-purple-200/80 transition-all flex items-center justify-center gap-1 shadow-2xs active:scale-95 cursor-pointer"
             title={t('pos.select_size') || 'Chọn size'}
           >
             <SlidersHorizontal className="w-3 h-3" />
@@ -1092,8 +1092,8 @@ export default function PosPage() {
         <div className="flex items-center gap-2 w-full">
           {/* Network Status Badge */}
           {network.isOnline ? (
-            <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-2 rounded-xl text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/80 shadow-2xs shrink-0">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-2 rounded-xl text-[11px] font-semibold bg-purple-50 text-purple-700 border border-purple-200/80 shadow-2xs shrink-0">
+              <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse"></span>
               {lastSyncedAt
                 ? `Đồng bộ: ${new Date(lastSyncedAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}`
                 : 'Trực tuyến'}
@@ -1155,14 +1155,14 @@ export default function PosPage() {
             onClick={() => setIsFilterModalOpen(true)}
             className={`px-3.5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer shadow-2xs ${
               activeTag !== null || sortBy !== 'default'
-                ? 'bg-emerald-800 text-white shadow-sm ring-2 ring-emerald-600/30 font-extrabold'
+                ? 'bg-purple-800 text-white shadow-sm ring-2 ring-purple-600/30 font-extrabold'
                 : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
             }`}
           >
             <SlidersHorizontal className="w-4 h-4" />
             <span className="hidden sm:inline">Sắp xếp</span>
             {(activeTag !== null || sortBy !== 'default') && (
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="w-2 h-2 rounded-full bg-purple-400 animate-pulse" />
             )}
           </button>
         </div>
@@ -1193,7 +1193,7 @@ export default function PosPage() {
               {/* Modal Header */}
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <div className="flex items-center gap-2">
-                  <div className="p-2 bg-emerald-50 text-emerald-700 rounded-xl">
+                  <div className="p-2 bg-purple-50 text-purple-700 rounded-xl">
                     <Filter className="w-5 h-5" />
                   </div>
                   <div>
@@ -1257,13 +1257,13 @@ export default function PosPage() {
                         onClick={() => setActiveCategoryId(null)}
                         className={`px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs ${
                           activeCategoryId === null
-                            ? 'bg-emerald-800 text-white shadow-sm font-black ring-2 ring-emerald-600/30'
+                            ? 'bg-purple-800 text-white shadow-sm font-black ring-2 ring-purple-600/30'
                             : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
                         }`}
                       >
                         <span>{t('pos.all_items')}</span>
                         <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                          activeCategoryId === null ? 'bg-emerald-700 text-white' : 'bg-slate-100 text-slate-600'
+                          activeCategoryId === null ? 'bg-purple-700 text-white' : 'bg-slate-100 text-slate-600'
                         }`}>
                           {safeProducts.filter((p) => p.is_active !== false).length}
                         </span>
@@ -1278,13 +1278,13 @@ export default function PosPage() {
                             onClick={() => setActiveCategoryId(isSelected ? null : cat.id)}
                             className={`px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs ${
                               isSelected
-                                ? 'bg-emerald-800 text-white shadow-sm font-black ring-2 ring-emerald-600/30'
+                                ? 'bg-purple-800 text-white shadow-sm font-black ring-2 ring-purple-600/30'
                                 : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
                             }`}
                           >
                             <span>{cat.name}</span>
                             <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                              isSelected ? 'bg-emerald-700 text-white' : 'bg-slate-100 text-slate-600'
+                              isSelected ? 'bg-purple-700 text-white' : 'bg-slate-100 text-slate-600'
                             }`}>
                               {count}
                             </span>
@@ -1329,14 +1329,14 @@ export default function PosPage() {
                           onClick={() => setActiveTag(isSelected ? null : tg.id)}
                           className={`px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs ${
                             isSelected
-                              ? 'bg-emerald-700 text-white font-extrabold shadow-sm ring-2 ring-emerald-500/30'
+                              ? 'bg-purple-700 text-white font-extrabold shadow-sm ring-2 ring-purple-500/30'
                               : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
                           }`}
                         >
                           <span>{tg.icon}</span>
                           <span>{tg.name}</span>
                           <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                            isSelected ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600'
+                            isSelected ? 'bg-purple-600 text-white' : 'bg-slate-100 text-slate-600'
                           }`}>
                             {count}
                           </span>
@@ -1363,7 +1363,7 @@ export default function PosPage() {
                 <button
                   type="button"
                   onClick={() => setIsFilterModalOpen(false)}
-                  className="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-extrabold px-5 py-2.5 rounded-xl shadow-xs transition active:scale-95 cursor-pointer text-center justify-center flex items-center"
+                  className="bg-purple-700 hover:bg-purple-800 text-white text-xs font-extrabold px-5 py-2.5 rounded-xl shadow-xs transition active:scale-95 cursor-pointer text-center justify-center flex items-center"
                 >
                   Áp dụng ({sortedAndFilteredProducts.length})
                 </button>
@@ -1453,7 +1453,7 @@ export default function PosPage() {
               onClick={() => setIsCartDrawerOpen(true)}
               className="flex items-center space-x-2 sm:space-x-3 cursor-pointer group active:scale-95 transition-transform min-w-0 flex-1 mr-2"
             >
-              <div className="relative bg-emerald-700 p-2 sm:p-2.5 rounded-xl text-white shadow-sm shrink-0">
+              <div className="relative bg-purple-700 p-2 sm:p-2.5 rounded-xl text-white shadow-sm shrink-0">
                 <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5" />
                 {totalItemCount > 0 && (
                   <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[10px] font-extrabold w-4 h-4 rounded-full flex items-center justify-center animate-pulse">
@@ -1468,7 +1468,7 @@ export default function PosPage() {
                 <div className="flex items-center gap-1.5 flex-wrap">
                   <p className="text-sm sm:text-base font-bold text-white truncate">{formatCurrency(cartTotal, settings)}</p>
                   {discountAmount + promotionDiscount + platformFeeDiscount > 0 && (
-                    <span className="text-[9px] sm:text-[10px] bg-emerald-500/20 text-emerald-300 font-bold px-1 py-0.5 rounded truncate">
+                    <span className="text-[9px] sm:text-[10px] bg-purple-500/20 text-purple-300 font-bold px-1 py-0.5 rounded truncate">
                       -{formatCurrency(discountAmount + promotionDiscount + platformFeeDiscount, settings)}
                     </span>
                   )}
@@ -1487,7 +1487,7 @@ export default function PosPage() {
               <button
                 onClick={() => setIsCheckoutModalOpen(true)}
                 disabled={cartItems.length === 0}
-                className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-800 disabled:text-slate-500 text-white text-[11px] sm:text-xs font-bold px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl shadow-lg transition active:scale-95 whitespace-nowrap"
+                className="bg-purple-600 hover:bg-purple-700 disabled:bg-slate-800 disabled:text-slate-500 text-white text-[11px] sm:text-xs font-bold px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl shadow-lg transition active:scale-95 whitespace-nowrap"
               >
                 {t('pos.checkout_now')}
               </button>
