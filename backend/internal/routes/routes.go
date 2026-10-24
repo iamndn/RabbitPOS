@@ -78,6 +78,7 @@ func SetupRouter(cfg *config.Config, db *gorm.DB, emailSvc *services.EmailServic
 		// Public Endpoints
 		v1.GET("/health", healthHandler.CheckHealth)
 		v1.POST("/auth/login", middleware.LoginRateLimiterMiddleware(loginRateLimiter), authHandler.Login)
+		v1.POST("/auth/register", middleware.LoginRateLimiterMiddleware(loginRateLimiter), authHandler.Register)
 		v1.POST("/auth/setup-password", authHandler.SetupPassword)
 
 		// Authenticated Routes Group

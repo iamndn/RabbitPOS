@@ -5,9 +5,12 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"regexp"
+	"strings"
 	"time"
 
 	"github.com/RabbitPOS/backend/internal/config"
+	"github.com/RabbitPOS/backend/internal/database"
 	"github.com/RabbitPOS/backend/internal/middleware"
 	"github.com/RabbitPOS/backend/internal/models"
 	"github.com/RabbitPOS/backend/internal/services"
@@ -208,6 +211,252 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		Token: token,
 		User:  userResp,
 	}, "Authentication successful")
+}
+
+// removeVietnameseTones strips diacritics for clean ASCII slugs
+func removeVietnameseTones(str string) string {
+	accents := map[rune]rune{
+		'à': 'a', 'á': 'a', 'ạ': 'a', 'ả': 'a', 'ã': 'a', 'â': 'a', 'ầ': 'a', 'ấ': 'a', 'ậ': 'a', 'ẩ': 'a', 'ẫ': 'a', 'ă': 'a', 'ằ': 'a', 'ắ': 'a', 'ặ': 'a', 'ẳ': 'a', 'ẵ': 'a',
+		'è': 'e', 'é': 'e', 'ẹ': 'e', 'ẻ': 'e', 'ẽ': 'e', 'ê': 'e', 'ề': 'e', 'ế': 'e', 'ệ': 'e', 'ể': 'e', 'ễ': 'e',
+		'ì': 'i', 'í': 'i', 'ị': 'i', 'ỉ': 'i', 'ĩ': 'i',
+		'ò': 'o', 'ó': 'o', 'ọ': 'o', 'ỏ': 'o', 'õ': 'o', 'ô': 'o', 'ồ': 'o', 'ố': 'o', 'ộ': 'o', 'ổ': 'o', 'ỗ': 'o', 'ơ': 'o', 'ờ': 'o', 'ớ': 'o', 'ợ': 'o', 'ở': 'o', 'ỡ': 'o',
+		'ù': 'u', 'ú': 'u', 'ụ': 'u', 'ủ': 'u', 'ũ': 'u', 'ư': 'u', 'ừ': 'u', 'ứ': 'u', 'ự': 'u', 'ử': 'u', 'ữ': 'u',
+		'ỳ': 'y', 'ý': 'y', 'ỵ': 'y', 'ỷ': 'y', 'ỹ': 'y',
+		'đ': 'd',
+	}
+	var b strings.Builder
+	for _, r := range strings.ToLower(str) {
+		if mapped, ok := accents[r]; ok {
+			b.WriteRune(mapped)
+		} else {
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
+}
+
+var nonAlphaNumRegex = regexp.MustCompile(`[^a-z0-9]+`)
+
+func generateStoreSlug(storeName string) string {
+	ascii := removeVietnameseTones(storeName)
+	slug := nonAlphaNumRegex.ReplaceAllString(ascii, "-")
+	slug = strings.Trim(slug, "-")
+	if len(slug) < 2 {
+		slug = "store"
+	}
+	if len(slug) > 40 {
+		slug = slug[:40]
+		slug = strings.TrimRight(slug, "-")
+	}
+	return slug
+}
+
+// Register creates a new owner user and their first store in a single transaction
+func (h *AuthHandler) Register(c *gin.Context) {
+	ip := middleware.GetClientIP(c)
+	userAgent := c.Request.UserAgent()
+
+	var req models.RegisterRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		models.SendErrorCode(c, http.StatusBadRequest, "INVALID_PAYLOAD", "Thông tin đăng ký không hợp lệ: "+err.Error())
+		return
+	}
+
+	username := strings.ToLower(strings.TrimSpace(req.Username))
+	fullName := strings.TrimSpace(req.FullName)
+	storeName := strings.TrimSpace(req.StoreName)
+	password := strings.TrimSpace(req.Password)
+	pinCode := strings.TrimSpace(req.PinCode)
+	phone := strings.TrimSpace(req.Phone)
+	email := strings.TrimSpace(req.Email)
+
+	if username == "" || len(username) < 3 {
+		models.SendErrorCode(c, http.StatusBadRequest, "INVALID_USERNAME", "Tên đăng nhập phải có ít nhất 3 ký tự.")
+		return
+	}
+	if fullName == "" {
+		models.SendErrorCode(c, http.StatusBadRequest, "INVALID_FULL_NAME", "Vui lòng nhập họ và tên.")
+		return
+	}
+	if len(password) < 6 {
+		models.SendErrorCode(c, http.StatusBadRequest, "INVALID_PASSWORD", "Mật khẩu phải có ít nhất 6 ký tự.")
+		return
+	}
+	if storeName == "" {
+		models.SendErrorCode(c, http.StatusBadRequest, "INVALID_STORE_NAME", "Vui lòng nhập tên cửa hàng.")
+		return
+	}
+	if pinCode != "" && !regexp.MustCompile(`^\d{4,6}$`).MatchString(pinCode) {
+		models.SendErrorCode(c, http.StatusBadRequest, "INVALID_PIN", "Mã PIN phải gồm từ 4 đến 6 chữ số.")
+		return
+	}
+
+	ipKey := "ip:" + ip
+	if h.limiter != nil && !h.limiter.IsAllowed(ipKey) {
+		c.Header("Retry-After", "60")
+		models.SendErrorCode(c, http.StatusTooManyRequests, "AUTH_RATE_LIMITED", "Quá nhiều yêu cầu. Vui lòng thử lại sau 1 phút.")
+		return
+	}
+
+	if h.db == nil {
+		models.SendErrorCode(c, http.StatusInternalServerError, "DB_UNAVAILABLE", "Database service unavailable")
+		return
+	}
+
+	// 1. Check if username is already taken (case-insensitive)
+	var existingUserCount int64
+	if err := h.db.Model(&models.User{}).Where("LOWER(username) = ?", username).Count(&existingUserCount).Error; err != nil {
+		models.SendInternalErrorLogged(c, "Database query error", err)
+		return
+	}
+	if existingUserCount > 0 {
+		models.SendErrorCode(c, http.StatusConflict, "USERNAME_TAKEN", "Tên đăng nhập '"+username+"' đã được sử dụng. Vui lòng chọn tên khác.")
+		return
+	}
+
+	// 2. Hash password
+	pwdHash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		models.SendInternalErrorLogged(c, "Password hashing error", err)
+		return
+	}
+
+	// 3. Hash PIN if provided
+	var pinHash *string
+	if pinCode != "" {
+		pHash, err := bcrypt.GenerateFromPassword([]byte(pinCode), bcrypt.DefaultCost)
+		if err == nil {
+			s := string(pHash)
+			pinHash = &s
+		}
+	}
+
+	// 4. Role determination: First user registered in system becomes Master, subsequent become Owner
+	var totalUsers int64
+	_ = h.db.Model(&models.User{}).Count(&totalUsers)
+	assignedRole := models.RoleOwner
+	if totalUsers == 0 {
+		assignedRole = models.RoleMaster
+	}
+
+	// 5. Business type normalization
+	businessType := strings.ToLower(strings.TrimSpace(req.BusinessType))
+	if businessType == "" || !models.StoreBusinessTypes[businessType] {
+		businessType = "cafe"
+	}
+
+	// 6. Base store slug
+	baseSlug := generateStoreSlug(storeName)
+
+	var newUser models.User
+	var newStore models.Store
+
+	// Transactional creation of User, Store, Seed defaults, and UserStore membership
+	err = h.db.Transaction(func(tx *gorm.DB) error {
+		newUser = models.User{
+			Username:           username,
+			FullName:           fullName,
+			Phone:              phone,
+			Email:              email,
+			Role:               assignedRole,
+			PasswordHash:       string(pwdHash),
+			PinCode:            pinHash,
+			IsActive:           true,
+			NeedsPasswordSetup: false,
+			TokenVersion:       1,
+		}
+		if err := tx.Create(&newUser).Error; err != nil {
+			return err
+		}
+
+		// Resolve unique store code
+		storeCode := baseSlug
+		var count int64
+		if err := tx.Model(&models.Store{}).Where("LOWER(code) = ?", storeCode).Count(&count).Error; err != nil {
+			return err
+		}
+		if count > 0 {
+			storeCode = fmt.Sprintf("%s-%d", baseSlug, time.Now().Unix()%10000)
+		}
+
+		newStore = models.Store{
+			Code:             storeCode,
+			Name:             storeName,
+			BusinessType:     businessType,
+			CurrencyCode:     "VND",
+			CurrencySymbol:   "đ",
+			CurrencyPosition: "suffix",
+			Timezone:         "Asia/Ho_Chi_Minh",
+			IsActive:         true,
+		}
+		if err := tx.Create(&newStore).Error; err != nil {
+			return err
+		}
+
+		// Seed store defaults (Funds, Categories, Store Settings)
+		if err := database.SeedStoreDefaults(tx, newStore.ID); err != nil {
+			return err
+		}
+
+		// Link user as store_admin and default store
+		membership := models.UserStore{
+			UserID:    newUser.ID,
+			StoreID:   newStore.ID,
+			Role:      models.StoreRoleStoreAdmin,
+			IsDefault: true,
+		}
+		if err := tx.Create(&membership).Error; err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		models.SendInternalErrorLogged(c, "Transaction error while creating account and store", err)
+		return
+	}
+
+	// 7. Generate JWT
+	token, _, err := utils.GenerateJWT(newUser.ID, newUser.Username, newUser.Role, newUser.TokenVersion, h.cfg.JWTSecret, h.cfg.JWTExpiryHours)
+	if err != nil {
+		models.SendInternalErrorLogged(c, "Failed to generate auth token", err)
+		return
+	}
+
+	cookieMaxAge := h.cfg.JWTExpiryHours * 3600
+	c.SetCookie("token", token, cookieMaxAge, "/", "", false, true)
+
+	stores, defID := h.populateUserStores(&newUser)
+	userResp := models.UserResponse{
+		ID:                 newUser.ID,
+		Username:           newUser.Username,
+		FullName:           newUser.FullName,
+		Phone:              newUser.Phone,
+		Email:              newUser.Email,
+		Role:               newUser.Role,
+		IsActive:           newUser.IsActive,
+		HasPin:             newUser.PinCode != nil && *newUser.PinCode != "",
+		NeedsPasswordSetup: newUser.NeedsPasswordSetup,
+		LastLoginAt:        newUser.LastLoginAt,
+		Stores:             stores,
+		DefaultStoreID:     defID,
+		CreatedAt:          newUser.CreatedAt,
+		UpdatedAt:          newUser.UpdatedAt,
+	}
+
+	if h.auditSvc != nil {
+		userStrID := fmt.Sprintf("%d", newUser.ID)
+		h.auditSvc.RecordLog(&newUser.ID, newUser.Username, string(newUser.Role), "auth.register_success", "user", &userStrID, "success", ip, userAgent, map[string]interface{}{
+			"store_id":   newStore.ID,
+			"store_name": newStore.Name,
+		})
+	}
+
+	models.SendSuccess(c, http.StatusOK, models.LoginResponse{
+		Token: token,
+		User:  userResp,
+	}, "Đăng ký tài khoản và khởi tạo cửa hàng thành công.")
 }
 
 // SetupPassword handles first-time password change for accounts with needs_password_setup=true

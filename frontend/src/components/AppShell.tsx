@@ -141,7 +141,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     { label: t('nav.transactions'), href: '/transactions', icon: ArrowUpRight, visible: true },
     { label: t('nav.catalog'), href: '/products', icon: Package, visible: canManageStore },
     { label: t('nav.purchases'), href: '/purchases', icon: ShoppingBag, visible: canManageStore },
-    { label: t('nav.users') || 'Nhân sự', href: '/users', icon: Users, visible: canManageUsers },
     { label: t('nav.dashboard'), href: '/dashboard', icon: LayoutDashboard, visible: canManageStore },
     { label: t('nav.stores') || 'Cửa hàng', href: '/stores', icon: StoreIcon, visible: isSuperAdmin },
   ];
@@ -271,44 +270,53 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                   </div>
 
                   <div className="py-1">
-                    {/* Menu Item: Staff & User Management */}
-                    {canManageUsers && (
-                      <Link
-                        href="/users"
-                        onClick={() => setIsUserMenuOpen(false)}
-                        className="flex items-center space-x-3 px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:text-emerald-700 transition active:scale-95"
-                      >
-                        <Users className="w-4 h-4 text-slate-400 group-hover:text-emerald-700" />
-                        <span>{t('nav.users') || 'Quản lý nhân sự'}</span>
-                      </Link>
-                    )}
-
-                    {/* Menu Item 1: System Settings (Store Admin or Super Admin) */}
-                    {canManageStore && (
-                      <Link
-                        href="/settings"
-                        onClick={() => setIsUserMenuOpen(false)}
-                        className="flex items-center space-x-3 px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:text-emerald-700 transition active:scale-95"
-                      >
-                        <Settings className="w-4 h-4 text-slate-400 group-hover:text-emerald-700" />
-                        <span>{t('nav.settings')}</span>
-                      </Link>
-                    )}
-
-                    {/* Menu Item 1.5: Multi-Store Platform Admin (Super Admin only) */}
+                    {/* 1. Multi-Store Platform Admin (Super Admin only) */}
                     {isSuperAdmin && (
                       <Link
                         href="/stores"
                         onClick={() => setIsUserMenuOpen(false)}
-                        className="flex items-center space-x-3 px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:text-emerald-700 transition active:scale-95"
+                        className={`flex items-center space-x-3 px-4 py-2.5 text-xs font-semibold transition active:scale-95 ${
+                          pathname === '/stores' ? 'bg-emerald-50 text-emerald-700 font-bold' : 'text-slate-700 hover:bg-slate-50 hover:text-emerald-700'
+                        }`}
                       >
-                        <StoreIcon className="w-4 h-4 text-slate-400 group-hover:text-emerald-700" />
+                        <StoreIcon className="w-4 h-4 text-emerald-600" />
                         <span>{t('nav.stores') || 'Quản lý cửa hàng'}</span>
                       </Link>
                     )}
 
-                    {/* Menu Item 2: Language Switcher */}
-                    <div className="px-4 py-2.5 flex items-center justify-between text-xs font-semibold text-slate-700">
+                    {/* 2. Staff & User Management (Master or Owner) */}
+                    {canManageUsers && (
+                      <Link
+                        href="/users"
+                        onClick={() => setIsUserMenuOpen(false)}
+                        className={`flex items-center space-x-3 px-4 py-2.5 text-xs font-semibold transition active:scale-95 ${
+                          pathname === '/users' ? 'bg-emerald-50 text-emerald-700 font-bold' : 'text-slate-700 hover:bg-slate-50 hover:text-emerald-700'
+                        }`}
+                      >
+                        <Users className="w-4 h-4 text-blue-600" />
+                        <span>{t('nav.users') || 'Quản lý nhân sự'}</span>
+                      </Link>
+                    )}
+
+                    {/* 3. System Settings (Store Admin or Super Admin) */}
+                    {canManageStore && (
+                      <Link
+                        href="/settings"
+                        onClick={() => setIsUserMenuOpen(false)}
+                        className={`flex items-center space-x-3 px-4 py-2.5 text-xs font-semibold transition active:scale-95 ${
+                          pathname === '/settings' ? 'bg-emerald-50 text-emerald-700 font-bold' : 'text-slate-700 hover:bg-slate-50 hover:text-emerald-700'
+                        }`}
+                      >
+                        <Settings className="w-4 h-4 text-slate-400" />
+                        <span>{t('nav.settings')}</span>
+                      </Link>
+                    )}
+
+                    {/* Divider between management and preferences */}
+                    <div className="border-t border-slate-100 my-1" />
+
+                    {/* 4. Language Switcher */}
+                    <div className="px-4 py-2 flex items-center justify-between text-xs font-semibold text-slate-700">
                       <div className="flex items-center space-x-3">
                         <Globe className="w-4 h-4 text-slate-400" />
                         <span>{locale === 'vi' ? 'Ngôn ngữ' : 'Language'}</span>
@@ -317,9 +325,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                         <button
                           type="button"
                           onClick={() => setLocale('vi')}
-                          className={`px-2 py-1 rounded-md font-bold transition active:scale-95 ${
+                          className={`px-2 py-0.5 rounded-md font-bold transition active:scale-95 cursor-pointer ${
                             locale === 'vi'
-                              ? 'bg-emerald-700 text-white shadow-sm'
+                              ? 'bg-emerald-700 text-white shadow-xs'
                               : 'text-slate-500 hover:text-slate-900'
                           }`}
                         >
@@ -328,9 +336,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                         <button
                           type="button"
                           onClick={() => setLocale('en')}
-                          className={`px-2 py-1 rounded-md font-bold transition active:scale-95 ${
+                          className={`px-2 py-0.5 rounded-md font-bold transition active:scale-95 cursor-pointer ${
                             locale === 'en'
-                              ? 'bg-emerald-700 text-white shadow-sm'
+                              ? 'bg-emerald-700 text-white shadow-xs'
                               : 'text-slate-500 hover:text-slate-900'
                           }`}
                         >
@@ -343,7 +351,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                   {/* Divider */}
                   <div className="border-t border-slate-100 my-1" />
 
-                  {/* Menu Item 3: Logout */}
+                  {/* Menu Item: Logout */}
                   <div className="px-1.5 py-0.5">
                     <button
                       type="button"

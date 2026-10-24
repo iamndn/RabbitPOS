@@ -12,47 +12,32 @@ export interface ApiResponse<T> {
 declare const process: {
   env: {
     NEXT_PUBLIC_API_URL?: string;
+    INTERNAL_API_URL?: string;
+    INTERNAL_BACKEND_URL?: string;
   };
 };
 
 export function getApiBaseUrl(): string {
+  // Dynamic resolution on client-side (in browser):
+  // Relative /api/v1 routes through the Same-Origin Next.js rewrite proxy (port 3000 / 443).
+  // This eliminates all CORS issues, mixed-content errors, and domain/IP mismatches
+  // whether accessed via localhost:3000, LAN IP (e.g. 10.0.0.10:3000), or Cloudflare domain.
+  if (typeof window !== 'undefined') {
+    return '/api/v1';
+  }
+
+  // SSR / Build-time internal resolution
+  const internalUrl = process.env.INTERNAL_API_URL || process.env.INTERNAL_BACKEND_URL;
+  if (internalUrl) {
+    return `${internalUrl.replace(/\/$/, '')}/api/v1`;
+  }
+
   const envUrl = typeof process !== 'undefined' ? process.env?.NEXT_PUBLIC_API_URL?.trim() : undefined;
-
-  // Sanitize any legacy 2-level subdomain api.rabbitpos.ndnworks.com -> single-level rabbitpos-api.ndnworks.com
-  let cleanEnvUrl = envUrl ? envUrl.replace('api.rabbitpos.ndnworks.com', 'rabbitpos-api.ndnworks.com') : undefined;
-
-  // Dynamic resolution on client-side (in browser)
-  if (typeof window !== 'undefined' && window.location?.hostname) {
-    const hostname = window.location.hostname;
-    const protocol = window.location.protocol || 'http:';
-
-    // 1. Localhost or LAN IP access (e.g. localhost, 127.0.0.1, 10.0.0.10, 192.168.x.x)
-    const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1';
-    const isIpAddress = /^(\d{1,3}\.){3}\d{1,3}$/.test(hostname);
-
-    if (isLocalhost || isIpAddress) {
-      return `http://${hostname}:8080/api/v1`;
-    }
-
-    // 2. Production domain access (e.g. rabbitpos.ndnworks.com or ndnworks.com)
-    if (hostname.includes('ndnworks.com') || hostname.includes('rabbitpos')) {
-      return 'https://rabbitpos-api.ndnworks.com/api/v1';
-    }
-
-    // 3. Fallback for custom domains if valid clean absolute URL is provided in env
-    if (cleanEnvUrl && cleanEnvUrl !== '' && (cleanEnvUrl.startsWith('http://') || cleanEnvUrl.startsWith('https://'))) {
-      return cleanEnvUrl;
-    }
-
-    return `${protocol}//${hostname}:8080/api/v1`;
+  if (envUrl && envUrl.startsWith('http')) {
+    return envUrl;
   }
 
-  // SSR / Build-time fallback
-  if (cleanEnvUrl && cleanEnvUrl !== '' && (cleanEnvUrl.startsWith('http://') || cleanEnvUrl.startsWith('https://'))) {
-    return cleanEnvUrl;
-  }
-
-  return 'https://rabbitpos-api.ndnworks.com/api/v1';
+  return 'http://127.0.0.1:8080/api/v1';
 }
 
 /**
@@ -106,21 +91,63 @@ export async function fetchApi<T>(
     }
   }
 
-  const baseUrl = getApiBaseUrl();
+  const isAuthEndpoint =
+    endpoint.startsWith('/auth/login') ||
+    endpoint.startsWith('/auth/register') ||
+    endpoint.startsWith('/auth/setup-password');
+
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    ...authHeaders(activeStoreId),
+    ...authHeaders(isAuthEndpoint ? null : activeStoreId),
     ...(options.headers as Record<string, string>),
   };
+  // Ensure public authentication endpoints do NOT require or send X-Store-ID
+  if (isAuthEndpoint) {
+    delete headers['X-Store-ID'];
+  }
 
-  try {
-    const res = await fetch(`${baseUrl}${endpoint}`, {
+  const baseUrl = getApiBaseUrl();
+
+  const executeFetch = async (targetUrl: string) => {
+    return await fetch(targetUrl, {
       ...options,
       headers,
       credentials: 'include',
     });
+  };
 
-    if (res.status === 401 && endpoint !== '/auth/login') {
+  try {
+    let res: Response;
+
+    try {
+      res = await executeFetch(`${baseUrl}${endpoint}`);
+      // If relative proxy returns 502/404 on client side, retry once against backend port 8080 directly
+      if (typeof window !== 'undefined' && (res.status === 502 || res.status === 404) && baseUrl.startsWith('/')) {
+        const fallbackBase = `http://${window.location.hostname}:8080/api/v1`;
+        try {
+          const fallbackRes = await executeFetch(`${fallbackBase}${endpoint}`);
+          if (fallbackRes.ok || fallbackRes.status < 500) {
+            res = fallbackRes;
+          }
+        } catch {
+          // Keep original response if fallback unreachable
+        }
+      }
+    } catch (networkErr: any) {
+      // If relative call fails due to proxy disconnect, retry once against backend port 8080 directly
+      if (typeof window !== 'undefined' && baseUrl.startsWith('/')) {
+        const fallbackBase = `http://${window.location.hostname}:8080/api/v1`;
+        try {
+          res = await executeFetch(`${fallbackBase}${endpoint}`);
+        } catch {
+          throw networkErr;
+        }
+      } else {
+        throw networkErr;
+      }
+    }
+
+    if (res.status === 401 && !isAuthEndpoint) {
       logout();
       if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
         window.location.href = '/login';
@@ -150,17 +177,25 @@ export async function fetchApi<T>(
 
     return data;
   } catch (error: any) {
+    let friendlyMessage = error?.message || 'Lỗi kết nối máy chủ';
+    if (
+      friendlyMessage.includes('Failed to fetch') ||
+      friendlyMessage.includes('NetworkError') ||
+      friendlyMessage.includes('Load failed')
+    ) {
+      friendlyMessage = 'Không thể kết nối đến máy chủ. Vui lòng kiểm tra lại mạng hoặc thử lại sau.';
+    }
     return {
       status: 'error',
       data: null,
-      message: error?.message || 'Network communication error',
+      message: friendlyMessage,
     };
   }
 }
 
 export function getImageUrl(url?: string | null): string | null {
   if (!url || url.trim() === '') return null;
-  let trimmed = url.trim().replace('api.rabbitpos.ndnworks.com', 'rabbitpos-api.ndnworks.com');
+  const trimmed = url.trim();
 
   // Convert Google Drive view links to direct image CDN links
   const gDriveMatch = trimmed.match(/drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?.*id=)([a-zA-Z0-9_-]+)/);
@@ -172,30 +207,8 @@ export function getImageUrl(url?: string | null): string | null {
     return trimmed;
   }
 
-  // If it's a frontend public asset (e.g. /logo.png, /favicon.ico, /icon.png, /images/...)
-  // and does not start with /uploads, return as-is for frontend domain serving
-  if (!trimmed.startsWith('/uploads') && !trimmed.startsWith('uploads/')) {
-    return trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
-  }
-
-  // If in browser on production domain and is an uploaded media file (/uploads/...)
-  if (typeof window !== 'undefined' && window.location?.hostname) {
-    const hostname = window.location.hostname;
-    if (hostname.includes('ndnworks.com') || hostname.includes('rabbitpos')) {
-      const path = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
-      return `https://rabbitpos-api.ndnworks.com${path}`;
-    }
-  }
-
-  const apiBase = getApiBaseUrl();
-  // Relative API base: serve upload from same origin
-  if (apiBase.startsWith('/')) {
-    return trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
-  }
-
-  // Absolute API base: strip trailing /api/v1 and prefix
-  const origin = apiBase.replace(/\/api\/v1\/?$/, '');
-  return `${origin}${trimmed.startsWith('/') ? '' : '/'}${trimmed}`;
+  // Uploaded media or frontend public assets served directly via Next.js proxy/static
+  return trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
 }
 
 export async function uploadImage(file: File): Promise<ApiResponse<{ url: string }>> {
@@ -224,10 +237,18 @@ export async function uploadImage(file: File): Promise<ApiResponse<{ url: string
     const data: ApiResponse<{ url: string }> = await res.json();
     return data;
   } catch (error: any) {
+    let friendlyMessage = error?.message || 'Không thể tải lên tệp hình ảnh';
+    if (
+      friendlyMessage.includes('Failed to fetch') ||
+      friendlyMessage.includes('NetworkError') ||
+      friendlyMessage.includes('Load failed')
+    ) {
+      friendlyMessage = 'Không thể kết nối máy chủ để tải ảnh lên.';
+    }
     return {
       status: 'error',
       data: null,
-      message: error?.message || 'Failed to upload image file',
+      message: friendlyMessage,
     };
   }
 }

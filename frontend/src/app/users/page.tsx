@@ -516,8 +516,143 @@ export default function UsersPage() {
           </div>
         </div>
 
-        {/* Users Table */}
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+        {/* Mobile Card List (Visible on mobile, hidden on desktop) */}
+        <div className="block md:hidden space-y-3">
+          {isLoading ? (
+            <div className="bg-white p-8 rounded-2xl border border-slate-200 text-center text-slate-400 font-medium text-xs">
+              {t('users.loading') || 'Đang tải danh sách nhân viên...'}
+            </div>
+          ) : filteredUsers.length === 0 ? (
+            <div className="bg-white p-8 rounded-2xl border border-dashed border-slate-200 text-center text-slate-400 font-medium text-xs">
+              {t('users.empty') || 'Không tìm thấy nhân viên nào phù hợp với bộ lọc.'}
+            </div>
+          ) : (
+            filteredUsers.map((u) => {
+              const isSelf = currentUser?.id === u.id;
+              const isTargetMaster = u.role === 'master' || u.role === 'super_admin' || u.role === 'admin';
+              const isTargetOwner = u.role === 'owner' || u.role === 'store_admin';
+              const canEditThisUser = isMasterCaller || isSelf || (!isTargetMaster && !isTargetOwner && isOwnerCaller);
+              const canToggleThisUser = !isSelf && (isMasterCaller || (!isTargetMaster && !isTargetOwner && isOwnerCaller));
+
+              return (
+                <div key={u.id} className="bg-white rounded-2xl border border-slate-200 shadow-xs p-4 space-y-3">
+                  {/* Card Top: Avatar, Name, Role badge, Status */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center space-x-3 min-w-0">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-600 to-emerald-800 text-white font-black flex items-center justify-center text-xs shadow-xs shrink-0">
+                        {u.username.slice(0, 2).toUpperCase()}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-bold text-slate-900 text-sm truncate flex items-center gap-1.5">
+                          <span className="truncate">{u.full_name || u.username}</span>
+                          {isSelf && (
+                            <span className="text-[10px] px-1.5 py-0.5 bg-emerald-50 text-emerald-700 font-extrabold rounded-md border border-emerald-200 shrink-0">
+                              {t('users.self_tag') || 'Bạn'}
+                            </span>
+                          )}
+                        </p>
+                        <p className="text-xs text-slate-500 font-medium">@{u.username}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col items-end gap-1 shrink-0">
+                      {getRoleBadge(u.role)}
+                      {u.is_active ? (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                          {t('users.status_active') || 'Hoạt động'}
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-200">
+                          <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                          {t('users.status_inactive') || 'Tạm khóa'}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Details row: Phone, PIN */}
+                  <div className="grid grid-cols-2 gap-2 text-xs pt-2 border-t border-slate-100 text-slate-600">
+                    <div>
+                      <span className="text-[10px] text-slate-400 block font-semibold uppercase">Số điện thoại</span>
+                      {u.phone ? (
+                        <a href={`tel:${u.phone}`} className="font-semibold text-emerald-700 flex items-center gap-1 mt-0.5">
+                          <Phone className="w-3 h-3 text-slate-400" />
+                          <span>{u.phone}</span>
+                        </a>
+                      ) : (
+                        <span className="text-slate-400 text-[11px] italic">Chưa cập nhật</span>
+                      )}
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 block font-semibold uppercase">Mã PIN POS</span>
+                      {u.has_pin ? (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-200 mt-0.5">
+                          <KeyRound className="w-3 h-3 text-emerald-600" />
+                          {t('users.has_pin') || 'Đã cài PIN'}
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-400 bg-slate-50 px-2 py-0.5 rounded-lg border border-slate-200 mt-0.5">
+                          {t('users.no_pin') || 'Chưa cài PIN'}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Last Login */}
+                  <div className="text-[11px] text-slate-400 flex items-center justify-between pt-1 border-t border-slate-50">
+                    <span className="flex items-center gap-1">
+                      <Clock className="w-3 h-3 text-slate-400" />
+                      <span>Đăng nhập cuối:</span>
+                    </span>
+                    <span className="font-semibold text-slate-600">{formatLastLogin(u.last_login_at)}</span>
+                  </div>
+
+                  {/* Action Buttons row (Touch friendly) */}
+                  {canEditThisUser && (
+                    <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-100">
+                      <button
+                        type="button"
+                        onClick={() => handleOpenPasswordModal(u)}
+                        className="flex items-center justify-center space-x-1 py-2 px-2 text-xs font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-xl border border-amber-200 transition active:scale-95 cursor-pointer min-h-[38px]"
+                      >
+                        <Lock className="w-3.5 h-3.5" />
+                        <span>Đổi PIN</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleOpenEdit(u)}
+                        className="flex items-center justify-center space-x-1 py-2 px-2 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-xl border border-blue-200 transition active:scale-95 cursor-pointer min-h-[38px]"
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                        <span>Sửa</span>
+                      </button>
+                      {canToggleThisUser ? (
+                        <button
+                          type="button"
+                          onClick={() => handleToggleStatus(u)}
+                          className={`flex items-center justify-center space-x-1 py-2 px-2 text-xs font-bold rounded-xl border transition active:scale-95 cursor-pointer min-h-[38px] ${
+                            u.is_active
+                              ? 'text-rose-700 bg-rose-50 hover:bg-rose-100 border-rose-200'
+                              : 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border-emerald-200'
+                          }`}
+                        >
+                          <Power className="w-3.5 h-3.5" />
+                          <span>{u.is_active ? 'Khóa' : 'Mở'}</span>
+                        </button>
+                      ) : (
+                        <div />
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* Desktop Users Table (Hidden on mobile) */}
+        <div className="hidden md:block bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
@@ -718,7 +853,7 @@ export default function UsersPage() {
                 </button>
               </div>
 
-              <form onSubmit={handleSubmit} className="p-6 space-y-4">
+              <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 max-h-[80vh] overflow-y-auto">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {/* Username */}
                   <div>

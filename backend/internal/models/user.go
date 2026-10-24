@@ -76,6 +76,18 @@ type LoginRequest struct {
 	Password string `json:"password" binding:"required"`
 }
 
+// RegisterRequest is used for self-registration of a new account with an initial store
+type RegisterRequest struct {
+	Username     string `json:"username" binding:"required"`
+	FullName     string `json:"full_name" binding:"required"`
+	Phone        string `json:"phone"`
+	Email        string `json:"email"`
+	Password     string `json:"password" binding:"required,min=6"`
+	PinCode      string `json:"pin_code"`
+	StoreName    string `json:"store_name" binding:"required"`
+	BusinessType string `json:"business_type"`
+}
+
 // SetupPasswordRequest is used for first-time password setup after initial login
 type SetupPasswordRequest struct {
 	Username    string `json:"username" binding:"required"`

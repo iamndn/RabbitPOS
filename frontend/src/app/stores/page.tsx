@@ -248,11 +248,11 @@ export default function StoresPage() {
             </div>
           </div>
 
-          <div className="flex items-center space-x-2.5">
+          <div className="flex items-center space-x-2.5 w-full sm:w-auto">
             <button
               type="button"
               onClick={handleOpenCreateModal}
-              className="inline-flex items-center space-x-2 px-4 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs sm:text-sm rounded-2xl shadow-md shadow-emerald-700/20 transition active:scale-95 cursor-pointer"
+              className="inline-flex items-center justify-center space-x-2 px-4 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs sm:text-sm rounded-2xl shadow-md shadow-emerald-700/20 transition active:scale-95 cursor-pointer w-full sm:w-auto"
             >
               <Plus className="w-4 h-4 stroke-[3]" />
               <span>Thêm Cửa hàng Mới</span>
@@ -650,7 +650,7 @@ export default function StoresPage() {
                     </div>
 
                     {/* Action Buttons */}
-                    <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-1.5">
+                    <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2 flex-wrap">
                       <div className="flex items-center space-x-1">
                         <button
                           type="button"

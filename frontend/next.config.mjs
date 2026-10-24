@@ -13,11 +13,12 @@ const nextConfig = {
     ignoreBuildErrors: false,
   },
   async rewrites() {
-    // In Docker / Production, backend is reachable at http://backend:8080 or via INTERNAL_BACKEND_URL.
-    // In local development, defaults to http://localhost:8080 if not set.
+    // In Docker / Production, backend is reachable at http://rabbitpos-backend:8080, http://backend:8080 or via INTERNAL_API_URL / INTERNAL_BACKEND_URL.
+    // In local development, defaults to http://127.0.0.1:8080 if not set.
     const backendUrl =
+      process.env.INTERNAL_API_URL ||
       process.env.INTERNAL_BACKEND_URL ||
-      (process.env.NODE_ENV === 'production' ? 'http://backend:8080' : 'http://localhost:8080');
+      (process.env.NODE_ENV === 'production' ? 'http://rabbitpos-backend:8080' : 'http://127.0.0.1:8080');
 
     return [
       {
