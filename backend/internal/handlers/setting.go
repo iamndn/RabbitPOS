@@ -213,9 +213,12 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		return
 	}
 
-	userRole, _ := c.Get("role")
-	roleStr := fmt.Sprintf("%v", userRole)
-	isSuperAdmin := roleStr == string(models.StoreRoleSuperAdmin) || roleStr == "admin"
+	userRoleVal, _ := c.Get("user_role")
+	callerRole, _ := userRoleVal.(models.UserRole)
+	if callerRole == "" {
+		callerRole = models.UserRole(c.GetString("role"))
+	}
+	isMaster := callerRole.IsMaster()
 
 	// Fetch existing settings map for preserving masked secrets
 	existingMap := make(map[string]string)
@@ -243,8 +246,8 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 				continue
 			}
 
-			// Restrict global SMTP keys to super_admin
-			if strings.HasPrefix(key, "smtp_") && !isSuperAdmin {
+			// Restrict global SMTP keys to master / super_admin
+			if strings.HasPrefix(key, "smtp_") && !isMaster {
 				continue
 			}
 

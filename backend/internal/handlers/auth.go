@@ -175,16 +175,27 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	cookieMaxAge := h.cfg.JWTExpiryHours * 3600
 	c.SetCookie("token", token, cookieMaxAge, "/", "", false, true)
 
+	// Update LastLoginAt in database
+	now := time.Now()
+	h.db.Model(&user).Update("last_login_at", &now)
+	user.LastLoginAt = &now
+
 	stores, defID := h.populateUserStores(&user)
 	userResp := models.UserResponse{
 		ID:                 user.ID,
 		Username:           user.Username,
+		FullName:           user.FullName,
+		Phone:              user.Phone,
 		Email:              user.Email,
 		Role:               user.Role,
 		IsActive:           user.IsActive,
+		HasPin:             user.PinCode != nil && *user.PinCode != "",
 		NeedsPasswordSetup: user.NeedsPasswordSetup,
+		LastLoginAt:        user.LastLoginAt,
 		Stores:             stores,
 		DefaultStoreID:     defID,
+		CreatedAt:          user.CreatedAt,
+		UpdatedAt:          user.UpdatedAt,
 	}
 
 	// Record audit log

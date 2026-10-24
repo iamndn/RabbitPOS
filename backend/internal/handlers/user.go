@@ -156,6 +156,7 @@ func (h *UserHandler) ListUsers(c *gin.Context) {
 			IsActive:           u.IsActive,
 			HasPin:             u.PinCode != nil && *u.PinCode != "",
 			NeedsPasswordSetup: u.NeedsPasswordSetup,
+			LastLoginAt:        u.LastLoginAt,
 			Stores:             stores,
 			DefaultStoreID:     defID,
 			CreatedAt:          u.CreatedAt,
@@ -201,6 +202,7 @@ func (h *UserHandler) GetUserByID(c *gin.Context) {
 		IsActive:           user.IsActive,
 		HasPin:             user.PinCode != nil && *user.PinCode != "",
 		NeedsPasswordSetup: user.NeedsPasswordSetup,
+		LastLoginAt:        user.LastLoginAt,
 		CreatedAt:          user.CreatedAt,
 		UpdatedAt:          user.UpdatedAt,
 	}
@@ -357,6 +359,7 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 		IsActive:           newUser.IsActive,
 		HasPin:             newUser.PinCode != nil,
 		NeedsPasswordSetup: newUser.NeedsPasswordSetup,
+		LastLoginAt:        newUser.LastLoginAt,
 		CreatedAt:          newUser.CreatedAt,
 		UpdatedAt:          newUser.UpdatedAt,
 	}
@@ -466,6 +469,7 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 		IsActive:           user.IsActive,
 		HasPin:             user.PinCode != nil && *user.PinCode != "",
 		NeedsPasswordSetup: user.NeedsPasswordSetup,
+		LastLoginAt:        user.LastLoginAt,
 		CreatedAt:          user.CreatedAt,
 		UpdatedAt:          user.UpdatedAt,
 	}
@@ -545,6 +549,7 @@ func (h *UserHandler) ToggleUserStatus(c *gin.Context) {
 		IsActive:           user.IsActive,
 		HasPin:             user.PinCode != nil && *user.PinCode != "",
 		NeedsPasswordSetup: user.NeedsPasswordSetup,
+		LastLoginAt:        user.LastLoginAt,
 		CreatedAt:          user.CreatedAt,
 		UpdatedAt:          user.UpdatedAt,
 	}

@@ -138,7 +138,7 @@ export default function DashboardPage() {
         ? Promise.resolve({ status: 'success', data: null, message: '' })
         : fetchApi<ProfitAnalyticsResponse>(`/analytics/profit${queryParams}`),
       fetchApi<HourlyDistributionResponse>(`/analytics/hourly-distribution${queryParams}`),
-      fetchApi<any>('/settings'),
+      fetchApi<any>('/settings/store'),
     ]);
 
     if (settingsRes.status === 'success' && settingsRes.data) {

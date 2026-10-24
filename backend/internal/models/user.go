@@ -63,9 +63,10 @@ type User struct {
 	Role               UserRole  `gorm:"type:varchar(20);not null;default:'staff'" json:"role"`
 	IsActive           bool      `gorm:"default:true;not null" json:"is_active"`
 	NeedsPasswordSetup bool      `gorm:"default:true;not null" json:"needs_password_setup"`
-	TokenVersion       int       `gorm:"default:1;not null" json:"token_version"`
-	CreatedAt          time.Time `json:"created_at"`
-	UpdatedAt          time.Time `json:"updated_at"`
+	TokenVersion       int        `gorm:"default:1;not null" json:"token_version"`
+	LastLoginAt        *time.Time `json:"last_login_at"`
+	CreatedAt          time.Time  `json:"created_at"`
+	UpdatedAt          time.Time  `json:"updated_at"`
 }
 
 // Request & Response DTOs
@@ -92,6 +93,7 @@ type UserResponse struct {
 	IsActive           bool            `json:"is_active"`
 	HasPin             bool            `json:"has_pin"`
 	NeedsPasswordSetup bool            `json:"needs_password_setup"`
+	LastLoginAt        *time.Time      `json:"last_login_at"`
 	Stores             []StoreResponse `json:"stores,omitempty"`
 	DefaultStoreID     *uint           `json:"default_store_id,omitempty"`
 	CreatedAt          time.Time       `json:"created_at"`
@@ -123,6 +125,9 @@ type CreateUserDTO struct {
 	Memberships  []UserMembership `json:"memberships"`
 }
 
+// CreateUserRequest is an alias for CreateUserDTO
+type CreateUserRequest = CreateUserDTO
+
 // UpdateUserDTO is used for updating existing user details
 type UpdateUserDTO struct {
 	FullName string    `json:"full_name"`
@@ -133,6 +138,9 @@ type UpdateUserDTO struct {
 	Password string    `json:"password"`
 	PinCode  *string   `json:"pin_code"`
 }
+
+// UpdateUserRequest is an alias for UpdateUserDTO
+type UpdateUserRequest = UpdateUserDTO
 
 // ToggleStatusDTO for quick status active/inactive toggle
 type ToggleStatusDTO struct {

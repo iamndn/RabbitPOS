@@ -102,22 +102,22 @@ func SetupRouter(cfg *config.Config, db *gorm.DB, emailSvc *services.EmailServic
 
 			// Multi-store management (Platform)
 			authenticated.GET("/stores", storeHandler.ListStores)
-			superAdmin := authenticated.Group("")
-			superAdmin.Use(middleware.RequireSuperAdmin())
+			masterAdmin := authenticated.Group("")
+			masterAdmin.Use(middleware.RequireRole(models.RoleMaster))
 			{
-				superAdmin.POST("/stores", storeHandler.CreateStore)
-				superAdmin.PUT("/stores/:id", storeHandler.UpdateStore)
-				superAdmin.GET("/stores/:id/members", storeHandler.ListMembers)
-				superAdmin.PUT("/stores/:id/members", storeHandler.UpsertMember)
-				superAdmin.DELETE("/stores/:id/members/:user_id", storeHandler.RemoveMember)
+				masterAdmin.POST("/stores", storeHandler.CreateStore)
+				masterAdmin.PUT("/stores/:id", storeHandler.UpdateStore)
+				masterAdmin.GET("/stores/:id/members", storeHandler.ListMembers)
+				masterAdmin.PUT("/stores/:id/members", storeHandler.UpsertMember)
+				masterAdmin.DELETE("/stores/:id/members/:user_id", storeHandler.RemoveMember)
 
-				// Platform-wide backup & restore
-				superAdmin.GET("/backup/export", backupHandler.ExportBackup)
-				superAdmin.POST("/backup/preview", backupHandler.PreviewBackup)
-				superAdmin.POST("/backup/restore", backupHandler.RestoreBackup)
+				// Platform-wide backup & restore (Master only)
+				masterAdmin.GET("/backup/export", backupHandler.ExportBackup)
+				masterAdmin.POST("/backup/preview", backupHandler.PreviewBackup)
+				masterAdmin.POST("/backup/restore", backupHandler.RestoreBackup)
 
 				// Cross-store executive overview
-				superAdmin.GET("/analytics/overview-all-stores", analyticsHandler.GetOverviewAllStores)
+				masterAdmin.GET("/analytics/overview-all-stores", analyticsHandler.GetOverviewAllStores)
 			}
 
 			// Store-Scoped Routes Group (wrapped with StoreContext)
@@ -138,6 +138,10 @@ func SetupRouter(cfg *config.Config, db *gorm.DB, emailSvc *services.EmailServic
 				storeScoped.POST("/orders", orderHandler.CreateOrder)
 				storeScoped.GET("/vietqr/generate", orderHandler.GetVietQR)
 				storeScoped.GET("/settings/store", settingHandler.GetStoreSettings)
+
+				// Safe read-only revenue & hourly analytics for Dashboard
+				storeScoped.GET("/analytics/revenue", analyticsHandler.GetRevenueAnalytics)
+				storeScoped.GET("/analytics/hourly-distribution", analyticsHandler.GetHourlyDistribution)
 
 				// Toppings: read for POS variant selector
 				storeScoped.GET("/toppings", toppingHandler.ListToppings)
@@ -246,8 +250,8 @@ func SetupRouter(cfg *config.Config, db *gorm.DB, emailSvc *services.EmailServic
 					storeAdmin.GET("/settings/admin", settingHandler.GetSettings)
 					storeAdmin.GET("/settings", settingHandler.GetSettings)
 					storeAdmin.PUT("/settings", settingHandler.UpdateSettings)
-					// SMTP connectivity test
-					storeAdmin.POST("/settings/test-smtp", settingHandler.TestSMTP)
+					// SMTP connectivity test (Master only)
+					storeAdmin.POST("/settings/test-smtp", middleware.RequireRole(models.RoleMaster), settingHandler.TestSMTP)
 
 					// Google Sheets Bi-Modal Synchronization Endpoints
 					storeAdmin.POST("/settings/sheets/test-connection", sheetsSyncHandler.TestConnection)
