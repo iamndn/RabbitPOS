@@ -117,7 +117,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
     // Role Guard Check: Restrict Staff from Store Management & Admin routes
     if (!canManageStore) {
-      const adminRoutes = ['/products', '/purchases', '/promotions', '/funds', '/dashboard', '/settings', '/stores', '/users'];
+      const adminRoutes = ['/products', '/purchases', '/promotions', '/funds', '/settings', '/stores', '/users'];
       if (adminRoutes.some((route) => pathname.startsWith(route))) {
         router.push('/');
         return;

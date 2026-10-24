@@ -272,13 +272,22 @@ func (h *AuthHandler) SetupPassword(c *gin.Context) {
 
 	c.SetCookie("token", fullToken, h.cfg.JWTExpiryHours*3600, "/", "", false, true)
 
+	stores, defID := h.populateUserStores(&user)
 	userResp := models.UserResponse{
 		ID:                 user.ID,
 		Username:           user.Username,
+		FullName:           user.FullName,
+		Phone:              user.Phone,
 		Email:              user.Email,
 		Role:               user.Role,
 		IsActive:           user.IsActive,
+		HasPin:             user.PinCode != nil && *user.PinCode != "",
 		NeedsPasswordSetup: false,
+		LastLoginAt:        user.LastLoginAt,
+		Stores:             stores,
+		DefaultStoreID:     defID,
+		CreatedAt:          user.CreatedAt,
+		UpdatedAt:          user.UpdatedAt,
 	}
 
 	if h.auditSvc != nil {
@@ -374,12 +383,18 @@ func (h *AuthHandler) GetMe(c *gin.Context) {
 	userResp := models.UserResponse{
 		ID:                 user.ID,
 		Username:           user.Username,
+		FullName:           user.FullName,
+		Phone:              user.Phone,
 		Email:              user.Email,
 		Role:               user.Role,
 		IsActive:           user.IsActive,
+		HasPin:             user.PinCode != nil && *user.PinCode != "",
 		NeedsPasswordSetup: user.NeedsPasswordSetup,
+		LastLoginAt:        user.LastLoginAt,
 		Stores:             stores,
 		DefaultStoreID:     defID,
+		CreatedAt:          user.CreatedAt,
+		UpdatedAt:          user.UpdatedAt,
 	}
 
 	models.SendSuccess(c, http.StatusOK, userResp, "Current user profile retrieved successfully")

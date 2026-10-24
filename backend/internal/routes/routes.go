@@ -231,11 +231,9 @@ func SetupRouter(cfg *config.Config, db *gorm.DB, emailSvc *services.EmailServic
 					storeAdmin.DELETE("/transactions/:id", txHandler.DeleteTransaction)
 
 					// Executive Analytics & BI Dashboards
-					storeAdmin.GET("/analytics/revenue", analyticsHandler.GetRevenueAnalytics)
 					storeAdmin.GET("/analytics/profit", analyticsHandler.GetProfitAnalytics)
 					storeAdmin.GET("/analytics/products-ranking", analyticsHandler.GetProductsRanking)
 					storeAdmin.GET("/analytics/products-sales-performance", analyticsHandler.GetProductsSalesPerformance)
-					storeAdmin.GET("/analytics/hourly-distribution", analyticsHandler.GetHourlyDistribution)
 					storeAdmin.GET("/analytics/dashboard", analyticsHandler.GetDashboardMetrics)
 					storeAdmin.GET("/analytics/top-products", analyticsHandler.GetTopProducts)
 					storeAdmin.GET("/analytics/cash-flow", analyticsHandler.GetCashFlowSummary)

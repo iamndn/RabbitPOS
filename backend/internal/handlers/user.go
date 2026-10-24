@@ -392,6 +392,7 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 		return
 	}
 
+	callerID := h.callerID(c)
 	callerRole := h.callerRole(c)
 
 	// Role alteration permissions
@@ -405,12 +406,33 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 		user.Role = *req.Role
 	}
 
-	// Update fields
-	user.FullName = strings.TrimSpace(req.FullName)
-	user.Phone = strings.TrimSpace(req.Phone)
-	user.Email = strings.TrimSpace(req.Email)
+	// Update fields safely without corrupting unaffected fields
+	if req.FullName != nil {
+		user.FullName = strings.TrimSpace(*req.FullName)
+	}
+	if req.Phone != nil {
+		user.Phone = strings.TrimSpace(*req.Phone)
+	}
+	if req.Email != nil {
+		user.Email = strings.TrimSpace(*req.Email)
+	}
 
 	if req.IsActive != nil {
+		if !*req.IsActive {
+			if user.ID == callerID {
+				models.SendErrorCode(c, http.StatusBadRequest, "CANNOT_DEACTIVATE_SELF", "Không thể tự vô hiệu hóa tài khoản đang đăng nhập")
+				return
+			}
+			if user.Role.IsMaster() {
+				var activeMasters int64
+				h.db.Model(&models.User{}).Where("role IN ('master', 'super_admin', 'admin') AND is_active = TRUE AND id != ?", user.ID).Count(&activeMasters)
+				if activeMasters == 0 {
+					models.SendErrorCode(c, http.StatusBadRequest, "CANNOT_DEACTIVATE_LAST_MASTER", "Không thể vô hiệu hóa tài khoản Master cuối cùng trong hệ thống")
+					return
+				}
+			}
+			user.TokenVersion++
+		}
 		user.IsActive = *req.IsActive
 	}
 

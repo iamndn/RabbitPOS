@@ -33,8 +33,13 @@ export default function LoginPage() {
   const router = useRouter();
   const { t } = useTranslation();
 
-  // Saved store branding (pre-auth)
-  const savedBrand = typeof window !== 'undefined' ? getSavedStoreBrand() : null;
+  // Saved store branding (pre-auth) - loaded in useEffect to avoid SSR hydration mismatch
+  const [savedBrand, setSavedBrand] = useState<{ store_name?: string; logo_url?: string } | null>(null);
+
+  useEffect(() => {
+    setSavedBrand(getSavedStoreBrand());
+  }, []);
+
   const storeLogo = savedBrand?.logo_url || null;
   const lastStoreName = savedBrand?.store_name || null;
 
