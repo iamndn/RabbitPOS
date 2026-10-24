@@ -162,8 +162,8 @@ func applyMigration(ctx context.Context, sqlDB *sql.DB, m SQLMigration) error {
 		return nil
 	}
 
-	// Migration 21+ is the contract phase: gated until post-rollout soak completes.
-	if m.Version >= 21 && os.Getenv("ENABLE_MIGRATION_000021") != "true" {
+	// Migration 21 is the contract phase: gated until post-rollout soak completes.
+	if m.Version == 21 && os.Getenv("ENABLE_MIGRATION_000021") != "true" {
 		log.Printf("[MIGRATE] Skipping %06d_%s (contract phase gated until ENABLE_MIGRATION_000021=true)", m.Version, m.Name)
 		return nil
 	}

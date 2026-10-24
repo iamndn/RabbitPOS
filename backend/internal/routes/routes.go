@@ -69,6 +69,7 @@ func SetupRouter(cfg *config.Config, db *gorm.DB, emailSvc *services.EmailServic
 	autoTaggingHandler := handlers.NewAutoTaggingHandler(autoTaggingSvc)
 	purchaseHandler := handlers.NewPurchaseHandler(db, productCache, toppingCache)
 	storeHandler := handlers.NewStoreHandler(db, cfg, auditSvc)
+	userHandler := handlers.NewUserHandler(db, auditSvc)
 
 	// API v1 Group
 	v1 := router.Group("/api/v1")
@@ -87,6 +88,18 @@ func SetupRouter(cfg *config.Config, db *gorm.DB, emailSvc *services.EmailServic
 			authenticated.POST("/auth/logout", authHandler.Logout)
 			authenticated.GET("/auth/me", authHandler.GetMe)
 
+			// User Management Routes (Accessible by Master & Owner)
+			userGroup := authenticated.Group("/users")
+			userGroup.Use(middleware.RequireRole(models.RoleMaster, models.RoleOwner))
+			{
+				userGroup.GET("", userHandler.ListUsers)
+				userGroup.POST("", userHandler.CreateUser)
+				userGroup.GET("/:id", userHandler.GetUserByID)
+				userGroup.PUT("/:id", middleware.RequireOwnershipOrMaster(db), userHandler.UpdateUser)
+				userGroup.PUT("/:id/toggle-status", middleware.RequireOwnershipOrMaster(db), userHandler.ToggleUserStatus)
+				userGroup.DELETE("/:id", middleware.RequireOwnershipOrMaster(db), userHandler.DeleteUser)
+			}
+
 			// Multi-store management (Platform)
 			authenticated.GET("/stores", storeHandler.ListStores)
 			superAdmin := authenticated.Group("")
@@ -97,8 +110,6 @@ func SetupRouter(cfg *config.Config, db *gorm.DB, emailSvc *services.EmailServic
 				superAdmin.GET("/stores/:id/members", storeHandler.ListMembers)
 				superAdmin.PUT("/stores/:id/members", storeHandler.UpsertMember)
 				superAdmin.DELETE("/stores/:id/members/:user_id", storeHandler.RemoveMember)
-				superAdmin.GET("/users", storeHandler.ListUsers)
-				superAdmin.POST("/users", storeHandler.CreateUser)
 
 				// Platform-wide backup & restore
 				superAdmin.GET("/backup/export", backupHandler.ExportBackup)

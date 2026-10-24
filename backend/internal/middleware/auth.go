@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/RabbitPOS/backend/internal/models"
@@ -87,7 +88,9 @@ func AuthMiddleware(jwtSecret string, db *gorm.DB) gin.HandlerFunc {
 	}
 }
 
-// RequireRole enforces Role-Based Access Control (RBAC)
+// RequireRole enforces Role-Based Access Control (RBAC) with hierarchy:
+// master automatically inherits all permissions of owner and staff.
+// owner inherits all permissions of staff.
 func RequireRole(allowedRoles ...models.UserRole) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		roleVal, exists := c.Get("user_role")
@@ -104,8 +107,24 @@ func RequireRole(allowedRoles ...models.UserRole) gin.HandlerFunc {
 			return
 		}
 
+		// Master automatically inherits all permissions of owner and staff
+		if userRole.IsMaster() {
+			c.Next()
+			return
+		}
+
 		for _, allowed := range allowedRoles {
-			if userRole == allowed || (allowed == models.RoleAdmin && userRole.IsSuperAdmin()) {
+			if userRole == allowed {
+				c.Next()
+				return
+			}
+			// Owner inherits staff permissions
+			if (allowed == models.RoleStaff || allowed == "cashier") && userRole.IsOwner() {
+				c.Next()
+				return
+			}
+			// Legacy super_admin / admin aliases
+			if (allowed == models.RoleAdmin || allowed == models.RoleSuperAdmin) && userRole.IsSuperAdmin() {
 				c.Next()
 				return
 			}
@@ -115,3 +134,72 @@ func RequireRole(allowedRoles ...models.UserRole) gin.HandlerFunc {
 		c.Abort()
 	}
 }
+
+// RequireOwnershipOrMaster ensures:
+// 1. Master can update/delete/toggle any account.
+// 2. Owner can only update/deactivate staff accounts, and CANNOT modify or delete master or other owner accounts.
+func RequireOwnershipOrMaster(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		callerRoleVal, exists := c.Get("user_role")
+		if !exists {
+			models.SendErrorCode(c, http.StatusUnauthorized, "AUTH_UNAUTHORIZED", "Authentication context missing")
+			c.Abort()
+			return
+		}
+		callerRole, _ := callerRoleVal.(models.UserRole)
+
+		// Master has full access to all accounts
+		if callerRole.IsMaster() {
+			c.Next()
+			return
+		}
+
+		// Non-master must be at least owner
+		if !callerRole.IsOwner() {
+			models.SendErrorCode(c, http.StatusForbidden, "AUTH_FORBIDDEN", "Only master and owner can manage users")
+			c.Abort()
+			return
+		}
+
+		// Check the target user role from DB if an ID parameter is present
+		targetIDStr := c.Param("id")
+		if targetIDStr == "" {
+			c.Next()
+			return
+		}
+
+		targetID, err := strconv.ParseUint(targetIDStr, 10, 64)
+		if err != nil {
+			models.SendErrorCode(c, http.StatusBadRequest, "VALIDATION_ERROR", "Invalid user ID")
+			c.Abort()
+			return
+		}
+
+		callerIDVal, _ := c.Get("user_id")
+		callerID, _ := callerIDVal.(uint)
+
+		var targetUser models.User
+		if err := db.Select("id, role").First(&targetUser, targetID).Error; err != nil {
+			models.SendErrorCode(c, http.StatusNotFound, "NOT_FOUND", "User not found")
+			c.Abort()
+			return
+		}
+
+		// Owner cannot modify master accounts
+		if targetUser.Role.IsMaster() {
+			models.SendErrorCode(c, http.StatusForbidden, "AUTH_FORBIDDEN", "Store owners cannot modify master accounts")
+			c.Abort()
+			return
+		}
+
+		// Owner cannot modify other owner accounts (can only edit their own profile or staff accounts)
+		if targetUser.Role.IsOwner() && targetUser.ID != callerID {
+			models.SendErrorCode(c, http.StatusForbidden, "AUTH_FORBIDDEN", "Store owners can only manage staff accounts")
+			c.Abort()
+			return
+		}
+
+		c.Next()
+	}
+}
+
