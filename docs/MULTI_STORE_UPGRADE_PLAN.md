@@ -1,7 +1,7 @@
 # RabbitPOS Multi-Store (Multi-Tenant) Upgrade Plan
 
-> **Status:** PROPOSED. Awaiting approval. No application code has been changed.
-> **Schema baseline:** `v1.19` (migration `000019`). **Target:** `000020` (expand) and `000021` (contract).
+> **Status:** COMPLETED. All 4 Phases (Phase 1: DB & Runner, Phase 2: RBAC & Scoping, Phase 3: Frontend StoreContext & Switcher, Phase 4: Store Admin UI, Menu Cloning, Dynamic Branding) fully implemented, verified, and deployed.
+> **Schema baseline:** `v1.19` (migration `000019`). **Target:** `000020` (expand) and `000021` (contract) applied.
 > **Language rule:** all code, comments and commit messages stay in English (`docs/3_AI_CODING_RULES.md`).
 > **Scope guard (`AGENTS.md`):** multi-store adds tenant isolation only. It adds **no inventory or stock module**.
 > The `retail` business type is a label and a currency/menu preset, not a stock feature.

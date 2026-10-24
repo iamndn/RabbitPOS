@@ -12,16 +12,38 @@
 }
 ```
 
+### Headers & Tenancy Context
+All store-scoped API endpoints require the **`X-Store-ID`** HTTP header (e.g. `X-Store-ID: 1`). For file downloads or browser navigations, `?store_id=` query parameter is supported as a fallback. Platform-level endpoints (such as `/stores`, `/users`, `/auth/me`, `/analytics/overview-all-stores`) operate globally and do not require `X-Store-ID`.
+
 ---
 
 ## 1. Authentication & Session
 
 | Method | Endpoint | Auth / Role | Description |
 | :--- | :--- | :--- | :--- |
-| `POST` | `/auth/login` | Public | Authenticate user credentials, returns JWT Bearer token & session |
+| `POST` | `/auth/login` | Public | Authenticate user credentials, returns JWT Bearer token & session with `stores[]` and `default_store_id` |
 | `POST` | `/auth/setup-password` | Public | First-time mandatory password setup for newly seeded accounts |
 | `POST` | `/auth/logout` | Authenticated | Invalidate current user session |
-| `GET` | `/auth/me` | Authenticated | Get current authenticated user profile & role |
+| `GET` | `/auth/me` | Authenticated | Get current authenticated user profile, global role, accessible `stores[]`, and `default_store_id` |
+
+---
+
+## 1.1 Multi-Store Platform Management (Super Admin)
+
+| Method | Endpoint | Auth / Role | Description |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/stores` | Authenticated | List all stores accessible to current user (Super Admin receives all stores) |
+| `POST` | `/stores` | Super Admin | Create a new store with optional menu cloning (`clone_from_store_id`, `clone_options`) |
+| `PUT` | `/stores/:id` | Super Admin | Update store profile, branding, currency, VietQR or active status |
+| `GET` | `/stores/:id/members` | Super Admin | List staff and managers assigned to specified store |
+| `PUT` | `/stores/:id/members` | Super Admin | Assign user or update role (`store_admin` vs `staff`) and default store flag |
+| `DELETE` | `/stores/:id/members/:user_id` | Super Admin | Remove user's membership and access from specified store |
+| `GET` | `/users` | Super Admin | List all user accounts with their store memberships |
+| `POST` | `/users` | Super Admin | Create user account with temporary password and initial store assignment |
+| `GET` | `/analytics/overview-all-stores` | Super Admin | Cross-store comparison with date range (`start_date`, `end_date`), AOV, and profit |
+| `GET` | `/backup/export` | Super Admin | Export full platform database snapshot in encrypted JSON |
+| `POST` | `/backup/preview` | Super Admin | Preview encrypted database backup payload before restore |
+| `POST` | `/backup/restore` | Super Admin | Restore platform database and evict all caches |
 
 ---
 

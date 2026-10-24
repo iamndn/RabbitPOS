@@ -56,11 +56,18 @@
 - **Web Backup & Restore:** 1-click database export and restore directly from the System Settings web UI.
 - **Data Migration & Importer:** Migrate catalog and order history from Excel templates and external POS systems (e.g. Sổ Bán Hàng).
 
-### 🔐 8. Authentication, RBAC & Security
-- **Role-Based Access Control (RBAC):**
-  - **Cashier / Staff Role:** Restricted strictly to POS Order Entry (`/`), shift summary, and profile settings.
-  - **Admin Role:** Full administrative access to POS, Catalog, Purchases & Recipes, Ledger, Funds, Analytics, and System Settings.
-- **First-Time Password Setup:** Mandatory password change flow on initial login for seeded staff accounts.
+### 🏢 8. Multi-Store Architecture & Tenancy Management
+- **Shared DB with Complete Store Isolation:** Strict tenant scoping via `X-Store-ID` header, GORM `ScopeByStore` middleware, fail-closed create callbacks, and store-isolated caches (`s{id}:`).
+- **3-Tier Role-Based Access Control (RBAC):**
+  - **Super Admin (`super_admin`):** Platform owner with full authority across all stores, branch creation (`/stores`), user assignment, global SMTP, platform backup/restore, and cross-store overview analytics.
+  - **Store Admin (`store_admin`):** Branch manager with full authority over the branch's catalog, purchases, recipe BOM, funds, ledger, and settings.
+  - **Cashier / Staff (`staff`):** Fast POS sales interface (`/`), shift summary, and receipts.
+- **Menu & Catalog Cloning:** When opening a new store branch, clone menu items, variants, toppings, promotions, and recipes from an existing store in 1 click.
+- **Store Switcher & Offline Isolation:** Fast store switcher dropdown in header. Active POS carts (`rabbitpos_active_cart_{id}`), client caches, and IndexedDB offline databases (`RabbitPOS_Offline_DB_s{id}`) are fully isolated per store with multi-store sync flush.
+- **Cross-Store Executive Overview:** Compare revenue, order volume, Average Order Value (AOV), and gross margins across branches with custom date filtering.
+
+### 🔐 9. Authentication, Security & Localization
+- **First-Time Password Setup:** Mandatory password change flow on initial login for newly created accounts.
 - **Security:** `bcrypt` password hashing, signed `JWT` authentication (Bearer token & HTTP-only cookies), and Gzip response compression.
 - **Bilingual Interface (i18n):** Complete Vietnamese (`vi`) and English (`en`) localization with instant runtime switching.
 
@@ -70,9 +77,9 @@
 
 | Layer | Technology | Description |
 | :--- | :--- | :--- |
-| **Backend API** | Go 1.22+ (Gin Web Framework) | Clean Architecture, RESTful API, In-memory TTL Cache, Gzip Middleware |
-| **ORM & Database** | GORM, PostgreSQL 16 | Connection pooling, SQL migrations (`000001` - `000018`), Composite Indexes |
-| **Frontend UI** | Next.js 14 (App Router), TypeScript | Tailwind CSS, Lucide Icons, SWR-like Client Cache, Custom i18n |
+| **Backend API** | Go 1.22+ (Gin Web Framework) | Clean Architecture, RESTful API, Multi-Store Scope Middleware, In-memory TTL Cache, Gzip Middleware |
+| **ORM & Database** | GORM, PostgreSQL 16 | Connection pooling, SQL migrations (`000001` - `000021`), Multi-Store Discriminator (`store_id`), Composite Indexes |
+| **Frontend UI** | Next.js 14 (App Router), TypeScript | Tailwind CSS, Lucide Icons, Multi-Store Context & Switcher, SWR-like Client Cache, Custom i18n |
 | **Integrations** | Google Sheets API v4, SMTP TLS | Background synchronization goroutines, Daily cron job dispatcher |
 | **Reverse Proxy & Ingress** | Nginx Proxy Manager, Cloudflare Tunnel | Zero-Trust secure tunnels, SSL / TLS termination |
 | **Infrastructure** | Docker, Docker Compose, Proxmox VE | Ubuntu 24.04 LTS LXC Container |

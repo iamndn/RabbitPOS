@@ -47,7 +47,13 @@ export default function SettingsPage() {
   const toast = useToast();
   const { activeStore, isSuperAdmin, refreshStores } = useStore();
   const [activeTab, setActiveTab] = useState<'store' | 'currency' | 'vietqr' | 'email' | 'sheets' | 'backup'>('store');
-  const [backupSubTab, setBackupSubTab] = useState<'json_backup' | 'excel_import'>('json_backup');
+  const [backupSubTab, setBackupSubTab] = useState<'json_backup' | 'excel_import'>('excel_import');
+
+  useEffect(() => {
+    if (isSuperAdmin) {
+      setBackupSubTab('json_backup');
+    }
+  }, [isSuperAdmin]);
 
   const [loading, setLoading] = useState<boolean>(true);
   const [saving, setSaving] = useState<boolean>(false);
@@ -1015,6 +1021,23 @@ export default function SettingsPage() {
                 </div>
               )}
 
+              {!isSuperAdmin && (
+                <div className="bg-purple-50/50 border border-purple-200 p-4 rounded-2xl flex items-center justify-between gap-3 text-xs">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-purple-100 text-purple-700 rounded-xl">
+                      <Mail className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <span className="font-bold text-slate-900 block">Cấu hình Máy chủ Gửi Email (SMTP)</span>
+                      <span className="text-slate-600 text-[11px]">Thông số SMTP kết nối được cấu hình tập trung bởi Tổng quản trị (Super Admin). Chi nhánh gửi báo cáo tài chính qua máy chủ chung của hệ thống.</span>
+                    </div>
+                  </div>
+                  <span className="text-[10px] bg-purple-100 text-purple-800 border border-purple-200 px-2 py-0.5 rounded-md font-extrabold shrink-0">
+                    Platform-Wide
+                  </span>
+                </div>
+              )}
+
                 {/* 2. Automated Daily Report Configuration */}
                 <div className="bg-white p-5 sm:p-7 rounded-2xl border border-slate-200/80 shadow-xs space-y-5">
                   <div className="pb-4 border-b border-slate-100 flex items-center gap-3">
@@ -1404,18 +1427,23 @@ export default function SettingsPage() {
               <div className="space-y-6 text-xs animate-in fade-in duration-150">
                 {/* Sub-Tab Switcher inside Backup Tab */}
                 <div className="flex bg-slate-100 p-1 rounded-2xl border border-slate-200/80 w-full sm:w-fit gap-1">
-                  <button
-                    type="button"
-                    onClick={() => setBackupSubTab('json_backup')}
-                    className={`flex-1 sm:flex-none py-2 px-4 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 ${
-                      backupSubTab === 'json_backup'
-                        ? 'bg-white text-violet-700 shadow-xs'
-                        : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    <Database className="w-3.5 h-3.5" />
-                    <span>Sao Lưu & Phục Hồi (.json)</span>
-                  </button>
+                  {isSuperAdmin && (
+                    <button
+                      type="button"
+                      onClick={() => setBackupSubTab('json_backup')}
+                      className={`flex-1 sm:flex-none py-2 px-4 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 ${
+                        backupSubTab === 'json_backup'
+                          ? 'bg-white text-violet-700 shadow-xs'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      <Database className="w-3.5 h-3.5" />
+                      <span>Sao Lưu & Phục Hồi (.json)</span>
+                      <span className="text-[9px] bg-purple-100 text-purple-800 px-1.5 py-0.2 rounded font-extrabold">
+                        Platform-Wide
+                      </span>
+                    </button>
+                  )}
 
                   <button
                     type="button"
@@ -1431,23 +1459,36 @@ export default function SettingsPage() {
                   </button>
                 </div>
 
-                {/* Sub-tab 1: JSON Backup & Restore */}
-                {backupSubTab === 'json_backup' && (
+                {/* Sub-tab 1: JSON Backup & Restore (Super Admin Only) */}
+                {backupSubTab === 'json_backup' && !isSuperAdmin && (
+                  <div className="p-8 bg-white rounded-2xl border border-slate-200 text-center space-y-2">
+                    <Database className="w-8 h-8 text-purple-600 mx-auto" />
+                    <h3 className="font-bold text-slate-800 text-sm">Chỉ Dành Cho Super Admin</h3>
+                    <p className="text-slate-500 text-xs">Chức năng sao lưu & phục hồi toàn bộ cơ sở dữ liệu hệ thống chỉ khả dụng cho tài khoản Tổng quản trị.</p>
+                  </div>
+                )}
+
+                {backupSubTab === 'json_backup' && isSuperAdmin && (
                   <div className="space-y-6 animate-in fade-in">
                     {/* 1. Export Backup Card */}
                     <div className="bg-white p-5 sm:p-7 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
-                      <div className="pb-4 border-b border-slate-100 flex items-center gap-3">
-                        <div className="p-2.5 bg-violet-50 rounded-xl border border-violet-100 text-violet-600">
-                          <Download className="w-5 h-5" />
+                      <div className="pb-4 border-b border-slate-100 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2.5 bg-violet-50 rounded-xl border border-violet-100 text-violet-600">
+                            <Download className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <h3 className="font-bold text-slate-900 text-sm">
+                              {t('settings.backup_section_title')}
+                            </h3>
+                            <p className="text-slate-500 text-xs mt-0.5">
+                              {t('settings.backup_section_desc')}
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <h3 className="font-bold text-slate-900 text-sm">
-                            {t('settings.backup_section_title')}
-                          </h3>
-                          <p className="text-slate-500 text-xs mt-0.5">
-                            {t('settings.backup_section_desc')}
-                          </p>
-                        </div>
+                        <span className="text-[10px] bg-purple-50 text-purple-700 border border-purple-200 px-2 py-0.5 rounded-md font-extrabold shrink-0">
+                          Platform-Wide (Super Admin)
+                        </span>
                       </div>
 
                       <div className="bg-violet-50/60 border border-violet-100 rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">

@@ -33,9 +33,10 @@ export default function LoginPage() {
   const router = useRouter();
   const { t } = useTranslation();
 
-  // Store metadata
-  const [storeLogo, setStoreLogo] = useState<string | null>(() => getSavedStoreBrand()?.logo_url || null);
-  const [storeName, setStoreName] = useState<string>(() => getSavedStoreBrand()?.store_name || 'RabbitPOS');
+  // Saved store branding (pre-auth)
+  const savedBrand = typeof window !== 'undefined' ? getSavedStoreBrand() : null;
+  const storeLogo = savedBrand?.logo_url || null;
+  const lastStoreName = savedBrand?.store_name || null;
 
   // Login form state
   const [username, setUsername] = useState<string>('');
@@ -51,22 +52,6 @@ export default function LoginPage() {
   const [setupLoading, setSetupLoading] = useState<boolean>(false);
   const [setupError, setSetupError] = useState<string | null>(null);
   const [setupSuccess, setSetupSuccess] = useState<boolean>(false);
-
-  useEffect(() => {
-    const loadStoreInfo = async () => {
-      try {
-        const res = await fetchApi<Record<string, string>>('/settings');
-        if (res.status === 'success' && res.data) {
-          const data = res.data as Record<string, string>;
-          if (data.store_logo_url) setStoreLogo(data.store_logo_url);
-          if (data.store_name) setStoreName(data.store_name);
-        }
-      } catch (e) {
-        // Fallback gracefully if not reachable
-      }
-    };
-    loadStoreInfo();
-  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -157,8 +142,10 @@ export default function LoginPage() {
               <Coffee className="w-8 h-8" />
             )}
           </div>
-          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">{storeName || t('login.title')}</h1>
-          <p className="text-xs text-slate-500 font-medium">{t('login.subtitle')}</p>
+          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">RabbitPOS</h1>
+          <p className="text-xs text-slate-500 font-medium">
+            {lastStoreName ? `Chi nhánh gần nhất: ${lastStoreName}` : t('login.subtitle')}
+          </p>
         </div>
 
         {/* Error Alert */}

@@ -35,10 +35,11 @@ export async function exportTransactionsToExcel(
     views: [{ showGridLines: true }],
   });
 
-  const storeName = settings?.store_name || 'RabbitPOS';
-  const storePhone = settings?.store_phone || '';
-  const storeAddress = settings?.store_address || '';
-  const codePrefix = settings?.store_code ? `${settings.store_code}_` : '';
+  const s = settings as any;
+  const storeName = s?.store_name || s?.name || 'RabbitPOS';
+  const storePhone = s?.store_phone || s?.phone || '';
+  const storeAddress = s?.store_address || s?.address || '';
+  const codePrefix = (s?.store_code || s?.code) ? `${s.store_code || s.code}_` : '';
 
   // 1. Header Information Block
   worksheet.mergeCells('A1:I1');
@@ -224,10 +225,11 @@ export async function exportOrdersToExcel(
     views: [{ showGridLines: true }],
   });
 
-  const storeName = settings?.store_name || 'RabbitPOS';
-  const storePhone = settings?.store_phone || '';
-  const storeAddress = settings?.store_address || '';
-  const codePrefix = settings?.store_code ? `${settings.store_code}_` : '';
+  const s = settings as any;
+  const storeName = s?.store_name || s?.name || 'RabbitPOS';
+  const storePhone = s?.store_phone || s?.phone || '';
+  const storeAddress = s?.store_address || s?.address || '';
+  const codePrefix = (s?.store_code || s?.code) ? `${s.store_code || s.code}_` : '';
 
   // 1. Header Info
   worksheet.mergeCells('A1:J1');
@@ -414,8 +416,9 @@ export async function exportProductsRankingToExcel(
     views: [{ showGridLines: true }],
   });
 
-  const storeName = settings?.store_name || 'RabbitPOS';
-  const codePrefix = settings?.store_code ? `${settings.store_code}_` : '';
+  const s = settings as any;
+  const storeName = s?.store_name || s?.name || 'RabbitPOS';
+  const codePrefix = (s?.store_code || s?.code) ? `${s.store_code || s.code}_` : '';
 
   worksheet.mergeCells('A1:I1');
   const titleRow = worksheet.getCell('A1');

@@ -50,7 +50,23 @@ Tài liệu này quy định các quy chuẩn bắt buộc để các Agent khi 
 
 ---
 
-## 3. Quy Chuẩn Phạm Vi Nghiệp Vụ (Business Scope)
+## 3. Quy Chuẩn Lệnh Git & Bash
+
+### ⚠️ Điều cấm kỵ (gây mở editor/pager → treo):
+- `git commit` thiếu `-m`, `git commit --amend` thiếu `--no-edit`, `git tag -a` thiếu `-m`.
+- `git rebase -i`, `git add -p`, `git add -i` (chế độ tương tác).
+- Lệnh chờ stdin: `vi`, `nano`, `less`, `top`, `ssh` không có `-o BatchMode=yes`.
+
+### ✅ Quy chuẩn bắt buộc:
+- Git global đã cấu hình: `core.editor=true`, `sequence.editor=true`, `core.pager=cat`, `merge.autoEdit=no`.
+- Luôn dùng `git commit -m "..."`, `git merge --no-edit`, `git pull --no-edit --ff-only`.
+- Lệnh mạng phải có `timeout`: `timeout 30 git push`, `timeout 30 git fetch`.
+- Giới hạn output dài: `git log -n 20 --oneline`, `| head -50`.
+- Không `go mod tidy` / `go get` khi offline (`GOPROXY=off`); cần thì hỏi user trước.
+
+---
+
+## 4. Quy Chuẩn Phạm Vi Nghiệp Vụ (Business Scope)
 
 - **Trọng tâm**: Nhập hàng $\to$ Quy đổi đơn vị đa cấp/hao hụt $\to$ Định lượng công thức món (BOM) $\to$ Tính Cost & Theo dõi Lợi nhuận thu hồi.
 - **TUYỆT ĐỐI KHÔNG**:

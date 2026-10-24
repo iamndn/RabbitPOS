@@ -13,19 +13,40 @@
 | :--- | :--- | :--- |
 | `/` | Staff & Admin | Main POS Order Entry Screen (Default landing for cashiers) |
 | `/login` | Public | Authentication & First-Time Password Reset Screen |
-| `/products` | Admin Only | Menu Catalog, Category Tree, Dynamic Toppings & Auto-Tagging |
-| `/purchases` | Admin Only | Raw Ingredients, Purchase Invoices, Recipe BOM & Cost Sync |
-| `/promotions` | Admin Only | Promotional Campaigns & Discount Engine Management |
-| `/transactions` | Admin Only | Financial Ledger (Sổ Thu Chi) & Order History with Cancellation/Re-order |
-| `/funds` | Admin Only | Multi-Fund Management, Periodic Audit & Cashier Shift Summary |
-| `/dashboard` | Admin Only | BI Executive Analytics (Revenue, P&L Statement, Product Rankings) |
-| `/settings` | Admin Only | Store Branding, Logo, Email/SMTP, Google Sheets Sync & Web Backup/Restore |
+| `/stores` | Super Admin Only | Multi-Store Administration, Menu Cloning, Member Assignments & Cross-Store Overview |
+| `/products` | Store Admin & Super Admin | Menu Catalog, Category Tree, Dynamic Toppings & Auto-Tagging |
+| `/purchases` | Store Admin & Super Admin | Raw Ingredients, Purchase Invoices, Recipe BOM & Cost Sync |
+| `/promotions` | Store Admin & Super Admin | Promotional Campaigns & Discount Engine Management |
+| `/transactions` | Store Admin & Super Admin | Financial Ledger (Sổ Thu Chi) & Order History with Cancellation/Re-order |
+| `/funds` | Store Admin & Super Admin | Multi-Fund Management, Periodic Audit & Cashier Shift Summary |
+| `/dashboard` | Store Admin & Super Admin | BI Executive Analytics (Revenue, P&L Statement, Product Rankings) |
+| `/settings` | Store Admin & Super Admin | Store-Level Branding, VietQR, Daily Reports, Sheets Sync (Global SMTP & Backup restricted to Super Admin) |
 
 ---
 
 ## 2. Component Hierarchy by Screen
 
-### 2.1 POS Order Entry Screen (`/`)
+### 2.0 Global Layout & Tenancy Context
+- **`LanguageProvider`** (Vietnamese `vi` and English `en` localization engine)
+- **`StoreProvider`** (`StoreContext`: activeStore, storesList, switchStore, refreshStores, isSuperAdmin, storeRole)
+  - Intercepts API requests with `X-Store-ID` header
+  - Namespaces `clientCache` with `s{store_id}:`
+  - Namespaces POS active cart with `rabbitpos_active_cart_{store_id}`
+  - Isolates offline IndexedDB database per store (`RabbitPOS_Offline_DB_s{id}`)
+- **`AppShell`**
+  - **`StoreSwitcher`** (Branch dropdown in header & mobile drawer, showing store initials/logo, name, type badge)
+  - Dynamic page remount wrapper: `<div key={activeStore.id}>`
+  - Role-aware navigation (Staff: POS & History; Store Admin: Full Store Ops; Super Admin: Platform Stores)
+
+### 2.1 Store Administration Screen (`/stores`)
+- **`StoresPage`** (Restricted to `super_admin`)
+  - **`ExecutiveKPIRow`** (Total Stores, Active Stores, Total Assigned Staff, Period Revenue)
+  - **`ExecutiveOverviewSection`** (Cross-store comparison with `ModernDateRangePicker`, Revenue, Orders, AOV, Gross Profit & Margins)
+  - **`StoreCardsGrid`** (Store cards with logo/initials, code, business type badge, timezone, currency, quick actions)
+  - **`StoreFormModal`** (Create & Edit Store, auto-slugify code, business type, VietQR, and Menu Cloning from existing store)
+  - **`MemberManagerModal`** (Assign existing user or create new user with temporary password and assign store role)
+
+### 2.2 POS Order Entry Screen (`/`)
 - **`PosLayout`**
   - **`AppShell`** (Top navbar with dynamic store logo, cashier status, language switcher, user dropdown)
   - **`CategoryTabBar`** (Horizontal touch-scrollable category tabs with active indicators)

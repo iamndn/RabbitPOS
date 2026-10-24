@@ -2,7 +2,58 @@
 
 > Database Engine: PostgreSQL 16  
 > ORM: GORM (Go)  
-> Migration Management: Versioned SQL Migrations (`backend/migrations/000001` - `000018`)
+> Migration Management: Versioned SQL Migrations (`backend/migrations/000001` - `000021`)
+> Tenancy Architecture: Shared Database, Shared Schema with `store_id` Multi-Store Isolation
+
+---
+
+## 0. Multi-Store Tenancy Domain
+
+### `stores`
+| Column | Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | BIGSERIAL | PRIMARY KEY | Unique store identifier (Store #1 is default) |
+| `code` | VARCHAR(50) | UNIQUE, NOT NULL | Store slug identifier (e.g. `main`, `landmark`) |
+| `name` | VARCHAR(150) | NOT NULL | Store display name |
+| `business_type` | VARCHAR(50) | NOT NULL, DEFAULT 'fnb' | `fnb`, `cafe`, `retail`, `bakery`, `other` |
+| `logo_url` | VARCHAR(255) | DEFAULT '' | Store logo path |
+| `address` | VARCHAR(255) | DEFAULT '' | Store physical address |
+| `phone` | VARCHAR(50) | DEFAULT '' | Store contact phone number |
+| `currency_code` | VARCHAR(10) | NOT NULL, DEFAULT 'VND' | ISO currency code |
+| `currency_symbol` | VARCHAR(10) | NOT NULL, DEFAULT 'đ' | Currency symbol |
+| `currency_position` | VARCHAR(10) | NOT NULL, DEFAULT 'suffix' | `prefix` or `suffix` |
+| `vietqr_bank_id` | VARCHAR(20) | DEFAULT 'MB' | Napas VietQR bank identifier |
+| `vietqr_account_no` | VARCHAR(50) | DEFAULT '' | VietQR account number |
+| `vietqr_account_name` | VARCHAR(100) | DEFAULT '' | VietQR beneficiary account name |
+| `timezone` | VARCHAR(50) | NOT NULL, DEFAULT 'Asia/Ho_Chi_Minh' | Store IANA timezone |
+| `is_active` | BOOLEAN | NOT NULL, DEFAULT true | Store active status toggle |
+| `created_at` | TIMESTAMPTZ | NOT NULL | Creation timestamp |
+| `updated_at` | TIMESTAMPTZ | NOT NULL | Last update timestamp |
+
+### `user_stores`
+| Column | Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | BIGSERIAL | PRIMARY KEY | Unique membership identifier |
+| `user_id` | BIGINT | NOT NULL, FK -> `users.id` ON DELETE CASCADE | Associated user |
+| `store_id` | BIGINT | NOT NULL, FK -> `stores.id` ON DELETE CASCADE | Associated store |
+| `role` | VARCHAR(20) | NOT NULL, DEFAULT 'staff' | `store_admin` or `staff` |
+| `is_default` | BOOLEAN | NOT NULL, DEFAULT false | User's default landing store |
+| `created_at` | TIMESTAMPTZ | NOT NULL | Creation timestamp |
+| `updated_at` | TIMESTAMPTZ | NOT NULL | Last update timestamp |
+
+*Unique constraint: `UNIQUE(user_id, store_id)`*
+
+### `store_settings`
+| Column | Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | BIGSERIAL | PRIMARY KEY | Unique store setting row |
+| `store_id` | BIGINT | NOT NULL, FK -> `stores.id` ON DELETE CASCADE | Associated store |
+| `key` | VARCHAR(100) | NOT NULL | Setting key (e.g. `google_sheets_spreadsheet_id`, `report_recipient_emails`) |
+| `value` | TEXT | NOT NULL | Value or JSON string |
+| `created_at` | TIMESTAMPTZ | NOT NULL | Creation timestamp |
+| `updated_at` | TIMESTAMPTZ | NOT NULL | Last update timestamp |
+
+*Unique constraint: `UNIQUE(store_id, key)`*
 
 ---
 

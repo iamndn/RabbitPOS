@@ -7,7 +7,12 @@ export interface CsvColumn<T> {
   accessor: (item: T) => string | number | null | undefined;
 }
 
-export function exportToCsv<T>(filename: string, data: T[], columns: CsvColumn<T>[]) {
+export function exportToCsv<T>(
+  filename: string,
+  data: T[],
+  columns: CsvColumn<T>[],
+  storeCode?: string
+) {
   if (!data || data.length === 0) {
     console.warn('exportToCsv: No data available to export.');
     return;
@@ -31,11 +36,12 @@ export function exportToCsv<T>(filename: string, data: T[], columns: CsvColumn<T
   const csvContent = '\uFEFF' + [headers, ...rows].join('\r\n');
 
   // 4. Trigger Browser File Download
+  const prefix = storeCode ? `${storeCode}_` : '';
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.setAttribute('href', url);
-  link.setAttribute('download', `${filename}_${new Date().toISOString().slice(0, 10)}.csv`);
+  link.setAttribute('download', `${prefix}${filename}_${new Date().toISOString().slice(0, 10)}.csv`);
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
