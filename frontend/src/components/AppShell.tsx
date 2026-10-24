@@ -142,6 +142,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   ];
 
   const visibleNavItems = allNavItems.filter((item) => item.visible);
+  // Hide store management tab from mobile bottom bar (accessed via Header avatar/switcher)
+  const mobileNavItems = visibleNavItems.filter((item) => item.href !== '/stores');
 
   if (!mounted) return null;
 
@@ -352,9 +354,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </div>
 
-      {/* Mobile Bottom Navigation */}
+      {/* Mobile Bottom Navigation (Tab Cửa hàng được truy cập qua Header/Avatar/StoreSwitcher, không hiển thị ở footer) */}
       <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white border-t border-slate-200 flex justify-around items-center py-1 px-1 sm:px-2 pb-safe shadow-lg w-full max-w-full overflow-hidden">
-        {visibleNavItems.map((item) => {
+        {mobileNavItems.map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.href;
           return (
