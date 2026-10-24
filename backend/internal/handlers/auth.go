@@ -368,6 +368,11 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		if err := tx.Create(&newUser).Error; err != nil {
 			return err
 		}
+		// Explicitly ensure needs_password_setup is false (bypassing GORM default:true zero-value tag)
+		if err := tx.Model(&newUser).Update("needs_password_setup", false).Error; err != nil {
+			return err
+		}
+		newUser.NeedsPasswordSetup = false
 
 		// Resolve unique store code
 		storeCode := baseSlug
