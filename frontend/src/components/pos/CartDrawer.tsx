@@ -23,15 +23,34 @@ import {
   RotateCcw,
   Calendar,
   Gift,
+  Banknote,
+  QrCode,
+  Calculator,
+  RefreshCw,
 } from 'lucide-react';
 import { CartItem, Product, ProductVariant } from './VariantSelectorModal';
 import { Promotion } from '@/types/promotion';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
 import { fetchApi } from '@/lib/api';
 import { formatCurrency, SettingsMap } from '@/lib/utils';
-import ModernSelect from '@/components/common/ModernSelect';
 import HorizontalScroller from '@/components/common/HorizontalScroller';
 import GiftItemSelectorModal from './GiftItemSelectorModal';
+
+export interface SalesChannelOption {
+  id: string;
+  label: string;
+  icon: string;
+  colorClass: string;
+  activeClass: string;
+}
+
+export const SALES_CHANNELS: SalesChannelOption[] = [
+  { id: 'dine_in', label: 'Tại quán', icon: '🏠', colorClass: 'text-purple-700', activeClass: 'bg-purple-700 text-white shadow-xs' },
+  { id: 'takeaway', label: 'Mang về', icon: '🛍️', colorClass: 'text-indigo-700', activeClass: 'bg-indigo-600 text-white shadow-xs' },
+  { id: 'shopeefood', label: 'ShopeeFood', icon: '🧡', colorClass: 'text-orange-700', activeClass: 'bg-orange-600 text-white shadow-xs' },
+  { id: 'grabfood', label: 'GrabFood', icon: '💚', colorClass: 'text-emerald-700', activeClass: 'bg-emerald-600 text-white shadow-xs' },
+  { id: 'befood', label: 'BeFood', icon: '💛', colorClass: 'text-amber-700', activeClass: 'bg-amber-500 text-white shadow-xs' },
+];
 
 interface Props {
   isOpen: boolean;
@@ -49,13 +68,21 @@ interface Props {
   onShippingFeeChange: (amount: number) => void;
   platformFeeDiscount: number;
   onPlatformFeeDiscountChange: (amount: number) => void;
+  salesChannel?: string;
+  onSalesChannelChange?: (channel: string) => void;
+  platformCommissionPercent?: number;
+  onPlatformCommissionPercentChange?: (pct: number) => void;
   surcharge: number;
   onSurchargeChange: (amount: number) => void;
   orderNote: string;
   onOrderNoteChange: (note: string) => void;
   orderCreatedAt?: string | null;
   onOrderCreatedAtChange?: (dateStr: string | null) => void;
-  onProceedCheckout: () => void;
+  onProceedCheckout?: () => void;
+  onOneTapCash?: () => Promise<void> | void;
+  onOneTapVietQR?: () => void;
+  onOpenCheckoutModal?: () => void;
+  isSubmitting?: boolean;
   settings?: SettingsMap | null;
   products?: Product[];
   categories?: { id: number; name: string }[];
@@ -71,6 +98,8 @@ const FAST_NOTE_PRESETS = [
   'Nhiều sữa',
   'Ít sữa',
 ];
+
+type AdjustmentTab = 'none' | 'note' | 'promo' | 'fees' | 'surcharge' | 'time';
 
 export default function CartDrawer({
   isOpen,
@@ -88,6 +117,10 @@ export default function CartDrawer({
   onShippingFeeChange,
   platformFeeDiscount,
   onPlatformFeeDiscountChange,
+  salesChannel = 'dine_in',
+  onSalesChannelChange,
+  platformCommissionPercent = 0,
+  onPlatformCommissionPercentChange,
   surcharge,
   onSurchargeChange,
   orderNote,
@@ -95,6 +128,10 @@ export default function CartDrawer({
   orderCreatedAt,
   onOrderCreatedAtChange,
   onProceedCheckout,
+  onOneTapCash,
+  onOneTapVietQR,
+  onOpenCheckoutModal,
+  isSubmitting = false,
   settings,
   products = [],
   categories = [],
@@ -102,26 +139,22 @@ export default function CartDrawer({
 }: Props) {
   const { t } = useTranslation();
 
-  const handleToggleFastNote = (preset: string) => {
-    if (!orderNote) {
-      onOrderNoteChange(preset);
-      return;
-    }
-    const parts = orderNote.split(',').map((p) => p.trim()).filter(Boolean);
-    const existingIndex = parts.findIndex((p) => p.toLowerCase() === preset.toLowerCase());
-    if (existingIndex >= 0) {
-      parts.splice(existingIndex, 1);
-    } else {
-      parts.push(preset);
-    }
-    onOrderNoteChange(parts.join(', '));
-  };
+  // Active Collapsible Adjustment Tab ('none' by default to maximize item space)
+  const [activeTab, setActiveTab] = useState<AdjustmentTab>('none');
+
+  // Custom commission override state (allow inline typing of custom % or custom VND)
+  const [isEditingCommission, setIsEditingCommission] = useState<boolean>(false);
+  const [customCommissionInput, setCustomCommissionInput] = useState<string>('');
 
   // Active Promotions for Cart
   const [activePromotions, setActivePromotions] = useState<Promotion[]>([]);
   const [editingPriceItemId, setEditingPriceItemId] = useState<string | null>(null);
   const [tempUnitPrice, setTempUnitPrice] = useState<number>(0);
-  const [isAdjustmentsOpen, setIsAdjustmentsOpen] = useState<boolean>(false);
+  const [showAllEligiblePromos, setShowAllEligiblePromos] = useState<boolean>(false);
+
+  // Gift selector modal state
+  const [isGiftSelectorOpen, setIsGiftSelectorOpen] = useState<boolean>(false);
+  const [giftPromoForModal, setGiftPromoForModal] = useState<Promotion | null>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -149,53 +182,25 @@ export default function CartDrawer({
     [safeCartItems]
   );
 
-  const currentGiftCartItem = React.useMemo(
-    () => safeCartItems.find((it) => it.isGift),
-    [safeCartItems]
+  // Identify if any gift item is currently in cart
+  const currentGiftCartItem = React.useMemo(() => {
+    return safeCartItems.find((i) => i.isGift);
+  }, [safeCartItems]);
+
+  // Check if a promotion is currently eligible
+  const checkEligibility = React.useCallback(
+    (promo: Promotion): boolean => {
+      if (!promo || !promo.is_active) return false;
+      const minAmount = promo.min_order_amount ?? 0;
+      const minQty = promo.min_quantity ?? 0;
+      if (minAmount > 0 && eligibleSubtotal < minAmount) return false;
+      if (minQty > 0 && eligibleItemCount < minQty) return false;
+      return true;
+    },
+    [eligibleSubtotal, eligibleItemCount]
   );
 
-  const [isGiftSelectorOpen, setIsGiftSelectorOpen] = useState<boolean>(false);
-  const [giftPromoForModal, setGiftPromoForModal] = useState<Promotion | null>(null);
-  const [showAllEligiblePromos, setShowAllEligiblePromos] = useState<boolean>(false);
-
-  // Check promotion eligibility based on min_order_amount, min_quantity, date, usage, and scope
-  const checkEligibility = React.useCallback((promo: Promotion): boolean => {
-    if (promo.is_active === false) return false;
-
-    const now = new Date();
-    if (promo.start_date && new Date(promo.start_date) > now) return false;
-    if (promo.end_date && new Date(promo.end_date) < now) return false;
-    if (promo.usage_limit > 0 && promo.usage_count >= promo.usage_limit) return false;
-
-    if (promo.min_order_amount > 0 && eligibleSubtotal < promo.min_order_amount) return false;
-    if (promo.min_quantity > 0 && eligibleItemCount < promo.min_quantity) return false;
-
-    if (promo.scope === 'category' || promo.scope === 'product') {
-      let targetIds: number[] = [];
-      try {
-        if (promo.target_ids) {
-          targetIds = JSON.parse(promo.target_ids);
-        }
-      } catch {
-        targetIds = [];
-      }
-
-      if (Array.isArray(targetIds) && targetIds.length > 0) {
-        const nonGiftItems = safeCartItems.filter((it) => !it.isGift);
-        if (promo.scope === 'category') {
-          const hasMatchingCat = nonGiftItems.some((it) => it.product && targetIds.includes(it.product.category_id));
-          if (!hasMatchingCat) return false;
-        } else if (promo.scope === 'product') {
-          const hasMatchingProd = nonGiftItems.some((it) => it.product && targetIds.includes(it.product.id));
-          if (!hasMatchingProd) return false;
-        }
-      }
-    }
-
-    return true;
-  }, [eligibleSubtotal, eligibleItemCount, safeCartItems]);
-
-  // Find all eligible promotions sorted by display_order
+  // Eligible promotions sorted by display order
   const eligiblePromotions = React.useMemo(() => {
     return activePromotions
       .filter((p) => checkEligibility(p))
@@ -217,6 +222,82 @@ export default function CartDrawer({
     }
   }, [selectedPromotion, checkEligibility, onSelectPromotion]);
 
+  // Handle Sales Channel Change & Auto Commission
+  const handleSelectChannel = (channelId: string) => {
+    onSalesChannelChange?.(channelId);
+
+    // If delivery app channel, auto-calculate commission based on configured settings
+    let defaultPct = 0;
+    if (channelId === 'shopeefood') {
+      defaultPct = parseFloat(settings?.commission_shopeefood_pct || '0');
+    } else if (channelId === 'grabfood') {
+      defaultPct = parseFloat(settings?.commission_grabfood_pct || '0');
+    } else if (channelId === 'befood') {
+      defaultPct = parseFloat(settings?.commission_befood_pct || '0');
+    }
+
+    if (defaultPct > 0) {
+      onPlatformCommissionPercentChange?.(defaultPct);
+      const feeDiscount = Math.round((subtotal * defaultPct) / 100);
+      onPlatformFeeDiscountChange(feeDiscount);
+    } else {
+      // Dine-in or Takeaway: reset commission discount
+      onPlatformCommissionPercentChange?.(0);
+      onPlatformFeeDiscountChange(0);
+    }
+    setIsEditingCommission(false);
+  };
+
+  // Toggle or clear auto-calculated commission
+  const handleToggleAutoCommission = () => {
+    if (platformFeeDiscount > 0 || (platformCommissionPercent && platformCommissionPercent > 0)) {
+      onPlatformFeeDiscountChange(0);
+      onPlatformCommissionPercentChange?.(0);
+      setIsEditingCommission(false);
+    } else {
+      // Re-apply configured pct
+      let defaultPct = 0;
+      if (salesChannel === 'shopeefood') defaultPct = parseFloat(settings?.commission_shopeefood_pct || '0');
+      else if (salesChannel === 'grabfood') defaultPct = parseFloat(settings?.commission_grabfood_pct || '0');
+      else if (salesChannel === 'befood') defaultPct = parseFloat(settings?.commission_befood_pct || '0');
+      if (defaultPct <= 0) defaultPct = 20; // fallback standard 20%
+      onPlatformCommissionPercentChange?.(defaultPct);
+      onPlatformFeeDiscountChange(Math.round((subtotal * defaultPct) / 100));
+    }
+  };
+
+  const handleCustomCommissionApply = () => {
+    const val = parseFloat(customCommissionInput);
+    if (!isNaN(val) && val >= 0) {
+      if (val <= 100) {
+        // Interpreted as percentage
+        onPlatformCommissionPercentChange?.(val);
+        onPlatformFeeDiscountChange(Math.round((subtotal * val) / 100));
+      } else {
+        // Interpreted as direct VND amount
+        onPlatformFeeDiscountChange(Math.round(val));
+        const computedPct = subtotal > 0 ? Math.round((val / subtotal) * 1000) / 10 : 0;
+        onPlatformCommissionPercentChange?.(computedPct);
+      }
+    }
+    setIsEditingCommission(false);
+  };
+
+  const handleToggleFastNote = (preset: string) => {
+    if (!orderNote) {
+      onOrderNoteChange(preset);
+      return;
+    }
+    const parts = orderNote.split(',').map((p) => p.trim()).filter(Boolean);
+    const existingIndex = parts.findIndex((p) => p.toLowerCase() === preset.toLowerCase());
+    if (existingIndex >= 0) {
+      parts.splice(existingIndex, 1);
+    } else {
+      parts.push(preset);
+    }
+    onOrderNoteChange(parts.join(', '));
+  };
+
   const handleApplyPromo = (promo: Promotion) => {
     if (selectedPromotion?.id === promo.id) {
       onSelectPromotion(null);
@@ -230,7 +311,6 @@ export default function CartDrawer({
         return;
       }
 
-      // If fixed gift item, look for it in products
       if (promo.gift_product_variant_id && Array.isArray(products)) {
         let foundV: ProductVariant | null = null;
         let foundP: Product | null = null;
@@ -250,7 +330,6 @@ export default function CartDrawer({
         }
       }
 
-      // Fallback: open selector modal so user can pick
       setGiftPromoForModal(promo);
       setIsGiftSelectorOpen(true);
       return;
@@ -274,6 +353,8 @@ export default function CartDrawer({
     setEditingPriceItemId(null);
   };
 
+  const isDeliveryAppChannel = ['shopeefood', 'grabfood', 'befood'].includes(salesChannel);
+
   if (!isOpen) return null;
 
   return (
@@ -284,11 +365,11 @@ export default function CartDrawer({
           <div className="w-12 h-1.5 bg-slate-300 rounded-full" />
         </div>
 
-        {/* Drawer Header */}
-        <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+        {/* Top Header */}
+        <div className="px-4 py-2.5 border-b border-slate-200 flex items-center justify-between bg-slate-50/80 shrink-0">
           <div className="flex items-center space-x-2">
             <ShoppingBag className="w-5 h-5 text-purple-800" />
-            <h2 className="font-bold text-slate-900 text-base">{t('pos.view_cart')}</h2>
+            <h2 className="font-extrabold text-slate-900 text-base">{t('pos.view_cart')}</h2>
             <span className="bg-purple-100 text-purple-800 text-xs font-bold px-2 py-0.5 rounded-full">
               {t('pos.items_count', { count: totalItemCount })}
             </span>
@@ -301,18 +382,112 @@ export default function CartDrawer({
           </button>
         </div>
 
-        {/* Cart Item List */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-3 divide-y divide-slate-100">
+        {/* 1. SALES CHANNEL SEGMENTED BAR (Requirement 2) */}
+        <div className="px-3 py-2 bg-slate-100/90 border-b border-slate-200/80 shrink-0">
+          <div className="flex items-center justify-between gap-1 overflow-x-auto no-scrollbar py-0.5">
+            {SALES_CHANNELS.map((ch) => {
+              const isSelected = salesChannel === ch.id;
+              return (
+                <button
+                  key={ch.id}
+                  type="button"
+                  onClick={() => handleSelectChannel(ch.id)}
+                  className={`flex-1 min-w-[70px] py-1.5 px-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer whitespace-nowrap active:scale-95 ${
+                    isSelected
+                      ? ch.activeClass
+                      : 'bg-white hover:bg-slate-50 text-slate-600 border border-slate-200/60'
+                  }`}
+                >
+                  <span className="text-xs">{ch.icon}</span>
+                  <span className="text-[11px] font-extrabold">{ch.label}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Auto-Commission Badge & 1-Tap Toggle/Override (If delivery channel) */}
+          {isDeliveryAppChannel && (
+            <div className="mt-1.5 pt-1.5 border-t border-slate-200/60 flex items-center justify-between gap-2 text-xs">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span className="text-[11px] font-bold text-slate-600 shrink-0">Chiết khấu sàn:</span>
+                {platformFeeDiscount > 0 ? (
+                  <button
+                    type="button"
+                    onClick={handleToggleAutoCommission}
+                    title="Bấm để bật/tắt chiết khấu sàn"
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 font-extrabold text-[11px] transition active:scale-95 cursor-pointer truncate"
+                  >
+                    <span>✓ -{platformCommissionPercent}% (-{formatCurrency(platformFeeDiscount, settings)})</span>
+                    <span className="text-amber-700 hover:text-amber-950 font-bold ml-0.5">✕</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleToggleAutoCommission}
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-[11px] transition active:scale-95 cursor-pointer"
+                  >
+                    <span>+ Áp dụng % sàn</span>
+                  </button>
+                )}
+              </div>
+
+              {/* Inline Custom Override Button */}
+              <div>
+                {!isEditingCommission ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCustomCommissionInput(platformCommissionPercent > 0 ? platformCommissionPercent.toString() : '');
+                      setIsEditingCommission(true);
+                    }}
+                    className="text-[10px] font-bold text-indigo-600 hover:text-indigo-800 hover:underline cursor-pointer whitespace-nowrap"
+                  >
+                    Sửa %
+                  </button>
+                ) : (
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="number"
+                      step="1"
+                      placeholder="% hoặc đ"
+                      value={customCommissionInput}
+                      onChange={(e) => setCustomCommissionInput(e.target.value)}
+                      className="w-16 px-1.5 py-0.5 text-[11px] font-bold border border-indigo-300 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleCustomCommissionApply}
+                      className="px-1.5 py-0.5 rounded-lg bg-indigo-600 text-white text-[10px] font-bold hover:bg-indigo-700"
+                    >
+                      Lưu
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingCommission(false)}
+                      className="p-0.5 text-slate-400 hover:text-slate-600"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* 2. Cart Item List (Maximizing vertical height) */}
+        <div className="flex-1 overflow-y-auto p-3.5 space-y-2.5 divide-y divide-slate-100 custom-scrollbar">
           {safeCartItems.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-slate-400 py-12">
-              <ShoppingBag className="w-12 h-12 stroke-[1.5] mb-2" />
-              <p className="text-sm font-medium">{t('pos.empty_cart')}</p>
+            <div className="flex flex-col items-center justify-center h-full text-slate-400 py-16">
+              <ShoppingBag className="w-14 h-14 stroke-[1.3] text-slate-300 mb-2.5" />
+              <p className="text-sm font-semibold">{t('pos.empty_cart') || 'Giỏ hàng đang trống'}</p>
+              <p className="text-xs text-slate-400 mt-1">Chọn đồ uống từ thực đơn bên trái để bắt đầu</p>
             </div>
           ) : (
             safeCartItems.map((item) => {
               if (item.isGift) {
                 return (
-                  <div key={item.id} className="pt-3 first:pt-0 flex flex-col space-y-2 bg-gradient-to-r from-amber-50/70 via-orange-50/40 to-amber-50/70 p-3 rounded-2xl border border-amber-300 shadow-2xs">
+                  <div key={item.id} className="pt-2.5 first:pt-0 flex flex-col space-y-2 bg-gradient-to-r from-amber-50/70 via-orange-50/40 to-amber-50/70 p-3 rounded-2xl border border-amber-300 shadow-2xs">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0 pr-2">
                         <div className="flex items-center gap-1.5 flex-wrap">
@@ -345,132 +520,129 @@ export default function CartDrawer({
                       </div>
                     </div>
 
-                    {/* Controls for gift item */}
                     <div className="flex items-center justify-between text-xs pt-1 border-t border-amber-200/60">
                       <button
                         type="button"
                         onClick={() => {
-                          const promoToChange = selectedPromotion || activePromotions.find((p) => p.id === item.giftPromotionId);
-                          if (promoToChange) {
-                            setGiftPromoForModal(promoToChange);
+                          const promo = activePromotions.find((p) => p.name === item.giftPromotionName);
+                          if (promo) {
+                            setGiftPromoForModal(promo);
                             setIsGiftSelectorOpen(true);
                           }
                         }}
-                        className="text-[11px] text-amber-900 hover:text-amber-950 flex items-center gap-1 font-bold bg-amber-200/80 hover:bg-amber-300/80 px-2.5 py-1 rounded-xl transition cursor-pointer active:scale-95 shadow-2xs"
+                        className="text-[11px] font-bold text-amber-900 hover:text-amber-950 underline flex items-center gap-1 cursor-pointer"
                       >
-                        <Gift className="w-3.5 h-3.5 text-amber-800" />
-                        <span>Đổi món quà tặng</span>
+                        <Gift className="w-3 h-3" />
+                        <span>Đổi món quà</span>
                       </button>
-
-                      <div className="flex items-center space-x-1.5 bg-white p-0.5 rounded-xl border border-amber-200">
-                        <span className="text-[11px] font-bold text-slate-600 px-1.5">
-                          SL: 1
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => onRemoveItem(item.id)}
-                          title="Bỏ món quà tặng này"
-                          className="p-1 hover:bg-rose-50 rounded-lg text-slate-400 hover:text-rose-600 transition active:scale-95 cursor-pointer ml-1"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
+                      <button
+                        type="button"
+                        onClick={() => onRemoveItem(item.id)}
+                        className="p-1 rounded-lg text-rose-500 hover:bg-rose-50 transition cursor-pointer"
+                        title="Xóa món quà"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                   </div>
                 );
               }
 
+              // Normal Item Row
               return (
-                <div key={item.id} className="pt-3 first:pt-0 flex flex-col space-y-2">
-                  <div className="flex items-start justify-between">
-                    <div className="min-w-0 pr-2">
-                      <h3 className="text-sm font-bold text-slate-900 leading-tight">
+                <div key={item.id} className="pt-2.5 first:pt-0 space-y-1.5">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0 pr-1">
+                      <h3 className="text-xs sm:text-sm font-bold text-slate-900 leading-snug">
                         {item.product.name}
                       </h3>
-                      <p className="text-xs text-slate-500 font-medium">
-                        {item.selectedVariant.variant_name}
-                        {item.selectedToppings && item.selectedToppings.length > 0 && (
-                          <span className="text-purple-700 font-semibold block sm:inline sm:ml-1">
-                            + {item.selectedToppings.map((t) => t.name).join(', ')}
-                          </span>
-                        )}
-                      </p>
-                      {item.notes && (
-                        <p className="text-[11px] text-amber-700 italic font-medium bg-amber-50 px-1.5 py-0.5 rounded mt-0.5 inline-block">
-                          Ghi chú: {item.notes}
-                        </p>
+                      <div className="flex items-center gap-1 text-[11px] text-slate-500 font-medium">
+                        <span>{item.selectedVariant.variant_name !== 'Default' ? item.selectedVariant.variant_name : 'Mặc định'}</span>
+                        {item.notes && <span className="text-purple-600 font-bold truncate">· {item.notes}</span>}
+                      </div>
+
+                      {/* Toppings if present */}
+                      {Array.isArray(item.selectedToppings) && item.selectedToppings.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-0.5">
+                          {item.selectedToppings.map((top) => (
+                            <span
+                              key={top.id}
+                              className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.2 rounded font-medium"
+                            >
+                              +{top.name}
+                            </span>
+                          ))}
+                        </div>
                       )}
                     </div>
+
+                    {/* Unit Price & Line Total */}
                     <div className="text-right shrink-0">
-                      <div className="text-xs font-bold text-slate-900">
+                      <div className="text-xs sm:text-sm font-bold text-slate-900">
                         {formatCurrency(item.lineTotal, settings)}
                       </div>
-                      {item.quantity > 1 && (
-                        <div className="text-[10px] text-slate-400">
-                          {formatCurrency(item.unitPrice, settings)} / ly
+                      {editingPriceItemId === item.id ? (
+                        <div className="flex items-center gap-1 mt-1 justify-end">
+                          <input
+                            type="number"
+                            min="0"
+                            step="1000"
+                            value={tempUnitPrice}
+                            onChange={(e) => setTempUnitPrice(Number(e.target.value) || 0)}
+                            className="w-20 p-1 text-right text-xs font-bold border border-purple-400 rounded-md focus:outline-none"
+                            autoFocus
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleSaveUnitPrice(item.id)}
+                            className="p-1 bg-purple-700 text-white rounded-md text-[10px]"
+                          >
+                            <Check className="w-3 h-3" />
+                          </button>
                         </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => handleStartEditPrice(item)}
+                          className="text-[10px] text-slate-400 hover:text-purple-700 inline-flex items-center gap-0.5 transition cursor-pointer"
+                        >
+                          <span>{formatCurrency(item.unitPrice, settings)}</span>
+                          <Edit2 className="w-2.5 h-2.5" />
+                        </button>
                       )}
                     </div>
                   </div>
 
-                  {/* Price Modifier & Quantity Adjuster */}
-                  <div className="flex items-center justify-between text-xs pt-1">
-                    {editingPriceItemId === item.id ? (
-                      <div className="flex items-center space-x-1">
-                        <input
-                          type="number"
-                          value={tempUnitPrice || ''}
-                          onChange={(e) => setTempUnitPrice(Number(e.target.value))}
-                          className="w-20 p-1 text-xs border border-purple-600 rounded bg-purple-50 focus:outline-none font-bold"
-                          autoFocus
-                        />
-                        <button
-                          onClick={() => handleSaveUnitPrice(item.id)}
-                          className="px-2 py-1 bg-purple-700 text-white rounded text-[11px] font-bold"
-                        >
-                          Lưu
-                        </button>
-                        <button
-                          onClick={() => setEditingPriceItemId(null)}
-                          className="px-1.5 py-1 bg-slate-200 text-slate-600 rounded text-[11px]"
-                        >
-                          Hủy
-                        </button>
-                      </div>
-                    ) : (
+                  {/* Quantity & Delete Controls */}
+                  <div className="flex items-center justify-between text-xs pt-0.5">
+                    <div className="flex items-center border border-slate-200 rounded-xl bg-slate-50/70 p-0.5">
                       <button
-                        onClick={() => handleStartEditPrice(item)}
-                        className="text-[11px] text-slate-400 hover:text-purple-700 flex items-center gap-1 font-medium transition cursor-pointer"
-                      >
-                        <Edit2 className="w-3 h-3" />
-                        <span>Sửa giá ({formatCurrency(item.unitPrice, settings)})</span>
-                      </button>
-                    )}
-
-                    {/* Quantity Stepper */}
-                    <div className="flex items-center space-x-1.5 bg-slate-100 p-0.5 rounded-lg border border-slate-200">
-                      <button
+                        type="button"
                         onClick={() => onUpdateQty(item.id, -1)}
-                        className="p-1 hover:bg-white rounded text-slate-600 transition active:scale-95 cursor-pointer"
+                        className="w-6 h-6 rounded-lg bg-white shadow-2xs hover:bg-slate-100 flex items-center justify-center text-slate-600 font-bold active:scale-95"
                       >
-                        <Minus className="w-3.5 h-3.5" />
+                        <Minus className="w-3 h-3" />
                       </button>
-                      <span className="w-6 text-center font-bold text-slate-800 text-xs">
+                      <span className="w-7 text-center font-bold text-xs text-slate-800">
                         {item.quantity}
                       </span>
                       <button
+                        type="button"
                         onClick={() => onUpdateQty(item.id, 1)}
-                        className="p-1 hover:bg-white rounded text-slate-600 transition active:scale-95 cursor-pointer"
+                        className="w-6 h-6 rounded-lg bg-white shadow-2xs hover:bg-slate-100 flex items-center justify-center text-slate-600 font-bold active:scale-95"
                       >
-                        <Plus className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        onClick={() => onRemoveItem(item.id)}
-                        className="p-1 hover:bg-rose-50 rounded text-slate-400 hover:text-rose-600 transition active:scale-95 cursor-pointer ml-1"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        <Plus className="w-3 h-3" />
                       </button>
                     </div>
+
+                    <button
+                      type="button"
+                      onClick={() => onRemoveItem(item.id)}
+                      className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition cursor-pointer"
+                      title="Xóa món"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 </div>
               );
@@ -478,216 +650,336 @@ export default function CartDrawer({
           )}
         </div>
 
-        {/* Footer Summary, Promotions, Adjustments & Checkout */}
-        {cartItems.length > 0 && (
-          <div className="p-4 border-t border-slate-200 bg-slate-50 space-y-3 pb-safe">
-            {/* 1. Promotions Section */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
-                <span className="flex items-center gap-1">
-                  <Tag className="w-3.5 h-3.5 text-purple-700" />
-                  {t('pos.apply_promotion')}
-                </span>
-                {eligiblePromotions.length > 1 ? (
-                  <button
-                    type="button"
-                    onClick={() => setShowAllEligiblePromos((prev) => !prev)}
-                    className="text-[11px] text-purple-700 font-bold hover:underline cursor-pointer flex items-center gap-0.5"
+        {/* 3. COLLAPSIBLE ADJUSTMENTS & STICKY FOOTER (Requirements 3 & 4) */}
+        {safeCartItems.length > 0 && (
+          <div className="border-t border-slate-200/90 bg-white p-3.5 space-y-2.5 pb-safe shrink-0 shadow-lg">
+            {/* ROW OF COMPACT ADJUSTMENT TOGGLE CHIPS */}
+            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+              {/* Note Chip */}
+              <button
+                type="button"
+                onClick={() => setActiveTab(activeTab === 'note' ? 'none' : 'note')}
+                className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer whitespace-nowrap active:scale-95 ${
+                  orderNote
+                    ? 'bg-purple-50 text-purple-800 border border-purple-300 ring-1 ring-purple-200'
+                    : activeTab === 'note'
+                    ? 'bg-slate-800 text-white'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200/60'
+                }`}
+              >
+                <FileText className="w-3.5 h-3.5 text-purple-600" />
+                <span>{orderNote ? `Ghi chú: ${orderNote.slice(0, 10)}...` : '+ Ghi chú'}</span>
+                {orderNote && (
+                  <span
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onOrderNoteChange('');
+                    }}
+                    className="p-0.5 hover:text-rose-600 cursor-pointer"
                   >
-                    <span>{showAllEligiblePromos ? 'Thu gọn' : `Xem tất cả (${eligiblePromotions.length} CTKM)`}</span>
-                    {showAllEligiblePromos ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-                  </button>
-                ) : eligiblePromotions.length === 1 ? (
-                  <span className="text-[10px] text-purple-700 font-semibold">
-                    1 khuyến mãi phù hợp
+                    ✕
                   </span>
-                ) : null}
-              </label>
+                )}
+              </button>
 
-              {eligiblePromotions.length > 0 ? (
-                <div className="space-y-2">
-                  {(showAllEligiblePromos ? eligiblePromotions : [topEligiblePromotion!]).map((promo) => {
-                    const isSelected = selectedPromotion?.id === promo.id;
-                    const isGiftPromo = promo.promo_type === 'gift_item';
-                    const hasGiftInCart = isSelected && currentGiftCartItem;
+              {/* Promo Chip */}
+              <button
+                type="button"
+                onClick={() => setActiveTab(activeTab === 'promo' ? 'none' : 'promo')}
+                className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer whitespace-nowrap active:scale-95 ${
+                  selectedPromotion
+                    ? 'bg-purple-100 text-purple-900 border border-purple-300 ring-1 ring-purple-200'
+                    : activeTab === 'promo'
+                    ? 'bg-slate-800 text-white'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200/60'
+                }`}
+              >
+                <Tag className="w-3.5 h-3.5 text-purple-600" />
+                <span>
+                  {selectedPromotion
+                    ? `🎟️ -${formatCurrency(promotionDiscount, settings)}`
+                    : eligiblePromotions.length > 0
+                    ? `🎟️ + Khuyến mãi (${eligiblePromotions.length})`
+                    : '+ Khuyến mãi'}
+                </span>
+                {selectedPromotion && (
+                  <span
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onSelectPromotion(null);
+                    }}
+                    className="p-0.5 hover:text-rose-600 cursor-pointer"
+                  >
+                    ✕
+                  </span>
+                )}
+              </button>
 
-                    return (
-                      <div
-                        key={promo.id}
-                        className={`p-3 rounded-2xl border transition flex items-center justify-between gap-3 ${
-                          isSelected
-                            ? 'bg-gradient-to-r from-purple-50 via-violet-50 to-purple-50 border-purple-300 shadow-2xs'
-                            : 'bg-white border-slate-200 hover:border-purple-200'
-                        }`}
-                      >
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <div
-                            className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-sm shrink-0 ${
-                              isSelected
-                                ? 'bg-purple-600 text-white shadow-xs'
-                                : isGiftPromo
-                                ? 'bg-amber-100 text-amber-700'
-                                : 'bg-slate-100 text-slate-700'
-                            }`}
-                          >
-                            {isGiftPromo ? <Gift className="w-4 h-4" /> : <Sparkles className="w-4 h-4" />}
-                          </div>
-                          <div className="min-w-0">
-                            <div className="text-xs font-bold text-slate-900 truncate flex items-center gap-1.5">
-                              <span className="truncate">{promo.name}</span>
-                              <span className="text-[10px] font-extrabold px-1.5 py-0.2 rounded bg-purple-100 text-purple-800 shrink-0">
-                                Đủ điều kiện
-                              </span>
-                            </div>
-                            <p className="text-[11px] font-bold text-purple-700 truncate">
-                              {promo.promo_type === 'discount_percent'
-                                ? `Giảm -${promo.discount_value}% (-${formatCurrency(
-                                    (subtotal * promo.discount_value) / 100,
-                                    settings
-                                  )})`
-                                : promo.promo_type === 'discount_amount'
-                                ? `Giảm -${formatCurrency(promo.discount_value, settings)}`
-                                : hasGiftInCart
-                                ? `🎁 Tặng: ${currentGiftCartItem.product.name} (${currentGiftCartItem.selectedVariant.variant_name !== 'Default' ? currentGiftCartItem.selectedVariant.variant_name : 'Mặc định'}) - 0đ`
-                                : `🎁 Tặng: ${promo.gift_variant?.variant_name || 'Chọn món quà tặng (0đ)'}`}
-                            </p>
-                          </div>
-                        </div>
+              {/* Fees & Platform Chip */}
+              <button
+                type="button"
+                onClick={() => setActiveTab(activeTab === 'fees' ? 'none' : 'fees')}
+                className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer whitespace-nowrap active:scale-95 ${
+                  platformFeeDiscount > 0 || shippingFee > 0 || discountAmount > 0
+                    ? 'bg-amber-50 text-amber-900 border border-amber-300 ring-1 ring-amber-200'
+                    : activeTab === 'fees'
+                    ? 'bg-slate-800 text-white'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200/60'
+                }`}
+              >
+                <Truck className="w-3.5 h-3.5 text-amber-600" />
+                <span>
+                  {platformFeeDiscount > 0
+                    ? `Sàn: -${formatCurrency(platformFeeDiscount, settings)}`
+                    : shippingFee > 0
+                    ? `Ship: +${formatCurrency(shippingFee, settings)}`
+                    : discountAmount > 0
+                    ? `Giảm: -${formatCurrency(discountAmount, settings)}`
+                    : '+ Phí sàn / Ship'}
+                </span>
+                {(platformFeeDiscount > 0 || shippingFee > 0 || discountAmount > 0) && (
+                  <span
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onPlatformFeeDiscountChange(0);
+                      onShippingFeeChange(0);
+                      onDiscountChange(0);
+                    }}
+                    className="p-0.5 hover:text-rose-600 cursor-pointer"
+                  >
+                    ✕
+                  </span>
+                )}
+              </button>
 
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          {isSelected && isGiftPromo && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setGiftPromoForModal(promo);
-                                setIsGiftSelectorOpen(true);
-                              }}
-                              title="Đổi món quà tặng"
-                              className="px-2 py-1.5 rounded-xl text-xs font-bold bg-amber-100 hover:bg-amber-200 text-amber-900 transition cursor-pointer active:scale-95 flex items-center gap-1 border border-amber-300 shadow-2xs"
-                            >
-                              <Gift className="w-3 h-3 text-amber-700" />
-                              <span className="hidden sm:inline">Đổi món</span>
-                            </button>
-                          )}
+              {/* Surcharge Chip */}
+              <button
+                type="button"
+                onClick={() => setActiveTab(activeTab === 'surcharge' ? 'none' : 'surcharge')}
+                className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer whitespace-nowrap active:scale-95 ${
+                  surcharge > 0
+                    ? 'bg-violet-50 text-violet-900 border border-violet-300 ring-1 ring-violet-200'
+                    : activeTab === 'surcharge'
+                    ? 'bg-slate-800 text-white'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200/60'
+                }`}
+              >
+                <Plus className="w-3.5 h-3.5 text-violet-600" />
+                <span>{surcharge > 0 ? `Phụ thu: +${formatCurrency(surcharge, settings)}` : '+ Phụ thu'}</span>
+                {surcharge > 0 && (
+                  <span
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onSurchargeChange(0);
+                    }}
+                    className="p-0.5 hover:text-rose-600 cursor-pointer"
+                  >
+                    ✕
+                  </span>
+                )}
+              </button>
 
-                          <button
-                            type="button"
-                            onClick={() => handleApplyPromo(promo)}
-                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer shrink-0 active:scale-95 flex items-center gap-1 shadow-2xs ${
-                              isSelected
-                                ? 'bg-purple-700 hover:bg-purple-800 text-white'
-                                : 'bg-slate-900 hover:bg-slate-800 text-white'
-                            }`}
-                          >
-                            {isSelected ? (
-                              <>
-                                <Check className="w-3.5 h-3.5" />
-                                <span>Đã áp dụng</span>
-                              </>
-                            ) : isGiftPromo ? (
-                              <>
-                                <Gift className="w-3.5 h-3.5" />
-                                <span>{promo.allow_select_gift ? 'Chọn món tặng' : 'Áp dụng'}</span>
-                              </>
-                            ) : (
-                              <span>Áp dụng</span>
-                            )}
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="p-2.5 rounded-xl bg-slate-100/70 border border-slate-200/60 text-slate-400 text-xs flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-1.5">
-                    <Tag className="w-3.5 h-3.5" />
-                    <span>Không có khuyến mãi đủ điều kiện</span>
-                  </div>
-                  {activePromotions.length > 0 && (
-                    <span className="text-[10px] text-slate-400 font-medium">
-                      ({activePromotions.length} CTKM)
+              {/* Time Backdate Chip (Optional) */}
+              {onOrderCreatedAtChange && (
+                <button
+                  type="button"
+                  onClick={() => setActiveTab(activeTab === 'time' ? 'none' : 'time')}
+                  className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer whitespace-nowrap active:scale-95 ${
+                    orderCreatedAt
+                      ? 'bg-indigo-50 text-indigo-900 border border-indigo-300 ring-1 ring-indigo-200'
+                      : activeTab === 'time'
+                      ? 'bg-slate-800 text-white'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200/60'
+                  }`}
+                >
+                  <Clock className="w-3.5 h-3.5 text-indigo-600" />
+                  <span>{orderCreatedAt ? '🕒 Quá khứ' : '+ Giờ tạo'}</span>
+                  {orderCreatedAt && (
+                    <span
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onOrderCreatedAtChange(null);
+                      }}
+                      className="p-0.5 hover:text-rose-600 cursor-pointer"
+                    >
+                      ✕
                     </span>
                   )}
-                </div>
+                </button>
               )}
             </div>
 
-            {/* 2. Order Notes (Text area & Fast Note Chips) */}
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-bold text-slate-700 flex items-center gap-1">
-                  <FileText className="w-3.5 h-3.5 text-slate-500" />
-                  {t('pos.order_note')}
-                </label>
-                {orderNote && (
+            {/* EXPANDED ADJUSTMENT PANELS (Only open when activeTab !== 'none') */}
+            {activeTab === 'note' && (
+              <div className="p-2.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-2 animate-in fade-in slide-in-from-top-1 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-slate-700">Ghi chú đơn hàng</span>
                   <button
                     type="button"
-                    onClick={() => onOrderNoteChange('')}
-                    className="text-[10px] font-bold text-slate-400 hover:text-rose-600 transition cursor-pointer"
+                    onClick={() => setActiveTab('none')}
+                    className="text-[10px] text-slate-400 hover:text-slate-600"
                   >
-                    Xóa ghi chú
+                    Đóng [✕]
                   </button>
-                )}
-              </div>
-              <input
-                type="text"
-                placeholder={t('pos.order_note_placeholder')}
-                value={orderNote}
-                onChange={(e) => onOrderNoteChange(e.target.value)}
-                className="w-full p-2 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-purple-600 bg-white"
-              />
-
-              {/* Fast Note Preset Chips */}
-              <div className="flex flex-wrap gap-1 pt-0.5">
-                {FAST_NOTE_PRESETS.map((preset) => {
-                  const isActive = orderNote
-                    .toLowerCase()
-                    .split(',')
-                    .map((s) => s.trim())
-                    .includes(preset.toLowerCase());
-                  return (
+                </div>
+                <input
+                  type="text"
+                  placeholder="Ghi chú chung cho đơn (mang về, ít ngọt...)"
+                  value={orderNote}
+                  onChange={(e) => onOrderNoteChange(e.target.value)}
+                  className="w-full p-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-none focus:ring-2 focus:ring-purple-600"
+                  autoFocus
+                />
+                <div className="flex flex-wrap gap-1">
+                  {FAST_NOTE_PRESETS.map((preset) => (
                     <button
                       key={preset}
                       type="button"
                       onClick={() => handleToggleFastNote(preset)}
-                      className={`px-2 py-1 rounded-lg text-[10px] font-bold transition active:scale-95 cursor-pointer flex items-center gap-1 ${
-                        isActive
-                          ? 'bg-purple-700 text-white shadow-2xs'
-                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200/60'
-                      }`}
+                      className="px-2 py-1 rounded-lg text-[10px] font-bold bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 active:scale-95 cursor-pointer"
                     >
-                      <span>{preset}</span>
+                      {preset}
                     </button>
-                  );
-                })}
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
-            {/* 3. Order Creation Time (Customizable) */}
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-bold text-slate-700 flex items-center gap-1">
-                  <Clock className="w-3.5 h-3.5 text-purple-700" />
-                  {t('pos.order_time')}
-                </label>
-                {orderCreatedAt ? (
+            {activeTab === 'promo' && (
+              <div className="p-2.5 rounded-2xl bg-purple-50/60 border border-purple-200 space-y-2 animate-in fade-in slide-in-from-top-1 text-xs max-h-48 overflow-y-auto">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-purple-900">Khuyến mãi đủ điều kiện</span>
                   <button
                     type="button"
-                    onClick={() => onOrderCreatedAtChange?.(null)}
-                    className="inline-flex items-center gap-1 text-[10px] font-bold text-purple-700 hover:text-purple-800 bg-purple-50 hover:bg-purple-100 px-2 py-0.5 rounded-md transition active:scale-95 border border-purple-200"
+                    onClick={() => setActiveTab('none')}
+                    className="text-[10px] text-purple-600 hover:text-purple-900"
                   >
-                    <RotateCcw className="w-3 h-3" />
-                    <span>{t('pos.order_time_reset')}</span>
+                    Đóng [✕]
                   </button>
+                </div>
+                {eligiblePromotions.length > 0 ? (
+                  eligiblePromotions.map((promo) => {
+                    const isSelected = selectedPromotion?.id === promo.id;
+                    return (
+                      <div
+                        key={promo.id}
+                        className={`p-2 rounded-xl border flex items-center justify-between gap-2 ${
+                          isSelected ? 'bg-purple-100 border-purple-300' : 'bg-white border-slate-200'
+                        }`}
+                      >
+                        <div className="min-w-0">
+                          <p className="font-bold text-slate-900 text-xs truncate">{promo.name}</p>
+                          <p className="text-[10px] text-purple-700 font-semibold">
+                            {promo.promo_type === 'discount_percent'
+                              ? `Giảm -${promo.discount_value}%`
+                              : promo.promo_type === 'discount_amount'
+                              ? `Giảm -${formatCurrency(promo.discount_value, settings)}`
+                              : '🎁 Tặng món'}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleApplyPromo(promo)}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-bold transition active:scale-95 ${
+                            isSelected ? 'bg-purple-700 text-white' : 'bg-slate-900 text-white'
+                          }`}
+                        >
+                          {isSelected ? 'Đã chọn' : 'Áp dụng'}
+                        </button>
+                      </div>
+                    );
+                  })
                 ) : (
-                  <span className="text-[10px] font-medium text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-100">
-                    {t('pos.order_time_auto')}
-                  </span>
+                  <p className="text-[11px] text-slate-400 py-2 text-center">Không có khuyến mãi nào đủ điều kiện</p>
                 )}
               </div>
+            )}
 
-              <div className="space-y-1.5">
+            {activeTab === 'fees' && (
+              <div className="p-2.5 rounded-2xl bg-amber-50/60 border border-amber-200 space-y-2 animate-in fade-in slide-in-from-top-1 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-amber-950">Chiết khấu sàn, Phí ship & Giảm thủ công</span>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('none')}
+                    className="text-[10px] text-amber-700 hover:text-amber-900"
+                  >
+                    Đóng [✕]
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-600 block mb-0.5">Giảm giá thủ công (đ)</label>
+                    <input
+                      type="number"
+                      step="1000"
+                      value={discountAmount || ''}
+                      onChange={(e) => onDiscountChange(Number(e.target.value) || 0)}
+                      className="w-full p-1.5 border border-slate-200 rounded-lg text-xs font-bold bg-white"
+                      placeholder="0"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-600 block mb-0.5">Chiết khấu sàn (đ)</label>
+                    <input
+                      type="number"
+                      step="1000"
+                      value={platformFeeDiscount || ''}
+                      onChange={(e) => onPlatformFeeDiscountChange(Number(e.target.value) || 0)}
+                      className="w-full p-1.5 border border-slate-200 rounded-lg text-xs font-bold bg-white"
+                      placeholder="0"
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <label className="text-[10px] font-bold text-slate-600 block mb-0.5">Phí giao hàng / Ship (đ)</label>
+                    <input
+                      type="number"
+                      step="1000"
+                      value={shippingFee || ''}
+                      onChange={(e) => onShippingFeeChange(Number(e.target.value) || 0)}
+                      className="w-full p-1.5 border border-slate-200 rounded-lg text-xs font-bold bg-white"
+                      placeholder="0"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'surcharge' && (
+              <div className="p-2.5 rounded-2xl bg-violet-50/60 border border-violet-200 space-y-2 animate-in fade-in slide-in-from-top-1 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-violet-950">Phụ thu (Lễ tết, Đêm muộn)</span>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('none')}
+                    className="text-[10px] text-violet-700 hover:text-violet-900"
+                  >
+                    Đóng [✕]
+                  </button>
+                </div>
+                <input
+                  type="number"
+                  step="1000"
+                  value={surcharge || ''}
+                  onChange={(e) => onSurchargeChange(Number(e.target.value) || 0)}
+                  className="w-full p-1.5 border border-slate-200 rounded-lg text-xs font-bold bg-white"
+                  placeholder="Nhập số tiền phụ thu (VD: 10000)"
+                />
+              </div>
+            )}
+
+            {activeTab === 'time' && onOrderCreatedAtChange && (
+              <div className="p-2.5 rounded-2xl bg-indigo-50/60 border border-indigo-200 space-y-2 animate-in fade-in slide-in-from-top-1 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-indigo-950">Chọn thời gian tạo đơn quá khứ</span>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('none')}
+                    className="text-[10px] text-indigo-700 hover:text-indigo-900"
+                  >
+                    Đóng [✕]
+                  </button>
+                </div>
                 <input
                   type="datetime-local"
                   value={
@@ -705,174 +997,24 @@ export default function CartDrawer({
                       : ''
                   }
                   onChange={(e) => {
-                    if (!e.target.value) {
-                      onOrderCreatedAtChange?.(null);
-                    } else {
-                      onOrderCreatedAtChange?.(new Date(e.target.value).toISOString());
-                    }
+                    if (!e.target.value) onOrderCreatedAtChange(null);
+                    else onOrderCreatedAtChange(new Date(e.target.value).toISOString());
                   }}
-                  className="w-full p-2 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-600 bg-white"
+                  className="w-full p-1.5 border border-slate-200 rounded-lg text-xs font-bold bg-white"
                 />
-
-                {/* Quick Presets */}
-                <HorizontalScroller
-                  className="gap-1 py-0.5"
-                  scrollAmount={150}
-                  arrowSize="sm"
-                >
-                  <button
-                    type="button"
-                    onClick={() => onOrderCreatedAtChange?.(null)}
-                    className={`px-2 py-1 rounded-lg text-[10px] font-semibold transition active:scale-95 whitespace-nowrap ${
-                      !orderCreatedAt
-                        ? 'bg-purple-700 text-white shadow-xs'
-                        : 'bg-slate-200/70 text-slate-700 hover:bg-slate-200'
-                    }`}
-                  >
-                    {t('pos.order_time_now')}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const d = new Date(Date.now() - 15 * 60 * 1000);
-                      onOrderCreatedAtChange?.(d.toISOString());
-                    }}
-                    className="px-2 py-1 rounded-lg text-[10px] font-semibold bg-slate-200/70 text-slate-700 hover:bg-slate-200 transition active:scale-95 whitespace-nowrap"
-                  >
-                    {t('pos.order_time_minus_15m')}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const d = new Date(Date.now() - 60 * 60 * 1000);
-                      onOrderCreatedAtChange?.(d.toISOString());
-                    }}
-                    className="px-2 py-1 rounded-lg text-[10px] font-semibold bg-slate-200/70 text-slate-700 hover:bg-slate-200 transition active:scale-95 whitespace-nowrap"
-                  >
-                    {t('pos.order_time_minus_1h')}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const d = new Date(Date.now() - 24 * 60 * 60 * 1000);
-                      onOrderCreatedAtChange?.(d.toISOString());
-                    }}
-                    className="px-2 py-1 rounded-lg text-[10px] font-semibold bg-slate-200/70 text-slate-700 hover:bg-slate-200 transition active:scale-95 whitespace-nowrap"
-                  >
-                    {t('pos.order_time_yesterday')}
-                  </button>
-                </HorizontalScroller>
               </div>
-            </div>
+            )}
 
-            {/* Adjustments Collapsible Accordion (Discount, Fees, Surcharges) */}
-            <div className="border border-slate-200/80 rounded-xl bg-white overflow-hidden shadow-xs">
-              <button
-                type="button"
-                onClick={() => setIsAdjustmentsOpen(!isAdjustmentsOpen)}
-                className="w-full p-2.5 flex items-center justify-between text-xs font-bold text-slate-700 hover:bg-slate-50 transition active:scale-98"
-              >
-                <div className="flex items-center gap-1.5">
-                  <Percent className="w-3.5 h-3.5 text-purple-700" />
-                  <span>{t('pos.order_adjustments')}</span>
-                  {(discountAmount > 0 || shippingFee > 0 || surcharge > 0 || platformFeeDiscount > 0) && (
-                    <span className="w-2 h-2 rounded-full bg-purple-600 inline-block animate-pulse" />
-                  )}
-                </div>
-                {isAdjustmentsOpen ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
-              </button>
-
-              {isAdjustmentsOpen && (
-                <div className="p-3 border-t border-slate-100 space-y-2.5 bg-slate-50/50 text-xs">
-                  {/* Manual Discount Amount */}
-                  <div className="flex items-center justify-between">
-                    <span className="text-slate-600 font-medium flex items-center gap-1">
-                      <Tag className="w-3.5 h-3.5 text-rose-500" /> {t('pos.manual_discount')}
-                    </span>
-                    <input
-                      type="number"
-                      min="0"
-                      step="1000"
-                      placeholder="0"
-                      value={discountAmount === 0 ? '' : discountAmount}
-                      onChange={(e) => {
-                        const raw = e.target.value.replace(/\D/g, '');
-                        onDiscountChange(raw === '' ? 0 : parseInt(raw, 10));
-                      }}
-                      className="w-28 p-1.5 text-right font-bold text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 bg-white"
-                    />
-                  </div>
-
-                  {/* Platform Fee Discount (Grab/Shopee/Be discount) */}
-                  <div className="flex items-center justify-between">
-                    <span className="text-slate-600 font-medium flex items-center gap-1">
-                      <Building className="w-3.5 h-3.5 text-amber-500" /> {t('pos.platform_discount')}
-                    </span>
-                    <input
-                      type="number"
-                      min="0"
-                      step="1000"
-                      placeholder="0"
-                      value={platformFeeDiscount === 0 ? '' : platformFeeDiscount}
-                      onChange={(e) => {
-                        const raw = e.target.value.replace(/\D/g, '');
-                        onPlatformFeeDiscountChange(raw === '' ? 0 : parseInt(raw, 10));
-                      }}
-                      className="w-28 p-1.5 text-right font-bold text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 bg-white"
-                    />
-                  </div>
-
-                  {/* Shipping Fee */}
-                  <div className="flex items-center justify-between">
-                    <span className="text-slate-600 font-medium flex items-center gap-1">
-                      <Truck className="w-3.5 h-3.5 text-cyan-500" /> {t('pos.shipping_fee')}
-                    </span>
-                    <input
-                      type="number"
-                      min="0"
-                      step="1000"
-                      placeholder="0"
-                      value={shippingFee === 0 ? '' : shippingFee}
-                      onChange={(e) => {
-                        const raw = e.target.value.replace(/\D/g, '');
-                        onShippingFeeChange(raw === '' ? 0 : parseInt(raw, 10));
-                      }}
-                      className="w-28 p-1.5 text-right font-bold text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 bg-white"
-                    />
-                  </div>
-
-                  {/* Surcharge (Holiday/Late Night) */}
-                  <div className="flex items-center justify-between">
-                    <span className="text-slate-600 font-medium flex items-center gap-1">
-                      <Plus className="w-3.5 h-3.5 text-purple-700" /> {t('pos.surcharge')}
-                    </span>
-                    <input
-                      type="number"
-                      min="0"
-                      step="1000"
-                      placeholder="0"
-                      value={surcharge === 0 ? '' : surcharge}
-                      onChange={(e) => {
-                        const raw = e.target.value.replace(/\D/g, '');
-                        onSurchargeChange(raw === '' ? 0 : parseInt(raw, 10));
-                      }}
-                      className="w-28 p-1.5 text-right font-bold text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 bg-white"
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* 3. Totals Summary Breakdown */}
-            <div className="space-y-1 pt-1 border-t border-slate-200/60 text-xs">
+            {/* TOTALS SUMMARY DISPLAY */}
+            <div className="space-y-1 pt-1.5 border-t border-slate-100 text-xs">
               <div className="flex justify-between text-slate-500">
-                <span>{t('common.subtotal')}</span>
+                <span>{t('common.subtotal') || 'Tạm tính'}:</span>
                 <span>{formatCurrency(subtotal, settings)}</span>
               </div>
 
               {discountAmount > 0 && (
                 <div className="flex justify-between text-rose-600 font-medium">
-                  <span>{t('common.discount')}</span>
+                  <span>{t('common.discount') || 'Giảm giá'}:</span>
                   <span>-{formatCurrency(discountAmount, settings)}</span>
                 </div>
               )}
@@ -880,7 +1022,7 @@ export default function CartDrawer({
               {promotionDiscount > 0 && (
                 <div className="flex justify-between text-purple-600 font-medium">
                   <span className="truncate max-w-[200px]">
-                    {selectedPromotion?.name || t('pos.promotion_discount')}
+                    {selectedPromotion?.name || t('pos.promotion_discount') || 'Khuyến mãi'}:
                   </span>
                   <span>-{formatCurrency(promotionDiscount, settings)}</span>
                 </div>
@@ -888,39 +1030,74 @@ export default function CartDrawer({
 
               {platformFeeDiscount > 0 && (
                 <div className="flex justify-between text-amber-600 font-medium">
-                  <span>{t('pos.platform_discount')}</span>
+                  <span>{t('pos.platform_discount') || 'Chiết khấu sàn'}:</span>
                   <span>-{formatCurrency(platformFeeDiscount, settings)}</span>
                 </div>
               )}
 
               {shippingFee > 0 && (
                 <div className="flex justify-between text-cyan-600 font-medium">
-                  <span>{t('pos.shipping_fee')}</span>
+                  <span>{t('pos.shipping_fee') || 'Phí vận chuyển'}:</span>
                   <span>+{formatCurrency(shippingFee, settings)}</span>
                 </div>
               )}
 
               {surcharge > 0 && (
                 <div className="flex justify-between text-purple-700 font-medium">
-                  <span>{t('pos.surcharge')}</span>
+                  <span>{t('pos.surcharge') || 'Phụ thu'}:</span>
                   <span>+{formatCurrency(surcharge, settings)}</span>
                 </div>
               )}
 
-              <div className="flex justify-between text-slate-900 font-bold text-base pt-1 border-t border-slate-200">
-                <span>{t('common.total_amount')}</span>
-                <span className="text-purple-800">{formatCurrency(finalTotal, settings)}</span>
+              <div className="flex justify-between items-center text-slate-900 font-extrabold text-base pt-1.5 border-t border-slate-200">
+                <span>{t('common.total_amount') || 'Tổng thanh toán'}:</span>
+                <span className="text-purple-900 text-lg sm:text-xl font-black">
+                  {formatCurrency(finalTotal, settings)}
+                </span>
               </div>
             </div>
 
-            {/* 4. Checkout Button */}
-            <button
-              onClick={onProceedCheckout}
-              className="w-full bg-purple-700 hover:bg-purple-800 text-white font-bold py-3.5 px-4 rounded-2xl shadow-lg transition flex items-center justify-center space-x-2 text-sm active:scale-95"
-            >
-              <span>{t('pos.checkout')}</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
+            {/* 4. SIDE-BY-SIDE 1-TAP CHECKOUT ACTION BUTTONS (Requirement 4) */}
+            <div className="grid grid-cols-2 gap-2 pt-1">
+              {/* 1-Tap Cash Button (Emerald Green) */}
+              <button
+                type="button"
+                onClick={onOneTapCash || onProceedCheckout}
+                disabled={isSubmitting || safeCartItems.length === 0}
+                className="bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-extrabold py-3 px-2 rounded-2xl shadow-md hover:shadow-lg transition flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 text-xs sm:text-sm disabled:opacity-50 cursor-pointer"
+              >
+                {isSubmitting ? (
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Banknote className="w-4 h-4 shrink-0 text-emerald-100" />
+                )}
+                <span className="truncate">{t('pos.fast_cash_1tap') || '💵 Tiền Mặt (1-Chạm)'}</span>
+              </button>
+
+              {/* 1-Tap VietQR Button (Blue/Indigo) */}
+              <button
+                type="button"
+                onClick={onOneTapVietQR || onProceedCheckout}
+                disabled={isSubmitting || safeCartItems.length === 0}
+                className="bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-extrabold py-3 px-2 rounded-2xl shadow-md hover:shadow-lg transition flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 text-xs sm:text-sm disabled:opacity-50 cursor-pointer"
+              >
+                <QrCode className="w-4 h-4 shrink-0 text-blue-100" />
+                <span className="truncate">{t('pos.fast_vietqr_1tap') || '📲 QR Nhanh'}</span>
+              </button>
+            </div>
+
+            {/* Secondary Button: Calculate Change / Other Fund */}
+            {onOpenCheckoutModal && (
+              <button
+                type="button"
+                onClick={onOpenCheckoutModal}
+                disabled={isSubmitting || safeCartItems.length === 0}
+                className="w-full py-2 px-3 border border-slate-200 hover:bg-slate-100 text-slate-600 hover:text-slate-900 font-bold rounded-xl text-xs transition flex items-center justify-center gap-1.5 active:scale-98 cursor-pointer disabled:opacity-50"
+              >
+                <Calculator className="w-3.5 h-3.5 text-slate-500" />
+                <span>{t('pos.calc_change_other_fund') || '🧮 Tính tiền thừa / Quỹ khác'}</span>
+              </button>
+            )}
           </div>
         )}
       </div>

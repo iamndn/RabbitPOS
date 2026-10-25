@@ -47,6 +47,15 @@ export interface TopSellingProductItem {
   percentage: number;
 }
 
+export interface ChannelBreakdown {
+  sales_channel: string;
+  order_count: number;
+  gross_sales: number;
+  platform_fee_discount: number;
+  net_revenue: number;
+  percentage: number;
+}
+
 export interface RevenueAnalyticsResponse {
   period: string;
   from: string;
@@ -54,6 +63,7 @@ export interface RevenueAnalyticsResponse {
   summary: RevenueSummary;
   timeline: RevenueTimelinePoint[];
   payment_methods: PaymentMethodBreakdown[];
+  revenue_by_channel?: ChannelBreakdown[];
   top_products: TopSellingProductItem[];
 }
 

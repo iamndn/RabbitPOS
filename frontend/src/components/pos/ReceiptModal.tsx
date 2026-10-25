@@ -10,6 +10,9 @@ import { useStore } from '@/lib/StoreContext';
 
 export interface CompletedOrderData {
   order_code: string;
+  daily_seq_no?: number;
+  sales_channel?: string;
+  platform_commission_percent?: number;
   created_at?: string;
   created_by?: string;
   cashier_name?: string;
@@ -90,8 +93,13 @@ export default function ReceiptModal({ isOpen, onClose, order, settings: initial
         {/* Top Actions (Hidden during print) */}
         <div className="flex items-center justify-between border-b border-slate-100 pb-3 print:hidden">
           <div className="flex items-center space-x-2 text-purple-700 font-bold text-sm">
-            <CheckCircle2 className="w-5 h-5" />
-            <span>{t('pos.order_completed')}</span>
+            <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+            <div className="flex items-center gap-1.5">
+              <span>{t('pos.order_completed')}</span>
+              <span className="px-2 py-0.5 rounded-lg bg-purple-100 text-purple-900 font-black text-xs">
+                #{order.daily_seq_no ? order.daily_seq_no.toString().padStart(3, '0') : '001'}
+              </span>
+            </div>
           </div>
           <button
             onClick={onClose}
@@ -119,7 +127,31 @@ export default function ReceiptModal({ isOpen, onClose, order, settings: initial
             <h2 className="text-base font-black tracking-tight uppercase text-slate-900">{storeName}</h2>
             <p className="text-[10px] text-slate-600">{storeAddress}</p>
             <p className="text-[10px] text-slate-600">Hotline: {storePhone}</p>
-            <div className="pt-2">
+
+            {/* Prominent Daily Queue Number & Sales Channel Badge */}
+            <div className="my-2 py-2 px-3 bg-slate-50 border-2 border-dashed border-slate-400 rounded-xl flex flex-col items-center justify-center">
+              <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                SỐ THỨ TỰ GỌI MÓN
+              </span>
+              <div className="text-4xl font-black text-slate-950 tracking-tight my-0.5">
+                #{order.daily_seq_no ? order.daily_seq_no.toString().padStart(3, '0') : '001'}
+              </div>
+              <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-extrabold uppercase bg-slate-200 text-slate-900">
+                <span>
+                  {order.sales_channel === 'takeaway'
+                    ? '🛍️ Mang về'
+                    : order.sales_channel === 'shopeefood'
+                    ? '🧡 ShopeeFood'
+                    : order.sales_channel === 'grabfood'
+                    ? '💚 GrabFood'
+                    : order.sales_channel === 'befood'
+                    ? '💛 BeFood'
+                    : '🏠 Tại quán'}
+                </span>
+              </div>
+            </div>
+
+            <div className="pt-1">
               {order.is_offline_provisional ? (
                 <div className="bg-amber-100 text-amber-900 border border-amber-300 font-black text-[11px] py-1 px-2 rounded-md my-1 text-center tracking-wider uppercase">
                   ⚠️ PHIẾU TẠM - CHƯA ĐỒNG BỘ

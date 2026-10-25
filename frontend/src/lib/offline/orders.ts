@@ -31,6 +31,8 @@ export interface OfflineOrderPayload {
   note?: string;
   manual_discount?: number;
   platform_fee_discount?: number;
+  sales_channel?: string;
+  platform_commission_percent?: number;
   shipping_fee?: number;
   surcharge?: number;
   created_at?: string;
@@ -39,6 +41,8 @@ export interface OfflineOrderPayload {
 
 export interface OfflineOrderDisplaySnapshot {
   order_code: string;
+  daily_seq_no?: number;
+  sales_channel?: string;
   items: any[];
   subtotal: number;
   discount: number;

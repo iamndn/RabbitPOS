@@ -31,6 +31,7 @@ import {
   Zap,
   Receipt,
   ShieldCheck,
+  Truck,
 } from 'lucide-react';
 import AppShell from '@/components/AppShell';
 import { fetchApi, uploadImage, getImageUrl, getApiBaseUrl, authHeaders } from '@/lib/api';
@@ -108,6 +109,9 @@ export default function SettingsPage() {
     google_sheets_last_sync_status: 'idle',
     google_sheets_last_sync_error: '',
     auto_show_receipt_after_checkout: 'true',
+    commission_shopeefood_pct: '0',
+    commission_grabfood_pct: '0',
+    commission_befood_pct: '0',
   });
 
   const [testingSmtp, setTestingSmtp] = useState<boolean>(false);
@@ -763,6 +767,108 @@ export default function SettingsPage() {
                         />
                         <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
                       </label>
+                    </div>
+                  </div>
+
+                  {/* Sales Channel Commissions Section */}
+                  <div className="md:col-span-2 pt-4 border-t border-slate-100 space-y-3">
+                    <div>
+                      <label className="font-bold text-slate-800 text-sm flex items-center gap-2">
+                        <Truck className="w-4 h-4 text-amber-600" />
+                        <span>{t('settings.sales_channel_commission')}</span>
+                      </label>
+                      <p className="text-[11px] text-slate-500 mt-0.5">
+                        {t('settings.sales_channel_commission_desc')}
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      {/* ShopeeFood */}
+                      <div className="p-3.5 bg-orange-50/60 border border-orange-200/80 rounded-2xl space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-xs text-orange-900 flex items-center gap-1.5">
+                            <span>🧡</span>
+                            <span>ShopeeFood</span>
+                          </span>
+                          <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-orange-200/70 text-orange-950">
+                            App
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <input
+                            type="number"
+                            min="0"
+                            max="100"
+                            step="0.1"
+                            value={form.commission_shopeefood_pct || '0'}
+                            onChange={(e) => handleChange('commission_shopeefood_pct', e.target.value)}
+                            className="w-full px-3 py-1.5 bg-white border border-orange-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                            placeholder="VD: 20"
+                          />
+                          <span className="font-bold text-xs text-orange-900">%</span>
+                        </div>
+                        <p className="text-[10px] text-orange-700/80">
+                          Chiết khấu tự động trừ khi tạo đơn ShopeeFood
+                        </p>
+                      </div>
+
+                      {/* GrabFood */}
+                      <div className="p-3.5 bg-emerald-50/60 border border-emerald-200/80 rounded-2xl space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-xs text-emerald-900 flex items-center gap-1.5">
+                            <span>💚</span>
+                            <span>GrabFood</span>
+                          </span>
+                          <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-emerald-200/70 text-emerald-950">
+                            App
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <input
+                            type="number"
+                            min="0"
+                            max="100"
+                            step="0.1"
+                            value={form.commission_grabfood_pct || '0'}
+                            onChange={(e) => handleChange('commission_grabfood_pct', e.target.value)}
+                            className="w-full px-3 py-1.5 bg-white border border-emerald-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                            placeholder="VD: 20"
+                          />
+                          <span className="font-bold text-xs text-emerald-900">%</span>
+                        </div>
+                        <p className="text-[10px] text-emerald-700/80">
+                          Chiết khấu tự động trừ khi tạo đơn GrabFood
+                        </p>
+                      </div>
+
+                      {/* BeFood */}
+                      <div className="p-3.5 bg-amber-50/60 border border-amber-200/80 rounded-2xl space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-xs text-amber-900 flex items-center gap-1.5">
+                            <span>💛</span>
+                            <span>BeFood</span>
+                          </span>
+                          <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-amber-200/70 text-amber-950">
+                            App
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <input
+                            type="number"
+                            min="0"
+                            max="100"
+                            step="0.1"
+                            value={form.commission_befood_pct || '0'}
+                            onChange={(e) => handleChange('commission_befood_pct', e.target.value)}
+                            className="w-full px-3 py-1.5 bg-white border border-amber-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                            placeholder="VD: 20"
+                          />
+                          <span className="font-bold text-xs text-amber-900">%</span>
+                        </div>
+                        <p className="text-[10px] text-amber-700/80">
+                          Chiết khấu tự động trừ khi tạo đơn BeFood
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>

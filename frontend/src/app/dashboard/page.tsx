@@ -1389,6 +1389,93 @@ export default function DashboardPage() {
               </div>
             </div>
 
+            {/* Sales Channel Revenue Breakdown */}
+            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-100 gap-2">
+                <div>
+                  <h3 className="font-bold text-sm text-slate-900 flex items-center gap-2">
+                    <ShoppingBag className="w-4 h-4 text-indigo-600" />
+                    <span>Doanh thu theo Kênh bán hàng</span>
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    Phân tích số đơn, doanh số gộp, chiết khấu hoa hồng ứng dụng và doanh thu thực nhận
+                  </p>
+                </div>
+                <div className="text-xs text-slate-500 font-medium bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200 self-start sm:self-auto">
+                  Tổng đơn: <span className="font-bold text-slate-800">{revenueData?.revenue_by_channel?.reduce((acc, c) => acc + c.order_count, 0) || 0}</span>
+                </div>
+              </div>
+
+              {/* 5 Channels Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3.5">
+                {[
+                  { key: 'dine_in', name: 'Tại quán', icon: '🏠', badgeBg: 'bg-indigo-50 text-indigo-700 border-indigo-200', barBg: 'bg-indigo-600' },
+                  { key: 'takeaway', name: 'Mang về', icon: '🛍️', badgeBg: 'bg-blue-50 text-blue-700 border-blue-200', barBg: 'bg-blue-600' },
+                  { key: 'shopeefood', name: 'ShopeeFood', icon: '🧡', badgeBg: 'bg-orange-50 text-orange-700 border-orange-200', barBg: 'bg-orange-500' },
+                  { key: 'grabfood', name: 'GrabFood', icon: '💚', badgeBg: 'bg-emerald-50 text-emerald-700 border-emerald-200', barBg: 'bg-emerald-600' },
+                  { key: 'befood', name: 'BeFood', icon: '💛', badgeBg: 'bg-amber-50 text-amber-800 border-amber-200', barBg: 'bg-amber-500' },
+                ].map((ch) => {
+                  const data = revenueData?.revenue_by_channel?.find((c) => c.sales_channel === ch.key);
+                  const orderCount = data?.order_count || 0;
+                  const grossSales = data?.gross_sales || 0;
+                  const platformFee = data?.platform_fee_discount || 0;
+                  const netRevenue = data?.net_revenue || 0;
+                  const percentage = data?.percentage || 0;
+
+                  return (
+                    <div
+                      key={ch.key}
+                      className="p-3.5 rounded-xl bg-slate-50/70 border border-slate-200 flex flex-col justify-between space-y-3 hover:bg-white hover:shadow-md transition duration-200"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-xs font-bold border ${ch.badgeBg}`}>
+                          <span>{ch.icon}</span>
+                          <span>{ch.name}</span>
+                        </span>
+                        <span className="text-[11px] font-bold text-slate-500">
+                          {percentage.toFixed(1)}%
+                        </span>
+                      </div>
+
+                      {/* Net revenue main KPI */}
+                      <div>
+                        <div className="text-xs text-slate-400 font-medium">Doanh thu thuần</div>
+                        <div className="text-base font-extrabold text-slate-900">
+                          {formatCurrency(netRevenue, settings)}
+                        </div>
+                      </div>
+
+                      {/* Progress bar */}
+                      <div className="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
+                        <div
+                          className={`h-full ${ch.barBg} rounded-full transition-all duration-300`}
+                          style={{ width: `${Math.min(100, Math.max(0, percentage))}%` }}
+                        />
+                      </div>
+
+                      {/* Details: Orders, Gross, Commission */}
+                      <div className="pt-2 border-t border-slate-200/60 text-[11px] space-y-1 text-slate-500">
+                        <div className="flex justify-between items-center">
+                          <span>Số đơn:</span>
+                          <span className="font-semibold text-slate-800">{orderCount} đơn</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span>Doanh số:</span>
+                          <span className="font-semibold text-slate-700">{formatCurrency(grossSales, settings)}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-rose-600">
+                          <span>Phí hoa hồng sàn:</span>
+                          <span className="font-semibold">
+                            {platformFee > 0 ? `-${formatCurrency(platformFee, settings)}` : '0 đ'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
             {/* Top 5 Products by Revenue */}
             <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">

@@ -18,9 +18,10 @@ interface Props {
   onClose: () => void;
   onConfirmOrder: () => Promise<void> | void;
   settings?: SettingsMap | null;
+  salesChannel?: string;
 }
 
-export default function VietQRModal({ totalAmount, onClose, onConfirmOrder, settings }: Props) {
+export default function VietQRModal({ totalAmount, onClose, onConfirmOrder, settings, salesChannel }: Props) {
   const { t } = useTranslation();
   const [qrData, setQrData] = useState<VietQRData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -69,9 +70,28 @@ export default function VietQRModal({ totalAmount, onClose, onConfirmOrder, sett
 
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-          <div className="flex items-center space-x-1.5 text-purple-800 font-bold text-sm">
-            <QrCode className="w-5 h-5" />
+          <div className="flex items-center space-x-2 text-indigo-700 font-bold text-sm">
+            <QrCode className="w-5 h-5 text-indigo-600" />
             <span>{t('pos.scan_vietqr_to_pay')}</span>
+            {salesChannel && salesChannel !== 'dine_in' && (
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                salesChannel === 'shopeefood'
+                  ? 'bg-orange-50 text-orange-700 border-orange-200'
+                  : salesChannel === 'grabfood'
+                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                  : salesChannel === 'befood'
+                  ? 'bg-amber-50 text-amber-800 border-amber-200'
+                  : 'bg-blue-50 text-blue-700 border-blue-200'
+              }`}>
+                {salesChannel === 'shopeefood'
+                  ? 'ShopeeFood'
+                  : salesChannel === 'grabfood'
+                  ? 'GrabFood'
+                  : salesChannel === 'befood'
+                  ? 'BeFood'
+                  : 'Mang về'}
+              </span>
+            )}
           </div>
           <button onClick={onClose} disabled={isSubmitting} className="p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 disabled:opacity-50 active:scale-95 transition-transform">
             <X className="w-5 h-5" />

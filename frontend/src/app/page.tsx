@@ -358,8 +358,23 @@ export default function PosPage() {
   const [promotionDiscount, setPromotionDiscount] = useState<number>(0);
   const [shippingFee, setShippingFee] = useState<number>(0);
   const [platformFeeDiscount, setPlatformFeeDiscount] = useState<number>(0);
+  const [salesChannel, setSalesChannel] = useState<string>('dine_in');
+  const [platformCommissionPercent, setPlatformCommissionPercent] = useState<number>(0);
+  const [isSubmittingOrder, setIsSubmittingOrder] = useState<boolean>(false);
+  const [funds, setFunds] = useState<{ id: number; name: string; fund_type: string; current_balance: number }[]>([]);
   const [surcharge, setSurcharge] = useState<number>(0);
   const [orderCreatedAt, setOrderCreatedAt] = useState<string | null>(null);
+
+  // Load store payment funds
+  useEffect(() => {
+    const loadFunds = async () => {
+      const res = await fetchApi<any[]>('/funds');
+      if (res.status === 'success' && Array.isArray(res.data)) {
+        setFunds(res.data);
+      }
+    };
+    loadFunds();
+  }, [currentStoreId]);
 
   // Modal Control States
   const [selectedProductForVariant, setSelectedProductForVariant] = useState<Product | null>(null);
@@ -909,6 +924,8 @@ export default function PosPage() {
       note: orderNote || undefined,
       manual_discount: discountAmount > 0 ? discountAmount : undefined,
       platform_fee_discount: platformFeeDiscount > 0 ? platformFeeDiscount : undefined,
+      sales_channel: salesChannel,
+      platform_commission_percent: platformCommissionPercent > 0 ? platformCommissionPercent : undefined,
       shipping_fee: shippingFee > 0 ? shippingFee : undefined,
       surcharge: surcharge > 0 ? surcharge : undefined,
       created_at: orderCreatedAt || undefined,
@@ -922,63 +939,94 @@ export default function PosPage() {
       })),
     };
 
-    const res = await fetchApi<any>('/orders', {
-      method: 'POST',
-      headers: {
-        'Idempotency-Key': idempotencyKey,
-      },
-      body: JSON.stringify(payload),
-    });
+    setIsSubmittingOrder(true);
+    try {
+      const res = await fetchApi<any>('/orders', {
+        method: 'POST',
+        headers: {
+          'Idempotency-Key': idempotencyKey,
+        },
+        body: JSON.stringify(payload),
+      });
 
-    if (res.status === 'success' && res.data) {
-      const serverOrder = res.data;
-      setCartItems([]);
-      setOrderNote('');
-      setDiscountAmount(0);
-      setSelectedPromotion(null);
-      setPromotionDiscount(0);
-      setShippingFee(0);
-      setPlatformFeeDiscount(0);
-      setSurcharge(0);
-      setOrderCreatedAt(null);
-      setIsCheckoutModalOpen(false);
-      setIsVietQRModalOpen(false);
-      setIsCartDrawerOpen(false);
+      if (res.status === 'success' && res.data) {
+        const serverOrder = res.data;
+        setCartItems([]);
+        setOrderNote('');
+        setDiscountAmount(0);
+        setSelectedPromotion(null);
+        setPromotionDiscount(0);
+        setShippingFee(0);
+        setPlatformFeeDiscount(0);
+        setSurcharge(0);
+        setOrderCreatedAt(null);
+        setSalesChannel('dine_in');
+        setPlatformCommissionPercent(0);
+        setIsCheckoutModalOpen(false);
+        setIsVietQRModalOpen(false);
+        setIsCartDrawerOpen(false);
 
-      const totalDiscounts =
-        (serverOrder.discount_amount || serverOrder.manual_discount || 0) +
-        (serverOrder.promotion_discount || 0) +
-        (serverOrder.platform_fee_discount || 0);
+        const totalDiscounts =
+          (serverOrder.discount_amount || serverOrder.manual_discount || 0) +
+          (serverOrder.promotion_discount || 0) +
+          (serverOrder.platform_fee_discount || 0);
 
-      const orderData: CompletedOrderData = {
-        order_code: serverOrder.order_code,
-        created_at: serverOrder.created_at || new Date().toISOString(),
-        items: orderCartSnapshot,
-        subtotal: serverOrder.subtotal,
-        discount: totalDiscounts,
-        discount_amount: serverOrder.discount_amount || serverOrder.manual_discount || 0,
-        promotion_discount: serverOrder.promotion_discount || 0,
-        promotion_name: serverOrder.promotion?.name || undefined,
-        platform_fee_discount: serverOrder.platform_fee_discount || 0,
-        shipping_fee: serverOrder.shipping_fee || 0,
-        surcharge: serverOrder.surcharge || 0,
-        total: serverOrder.total_amount,
-        final_total: serverOrder.total_amount,
-        payment_method: serverOrder.fund?.name || (fundIdNum === 1 ? 'Tiền mặt' : 'Chuyển khoản'),
-        cashier_name: serverOrder.cashier_name || serverOrder.created_by || 'Thu ngân',
-        note: serverOrder.note || orderNote,
-      };
+        const orderData: CompletedOrderData = {
+          order_code: serverOrder.order_code,
+          daily_seq_no: serverOrder.daily_seq_no,
+          sales_channel: serverOrder.sales_channel || salesChannel,
+          platform_commission_percent: serverOrder.platform_commission_percent || platformCommissionPercent,
+          created_at: serverOrder.created_at || new Date().toISOString(),
+          items: orderCartSnapshot,
+          subtotal: serverOrder.subtotal,
+          discount: totalDiscounts,
+          discount_amount: serverOrder.discount_amount || serverOrder.manual_discount || 0,
+          promotion_discount: serverOrder.promotion_discount || 0,
+          promotion_name: serverOrder.promotion?.name || undefined,
+          platform_fee_discount: serverOrder.platform_fee_discount || 0,
+          shipping_fee: serverOrder.shipping_fee || 0,
+          surcharge: serverOrder.surcharge || 0,
+          total: serverOrder.total_amount,
+          final_total: serverOrder.total_amount,
+          payment_method: serverOrder.fund?.name || (fundIdNum === 1 ? 'Tiền mặt' : 'Chuyển khoản'),
+          cashier_name: serverOrder.cashier_name || serverOrder.created_by || 'Thu ngân',
+          note: serverOrder.note || orderNote,
+        };
 
-      setCompletedOrder(orderData);
-      if (settings?.auto_show_receipt_after_checkout !== 'false') {
-        setIsReceiptModalOpen(true);
+        setCompletedOrder(orderData);
+        if (settings?.auto_show_receipt_after_checkout !== 'false') {
+          setIsReceiptModalOpen(true);
+        }
+        clearCartFromOfflineCache(currentStoreId).catch(() => {});
+        localStorage.removeItem(cartStorageKey);
+        toast.success(t('pos.order_success', { code: res.data.order_code }));
+      } else {
+        toast.error(t('pos.order_failed', { message: res.message }));
       }
-      clearCartFromOfflineCache(currentStoreId).catch(() => {});
-      localStorage.removeItem(cartStorageKey);
-      toast.success(t('pos.order_success', { code: res.data.order_code }));
-    } else {
-      toast.error(t('pos.order_failed', { message: res.message }));
+    } finally {
+      setIsSubmittingOrder(false);
     }
+  };
+
+  const handleOneTapCash = async () => {
+    if (isSubmittingOrder || cartItems.length === 0) return;
+    const cashFund = funds.find((f) => f.fund_type === 'cash') || funds[0] || { id: 1 };
+    await submitOrder(cashFund.id);
+  };
+
+  const handleOneTapVietQR = () => {
+    if (isSubmittingOrder || cartItems.length === 0) return;
+    if (!network.isOnline) {
+      toast.warning(
+        'Không thể tạo mã VietQR khi đang ngoại tuyến. Vui lòng thanh toán Tiền mặt.',
+        { title: 'Chỉ chấp nhận Tiền mặt' }
+      );
+      return;
+    }
+    const bankFund = funds.find((f) => f.fund_type === 'bank') || funds.find((f) => f.id === 2) || funds[1] || { id: 2 };
+    setSelectedFundId(bankFund.id);
+    setIsCartDrawerOpen(false);
+    setIsVietQRModalOpen(true);
   };
 
   const handleInitiatePayment = (fundId: number) => {
@@ -1524,6 +1572,10 @@ export default function PosPage() {
           onShippingFeeChange={setShippingFee}
           platformFeeDiscount={platformFeeDiscount}
           onPlatformFeeDiscountChange={setPlatformFeeDiscount}
+          salesChannel={salesChannel}
+          onSalesChannelChange={setSalesChannel}
+          platformCommissionPercent={platformCommissionPercent}
+          onPlatformCommissionPercentChange={setPlatformCommissionPercent}
           surcharge={surcharge}
           onSurchargeChange={setSurcharge}
           orderNote={orderNote}
@@ -1534,6 +1586,13 @@ export default function PosPage() {
             setIsCartDrawerOpen(false);
             setIsCheckoutModalOpen(true);
           }}
+          onOneTapCash={handleOneTapCash}
+          onOneTapVietQR={handleOneTapVietQR}
+          onOpenCheckoutModal={() => {
+            setIsCartDrawerOpen(false);
+            setIsCheckoutModalOpen(true);
+          }}
+          isSubmitting={isSubmittingOrder}
           settings={settings}
         />
 
@@ -1557,6 +1616,7 @@ export default function PosPage() {
             onClose={() => setIsVietQRModalOpen(false)}
             onConfirmOrder={() => submitOrder(selectedFundId || 2)}
             settings={settings}
+            salesChannel={salesChannel}
           />
         )}
 
