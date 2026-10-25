@@ -56,6 +56,10 @@ func (h *OrderHandler) ListOrders(c *gin.Context) {
 		query = query.Where("status = ?", status)
 	}
 
+	if salesChannel := strings.TrimSpace(c.Query("sales_channel")); salesChannel != "" {
+		query = query.Where("sales_channel = ?", salesChannel)
+	}
+
 	if hasDiscount := c.Query("has_discount"); hasDiscount == "true" {
 		query = query.Where("discount_amount > 0 OR promotion_discount > 0 OR platform_fee_discount > 0")
 	}
@@ -318,6 +322,41 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 			orderCode = fmt.Sprintf("ORD-%s-%s-%04d", strings.ToUpper(store.Code), orderTime.Format("20060102-150405"), orderTime.Nanosecond()/100000)
 		}
 
+		// 3b. Determine Per-Store Daily Queue Number (#001, #002...) for current local day in store's timezone
+		timezoneStr := "Asia/Ho_Chi_Minh"
+		if store != nil && store.Timezone != "" {
+			timezoneStr = store.Timezone
+		}
+		loc, err := time.LoadLocation(timezoneStr)
+		if err != nil {
+			loc, _ = time.LoadLocation("Asia/Ho_Chi_Minh")
+			if loc == nil {
+				loc = time.Local
+			}
+		}
+		localTime := orderTime.In(loc)
+		startOfDay := time.Date(localTime.Year(), localTime.Month(), localTime.Day(), 0, 0, 0, 0, loc)
+		endOfDay := startOfDay.AddDate(0, 0, 1)
+
+		var dailySeqNo int
+		if err := tx.Raw("SELECT COALESCE(MAX(daily_seq_no), 0) + 1 FROM orders WHERE store_id = ? AND created_at >= ? AND created_at < ?", storeID, startOfDay, endOfDay).Scan(&dailySeqNo).Error; err != nil || dailySeqNo < 1 {
+			dailySeqNo = 1
+		}
+
+		// 3c. Determine Sales Channel & Commission Percent
+		channel := strings.ToLower(strings.TrimSpace(req.SalesChannel))
+		switch channel {
+		case models.SalesChannelTakeaway, models.SalesChannelShopeeFood, models.SalesChannelGrabFood, models.SalesChannelBeFood:
+			// valid
+		default:
+			channel = models.SalesChannelDineIn
+		}
+
+		var platformCommissionPct float64 = 0
+		if req.PlatformCommissionPercent != nil && *req.PlatformCommissionPercent >= 0 {
+			platformCommissionPct = math.Round(*req.PlatformCommissionPercent*100) / 100
+		}
+
 		// 4. Validate Promotion upfront (if provided) & Process Items
 		var promo *models.Promotion
 		if req.PromotionID != nil && *req.PromotionID > 0 {
@@ -570,9 +609,12 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 		}
 
 		createdOrder = models.Order{
-			StoreID:             storeID,
-			OrderCode:           orderCode,
-			Status:              models.OrderStatusCompleted,
+			StoreID:                   storeID,
+			OrderCode:                 orderCode,
+			DailySeqNo:                dailySeqNo,
+			SalesChannel:              channel,
+			PlatformCommissionPercent: platformCommissionPct,
+			Status:                    models.OrderStatusCompleted,
 			Subtotal:            subtotal,
 			DiscountAmount:      manualDiscount,
 			ManualDiscount:      manualDiscount,

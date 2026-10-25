@@ -451,14 +451,53 @@ func (h *AnalyticsHandler) GetRevenueAnalytics(c *gin.Context) {
 		})
 	}
 
+	// 6. Sales Channel Revenue Breakdown
+	type ChannelSummaryRaw struct {
+		SalesChannel        string
+		OrderCount          int64
+		GrossSales          float64
+		PlatformFeeDiscount float64
+		NetRevenue          float64
+	}
+	var rawChannels []ChannelSummaryRaw
+	h.db.Table("orders").
+		Select(`
+			COALESCE(NULLIF(sales_channel, ''), 'dine_in') as sales_channel,
+			COUNT(id) as order_count,
+			COALESCE(SUM(subtotal), 0) as gross_sales,
+			COALESCE(SUM(platform_fee_discount), 0) as platform_fee_discount,
+			COALESCE(SUM(total_amount), 0) as net_revenue
+		`).
+		Where("store_id = ? AND status = ? AND created_at BETWEEN ? AND ?", storeID, models.OrderStatusCompleted, startTime, endTime).
+		Group("COALESCE(NULLIF(sales_channel, ''), 'dine_in')").
+		Order("net_revenue desc").
+		Scan(&rawChannels)
+
+	revenueByChannel := make([]models.ChannelBreakdown, 0)
+	for _, rc := range rawChannels {
+		var pct float64 = 0
+		if currSummary.NetRevenue > 0 {
+			pct = math.Round((rc.NetRevenue/currSummary.NetRevenue)*1000) / 10
+		}
+		revenueByChannel = append(revenueByChannel, models.ChannelBreakdown{
+			SalesChannel:        rc.SalesChannel,
+			OrderCount:          rc.OrderCount,
+			GrossSales:          rc.GrossSales,
+			PlatformFeeDiscount: rc.PlatformFeeDiscount,
+			NetRevenue:          rc.NetRevenue,
+			Percentage:          pct,
+		})
+	}
+
 	resp := models.RevenueAnalyticsResponse{
-		Period:         period,
-		From:           fromStr,
-		To:             toStr,
-		Summary:        summary,
-		Timeline:       timeline,
-		PaymentMethods: paymentMethods,
-		TopProducts:    topProducts,
+		Period:           period,
+		From:             fromStr,
+		To:               toStr,
+		Summary:          summary,
+		Timeline:         timeline,
+		PaymentMethods:   paymentMethods,
+		RevenueByChannel: revenueByChannel,
+		TopProducts:      topProducts,
 	}
 
 	models.SendSuccess(c, http.StatusOK, resp, "Revenue analytics calculated successfully")

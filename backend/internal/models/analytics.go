@@ -51,14 +51,24 @@ type TopSellingProductItem struct {
 	Percentage   float64 `json:"percentage"`
 }
 
+type ChannelBreakdown struct {
+	SalesChannel        string  `json:"sales_channel"`
+	OrderCount          int64   `json:"order_count"`
+	GrossSales          float64 `json:"gross_sales"`
+	PlatformFeeDiscount float64 `json:"platform_fee_discount"`
+	NetRevenue          float64 `json:"net_revenue"`
+	Percentage          float64 `json:"percentage"`
+}
+
 type RevenueAnalyticsResponse struct {
-	Period         string                   `json:"period"`
-	From           string                   `json:"from"`
-	To             string                   `json:"to"`
-	Summary        RevenueSummary           `json:"summary"`
-	Timeline       []RevenueTimelinePoint   `json:"timeline"`
-	PaymentMethods []PaymentMethodBreakdown `json:"payment_methods"`
-	TopProducts    []TopSellingProductItem  `json:"top_products"`
+	Period           string                   `json:"period"`
+	From             string                   `json:"from"`
+	To               string                   `json:"to"`
+	Summary          RevenueSummary           `json:"summary"`
+	Timeline         []RevenueTimelinePoint   `json:"timeline"`
+	PaymentMethods   []PaymentMethodBreakdown `json:"payment_methods"`
+	RevenueByChannel []ChannelBreakdown       `json:"revenue_by_channel"`
+	TopProducts      []TopSellingProductItem  `json:"top_products"`
 }
 
 // --- Profit & Loss (P&L) Analytics Models ---

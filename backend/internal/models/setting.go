@@ -33,6 +33,9 @@ var StoreSettingsKeys = map[string]bool{
 	"vietqr_bank_id":                   true,
 	"vietqr_account_no":                true,
 	"vietqr_account_name":              true,
+	"commission_shopeefood_pct":        true,
+	"commission_grabfood_pct":          true,
+	"commission_befood_pct":            true,
 }
 
 const (

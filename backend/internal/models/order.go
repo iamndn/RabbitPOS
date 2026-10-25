@@ -12,12 +12,23 @@ const (
 	OrderStatusCancelled OrderStatus = "cancelled"
 )
 
+const (
+	SalesChannelDineIn     = "dine_in"
+	SalesChannelTakeaway   = "takeaway"
+	SalesChannelShopeeFood = "shopeefood"
+	SalesChannelGrabFood   = "grabfood"
+	SalesChannelBeFood     = "befood"
+)
+
 // Order represents a customer POS transaction with server-authoritative financials & audit trail
 type Order struct {
-	ID                  uint        `gorm:"primaryKey" json:"id"`
-	StoreID             uint        `gorm:"not null;default:1;uniqueIndex:uq_orders_store_order_code,priority:1" json:"store_id"`
-	OrderCode           string      `gorm:"type:varchar(50);not null;index:idx_orders_order_code;uniqueIndex:uq_orders_store_order_code,priority:2" json:"order_code"`
-	Status              OrderStatus `gorm:"type:varchar(30);not null;default:'completed';index" json:"status"`
+	ID                        uint        `gorm:"primaryKey" json:"id"`
+	StoreID                   uint        `gorm:"not null;default:1;uniqueIndex:uq_orders_store_order_code,priority:1" json:"store_id"`
+	OrderCode                 string      `gorm:"type:varchar(50);not null;index:idx_orders_order_code;uniqueIndex:uq_orders_store_order_code,priority:2" json:"order_code"`
+	DailySeqNo                int         `gorm:"not null;default:1" json:"daily_seq_no"`
+	SalesChannel              string      `gorm:"type:varchar(30);not null;default:'dine_in'" json:"sales_channel"`
+	PlatformCommissionPercent float64     `gorm:"type:numeric(5,2);not null;default:0.00" json:"platform_commission_percent"`
+	Status                    OrderStatus `gorm:"type:varchar(30);not null;default:'completed';index" json:"status"`
 	Subtotal            float64     `gorm:"type:numeric(12,2);not null;default:0.00" json:"subtotal"`
 	DiscountAmount      float64     `gorm:"type:numeric(12,2);not null;default:0.00" json:"discount_amount"`
 	ManualDiscount      float64     `gorm:"type:numeric(12,2);not null;default:0.00" json:"manual_discount"`
@@ -102,10 +113,12 @@ type CreateOrderRequest struct {
 	Note           string                   `json:"note,omitempty"`
 
 	// POS Order Adjustments & Discounts (Allowed for both Cashier & Admin)
-	ManualDiscount      *float64 `json:"manual_discount,omitempty"`
-	PlatformFeeDiscount *float64 `json:"platform_fee_discount,omitempty"`
-	ShippingFee         *float64 `json:"shipping_fee,omitempty"`
-	Surcharge           *float64 `json:"surcharge,omitempty"`
+	ManualDiscount            *float64 `json:"manual_discount,omitempty"`
+	PlatformFeeDiscount       *float64 `json:"platform_fee_discount,omitempty"`
+	SalesChannel              string   `json:"sales_channel,omitempty"`
+	PlatformCommissionPercent *float64 `json:"platform_commission_percent,omitempty"`
+	ShippingFee               *float64 `json:"shipping_fee,omitempty"`
+	Surcharge                 *float64 `json:"surcharge,omitempty"`
 
 	// Admin Override & Backdating Fields (Forbidden if requester is not admin)
 	OverrideReason string     `json:"override_reason,omitempty"`
