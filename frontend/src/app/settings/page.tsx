@@ -262,11 +262,16 @@ export default function SettingsPage() {
         body: formData,
       });
 
-      const json = await res.json();
-      if (json.status === 'success' && json.data) {
+      let json: any = null;
+      try {
+        json = await res.json();
+      } catch {
+        json = { status: 'error', message: `Lỗi kết nối máy chủ (HTTP ${res.status})` };
+      }
+      if (json && json.status === 'success' && json.data) {
         setBackupPreview(json.data);
       } else {
-        toast.error(json.message || 'Kiểm tra file sao lưu thất bại');
+        toast.error(json?.message || 'Kiểm tra file sao lưu thất bại');
         setBackupPreview(null);
       }
     } catch (err: any) {
@@ -364,13 +369,18 @@ export default function SettingsPage() {
         body: formData,
       });
 
-      const data = await res.json();
-      if (res.ok && data.status === 'success' && data.data) {
+      let data: any = null;
+      try {
+        data = await res.json();
+      } catch {
+        data = { status: 'error', message: `Lỗi kết nối máy chủ (HTTP ${res.status})` };
+      }
+      if (res.ok && data && data.status === 'success' && data.data) {
         setImportResult(data.data);
         toast.success(t('settings.import_success_title'));
       } else {
-        toast.error(data.message || 'Nhập dữ liệu thất bại.');
-        if (data.data) {
+        toast.error(data?.message || 'Nhập dữ liệu thất bại.');
+        if (data?.data) {
           setImportResult(data.data);
         }
       }

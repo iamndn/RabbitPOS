@@ -121,16 +121,22 @@ export async function fetchApi<T>(
 
     try {
       res = await executeFetch(`${baseUrl}${endpoint}`);
-      // If relative proxy returns 502/404 on client side, retry once against backend port 8080 directly
-      if (typeof window !== 'undefined' && (res.status === 502 || res.status === 404) && baseUrl.startsWith('/')) {
-        const fallbackBase = `http://${window.location.hostname}:8080/api/v1`;
+      // If relative proxy returns 500/502/503/504/404 on client side, wait briefly and retry once
+      if (typeof window !== 'undefined' && (res.status >= 500 || res.status === 404) && baseUrl.startsWith('/')) {
+        await new Promise((resolve) => setTimeout(resolve, 600));
         try {
-          const fallbackRes = await executeFetch(`${fallbackBase}${endpoint}`);
-          if (fallbackRes.ok || fallbackRes.status < 500) {
-            res = fallbackRes;
+          const retryRes = await executeFetch(`${baseUrl}${endpoint}`);
+          if (retryRes.ok || retryRes.status < 500) {
+            res = retryRes;
+          } else {
+            const fallbackBase = `http://${window.location.hostname}:8080/api/v1`;
+            const fallbackRes = await executeFetch(`${fallbackBase}${endpoint}`);
+            if (fallbackRes.ok || fallbackRes.status < 500) {
+              res = fallbackRes;
+            }
           }
         } catch {
-          // Keep original response if fallback unreachable
+          // Keep original response if retry/fallback unreachable
         }
       }
     } catch (networkErr: any) {
@@ -154,7 +160,30 @@ export async function fetchApi<T>(
       }
     }
 
-    const data: ApiResponse<T> = await res.json();
+    let data: ApiResponse<T>;
+    const contentType = res.headers.get('content-type') || '';
+    if (contentType.includes('application/json')) {
+      try {
+        data = await res.json();
+      } catch {
+        data = {
+          status: 'error',
+          data: null,
+          message: res.status >= 500
+            ? 'Máy chủ đang khởi động hoặc tạm thời gián đoạn. Vui lòng thử lại sau giây lát.'
+            : `Định dạng phản hồi không hợp lệ từ máy chủ (HTTP ${res.status}).`,
+        };
+      }
+    } else {
+      const rawText = await res.text().catch(() => '');
+      data = {
+        status: 'error',
+        data: null,
+        message: res.status >= 500
+          ? 'Máy chủ đang khởi động hoặc tạm thời gián đoạn. Vui lòng thử lại sau giây lát.'
+          : (rawText && rawText.length < 150 ? rawText : `Lỗi máy chủ (HTTP ${res.status}). Vui lòng thử lại sau giây lát.`),
+      };
+    }
 
     // 2. Populate cache on successful GET
     if (method === 'GET' && data.status === 'success' && !options.skipCache) {
@@ -184,6 +213,13 @@ export async function fetchApi<T>(
       friendlyMessage.includes('Load failed')
     ) {
       friendlyMessage = 'Không thể kết nối đến máy chủ. Vui lòng kiểm tra lại mạng hoặc thử lại sau.';
+    } else if (
+      friendlyMessage.includes('Unexpected token') ||
+      friendlyMessage.includes('JSON') ||
+      friendlyMessage.includes('is not valid JSON') ||
+      friendlyMessage.includes('Internal Server Error')
+    ) {
+      friendlyMessage = 'Máy chủ đang khởi động hoặc tạm thời gián đoạn. Vui lòng thử lại sau giây lát.';
     }
     return {
       status: 'error',
@@ -234,7 +270,28 @@ export async function uploadImage(file: File): Promise<ApiResponse<{ url: string
       }
     }
 
-    const data: ApiResponse<{ url: string }> = await res.json();
+    let data: ApiResponse<{ url: string }>;
+    const contentType = res.headers.get('content-type') || '';
+    if (contentType.includes('application/json')) {
+      try {
+        data = await res.json();
+      } catch {
+        data = {
+          status: 'error',
+          data: null,
+          message: 'Máy chủ phản hồi không đúng định dạng JSON khi tải ảnh lên.',
+        };
+      }
+    } else {
+      const rawText = await res.text().catch(() => '');
+      data = {
+        status: 'error',
+        data: null,
+        message: res.status >= 500
+          ? 'Máy chủ đang bận khi tải ảnh lên. Vui lòng thử lại sau giây lát.'
+          : (rawText || `Lỗi tải ảnh lên (HTTP ${res.status})`),
+      };
+    }
     return data;
   } catch (error: any) {
     let friendlyMessage = error?.message || 'Không thể tải lên tệp hình ảnh';
@@ -244,6 +301,13 @@ export async function uploadImage(file: File): Promise<ApiResponse<{ url: string
       friendlyMessage.includes('Load failed')
     ) {
       friendlyMessage = 'Không thể kết nối máy chủ để tải ảnh lên.';
+    } else if (
+      friendlyMessage.includes('Unexpected token') ||
+      friendlyMessage.includes('JSON') ||
+      friendlyMessage.includes('is not valid JSON') ||
+      friendlyMessage.includes('Internal Server Error')
+    ) {
+      friendlyMessage = 'Máy chủ đang khởi động hoặc tạm thời gián đoạn khi tải ảnh lên. Vui lòng thử lại.';
     }
     return {
       status: 'error',
