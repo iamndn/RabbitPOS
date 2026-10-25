@@ -29,6 +29,7 @@ import { useStore } from '@/lib/StoreContext';
 import { useToast } from '@/context/ToastContext';
 import { useConfirm } from '@/context/ConfirmContext';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
+import { Store } from '@/types/store';
 
 interface UserItem {
   id: number;
@@ -56,10 +57,12 @@ export default function UsersPage() {
   const { t } = useTranslation();
   const toast = useToast();
   const { confirm } = useConfirm();
-  const { isSuperAdmin, storeRole } = useStore();
+  const { isSuperAdmin, storeRole, activeStore } = useStore();
 
   const [currentUser, setCurrentUser] = useState<UserInfo | null>(null);
   const [users, setUsers] = useState<UserItem[]>([]);
+  const [accessibleStores, setAccessibleStores] = useState<Store[]>([]);
+  const [selectedStoreIds, setSelectedStoreIds] = useState<number[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
@@ -103,6 +106,17 @@ export default function UsersPage() {
     }
   }, [router, storeRole, isSuperAdmin]);
 
+  const loadStores = async () => {
+    try {
+      const res = await fetchApi<Store[]>('/stores', { skipCache: true });
+      if (res.status === 'success' && Array.isArray(res.data)) {
+        setAccessibleStores(res.data);
+      }
+    } catch (err) {
+      console.error('Failed to load accessible stores for user modal:', err);
+    }
+  };
+
   const loadUsers = async () => {
     setIsLoading(true);
     try {
@@ -121,6 +135,7 @@ export default function UsersPage() {
 
   useEffect(() => {
     loadUsers();
+    loadStores();
   }, []);
 
   // Filtered users list
@@ -175,6 +190,13 @@ export default function UsersPage() {
       pin_code: '',
       is_active: true,
     });
+    if (activeStore?.id) {
+      setSelectedStoreIds([activeStore.id]);
+    } else if (accessibleStores.length > 0) {
+      setSelectedStoreIds([accessibleStores[0].id]);
+    } else {
+      setSelectedStoreIds([]);
+    }
     setIsModalOpen(true);
   };
 
@@ -197,6 +219,8 @@ export default function UsersPage() {
       pin_code: '',
       is_active: user.is_active,
     });
+    const currentStoreIds = (user.stores || []).map((s) => s.id);
+    setSelectedStoreIds(currentStoreIds);
     setIsModalOpen(true);
   };
 
@@ -215,6 +239,16 @@ export default function UsersPage() {
       toast.error('Mã PIN nhanh phải gồm 4 đến 6 chữ số');
       return;
     }
+    if (selectedStoreIds.length === 0) {
+      toast.error('Vui lòng chọn ít nhất 1 cửa hàng phân công');
+      return;
+    }
+
+    const memberships = selectedStoreIds.map((sid, idx) => ({
+      store_id: sid,
+      role: (formData.role === 'owner' ? 'store_admin' : 'staff') as any,
+      is_default: idx === 0,
+    }));
 
     setIsSubmitting(true);
     try {
@@ -224,8 +258,9 @@ export default function UsersPage() {
           full_name: formData.full_name,
           phone: formData.phone,
           email: formData.email,
-          role: formData.role,
+          role: isMasterCaller ? formData.role : undefined,
           is_active: formData.is_active,
+          memberships,
         };
         if (formData.password.trim()) {
           payload.password = formData.password.trim();
@@ -248,9 +283,16 @@ export default function UsersPage() {
         }
       } else {
         // Create user
+        const createPayload = {
+          ...formData,
+          role: isMasterCaller ? formData.role : 'staff',
+          store_id: selectedStoreIds[0],
+          memberships,
+        };
+
         const res = await fetchApi('/users', {
           method: 'POST',
-          body: JSON.stringify(formData),
+          body: JSON.stringify(createPayload),
         });
 
         if (res.status === 'success') {
@@ -599,6 +641,29 @@ export default function UsersPage() {
                     </div>
                   </div>
 
+                  {/* Assigned Stores */}
+                  <div className="pt-2 border-t border-slate-100 text-xs text-slate-600">
+                    <span className="text-[10px] text-slate-400 block font-semibold uppercase mb-1">Cửa hàng trực thuộc</span>
+                    {u.stores && u.stores.length > 0 ? (
+                      <div className="flex flex-wrap gap-1">
+                        {u.stores.map((s) => (
+                          <span
+                            key={s.id}
+                            className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 border border-purple-200"
+                          >
+                            <Building2 className="w-2.5 h-2.5 text-purple-600 shrink-0" />
+                            <span>{s.name}</span>
+                            {s.role === 'store_admin' && (
+                              <span className="text-[8px] bg-purple-200 text-purple-900 px-1 rounded font-extrabold ml-0.5">Admin</span>
+                            )}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="text-[11px] text-slate-400 italic">Chưa gán</span>
+                    )}
+                  </div>
+
                   {/* Last Login */}
                   <div className="text-[11px] text-slate-400 flex items-center justify-between pt-1 border-t border-slate-50">
                     <span className="flex items-center gap-1">
@@ -659,6 +724,7 @@ export default function UsersPage() {
                 <tr className="bg-slate-50/75 border-b border-slate-200 text-[11px] font-extrabold uppercase text-slate-500 tracking-wider">
                   <th className="py-3.5 px-4">{t('users.col_user') || 'Nhân viên'}</th>
                   <th className="py-3.5 px-4">{t('users.col_role') || 'Vai trò'}</th>
+                  <th className="py-3.5 px-4">{t('users.col_stores') || 'Cửa hàng'}</th>
                   <th className="py-3.5 px-4">{t('users.col_phone') || 'Số điện thoại'}</th>
                   <th className="py-3.5 px-4">{t('users.col_pin') || 'Mã PIN'}</th>
                   <th className="py-3.5 px-4">{t('users.col_status') || 'Trạng thái'}</th>
@@ -669,13 +735,13 @@ export default function UsersPage() {
               <tbody className="divide-y divide-slate-100 text-xs">
                 {isLoading ? (
                   <tr>
-                    <td colSpan={7} className="text-center py-12 text-slate-400 font-medium">
+                    <td colSpan={8} className="text-center py-12 text-slate-400 font-medium">
                       {t('users.loading') || 'Đang tải danh sách nhân viên...'}
                     </td>
                   </tr>
                 ) : filteredUsers.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="text-center py-12 text-slate-400 font-medium">
+                    <td colSpan={8} className="text-center py-12 text-slate-400 font-medium">
                       {t('users.empty') || 'Không tìm thấy nhân viên nào phù hợp với bộ lọc.'}
                     </td>
                   </tr>
@@ -714,6 +780,28 @@ export default function UsersPage() {
 
                         {/* Role */}
                         <td className="py-3.5 px-4">{getRoleBadge(u.role)}</td>
+
+                        {/* Assigned Stores */}
+                        <td className="py-3.5 px-4">
+                          {u.stores && u.stores.length > 0 ? (
+                            <div className="flex flex-wrap gap-1 max-w-[200px]">
+                              {u.stores.map((s) => (
+                                <span
+                                  key={s.id}
+                                  className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 border border-purple-200"
+                                >
+                                  <Building2 className="w-2.5 h-2.5 text-purple-600 shrink-0" />
+                                  <span className="truncate max-w-[120px]">{s.name}</span>
+                                  {s.role === 'store_admin' && (
+                                    <span className="text-[8px] bg-purple-200 text-purple-900 px-1 rounded font-extrabold ml-0.5 shrink-0">Admin</span>
+                                  )}
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="text-[11px] text-slate-400 italic">Chưa gán</span>
+                          )}
+                        </td>
 
                         {/* Phone & Email */}
                         <td className="py-3.5 px-4">
@@ -921,8 +1009,8 @@ export default function UsersPage() {
                   <label className="block text-xs font-bold text-slate-700 mb-1.5">
                     {t('users.field_role') || 'Phân quyền vai trò'} <span className="text-rose-500">*</span>
                   </label>
-                  <div className={`grid ${isMasterCaller ? 'grid-cols-3' : 'grid-cols-2'} gap-2`}>
-                    {isMasterCaller && (
+                  {isMasterCaller ? (
+                    <div className="grid grid-cols-3 gap-2">
                       <label
                         className={`border rounded-xl p-3 flex flex-col cursor-pointer transition text-center ${
                           formData.role === 'master'
@@ -943,50 +1031,111 @@ export default function UsersPage() {
                           {t('users.role_master_desc') || 'Toàn quyền hệ thống'}
                         </span>
                       </label>
-                    )}
 
-                    <label
-                      className={`border rounded-xl p-3 flex flex-col cursor-pointer transition text-center ${
-                        formData.role === 'owner'
-                          ? 'border-blue-600 bg-blue-50/60 ring-2 ring-blue-600/20'
-                          : 'border-slate-200 hover:bg-slate-50'
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="role"
-                        value="owner"
-                        checked={formData.role === 'owner'}
-                        onChange={() => setFormData({ ...formData, role: 'owner' })}
-                        className="sr-only"
-                      />
-                      <span className="text-xs font-black text-blue-900">{t('users.role_owner') || 'Owner'}</span>
-                      <span className="text-[10px] text-blue-600 font-medium mt-0.5">
-                        {t('users.role_owner_desc') || 'Quản lý cửa hàng'}
-                      </span>
-                    </label>
+                      <label
+                        className={`border rounded-xl p-3 flex flex-col cursor-pointer transition text-center ${
+                          formData.role === 'owner'
+                            ? 'border-blue-600 bg-blue-50/60 ring-2 ring-blue-600/20'
+                            : 'border-slate-200 hover:bg-slate-50'
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="role"
+                          value="owner"
+                          checked={formData.role === 'owner'}
+                          onChange={() => setFormData({ ...formData, role: 'owner' })}
+                          className="sr-only"
+                        />
+                        <span className="text-xs font-black text-blue-900">{t('users.role_owner') || 'Owner'}</span>
+                        <span className="text-[10px] text-blue-600 font-medium mt-0.5">
+                          {t('users.role_owner_desc') || 'Quản lý cửa hàng'}
+                        </span>
+                      </label>
 
-                    <label
-                      className={`border rounded-xl p-3 flex flex-col cursor-pointer transition text-center ${
-                        formData.role === 'staff'
-                          ? 'border-purple-600 bg-purple-50/60 ring-2 ring-purple-600/20'
-                          : 'border-slate-200 hover:bg-slate-50'
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="role"
-                        value="staff"
-                        checked={formData.role === 'staff'}
-                        onChange={() => setFormData({ ...formData, role: 'staff' })}
-                        className="sr-only"
-                      />
-                      <span className="text-xs font-black text-purple-900">{t('users.role_staff') || 'Staff'}</span>
-                      <span className="text-[10px] text-purple-600 font-medium mt-0.5">
-                        {t('users.role_staff_desc') || 'Thu ngân / Pha chế'}
-                      </span>
+                      <label
+                        className={`border rounded-xl p-3 flex flex-col cursor-pointer transition text-center ${
+                          formData.role === 'staff'
+                            ? 'border-purple-600 bg-purple-50/60 ring-2 ring-purple-600/20'
+                            : 'border-slate-200 hover:bg-slate-50'
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="role"
+                          value="staff"
+                          checked={formData.role === 'staff'}
+                          onChange={() => setFormData({ ...formData, role: 'staff' })}
+                          className="sr-only"
+                        />
+                        <span className="text-xs font-black text-purple-900">{t('users.role_staff') || 'Staff'}</span>
+                        <span className="text-[10px] text-purple-600 font-medium mt-0.5">
+                          {t('users.role_staff_desc') || 'Thu ngân / Pha chế'}
+                        </span>
+                      </label>
+                    </div>
+                  ) : (
+                    <div className="p-3 bg-purple-50/60 border border-purple-200 rounded-xl flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <Users className="w-4 h-4 text-purple-700" />
+                        <span className="text-xs font-bold text-purple-900">Staff (Nhân viên cửa hàng)</span>
+                      </div>
+                      <span className="text-[10px] font-semibold text-purple-600">Quyền hạn thu ngân / pha chế</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Store Assignment Picker */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-bold text-slate-700">
+                      Cửa hàng phân công <span className="text-rose-500">*</span>
                     </label>
+                    <span className="text-[10px] text-slate-400 font-medium">
+                      {isMasterCaller ? 'Tất cả cửa hàng trên hệ thống' : 'Cửa hàng thuộc quyền quản lý'}
+                    </span>
                   </div>
+
+                  {accessibleStores.length === 0 ? (
+                    <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-400 italic">
+                      Đang tải danh sách cửa hàng...
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-36 overflow-y-auto p-2 bg-slate-50/70 border border-slate-200 rounded-xl">
+                      {accessibleStores.map((st) => {
+                        const isChecked = selectedStoreIds.includes(st.id);
+                        return (
+                          <label
+                            key={st.id}
+                            className={`flex items-center space-x-2 p-2 rounded-lg border text-xs cursor-pointer transition select-none ${
+                              isChecked
+                                ? 'bg-purple-50 border-purple-300 text-purple-900 font-bold'
+                                : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100'
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedStoreIds([...selectedStoreIds, st.id]);
+                                } else {
+                                  setSelectedStoreIds(selectedStoreIds.filter((id) => id !== st.id));
+                                }
+                              }}
+                              className="rounded text-purple-600 focus:ring-purple-500"
+                            />
+                            <span className="truncate">{st.name}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {selectedStoreIds.length === 0 && (
+                    <p className="text-[10px] text-rose-500 font-medium mt-1">
+                      Vui lòng chọn ít nhất 1 cửa hàng phân công.
+                    </p>
+                  )}
                 </div>
 
                 {/* Password */}

@@ -68,7 +68,7 @@ func SetupRouter(cfg *config.Config, db *gorm.DB, emailSvc *services.EmailServic
 	sheetsSyncHandler := handlers.NewSheetsSyncHandler(sheetsSyncSvc)
 	autoTaggingHandler := handlers.NewAutoTaggingHandler(autoTaggingSvc)
 	purchaseHandler := handlers.NewPurchaseHandler(db, productCache, toppingCache)
-	storeHandler := handlers.NewStoreHandler(db, cfg, auditSvc)
+	storeHandler := handlers.NewStoreHandler(db, cfg, auditSvc, catCache, productCache, fundCache, settingCache, toppingCache)
 	userHandler := handlers.NewUserHandler(db, auditSvc)
 
 	// API v1 Group
@@ -101,16 +101,26 @@ func SetupRouter(cfg *config.Config, db *gorm.DB, emailSvc *services.EmailServic
 				userGroup.DELETE("/:id", middleware.RequireOwnershipOrMaster(db), userHandler.DeleteUser)
 			}
 
-			// Multi-store management (Platform)
+			// Multi-store listing (Platform)
 			authenticated.GET("/stores", storeHandler.ListStores)
+
+			// Store Management Routes (Accessible by Master & Owner)
+			storeMgmt := authenticated.Group("")
+			storeMgmt.Use(middleware.RequireRole(models.RoleMaster, models.RoleOwner))
+			{
+				storeMgmt.POST("/stores", storeHandler.CreateStore)
+				storeMgmt.PUT("/stores/:id", storeHandler.UpdateStore)
+				storeMgmt.GET("/stores/:id/members", storeHandler.ListMembers)
+				storeMgmt.PUT("/stores/:id/members", storeHandler.UpsertMember)
+				storeMgmt.DELETE("/stores/:id/members/:user_id", storeHandler.RemoveMember)
+			}
+
+			// Platform Administration (Master only)
 			masterAdmin := authenticated.Group("")
 			masterAdmin.Use(middleware.RequireRole(models.RoleMaster))
 			{
-				masterAdmin.POST("/stores", storeHandler.CreateStore)
-				masterAdmin.PUT("/stores/:id", storeHandler.UpdateStore)
-				masterAdmin.GET("/stores/:id/members", storeHandler.ListMembers)
-				masterAdmin.PUT("/stores/:id/members", storeHandler.UpsertMember)
-				masterAdmin.DELETE("/stores/:id/members/:user_id", storeHandler.RemoveMember)
+				// Full Store Deletion (Super-Admin only)
+				masterAdmin.DELETE("/stores/:id", storeHandler.DeleteStore)
 
 				// Platform-wide backup & restore (Master only)
 				masterAdmin.GET("/backup/export", backupHandler.ExportBackup)

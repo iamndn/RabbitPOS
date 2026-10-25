@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import AppShell from '@/components/AppShell';
 import { fetchApi, getImageUrl } from '@/lib/api';
+import { getAuthUser, isOwnerRole } from '@/lib/auth';
 import { useStore } from '@/lib/StoreContext';
 import { useToast } from '@/context/ToastContext';
 import { useConfirm } from '@/context/ConfirmContext';
@@ -66,6 +67,11 @@ export default function StoresPage() {
   const { confirm } = useConfirm();
   const { isSuperAdmin, activeStore, switchStore, refreshStores } = useStore();
 
+  const [currentUser, setCurrentUser] = useState(getAuthUser());
+  const canAccess = useMemo(() => {
+    return isSuperAdmin || isOwnerRole(currentUser?.role);
+  }, [isSuperAdmin, currentUser?.role]);
+
   const [stores, setStores] = useState<Store[]>([]);
   const [overview, setOverview] = useState<OverviewAllStoresResponse | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -84,12 +90,17 @@ export default function StoresPage() {
   const [isMemberModalOpen, setIsMemberModalOpen] = useState<boolean>(false);
   const [storeForMembers, setStoreForMembers] = useState<Store | null>(null);
 
-  // Guard: super_admin only
+  // Sync auth user
   useEffect(() => {
-    if (!isSuperAdmin) {
+    setCurrentUser(getAuthUser());
+  }, []);
+
+  // Guard: super_admin or owner
+  useEffect(() => {
+    if (!loading && !canAccess) {
       router.push('/');
     }
-  }, [isSuperAdmin, router]);
+  }, [loading, canAccess, router]);
 
   const loadStores = async () => {
     setLoading(true);
@@ -106,6 +117,7 @@ export default function StoresPage() {
   };
 
   const loadOverview = async (start: string, end: string) => {
+    if (!isSuperAdmin) return;
     setOverviewLoading(true);
     try {
       const res = await fetchApi<OverviewAllStoresResponse>(
@@ -124,15 +136,17 @@ export default function StoresPage() {
 
   const loadData = () => {
     loadStores();
-    const { from: start, to: end } = computeDateRange(period, customFrom, customTo);
-    loadOverview(start, end);
+    if (isSuperAdmin) {
+      const { from: start, to: end } = computeDateRange(period, customFrom, customTo);
+      loadOverview(start, end);
+    }
   };
 
   useEffect(() => {
-    if (isSuperAdmin) {
+    if (canAccess) {
       loadStores();
     }
-  }, [isSuperAdmin]);
+  }, [canAccess]);
 
   useEffect(() => {
     if (isSuperAdmin) {
@@ -190,6 +204,53 @@ export default function StoresPage() {
     switchStore(store.id);
     toast.success(`Đã chuyển sang cửa hàng: ${store.name}`);
     router.push('/');
+  };
+
+  const handleDeleteStore = async (store: Store) => {
+    if (store.id === 1) {
+      toast.error('Không thể xóa cửa hàng gốc #1');
+      return;
+    }
+    if (stores.length <= 1) {
+      toast.error('Không thể xóa cửa hàng duy nhất còn lại trên hệ thống');
+      return;
+    }
+
+    const confirmed = await confirm({
+      title: `Xóa vĩnh viễn cửa hàng: ${store.name}`,
+      message: `Hành động này sẽ XÓA VĨNH VIỄN toàn bộ danh mục, món, định lượng (BOM), đơn hàng, sổ quỹ và giao dịch của cửa hàng "${store.name}" (${store.code}). Không thể hoàn tác dữ liệu này. Bạn có chắc chắn muốn xóa?`,
+      confirmText: 'Xóa vĩnh viễn',
+      cancelText: 'Hủy bỏ',
+      type: 'danger',
+    });
+
+    if (!confirmed) return;
+
+    try {
+      const res = await fetchApi(`/stores/${store.id}?confirm_code=${encodeURIComponent(store.code)}`, {
+        method: 'DELETE',
+      });
+      if (res.status === 'success') {
+        toast.success(`Đã xóa vĩnh viễn cửa hàng "${store.name}"`);
+        if (activeStore?.id === store.id) {
+          const remaining = stores.filter((s) => s.id !== store.id);
+          const fallback = remaining.find((s) => s.id === 1) || remaining[0];
+          if (fallback) {
+            switchStore(fallback.id);
+          }
+        }
+        await refreshStores();
+        await loadStores();
+        if (isSuperAdmin) {
+          const { from: start, to: end } = computeDateRange(period, customFrom, customTo);
+          loadOverview(start, end);
+        }
+      } else {
+        toast.error(res.message || 'Không thể xóa cửa hàng');
+      }
+    } catch (err: any) {
+      toast.error(err?.message || 'Lỗi khi xóa cửa hàng');
+    }
   };
 
   // Filtered store list
@@ -304,23 +365,39 @@ export default function StoresPage() {
             </div>
           </div>
 
-          <div className="bg-white p-4 sm:p-5 rounded-3xl border border-slate-200 shadow-xs flex items-center space-x-3.5">
-            <div className="p-3 bg-amber-50 text-amber-700 rounded-2xl shrink-0">
-              <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6" />
+          {isSuperAdmin ? (
+            <div className="bg-white p-4 sm:p-5 rounded-3xl border border-slate-200 shadow-xs flex items-center space-x-3.5">
+              <div className="p-3 bg-amber-50 text-amber-700 rounded-2xl shrink-0">
+                <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-[11px] sm:text-xs text-slate-400 font-bold block truncate">
+                  Doanh thu ({periodLabel})
+                </span>
+                <span className="text-base sm:text-xl font-black text-amber-800 truncate block">
+                  {formatCurrency(overview?.total_range_revenue ?? overview?.total_today_revenue ?? 0)}
+                </span>
+              </div>
             </div>
-            <div className="min-w-0">
-              <span className="text-[11px] sm:text-xs text-slate-400 font-bold block truncate">
-                Doanh thu ({periodLabel})
-              </span>
-              <span className="text-base sm:text-xl font-black text-amber-800 truncate block">
-                {formatCurrency(overview?.total_range_revenue ?? overview?.total_today_revenue ?? 0)}
-              </span>
+          ) : (
+            <div className="bg-white p-4 sm:p-5 rounded-3xl border border-slate-200 shadow-xs flex items-center space-x-3.5">
+              <div className="p-3 bg-purple-50 text-purple-700 rounded-2xl shrink-0">
+                <Building2 className="w-5 h-5 sm:w-6 sm:h-6" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-[11px] sm:text-xs text-slate-400 font-bold block truncate">
+                  Đang thao tác
+                </span>
+                <span className="text-sm sm:text-base font-black text-purple-900 truncate block">
+                  {activeStore?.name || 'Chưa chọn'}
+                </span>
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Cross-Store Executive Overview Section */}
-        {overview && (
+        {isSuperAdmin && overview && (
           <div className="bg-white rounded-3xl border border-slate-200 shadow-xs p-5 sm:p-6 space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
               <div className="flex items-center space-x-2.5">
@@ -682,6 +759,17 @@ export default function StoresPage() {
                         >
                           <Power className="w-4 h-4" />
                         </button>
+
+                        {isSuperAdmin && store.id !== 1 && stores.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteStore(store)}
+                            title="Xóa vĩnh viễn cửa hàng"
+                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition active:scale-95"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
                       </div>
 
                       {/* Switch store button */}

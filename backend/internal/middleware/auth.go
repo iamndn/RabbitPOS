@@ -199,6 +199,41 @@ func RequireOwnershipOrMaster(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
+		// If caller is owner and modifying another user, ensure target user belongs strictly within caller's owned stores
+		if targetUser.ID != callerID {
+			if targetUser.Role != models.RoleStaff && targetUser.Role != "cashier" {
+				models.SendErrorCode(c, http.StatusForbidden, "AUTH_FORBIDDEN", "Store owners can only manage staff accounts")
+				c.Abort()
+				return
+			}
+
+			var ownedStoreIDs []uint
+			if err := db.Model(&models.UserStore{}).Where("user_id = ? AND role = ?", callerID, models.StoreRoleStoreAdmin).Pluck("store_id", &ownedStoreIDs).Error; err != nil || len(ownedStoreIDs) == 0 {
+				models.SendErrorCode(c, http.StatusForbidden, "AUTH_FORBIDDEN", "Store owner does not manage any stores")
+				c.Abort()
+				return
+			}
+
+			var targetStoreIDs []uint
+			if err := db.Model(&models.UserStore{}).Where("user_id = ?", targetUser.ID).Pluck("store_id", &targetStoreIDs).Error; err != nil || len(targetStoreIDs) == 0 {
+				models.SendErrorCode(c, http.StatusForbidden, "AUTH_FORBIDDEN", "Target staff member does not belong to your store scope")
+				c.Abort()
+				return
+			}
+
+			ownedMap := make(map[uint]bool, len(ownedStoreIDs))
+			for _, sid := range ownedStoreIDs {
+				ownedMap[sid] = true
+			}
+			for _, sid := range targetStoreIDs {
+				if !ownedMap[sid] {
+					models.SendErrorCode(c, http.StatusForbidden, "AUTH_FORBIDDEN", "Store owners cannot manage staff belonging to other stores")
+					c.Abort()
+					return
+				}
+			}
+		}
+
 		c.Next()
 	}
 }

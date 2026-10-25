@@ -2,10 +2,13 @@ package handlers
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 
+	"github.com/RabbitPOS/backend/internal/cache"
 	"github.com/RabbitPOS/backend/internal/config"
 	"github.com/RabbitPOS/backend/internal/models"
 	"github.com/RabbitPOS/backend/internal/services"
@@ -20,10 +23,17 @@ type StoreHandler struct {
 	cfg      *config.Config
 	svc      *services.StoreService
 	auditSvc *services.AuditService
+	caches   []*cache.TTLCache
 }
 
-func NewStoreHandler(db *gorm.DB, cfg *config.Config, auditSvc *services.AuditService) *StoreHandler {
-	return &StoreHandler{db: db, cfg: cfg, svc: services.NewStoreService(db), auditSvc: auditSvc}
+func NewStoreHandler(db *gorm.DB, cfg *config.Config, auditSvc *services.AuditService, caches ...*cache.TTLCache) *StoreHandler {
+	return &StoreHandler{
+		db:       db,
+		cfg:      cfg,
+		svc:      services.NewStoreService(db),
+		auditSvc: auditSvc,
+		caches:   caches,
+	}
 }
 
 func (h *StoreHandler) callerID(c *gin.Context) uint {
@@ -68,12 +78,15 @@ func parseUintParam(c *gin.Context, name string) (uint, bool) {
 	return uint(n), true
 }
 
-// ListStores returns stores accessible to the caller (all for super_admin).
+// ListStores returns stores accessible to the caller.
+// Super-Admins (master) see all stores across platform.
+// Store Owners (owner) strictly see ONLY stores where they have store_admin role.
+// Staff strictly see stores they are assigned to.
 func (h *StoreHandler) ListStores(c *gin.Context) {
 	uid := h.callerID(c)
+	callerRole := h.callerRole(c)
 	out := []models.StoreResponse{}
 
-	var stores []models.Store
 	var memberships []models.UserStore
 	if err := h.db.Where("user_id = ?", uid).Find(&memberships).Error; err != nil {
 		models.SendInternalErrorLogged(c, "Failed to load stores", err)
@@ -85,11 +98,18 @@ func (h *StoreHandler) ListStores(c *gin.Context) {
 	}
 
 	q := h.db.Order("id ASC")
-	isSuper := h.callerRole(c).IsSuperAdmin()
+	isSuper := callerRole.IsMaster()
 	if !isSuper {
 		ids := make([]uint, 0, len(byStore))
-		for id := range byStore {
-			ids = append(ids, id)
+		for id, m := range byStore {
+			if callerRole.IsOwner() {
+				// Owner strictly sees ONLY stores where they have store_admin role
+				if m.Role == models.StoreRoleStoreAdmin {
+					ids = append(ids, id)
+				}
+			} else {
+				ids = append(ids, id)
+			}
 		}
 		if len(ids) == 0 {
 			models.SendSuccess(c, http.StatusOK, out, "Stores retrieved")
@@ -97,6 +117,7 @@ func (h *StoreHandler) ListStores(c *gin.Context) {
 		}
 		q = q.Where("id IN ?", ids)
 	}
+	var stores []models.Store
 	if err := q.Find(&stores).Error; err != nil {
 		models.SendInternalErrorLogged(c, "Failed to load stores", err)
 		return
@@ -129,7 +150,7 @@ func (h *StoreHandler) ListStores(c *gin.Context) {
 	models.SendSuccess(c, http.StatusOK, out, "Stores retrieved")
 }
 
-// CreateStore creates a new store (super_admin only, gated by ENABLE_MULTI_STORE).
+// CreateStore creates a new store (super_admin or store owner).
 func (h *StoreHandler) CreateStore(c *gin.Context) {
 	if h.cfg != nil && !h.cfg.EnableMultiStore {
 		models.SendErrorCode(c, http.StatusForbidden, "MULTI_STORE_DISABLED", "Multi-store creation is disabled")
@@ -140,7 +161,10 @@ func (h *StoreHandler) CreateStore(c *gin.Context) {
 		models.SendErrorCode(c, http.StatusBadRequest, "VALIDATION_ERROR", "Invalid request payload")
 		return
 	}
-	store, err := h.svc.CreateStore(h.callerID(c), req)
+	callerID := h.callerID(c)
+	callerRole := h.callerRole(c)
+
+	store, err := h.svc.CreateStore(callerID, callerRole, req)
 	if err != nil {
 		h.respondErr(c, err)
 		return
@@ -149,12 +173,25 @@ func (h *StoreHandler) CreateStore(c *gin.Context) {
 	models.SendSuccess(c, http.StatusCreated, store, "Store created")
 }
 
-// UpdateStore applies a partial update; the last active store cannot be deactivated.
+// UpdateStore applies a partial update; allowed for master or store_admin of this store.
 func (h *StoreHandler) UpdateStore(c *gin.Context) {
 	id, ok := parseUintParam(c, "id")
 	if !ok {
 		return
 	}
+	callerID := h.callerID(c)
+	callerRole := h.callerRole(c)
+
+	if !callerRole.IsMaster() {
+		var isOwnerCount int64
+		if err := h.db.Model(&models.UserStore{}).
+			Where("user_id = ? AND store_id = ? AND role = ?", callerID, id, models.StoreRoleStoreAdmin).
+			Count(&isOwnerCount).Error; err != nil || isOwnerCount == 0 {
+			models.SendErrorCode(c, http.StatusForbidden, "STORE_FORBIDDEN", "Access denied: you do not own this store")
+			return
+		}
+	}
+
 	var req models.UpdateStoreRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		models.SendErrorCode(c, http.StatusBadRequest, "VALIDATION_ERROR", "Invalid request payload")
@@ -243,12 +280,25 @@ func (h *StoreHandler) UpdateStore(c *gin.Context) {
 	models.SendSuccess(c, http.StatusOK, store, "Store updated")
 }
 
-// ListMembers returns the store's members.
+// ListMembers returns the store's members (allowed for master or store_admin).
 func (h *StoreHandler) ListMembers(c *gin.Context) {
 	id, ok := parseUintParam(c, "id")
 	if !ok {
 		return
 	}
+	callerID := h.callerID(c)
+	callerRole := h.callerRole(c)
+
+	if !callerRole.IsMaster() {
+		var isOwnerCount int64
+		if err := h.db.Model(&models.UserStore{}).
+			Where("user_id = ? AND store_id = ? AND role = ?", callerID, id, models.StoreRoleStoreAdmin).
+			Count(&isOwnerCount).Error; err != nil || isOwnerCount == 0 {
+			models.SendErrorCode(c, http.StatusForbidden, "STORE_FORBIDDEN", "Access denied: you do not own this store")
+			return
+		}
+	}
+
 	if !h.storeExists(c, id) {
 		return
 	}
@@ -283,6 +333,19 @@ func (h *StoreHandler) UpsertMember(c *gin.Context) {
 	if !ok {
 		return
 	}
+	callerID := h.callerID(c)
+	callerRole := h.callerRole(c)
+
+	if !callerRole.IsMaster() {
+		var isOwnerCount int64
+		if err := h.db.Model(&models.UserStore{}).
+			Where("user_id = ? AND store_id = ? AND role = ?", callerID, id, models.StoreRoleStoreAdmin).
+			Count(&isOwnerCount).Error; err != nil || isOwnerCount == 0 {
+			models.SendErrorCode(c, http.StatusForbidden, "STORE_FORBIDDEN", "Access denied: you do not own this store")
+			return
+		}
+	}
+
 	var req models.StoreMemberInput
 	if err := c.ShouldBindJSON(&req); err != nil {
 		models.SendErrorCode(c, http.StatusBadRequest, "VALIDATION_ERROR", "Invalid request payload")
@@ -291,6 +354,36 @@ func (h *StoreHandler) UpsertMember(c *gin.Context) {
 	if !h.storeExists(c, id) {
 		return
 	}
+
+	if !callerRole.IsMaster() {
+		var targetUser models.User
+		if err := h.db.Select("id, role").First(&targetUser, req.UserID).Error; err != nil {
+			models.SendErrorCode(c, http.StatusNotFound, "USER_NOT_FOUND", "User not found")
+			return
+		}
+		if targetUser.Role.IsMaster() || targetUser.Role.IsOwner() {
+			models.SendErrorCode(c, http.StatusForbidden, "AUTH_FORBIDDEN", "Store owners can only manage staff accounts")
+			return
+		}
+
+		var ownedStoreIDs []uint
+		h.db.Model(&models.UserStore{}).Where("user_id = ? AND role = ?", callerID, models.StoreRoleStoreAdmin).Pluck("store_id", &ownedStoreIDs)
+		var targetStoreIDs []uint
+		h.db.Model(&models.UserStore{}).Where("user_id = ? AND store_id != ?", targetUser.ID, id).Pluck("store_id", &targetStoreIDs)
+		ownedMap := make(map[uint]bool, len(ownedStoreIDs))
+		for _, sid := range ownedStoreIDs {
+			ownedMap[sid] = true
+		}
+		for _, sid := range targetStoreIDs {
+			if !ownedMap[sid] {
+				models.SendErrorCode(c, http.StatusForbidden, "AUTH_FORBIDDEN", "Cannot manage staff belonging to other stores")
+				return
+			}
+		}
+
+		req.Role = models.StoreRoleStaff
+	}
+
 	if err := h.svc.UpsertMember(id, req); err != nil {
 		h.respondErr(c, err)
 		return
@@ -309,12 +402,223 @@ func (h *StoreHandler) RemoveMember(c *gin.Context) {
 	if !ok {
 		return
 	}
+	callerID := h.callerID(c)
+	callerRole := h.callerRole(c)
+
+	if !callerRole.IsMaster() {
+		var isOwnerCount int64
+		if err := h.db.Model(&models.UserStore{}).
+			Where("user_id = ? AND store_id = ? AND role = ?", callerID, id, models.StoreRoleStoreAdmin).
+			Count(&isOwnerCount).Error; err != nil || isOwnerCount == 0 {
+			models.SendErrorCode(c, http.StatusForbidden, "STORE_FORBIDDEN", "Access denied: you do not own this store")
+			return
+		}
+		if uid == callerID {
+			models.SendErrorCode(c, http.StatusBadRequest, "CANNOT_REMOVE_SELF", "Store owner cannot remove themselves from their own store")
+			return
+		}
+		var targetUser models.User
+		if err := h.db.Select("id, role").First(&targetUser, uid).Error; err == nil {
+			if targetUser.Role.IsMaster() || targetUser.Role.IsOwner() {
+				models.SendErrorCode(c, http.StatusForbidden, "AUTH_FORBIDDEN", "Cannot remove master or owner accounts")
+				return
+			}
+		}
+	}
+
 	if err := h.svc.RemoveMember(id, uid); err != nil {
 		h.respondErr(c, err)
 		return
 	}
 	h.audit(c, "store.member_remove", "store", id, map[string]interface{}{"user_id": uid})
 	models.SendSuccess(c, http.StatusOK, nil, "Member removed")
+}
+
+// DeleteStore permanently cascades all store-scoped data and deletes the store record itself.
+// Exclusively restricted to Super-Admins (master).
+func (h *StoreHandler) DeleteStore(c *gin.Context) {
+	callerRole := h.callerRole(c)
+	if !callerRole.IsMaster() {
+		models.SendErrorCode(c, http.StatusForbidden, "STORE_ROLE_INSUFFICIENT", "Only Super-Admins (master) can delete stores")
+		return
+	}
+
+	id, ok := parseUintParam(c, "id")
+	if !ok {
+		return
+	}
+
+	// 1. Guardrail: Cannot delete Store #1 (primary production store)
+	if id == 1 {
+		models.SendErrorCode(c, http.StatusBadRequest, "CANNOT_DELETE_PRIMARY_STORE", "Cannot delete primary store #1")
+		return
+	}
+
+	// 2. Guardrail: Verify store exists
+	var store models.Store
+	if err := h.db.First(&store, id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			models.SendErrorCode(c, http.StatusNotFound, "STORE_NOT_FOUND", "Store not found")
+			return
+		}
+		models.SendInternalErrorLogged(c, "Failed to load store", err)
+		return
+	}
+
+	// 3. Guardrail: Cannot delete the last remaining store
+	var totalStores int64
+	if err := h.db.Model(&models.Store{}).Count(&totalStores).Error; err == nil && totalStores <= 1 {
+		models.SendErrorCode(c, http.StatusBadRequest, "CANNOT_DELETE_LAST_STORE", "Cannot delete the last remaining store")
+		return
+	}
+
+	// 4. Guardrail: Confirmation code verification
+	confirmCode := strings.TrimSpace(c.Query("confirm_code"))
+	if confirmCode == "" {
+		confirmCode = strings.TrimSpace(c.GetHeader("X-Confirm-Code"))
+	}
+	if confirmCode != store.Code {
+		models.SendErrorCode(c, http.StatusBadRequest, "CONFIRMATION_REQUIRED", "Confirmation required: confirm_code must match store code '"+store.Code+"'")
+		return
+	}
+
+	// 5. Transactional Cascade Purge in strict child-to-parent foreign key order
+	err := h.db.Transaction(func(tx *gorm.DB) error {
+		// 1. Child tables linked to store roots:
+		// a) recipe_items
+		if err := tx.Exec(`DELETE FROM recipe_items WHERE
+			ingredient_id IN (SELECT id FROM ingredients WHERE store_id = ?)
+			OR product_variant_id IN (SELECT pv.id FROM product_variants pv JOIN products p ON pv.product_id = p.id WHERE p.store_id = ?)
+			OR topping_id IN (SELECT id FROM toppings WHERE store_id = ?)`, id, id, id).Error; err != nil {
+			return err
+		}
+
+		// b) purchase_items
+		if err := tx.Exec(`DELETE FROM purchase_items WHERE
+			transaction_id IN (SELECT id FROM transactions WHERE store_id = ?)
+			OR ingredient_id IN (SELECT id FROM ingredients WHERE store_id = ?)`, id, id).Error; err != nil {
+			return err
+		}
+
+		// c) order_items
+		if err := tx.Exec(`DELETE FROM order_items WHERE
+			order_id IN (SELECT id FROM orders WHERE store_id = ?)`, id).Error; err != nil {
+			return err
+		}
+
+		// d) fund_reconciliations
+		if err := tx.Exec(`DELETE FROM fund_reconciliations WHERE
+			fund_id IN (SELECT id FROM funds WHERE store_id = ?)`, id).Error; err != nil {
+			return err
+		}
+
+		// e) product_variants and variant_groups
+		if err := tx.Exec(`DELETE FROM product_variants WHERE
+			product_id IN (SELECT id FROM products WHERE store_id = ?)`, id).Error; err != nil {
+			return err
+		}
+		if tx.Migrator().HasTable("variant_groups") {
+			if err := tx.Exec(`DELETE FROM variant_groups WHERE
+				product_id IN (SELECT id FROM products WHERE store_id = ?)`, id).Error; err != nil {
+				return err
+			}
+		}
+
+		// f) work_shifts (if table exists)
+		if tx.Migrator().HasTable("work_shifts") {
+			if err := tx.Exec(`DELETE FROM work_shifts WHERE store_id = ?`, id).Error; err != nil {
+				return err
+			}
+		}
+
+		// 2. Optional store reference tables:
+		if err := tx.Exec(`DELETE FROM idempotency_records WHERE store_id = ?`, id).Error; err != nil {
+			return err
+		}
+		if err := tx.Exec(`DELETE FROM audit_logs WHERE store_id = ?`, id).Error; err != nil {
+			return err
+		}
+
+		// 3. Root store-scoped tables:
+		rootTables := []string{
+			"orders",
+			"transactions",
+			"promotions",
+			"toppings",
+			"products",
+			"categories",
+			"ingredients",
+			"transaction_categories",
+			"funds",
+		}
+		for _, tbl := range rootTables {
+			if err := tx.Exec(fmt.Sprintf("DELETE FROM %s WHERE store_id = ?", tbl), id).Error; err != nil {
+				return err
+			}
+		}
+
+		// 4. Store metadata & membership tables:
+		if err := tx.Exec(`DELETE FROM store_settings WHERE store_id = ?`, id).Error; err != nil {
+			return err
+		}
+
+		var defaultUserIDs []uint
+		_ = tx.Model(&models.UserStore{}).Where("store_id = ? AND is_default = TRUE", id).Pluck("user_id", &defaultUserIDs).Error
+
+		if err := tx.Exec(`DELETE FROM user_stores WHERE store_id = ?`, id).Error; err != nil {
+			return err
+		}
+
+		// Promote another membership as default for affected users
+		for _, uid := range defaultUserIDs {
+			var next models.UserStore
+			if err := tx.Where("user_id = ?", uid).Order("created_at ASC, store_id ASC").First(&next).Error; err == nil {
+				_ = tx.Model(&models.UserStore{}).Where("user_id = ? AND store_id = ?", uid, next.StoreID).Update("is_default", true).Error
+			}
+		}
+
+		// 5. Delete the store record itself:
+		if err := tx.Exec(`DELETE FROM stores WHERE id = ?`, id).Error; err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		models.SendInternalErrorLogged(c, "Failed to cascade delete store", err)
+		return
+	}
+
+	// 6. Post-commit cleanup:
+	// Evict caches
+	prefix := fmt.Sprintf("s%d:", id)
+	for _, cacheInstance := range h.caches {
+		if cacheInstance != nil {
+			cacheInstance.InvalidatePrefix(prefix)
+		}
+	}
+
+	// Remove uploads directory if present
+	_ = os.RemoveAll(fmt.Sprintf("./uploads/stores/%d", id))
+
+	// Global audit log (store_id = NULL)
+	callerID := h.callerID(c)
+	usernameVal, _ := c.Get("username")
+	username, _ := usernameVal.(string)
+	targetIDStr := strconv.FormatUint(uint64(id), 10)
+	if h.auditSvc != nil {
+		h.auditSvc.RecordLog(&callerID, username, string(callerRole), "DELETE_STORE", "store", &targetIDStr, "success", c.ClientIP(), c.Request.UserAgent(), map[string]interface{}{
+			"store_id":   id,
+			"store_code": store.Code,
+			"store_name": store.Name,
+		})
+	}
+
+	models.SendSuccess(c, http.StatusOK, gin.H{
+		"id":      id,
+		"deleted": true,
+	}, "Cửa hàng và toàn bộ dữ liệu liên quan đã được xóa vĩnh viễn")
 }
 
 // ListUsers returns all users with their memberships (for member assignment).

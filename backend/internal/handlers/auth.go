@@ -331,13 +331,8 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		}
 	}
 
-	// 4. Role determination: First user registered in system becomes Master, subsequent become Owner
-	var totalUsers int64
-	_ = h.db.Model(&models.User{}).Count(&totalUsers)
+	// 4. Role determination: Public registration form MUST ALWAYS receive RoleOwner (NEVER RoleMaster).
 	assignedRole := models.RoleOwner
-	if totalUsers == 0 {
-		assignedRole = models.RoleMaster
-	}
 
 	// 5. Business type normalization
 	businessType := strings.ToLower(strings.TrimSpace(req.BusinessType))

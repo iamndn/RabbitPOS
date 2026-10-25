@@ -143,7 +143,7 @@ func TestCreateStore_TransactionalAndValidated(t *testing.T) {
 	}
 	svc := NewStoreService(db)
 	src := uint(1)
-	st, err := svc.CreateStore(fx.AdminUser.ID, models.CreateStoreRequest{
+	st, err := svc.CreateStore(fx.AdminUser.ID, models.RoleMaster, models.CreateStoreRequest{
 		Code: "Bakery-01", Name: "Bakery", CloneFromStoreID: &src,
 		CloneOptions: models.CloneMenuOptions{Categories: true},
 		Members:      []models.StoreMemberInput{{UserID: fx.StaffUser.ID, Role: models.StoreRoleStaff}},
@@ -161,12 +161,12 @@ func TestCreateStore_TransactionalAndValidated(t *testing.T) {
 	}
 
 	// Duplicate code (case-insensitive) -> STORE_CODE_TAKEN, nothing persisted.
-	_, err = svc.CreateStore(fx.AdminUser.ID, models.CreateStoreRequest{Code: "BAKERY-01", Name: "Dup"})
+	_, err = svc.CreateStore(fx.AdminUser.ID, models.RoleMaster, models.CreateStoreRequest{Code: "BAKERY-01", Name: "Dup"})
 	if se, ok := err.(*StoreError); !ok || se.Code != "STORE_CODE_TAKEN" {
 		t.Errorf("expected STORE_CODE_TAKEN, got %v", err)
 	}
 	// Bad member -> whole transaction rolls back.
-	_, err = svc.CreateStore(fx.AdminUser.ID, models.CreateStoreRequest{
+	_, err = svc.CreateStore(fx.AdminUser.ID, models.RoleMaster, models.CreateStoreRequest{
 		Code: "rollback-me", Name: "RB", Members: []models.StoreMemberInput{{UserID: 999999, Role: models.StoreRoleStaff}}})
 	if err == nil {
 		t.Fatal("expected error for unknown member")

@@ -139,13 +139,14 @@ type CreateUserDTO struct {
 
 // UpdateUserDTO is used for updating existing user details
 type UpdateUserDTO struct {
-	FullName *string   `json:"full_name"`
-	Phone    *string   `json:"phone"`
-	Email    *string   `json:"email"`
-	Role     *UserRole `json:"role"`
-	IsActive *bool     `json:"is_active"`
-	Password string    `json:"password"`
-	PinCode  *string   `json:"pin_code"`
+	FullName    *string          `json:"full_name"`
+	Phone       *string          `json:"phone"`
+	Email       *string          `json:"email"`
+	Role        *UserRole        `json:"role"`
+	IsActive    *bool            `json:"is_active"`
+	Password    string           `json:"password"`
+	PinCode     *string          `json:"pin_code"`
+	Memberships []UserMembership `json:"memberships"`
 }
 
 // UpdateUserRequest is an alias for UpdateUserDTO

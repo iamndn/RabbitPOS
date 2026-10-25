@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/RabbitPOS/backend/internal/middleware"
 	"github.com/RabbitPOS/backend/internal/models"
 	"github.com/RabbitPOS/backend/internal/services"
 	"github.com/RabbitPOS/backend/internal/utils"
@@ -61,15 +62,77 @@ func (h *UserHandler) audit(c *gin.Context, action, resource string, id uint, de
 }
 
 // ListUsers lists all users with optional filtering and search
-// If the caller is an owner, master accounts are excluded from results.
+// If the caller is an owner, they only see themselves and staff from stores they manage.
 func (h *UserHandler) ListUsers(c *gin.Context) {
 	callerRole := h.callerRole(c)
+	callerID := h.callerID(c)
 
 	query := h.db.Model(&models.User{})
 
-	// Non-masters cannot view master accounts
+	var callerOwnedStoreIDs []uint
 	if !callerRole.IsMaster() {
+		// Non-masters cannot view master accounts
 		query = query.Where("role NOT IN ('master', 'super_admin', 'admin')")
+
+		// Store Owner isolation: strictly return users from stores where caller has store_admin
+		if err := h.db.Model(&models.UserStore{}).
+			Where("user_id = ? AND role = ?", callerID, models.StoreRoleStoreAdmin).
+			Pluck("store_id", &callerOwnedStoreIDs).Error; err != nil {
+			models.SendInternalErrorLogged(c, "Failed to load store permissions", err)
+			return
+		}
+
+		if len(callerOwnedStoreIDs) == 0 {
+			models.SendSuccess(c, http.StatusOK, []models.UserResponse{}, "Users retrieved successfully")
+			return
+		}
+
+		targetStoreIDs := callerOwnedStoreIDs
+		// Optional ?store_id= filter
+		if storeIDStr := strings.TrimSpace(c.Query("store_id")); storeIDStr != "" {
+			if parsedSID, err := strconv.ParseUint(storeIDStr, 10, 64); err == nil && parsedSID > 0 {
+				isOwned := false
+				for _, sid := range callerOwnedStoreIDs {
+					if sid == uint(parsedSID) {
+						isOwned = true
+						break
+					}
+				}
+				if !isOwned {
+					models.SendErrorCode(c, http.StatusForbidden, "STORE_FORBIDDEN", "Access denied: store not accessible")
+					return
+				}
+				targetStoreIDs = []uint{uint(parsedSID)}
+			}
+		}
+
+		var allowedUserIDs []uint
+		if err := h.db.Model(&models.UserStore{}).
+			Where("store_id IN ?", targetStoreIDs).
+			Pluck("user_id", &allowedUserIDs).Error; err != nil {
+			models.SendInternalErrorLogged(c, "Failed to load store members", err)
+			return
+		}
+
+		// Include caller themselves
+		allowedUserIDs = append(allowedUserIDs, callerID)
+
+		// Owner only sees themselves (if owner) and staff accounts. NEVER sees other owners!
+		query = query.Where("id IN ?", allowedUserIDs).
+			Where("role != 'owner' OR id = ?", callerID)
+	} else {
+		// Master caller: optional ?store_id= filter
+		if storeIDStr := strings.TrimSpace(c.Query("store_id")); storeIDStr != "" {
+			if parsedSID, err := strconv.ParseUint(storeIDStr, 10, 64); err == nil && parsedSID > 0 {
+				var userIDsInStore []uint
+				_ = h.db.Model(&models.UserStore{}).Where("store_id = ?", parsedSID).Pluck("user_id", &userIDsInStore).Error
+				if len(userIDsInStore) == 0 {
+					models.SendSuccess(c, http.StatusOK, []models.UserResponse{}, "Users retrieved successfully")
+					return
+				}
+				query = query.Where("id IN ?", userIDsInStore)
+			}
+		}
 	}
 
 	// Search filter
@@ -109,7 +172,12 @@ func (h *UserHandler) ListUsers(c *gin.Context) {
 	membershipMap := map[uint][]models.StoreResponse{}
 	if len(userIDs) > 0 {
 		var userStores []models.UserStore
-		if err := h.db.Where("user_id IN ?", userIDs).Find(&userStores).Error; err == nil {
+		usQuery := h.db.Where("user_id IN ?", userIDs)
+		if !callerRole.IsMaster() && len(callerOwnedStoreIDs) > 0 {
+			// For owner caller, only show stores owned by this owner
+			usQuery = usQuery.Where("store_id IN ?", callerOwnedStoreIDs)
+		}
+		if err := usQuery.Find(&userStores).Error; err == nil {
 			var storeIDs []uint
 			for _, us := range userStores {
 				storeIDs = append(storeIDs, us.StoreID)
@@ -187,9 +255,36 @@ func (h *UserHandler) GetUserByID(c *gin.Context) {
 	}
 
 	callerRole := h.callerRole(c)
-	if !callerRole.IsMaster() && user.Role.IsMaster() {
-		models.SendErrorCode(c, http.StatusForbidden, "AUTH_FORBIDDEN", "Access denied: cannot view master accounts")
-		return
+	callerID := h.callerID(c)
+	if !callerRole.IsMaster() {
+		if user.Role.IsMaster() {
+			models.SendErrorCode(c, http.StatusForbidden, "AUTH_FORBIDDEN", "Access denied: cannot view master accounts")
+			return
+		}
+		if user.ID != callerID {
+			if user.Role.IsOwner() {
+				models.SendErrorCode(c, http.StatusForbidden, "AUTH_FORBIDDEN", "Access denied: cannot view other owner accounts")
+				return
+			}
+			var ownedStoreIDs []uint
+			h.db.Model(&models.UserStore{}).Where("user_id = ? AND role = ?", callerID, models.StoreRoleStoreAdmin).Pluck("store_id", &ownedStoreIDs)
+			var targetStoreIDs []uint
+			h.db.Model(&models.UserStore{}).Where("user_id = ?", user.ID).Pluck("store_id", &targetStoreIDs)
+			if len(targetStoreIDs) == 0 {
+				models.SendErrorCode(c, http.StatusForbidden, "AUTH_FORBIDDEN", "Target staff member does not belong to your store scope")
+				return
+			}
+			ownedMap := make(map[uint]bool, len(ownedStoreIDs))
+			for _, sid := range ownedStoreIDs {
+				ownedMap[sid] = true
+			}
+			for _, sid := range targetStoreIDs {
+				if !ownedMap[sid] {
+					models.SendErrorCode(c, http.StatusForbidden, "AUTH_FORBIDDEN", "Access denied: staff belongs to other stores outside your ownership")
+					return
+				}
+			}
+		}
 	}
 
 	resp := models.UserResponse{
@@ -219,6 +314,7 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 	}
 
 	callerRole := h.callerRole(c)
+	callerID := h.callerID(c)
 	req.Username = strings.TrimSpace(req.Username)
 	if len(req.Username) < 3 || len(req.Username) > 50 {
 		models.SendErrorCode(c, http.StatusBadRequest, "VALIDATION_ERROR", "Username must be between 3 and 50 characters")
@@ -235,15 +331,43 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 		return
 	}
 
-	// Role permission check
+	// Role permission check and store scoping
 	if !callerRole.IsMaster() {
 		// Non-master (owner) can ONLY create staff accounts
-		if req.Role != models.RoleStaff {
-			models.SendErrorCode(c, http.StatusForbidden, "AUTH_FORBIDDEN", "Store owners can only create staff accounts")
+		req.Role = models.RoleStaff
+
+		var ownedStoreIDs []uint
+		if err := h.db.Model(&models.UserStore{}).
+			Where("user_id = ? AND role = ?", callerID, models.StoreRoleStoreAdmin).
+			Pluck("store_id", &ownedStoreIDs).Error; err != nil || len(ownedStoreIDs) == 0 {
+			models.SendErrorCode(c, http.StatusForbidden, "AUTH_FORBIDDEN", "Store owner does not manage any stores")
 			return
 		}
+
+		ownedMap := make(map[uint]bool, len(ownedStoreIDs))
+		for _, sid := range ownedStoreIDs {
+			ownedMap[sid] = true
+		}
+
+		if len(req.Memberships) > 0 {
+			for i := range req.Memberships {
+				if !ownedMap[req.Memberships[i].StoreID] {
+					models.SendErrorCode(c, http.StatusForbidden, "STORE_FORBIDDEN", "Cannot assign user to a store you do not own")
+					return
+				}
+				req.Memberships[i].Role = models.StoreRoleStaff
+			}
+		} else {
+			activeSID := middleware.GetStoreID(c)
+			if activeSID == 0 || !ownedMap[activeSID] {
+				activeSID = ownedStoreIDs[0]
+			}
+			req.Memberships = []models.UserMembership{
+				{StoreID: activeSID, Role: models.StoreRoleStaff, IsDefault: true},
+			}
+		}
 	} else {
-		// Validate role
+		// Validate role for master
 		if req.Role != models.RoleMaster && req.Role != models.RoleOwner && req.Role != models.RoleStaff &&
 			req.Role != models.RoleSuperAdmin && req.Role != models.RoleAdmin {
 			models.SendErrorCode(c, http.StatusBadRequest, "VALIDATION_ERROR", "Invalid role specified")
@@ -320,10 +444,14 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 			if isDef {
 				hasDefault = true
 			}
+			role := m.Role
+			if role == "" {
+				role = models.StoreRoleStaff
+			}
 			if err := tx.Create(&models.UserStore{
 				UserID:    newUser.ID,
 				StoreID:   m.StoreID,
-				Role:      m.Role,
+				Role:      role,
 				IsDefault: isDef,
 			}).Error; err != nil {
 				return err
@@ -471,7 +599,93 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 		}
 	}
 
-	if err := h.db.Save(&user).Error; err != nil {
+	err = h.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Save(&user).Error; err != nil {
+			return err
+		}
+
+		if req.Memberships != nil {
+			if !callerRole.IsMaster() {
+				// Verify all target stores are owned by caller
+				var ownedStoreIDs []uint
+				if err := tx.Model(&models.UserStore{}).Where("user_id = ? AND role = ?", callerID, models.StoreRoleStoreAdmin).Pluck("store_id", &ownedStoreIDs).Error; err != nil {
+					return err
+				}
+				ownedMap := make(map[uint]bool, len(ownedStoreIDs))
+				for _, sid := range ownedStoreIDs {
+					ownedMap[sid] = true
+				}
+				for _, m := range req.Memberships {
+					if !ownedMap[m.StoreID] {
+						return &services.StoreError{
+							Status:  http.StatusForbidden,
+							Code:    "STORE_FORBIDDEN",
+							Message: "Cannot assign user to a store you do not own",
+						}
+					}
+				}
+				// Remove existing memberships in caller's owned stores
+				if err := tx.Where("user_id = ? AND store_id IN ?", user.ID, ownedStoreIDs).Delete(&models.UserStore{}).Error; err != nil {
+					return err
+				}
+				// Insert new memberships (forced to staff role for owner caller)
+				hasDefault := false
+				for i, m := range req.Memberships {
+					isDef := m.IsDefault && !hasDefault
+					if i == 0 && !hasDefault {
+						isDef = true
+					}
+					if isDef {
+						hasDefault = true
+					}
+					if err := tx.Create(&models.UserStore{
+						UserID:    user.ID,
+						StoreID:   m.StoreID,
+						Role:      models.StoreRoleStaff,
+						IsDefault: isDef,
+					}).Error; err != nil {
+						return err
+					}
+				}
+			} else {
+				// Master caller: replace all memberships
+				if err := tx.Where("user_id = ?", user.ID).Delete(&models.UserStore{}).Error; err != nil {
+					return err
+				}
+				hasDefault := false
+				for i, m := range req.Memberships {
+					isDef := m.IsDefault && !hasDefault
+					if i == 0 && !hasDefault {
+						isDef = true
+					}
+					if isDef {
+						hasDefault = true
+					}
+					role := m.Role
+					if role == "" {
+						role = models.StoreRoleStaff
+					}
+					if err := tx.Create(&models.UserStore{
+						UserID:    user.ID,
+						StoreID:   m.StoreID,
+						Role:      role,
+						IsDefault: isDef,
+					}).Error; err != nil {
+						return err
+					}
+				}
+			}
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		var se *services.StoreError
+		if errors.As(err, &se) {
+			models.SendErrorCode(c, se.Status, se.Code, se.Message)
+			return
+		}
 		models.SendInternalErrorLogged(c, "Failed to update user", err)
 		return
 	}
@@ -480,6 +694,36 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 		"username": user.Username,
 		"role":     user.Role,
 	})
+
+	var userStores []models.UserStore
+	var updatedStores []models.StoreResponse
+	var defaultStoreID *uint
+	if err := h.db.Where("user_id = ?", user.ID).Find(&userStores).Error; err == nil && len(userStores) > 0 {
+		var storeIDs []uint
+		for _, us := range userStores {
+			storeIDs = append(storeIDs, us.StoreID)
+		}
+		var stores []models.Store
+		if err := h.db.Where("id IN ?", storeIDs).Find(&stores).Error; err == nil {
+			storeMap := make(map[uint]models.Store, len(stores))
+			for _, s := range stores {
+				storeMap[s.ID] = s
+			}
+			for _, us := range userStores {
+				if s, ok := storeMap[us.StoreID]; ok {
+					if us.IsDefault {
+						idCopy := us.StoreID
+						defaultStoreID = &idCopy
+					}
+					updatedStores = append(updatedStores, models.StoreResponse{
+						Store:     s,
+						Role:      us.Role,
+						IsDefault: us.IsDefault,
+					})
+				}
+			}
+		}
+	}
 
 	resp := models.UserResponse{
 		ID:                 user.ID,
@@ -492,6 +736,8 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 		HasPin:             user.PinCode != nil && *user.PinCode != "",
 		NeedsPasswordSetup: user.NeedsPasswordSetup,
 		LastLoginAt:        user.LastLoginAt,
+		Stores:             updatedStores,
+		DefaultStoreID:     defaultStoreID,
 		CreatedAt:          user.CreatedAt,
 		UpdatedAt:          user.UpdatedAt,
 	}

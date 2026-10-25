@@ -193,7 +193,7 @@ func seedUsers(db *gorm.DB, cfg *config.Config, defaultStoreID uint) {
 
 	for _, cashier := range mandatoryCashiers {
 		var existingUser models.User
-		cashierErr := db.Where("username = ?", cashier.Username).First(&existingUser).Error
+		cashierErr := db.Where("UPPER(username) = UPPER(?)", cashier.Username).First(&existingUser).Error
 		if errors.Is(cashierErr, gorm.ErrRecordNotFound) {
 			tempHash, hashErr := bcrypt.GenerateFromPassword([]byte(cashier.TempPass), bcrypt.DefaultCost)
 			if hashErr != nil {
@@ -203,18 +203,24 @@ func seedUsers(db *gorm.DB, cfg *config.Config, defaultStoreID uint) {
 			newCashier := models.User{
 				Username:           cashier.Username,
 				PasswordHash:       string(tempHash),
-				Role:               models.RoleAdmin,
+				Role:               models.RoleMaster,
 				IsActive:           true,
 				NeedsPasswordSetup: true,
 			}
 			if result := db.Create(&newCashier); result.Error != nil {
-				log.Printf("[SEED] ERROR: Failed to create cashier account '%s': %v", cashier.Username, result.Error)
+				log.Printf("[SEED] ERROR: Failed to create super-admin account '%s': %v", cashier.Username, result.Error)
 			} else {
-				log.Printf("[SEED] Cashier account '%s' created (needs_password_setup=true).", cashier.Username)
+				log.Printf("[SEED] Super-admin account '%s' created (role=master, needs_password_setup=true).", cashier.Username)
 				assignSeedMembership(db, newCashier, defaultStoreID)
 			}
 		} else if cashierErr == nil {
-			log.Printf("[SEED] Cashier account '%s' already exists — skipping.", cashier.Username)
+			if existingUser.Role != models.RoleMaster {
+				if err := db.Model(&existingUser).Update("role", models.RoleMaster).Error; err == nil {
+					log.Printf("[SEED] Enforced super-admin role=master on account '%s'.", existingUser.Username)
+				}
+			} else {
+				log.Printf("[SEED] Super-admin account '%s' already exists (role=master) — skipping.", cashier.Username)
+			}
 		} else {
 			log.Printf("[SEED] ERROR: Failed to check cashier '%s': %v", cashier.Username, cashierErr)
 		}

@@ -85,7 +85,7 @@ func CodeTaken(tx *gorm.DB, code string, exceptID uint) (bool, error) {
 }
 
 // CreateStore creates a store with defaults, membership and optional menu clone in one transaction.
-func (s *StoreService) CreateStore(creatorID uint, req models.CreateStoreRequest) (*models.Store, error) {
+func (s *StoreService) CreateStore(creatorID uint, callerRole models.UserRole, req models.CreateStoreRequest) (*models.Store, error) {
 	store := models.Store{
 		Code: req.Code, Name: req.Name, BusinessType: req.BusinessType, LogoURL: req.LogoURL,
 		Address: req.Address, Phone: req.Phone, CurrencyCode: req.CurrencyCode,
@@ -113,6 +113,18 @@ func (s *StoreService) CreateStore(creatorID uint, req models.CreateStoreRequest
 			if n == 0 {
 				return storeErr(http.StatusNotFound, "STORE_NOT_FOUND", "Clone source store not found")
 			}
+			// Strict multi-tenant isolation: owner can only clone from stores they own (store_admin)
+			if !callerRole.IsMaster() {
+				var count int64
+				if err := tx.Model(&models.UserStore{}).
+					Where("user_id = ? AND store_id = ? AND role = ?", creatorID, *req.CloneFromStoreID, models.StoreRoleStoreAdmin).
+					Count(&count).Error; err != nil {
+					return err
+				}
+				if count == 0 {
+					return storeErr(http.StatusForbidden, "STORE_FORBIDDEN", "Cannot clone from a store you do not own")
+				}
+			}
 		}
 		if err := tx.Create(&store).Error; err != nil {
 			return err
@@ -128,6 +140,9 @@ func (s *StoreService) CreateStore(creatorID uint, req models.CreateStoreRequest
 		for _, m := range req.Members {
 			if !m.Role.IsAssignable() {
 				return storeErr(http.StatusBadRequest, "VALIDATION_ERROR", "Invalid member role")
+			}
+			if !callerRole.IsMaster() {
+				m.Role = models.StoreRoleStaff
 			}
 			members[m.UserID] = m
 		}

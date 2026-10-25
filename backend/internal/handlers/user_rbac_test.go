@@ -110,6 +110,11 @@ func TestRequireOwnershipOrMaster(t *testing.T) {
 	}
 	db.Create(&staffUser)
 
+	db.Exec("DELETE FROM user_stores")
+	db.Create(&models.UserStore{UserID: ownerUser1.ID, StoreID: 1, Role: models.StoreRoleStoreAdmin, IsDefault: true})
+	db.Create(&models.UserStore{UserID: staffUser.ID, StoreID: 1, Role: models.StoreRoleStaff, IsDefault: true})
+	db.Create(&models.UserStore{UserID: ownerUser2.ID, StoreID: 2, Role: models.StoreRoleStoreAdmin, IsDefault: true})
+
 	setupRouter := func(callerID uint, callerRole models.UserRole) *gin.Engine {
 		r := gin.New()
 		r.Use(func(c *gin.Context) {
