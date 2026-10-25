@@ -1,0 +1,3 @@
+2026/10/25 20:27:26 Starting RabbitPOS Backend Server...
+2026/10/25 20:27:28 Successfully connected to PostgreSQL database
+2026/10/25 20:27:36 [MIGRATE] Skipping 000021_multi_store_contract (contract phase gated until ENABLE_MIGRATION_000021=true)
