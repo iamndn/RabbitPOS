@@ -171,8 +171,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                   />
                 </div>
               ) : (
-                <div className="p-1.5 sm:p-2 bg-white/10 rounded-xl flex items-center justify-center shrink-0">
-                  <Coffee className="w-4 h-4 sm:w-5 sm:h-5 text-purple-200" />
+                <div className="flex items-center justify-center shrink-0 bg-white/10 rounded-xl p-1">
+                  <img
+                    src="/icons/rabbitpos_logo.png"
+                    alt="RabbitPOS"
+                    className="h-6 sm:h-7 max-w-[80px] sm:max-w-[100px] object-contain drop-shadow-sm"
+                  />
                 </div>
               )}
               <div className="hidden lg:flex flex-col justify-center min-w-0 text-left">

@@ -201,7 +201,7 @@ export default function StoresPage() {
   };
 
   const handleSwitchToStore = (store: Store) => {
-    switchStore(store.id);
+    switchStore(store.id, store);
     toast.success(`Đã chuyển sang cửa hàng: ${store.name}`);
     router.push('/');
   };
@@ -236,7 +236,7 @@ export default function StoresPage() {
           const remaining = stores.filter((s) => s.id !== store.id);
           const fallback = remaining.find((s) => s.id === 1) || remaining[0];
           if (fallback) {
-            switchStore(fallback.id);
+            switchStore(fallback.id, fallback);
           }
         }
         await refreshStores();

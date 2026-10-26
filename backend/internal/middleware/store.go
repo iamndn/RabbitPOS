@@ -19,12 +19,10 @@ func RequireSuperAdmin() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		roleVal, exists := c.Get("user_role")
 		if !exists {
-			models.SendErrorCode(c, http.StatusUnauthorized, "AUTH_UNAUTHORIZED", "Authentication context missing")
-			c.Abort()
-			return
+			roleVal = c.GetString("role")
 		}
-		role, ok := roleVal.(models.UserRole)
-		if !ok || !role.IsSuperAdmin() {
+		role := models.ParseUserRole(roleVal)
+		if !role.IsSuperAdmin() {
 			models.SendErrorCode(c, http.StatusForbidden, "STORE_ROLE_INSUFFICIENT", "Super admin permission required")
 			c.Abort()
 			return
@@ -64,8 +62,11 @@ func StoreContext(db *gorm.DB, cCache *cache.TTLCache, requireHeader bool) gin.H
 		}
 		userID, _ := callerIDVal.(uint)
 
-		callerRoleVal, _ := c.Get("user_role")
-		userRole, _ := callerRoleVal.(models.UserRole)
+		callerRoleVal, exists := c.Get("user_role")
+		if !exists {
+			callerRoleVal = c.GetString("role")
+		}
+		userRole := models.ParseUserRole(callerRoleVal)
 		isSuperAdmin := userRole.IsSuperAdmin()
 
 		// 1. Resolve store ID

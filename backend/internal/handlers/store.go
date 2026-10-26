@@ -43,9 +43,15 @@ func (h *StoreHandler) callerID(c *gin.Context) uint {
 }
 
 func (h *StoreHandler) callerRole(c *gin.Context) models.UserRole {
-	v, _ := c.Get("user_role")
-	r, _ := v.(models.UserRole)
-	return r
+	if v, exists := c.Get("user_role"); exists {
+		if r := models.ParseUserRole(v); r != "" {
+			return r
+		}
+	}
+	if s := c.GetString("role"); s != "" {
+		return models.ParseUserRole(s)
+	}
+	return models.RoleStaff
 }
 
 func (h *StoreHandler) audit(c *gin.Context, action, resource string, id uint, meta map[string]interface{}) {

@@ -785,97 +785,160 @@ export default function SettingsPage() {
                     <div>
                       <label className="font-bold text-slate-800 text-sm flex items-center gap-2">
                         <Truck className="w-4 h-4 text-amber-600" />
-                        <span>{t('settings.sales_channel_commission')}</span>
+                        <span>{t('settings.sales_channel_commission') || 'Cài sẵn % Chiết khấu Kênh Bán Hàng / App Giao Đồ Ăn'}</span>
                       </label>
                       <p className="text-[11px] text-slate-500 mt-0.5">
                         {t('settings.sales_channel_commission_desc')}
                       </p>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
                       {/* ShopeeFood */}
-                      <div className="p-3.5 bg-orange-50/60 border border-orange-200/80 rounded-2xl space-y-2">
+                      <div className="p-3.5 bg-orange-50/70 border border-orange-200/90 rounded-2xl space-y-2.5 shadow-2xs">
                         <div className="flex items-center justify-between">
-                          <span className="font-bold text-xs text-orange-900 flex items-center gap-1.5">
-                            <span>🧡</span>
+                          <span className="font-bold text-xs text-orange-950 flex items-center gap-1.5">
+                            <span className="text-sm">🧡</span>
                             <span>ShopeeFood</span>
                           </span>
-                          <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-orange-200/70 text-orange-950">
+                          <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-orange-200/80 text-orange-950 border border-orange-300/60">
                             App
                           </span>
                         </div>
-                        <div className="flex items-center gap-1.5">
-                          <input
-                            type="number"
-                            min="0"
-                            max="100"
-                            step="0.1"
-                            value={form.commission_shopeefood_pct || '0'}
-                            onChange={(e) => handleChange('commission_shopeefood_pct', e.target.value)}
-                            className="w-full px-3 py-1.5 bg-white border border-orange-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                            placeholder="VD: 20"
-                          />
-                          <span className="font-bold text-xs text-orange-900">%</span>
+                        <div className="flex items-center gap-2">
+                          <div className="relative flex-1">
+                            <input
+                              type="number"
+                              min="0"
+                              max="100"
+                              step="0.5"
+                              value={form.commission_shopeefood_pct || '0'}
+                              onChange={(e) => handleChange('commission_shopeefood_pct', e.target.value)}
+                              className="w-full pl-3 pr-7 py-2 bg-white border border-orange-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-500 shadow-2xs"
+                              placeholder="VD: 20"
+                            />
+                            <span className="absolute right-2.5 top-1/2 -translate-y-1/2 font-bold text-xs text-orange-900 pointer-events-none">
+                              %
+                            </span>
+                          </div>
                         </div>
-                        <p className="text-[10px] text-orange-700/80">
+                        {/* Quick preset buttons */}
+                        <div className="flex items-center gap-1 pt-0.5">
+                          {['0', '15', '20', '25', '30'].map((pct) => (
+                            <button
+                              key={pct}
+                              type="button"
+                              onClick={() => handleChange('commission_shopeefood_pct', pct)}
+                              className={`flex-1 py-1 rounded-lg text-[10px] font-bold border transition active:scale-95 cursor-pointer ${
+                                form.commission_shopeefood_pct === pct
+                                  ? 'bg-orange-600 text-white border-orange-600 shadow-2xs'
+                                  : 'bg-white hover:bg-orange-100/60 text-orange-900 border-orange-200/80'
+                              }`}
+                            >
+                              {pct}%
+                            </button>
+                          ))}
+                        </div>
+                        <p className="text-[10px] text-orange-800/80 leading-relaxed">
                           Chiết khấu tự động trừ khi tạo đơn ShopeeFood
                         </p>
                       </div>
 
                       {/* GrabFood */}
-                      <div className="p-3.5 bg-emerald-50/60 border border-emerald-200/80 rounded-2xl space-y-2">
+                      <div className="p-3.5 bg-emerald-50/70 border border-emerald-200/90 rounded-2xl space-y-2.5 shadow-2xs">
                         <div className="flex items-center justify-between">
-                          <span className="font-bold text-xs text-emerald-900 flex items-center gap-1.5">
-                            <span>💚</span>
+                          <span className="font-bold text-xs text-emerald-950 flex items-center gap-1.5">
+                            <span className="text-sm">💚</span>
                             <span>GrabFood</span>
                           </span>
-                          <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-emerald-200/70 text-emerald-950">
+                          <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-emerald-200/80 text-emerald-950 border border-emerald-300/60">
                             App
                           </span>
                         </div>
-                        <div className="flex items-center gap-1.5">
-                          <input
-                            type="number"
-                            min="0"
-                            max="100"
-                            step="0.1"
-                            value={form.commission_grabfood_pct || '0'}
-                            onChange={(e) => handleChange('commission_grabfood_pct', e.target.value)}
-                            className="w-full px-3 py-1.5 bg-white border border-emerald-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                            placeholder="VD: 20"
-                          />
-                          <span className="font-bold text-xs text-emerald-900">%</span>
+                        <div className="flex items-center gap-2">
+                          <div className="relative flex-1">
+                            <input
+                              type="number"
+                              min="0"
+                              max="100"
+                              step="0.5"
+                              value={form.commission_grabfood_pct || '0'}
+                              onChange={(e) => handleChange('commission_grabfood_pct', e.target.value)}
+                              className="w-full pl-3 pr-7 py-2 bg-white border border-emerald-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-2xs"
+                              placeholder="VD: 20"
+                            />
+                            <span className="absolute right-2.5 top-1/2 -translate-y-1/2 font-bold text-xs text-emerald-900 pointer-events-none">
+                              %
+                            </span>
+                          </div>
                         </div>
-                        <p className="text-[10px] text-emerald-700/80">
+                        {/* Quick preset buttons */}
+                        <div className="flex items-center gap-1 pt-0.5">
+                          {['0', '15', '20', '25', '30'].map((pct) => (
+                            <button
+                              key={pct}
+                              type="button"
+                              onClick={() => handleChange('commission_grabfood_pct', pct)}
+                              className={`flex-1 py-1 rounded-lg text-[10px] font-bold border transition active:scale-95 cursor-pointer ${
+                                form.commission_grabfood_pct === pct
+                                  ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs'
+                                  : 'bg-white hover:bg-emerald-100/60 text-emerald-900 border-emerald-200/80'
+                              }`}
+                            >
+                              {pct}%
+                            </button>
+                          ))}
+                        </div>
+                        <p className="text-[10px] text-emerald-800/80 leading-relaxed">
                           Chiết khấu tự động trừ khi tạo đơn GrabFood
                         </p>
                       </div>
 
                       {/* BeFood */}
-                      <div className="p-3.5 bg-amber-50/60 border border-amber-200/80 rounded-2xl space-y-2">
+                      <div className="p-3.5 bg-amber-50/70 border border-amber-200/90 rounded-2xl space-y-2.5 shadow-2xs">
                         <div className="flex items-center justify-between">
-                          <span className="font-bold text-xs text-amber-900 flex items-center gap-1.5">
-                            <span>💛</span>
+                          <span className="font-bold text-xs text-amber-950 flex items-center gap-1.5">
+                            <span className="text-sm">💛</span>
                             <span>BeFood</span>
                           </span>
-                          <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-amber-200/70 text-amber-950">
+                          <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-amber-200/80 text-amber-950 border border-amber-300/60">
                             App
                           </span>
                         </div>
-                        <div className="flex items-center gap-1.5">
-                          <input
-                            type="number"
-                            min="0"
-                            max="100"
-                            step="0.1"
-                            value={form.commission_befood_pct || '0'}
-                            onChange={(e) => handleChange('commission_befood_pct', e.target.value)}
-                            className="w-full px-3 py-1.5 bg-white border border-amber-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500"
-                            placeholder="VD: 20"
-                          />
-                          <span className="font-bold text-xs text-amber-900">%</span>
+                        <div className="flex items-center gap-2">
+                          <div className="relative flex-1">
+                            <input
+                              type="number"
+                              min="0"
+                              max="100"
+                              step="0.5"
+                              value={form.commission_befood_pct || '0'}
+                              onChange={(e) => handleChange('commission_befood_pct', e.target.value)}
+                              className="w-full pl-3 pr-7 py-2 bg-white border border-amber-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500 shadow-2xs"
+                              placeholder="VD: 20"
+                            />
+                            <span className="absolute right-2.5 top-1/2 -translate-y-1/2 font-bold text-xs text-amber-900 pointer-events-none">
+                              %
+                            </span>
+                          </div>
                         </div>
-                        <p className="text-[10px] text-amber-700/80">
+                        {/* Quick preset buttons */}
+                        <div className="flex items-center gap-1 pt-0.5">
+                          {['0', '15', '20', '25', '30'].map((pct) => (
+                            <button
+                              key={pct}
+                              type="button"
+                              onClick={() => handleChange('commission_befood_pct', pct)}
+                              className={`flex-1 py-1 rounded-lg text-[10px] font-bold border transition active:scale-95 cursor-pointer ${
+                                form.commission_befood_pct === pct
+                                  ? 'bg-amber-600 text-white border-amber-600 shadow-2xs'
+                                  : 'bg-white hover:bg-amber-100/60 text-amber-900 border-amber-200/80'
+                              }`}
+                            >
+                              {pct}%
+                            </button>
+                          ))}
+                        </div>
+                        <p className="text-[10px] text-amber-800/80 leading-relaxed">
                           Chiết khấu tự động trừ khi tạo đơn BeFood
                         </p>
                       </div>

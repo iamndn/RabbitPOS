@@ -1,6 +1,7 @@
 package models
 
 import (
+	"strings"
 	"time"
 )
 
@@ -17,14 +18,28 @@ const (
 	RoleAdmin      UserRole = "admin"       // legacy alias for master
 )
 
+// ParseUserRole safely extracts a UserRole from any interface (UserRole or string)
+func ParseUserRole(val interface{}) UserRole {
+	if val == nil {
+		return ""
+	}
+	if r, ok := val.(UserRole); ok {
+		return r
+	}
+	if s, ok := val.(string); ok {
+		return UserRole(strings.ToLower(strings.TrimSpace(s)))
+	}
+	return ""
+}
+
 // Rank returns numerical privilege level: master (3) > owner (2) > staff (1)
 func (r UserRole) Rank() int {
-	switch r {
-	case RoleMaster, RoleSuperAdmin, RoleAdmin:
+	switch strings.ToLower(strings.TrimSpace(string(r))) {
+	case "master", "super_admin", "super-admin", "superadmin", "admin":
 		return 3
-	case RoleOwner, "store_admin":
+	case "owner", "store_admin":
 		return 2
-	case RoleStaff, "cashier":
+	case "staff", "cashier":
 		return 1
 	default:
 		return 0

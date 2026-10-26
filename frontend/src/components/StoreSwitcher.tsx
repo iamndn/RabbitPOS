@@ -92,7 +92,7 @@ export default function StoreSwitcher() {
       setIsOpen(false);
       return;
     }
-    switchStore(store.id);
+    switchStore(store.id, store);
     setIsOpen(false);
   };
 

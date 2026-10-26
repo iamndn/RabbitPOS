@@ -95,13 +95,10 @@ func RequireRole(allowedRoles ...models.UserRole) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		roleVal, exists := c.Get("user_role")
 		if !exists {
-			models.SendErrorCode(c, http.StatusUnauthorized, "AUTH_UNAUTHORIZED", "Authentication context missing")
-			c.Abort()
-			return
+			roleVal = c.GetString("role")
 		}
-
-		userRole, ok := roleVal.(models.UserRole)
-		if !ok {
+		userRole := models.ParseUserRole(roleVal)
+		if userRole == "" {
 			models.SendErrorCode(c, http.StatusForbidden, "AUTH_FORBIDDEN_ROLE", "Invalid role context")
 			c.Abort()
 			return

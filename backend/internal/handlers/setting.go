@@ -87,6 +87,10 @@ func (h *SettingHandler) GetStoreSettings(c *gin.Context) {
 	h.db.Find(&globalSettings)
 	for _, s := range globalSettings {
 		if models.StoreSettingsKeys[s.Key] {
+			// Do not fall back store-specific identity keys to store 1
+			if storeID != 1 && (s.Key == "store_name" || s.Key == "store_address" || s.Key == "store_phone" || s.Key == "store_logo_url" || strings.HasPrefix(s.Key, "vietqr_")) {
+				continue
+			}
 			if _, exists := storeMap[s.Key]; !exists || storeMap[s.Key] == "" {
 				storeMap[s.Key] = s.Value
 			}
@@ -129,6 +133,10 @@ func (h *SettingHandler) GetSettings(c *gin.Context) {
 		return
 	}
 	for _, s := range globalSettings {
+		// Do not inherit store 1 specific identity fields when viewing another store
+		if storeID != 1 && (s.Key == "store_name" || s.Key == "store_address" || s.Key == "store_phone" || s.Key == "store_logo_url" || strings.HasPrefix(s.Key, "vietqr_")) {
+			continue
+		}
 		val := s.Value
 		if models.SensitiveSettingKeys[s.Key] {
 			hasValue := strings.TrimSpace(val) != ""
@@ -156,33 +164,19 @@ func (h *SettingHandler) GetSettings(c *gin.Context) {
 	// 3. Overlay store identity columns
 	var store models.Store
 	if err := h.db.First(&store, storeID).Error; err == nil {
-		if store.Name != "" {
-			settingsMap["store_name"] = store.Name
-		}
-		if store.Address != "" {
-			settingsMap["store_address"] = store.Address
-		}
-		if store.Phone != "" {
-			settingsMap["store_phone"] = store.Phone
-		}
-		if store.LogoURL != "" {
-			settingsMap["store_logo_url"] = store.LogoURL
-		}
+		settingsMap["store_name"] = store.Name
+		settingsMap["store_address"] = store.Address
+		settingsMap["store_phone"] = store.Phone
+		settingsMap["store_logo_url"] = store.LogoURL
 		if store.CurrencyCode != "" {
 			settingsMap["currency"] = store.CurrencyCode
 		}
 		if store.CurrencySymbol != "" {
 			settingsMap["currency_symbol"] = store.CurrencySymbol
 		}
-		if store.VietQRBankID != "" {
-			settingsMap["vietqr_bank_id"] = store.VietQRBankID
-		}
-		if store.VietQRAccountNo != "" {
-			settingsMap["vietqr_account_no"] = store.VietQRAccountNo
-		}
-		if store.VietQRAccountName != "" {
-			settingsMap["vietqr_account_name"] = store.VietQRAccountName
-		}
+		settingsMap["vietqr_bank_id"] = store.VietQRBankID
+		settingsMap["vietqr_account_no"] = store.VietQRAccountNo
+		settingsMap["vietqr_account_name"] = store.VietQRAccountName
 		if store.Timezone != "" {
 			settingsMap["timezone"] = store.Timezone
 		}

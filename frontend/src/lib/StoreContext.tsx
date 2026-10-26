@@ -10,7 +10,7 @@ import { clientCache } from './cache';
 export interface StoreContextValue {
   activeStore: Store | null;
   storesList: Store[];
-  switchStore: (storeId: number) => void;
+  switchStore: (storeId: number, fallbackStore?: Store) => void;
   refreshStores: () => Promise<void>;
   isSuperAdmin: boolean;
   storeRole: StoreRole;
@@ -50,10 +50,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
         let target: Store | null = null;
         if (savedId) {
-          target = stores.find((s) => s.id === savedId && s.is_active) || null;
+          target = stores.find((s) => s.id === savedId && (s.is_active || superAdminFlag)) || null;
         }
         if (!target && defaultId) {
-          target = stores.find((s) => s.id === defaultId && s.is_active) || null;
+          target = stores.find((s) => s.id === defaultId && (s.is_active || superAdminFlag)) || null;
         }
         if (!target && stores.length > 0) {
           target = stores.find((s) => s.is_active) || stores[0];
@@ -80,15 +80,35 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [superAdminFlag]);
 
   const switchStore = useCallback(
-    (storeId: number) => {
-      const target = storesList.find((s) => s.id === storeId);
+    async (storeId: number, fallbackStore?: Store) => {
+      let target = storesList.find((s) => s.id === storeId) || fallbackStore || null;
+      if (!target) {
+        try {
+          const res = await fetchApi<Store[]>('/stores', { skipCache: true });
+          if (res.status === 'success' && Array.isArray(res.data)) {
+            setStoresList(res.data);
+            target = res.data.find((s) => s.id === storeId) || null;
+          }
+        } catch (e) {
+          console.error('[StoreContext] Failed to fetch latest stores on switch:', e);
+        }
+      }
+
       if (!target) {
         console.warn(`[StoreContext] Cannot switch to store ID ${storeId}: not found in accessible stores`);
         return;
       }
+
+      // If target was a fallback not yet in storesList, include it
+      setStoresList((prev) => {
+        if (!prev.some((s) => s.id === target!.id)) {
+          return [...prev, target!];
+        }
+        return prev;
+      });
 
       // 1. Persist active store ID for synchronous reads
       setActiveStoreId(target.id);

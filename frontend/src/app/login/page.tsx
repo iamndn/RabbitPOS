@@ -222,7 +222,11 @@ export default function LoginPage() {
                 }}
               />
             ) : (
-              <Coffee className="w-8 h-8 text-purple-600" />
+              <img
+                src="/icons/rabbitpos_logo.png"
+                alt="RabbitPOS Logo"
+                className="h-10 max-w-[140px] object-contain"
+              />
             )}
           </div>
           <h1 className="text-2xl font-black text-slate-900 tracking-tight">RabbitPOS</h1>

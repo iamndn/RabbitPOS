@@ -42,9 +42,12 @@ func (h *UserHandler) callerID(c *gin.Context) uint {
 // callerRole gets current user role from gin context
 func (h *UserHandler) callerRole(c *gin.Context) models.UserRole {
 	if val, ok := c.Get("user_role"); ok {
-		if r, ok := val.(models.UserRole); ok {
+		if r := models.ParseUserRole(val); r != "" {
 			return r
 		}
+	}
+	if s := c.GetString("role"); s != "" {
+		return models.ParseUserRole(s)
 	}
 	return models.RoleStaff
 }

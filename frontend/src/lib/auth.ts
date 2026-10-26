@@ -1,7 +1,7 @@
 import { StoreMembership } from '@/types/store';
 import { clearActiveStoreId } from './store';
 
-export type UserRole = 'master' | 'owner' | 'staff' | 'admin' | 'super_admin';
+export type UserRole = 'master' | 'owner' | 'staff' | 'admin' | 'super_admin' | 'super-admin';
 
 export interface UserInfo {
   id: number;
@@ -52,15 +52,21 @@ export function isAuthenticated(): boolean {
 }
 
 export function isMasterRole(role?: string): boolean {
-  return role === 'master' || role === 'super_admin' || role === 'admin';
+  if (!role) return false;
+  const norm = role.toLowerCase().trim();
+  return norm === 'master' || norm === 'super_admin' || norm === 'super-admin' || norm === 'superadmin' || norm === 'admin';
 }
 
 export function isOwnerRole(role?: string): boolean {
-  return role === 'owner' || role === 'store_admin';
+  if (!role) return false;
+  const norm = role.toLowerCase().trim();
+  return norm === 'owner' || norm === 'store_admin' || norm === 'store-admin';
 }
 
 export function isStaffRole(role?: string): boolean {
-  return role === 'staff' || role === 'cashier';
+  if (!role) return false;
+  const norm = role.toLowerCase().trim();
+  return norm === 'staff' || norm === 'cashier';
 }
 
 export function isAdmin(): boolean {

@@ -222,26 +222,27 @@ export default function CartDrawer({
     }
   }, [selectedPromotion, checkEligibility, onSelectPromotion]);
 
+  // Helper to get configured preset commission % for a delivery channel
+  const getChannelDefaultPct = (channelId?: string): number => {
+    if (channelId === 'shopeefood') return parseFloat(settings?.commission_shopeefood_pct || '0');
+    if (channelId === 'grabfood') return parseFloat(settings?.commission_grabfood_pct || '0');
+    if (channelId === 'befood') return parseFloat(settings?.commission_befood_pct || '0');
+    return 0;
+  };
+
   // Handle Sales Channel Change & Auto Commission
   const handleSelectChannel = (channelId: string) => {
     onSalesChannelChange?.(channelId);
 
     // If delivery app channel, auto-calculate commission based on configured settings
-    let defaultPct = 0;
-    if (channelId === 'shopeefood') {
-      defaultPct = parseFloat(settings?.commission_shopeefood_pct || '0');
-    } else if (channelId === 'grabfood') {
-      defaultPct = parseFloat(settings?.commission_grabfood_pct || '0');
-    } else if (channelId === 'befood') {
-      defaultPct = parseFloat(settings?.commission_befood_pct || '0');
-    }
+    const defaultPct = getChannelDefaultPct(channelId);
 
     if (defaultPct > 0) {
       onPlatformCommissionPercentChange?.(defaultPct);
       const feeDiscount = Math.round((subtotal * defaultPct) / 100);
       onPlatformFeeDiscountChange(feeDiscount);
     } else {
-      // Dine-in or Takeaway: reset commission discount
+      // Dine-in, Takeaway, or unconfigured delivery: reset commission discount
       onPlatformCommissionPercentChange?.(0);
       onPlatformFeeDiscountChange(0);
     }
@@ -256,10 +257,7 @@ export default function CartDrawer({
       setIsEditingCommission(false);
     } else {
       // Re-apply configured pct
-      let defaultPct = 0;
-      if (salesChannel === 'shopeefood') defaultPct = parseFloat(settings?.commission_shopeefood_pct || '0');
-      else if (salesChannel === 'grabfood') defaultPct = parseFloat(settings?.commission_grabfood_pct || '0');
-      else if (salesChannel === 'befood') defaultPct = parseFloat(settings?.commission_befood_pct || '0');
+      let defaultPct = getChannelDefaultPct(salesChannel);
       if (defaultPct <= 0) defaultPct = 20; // fallback standard 20%
       onPlatformCommissionPercentChange?.(defaultPct);
       onPlatformFeeDiscountChange(Math.round((subtotal * defaultPct) / 100));
@@ -382,24 +380,42 @@ export default function CartDrawer({
           </button>
         </div>
 
-        {/* 1. SALES CHANNEL SEGMENTED BAR (Requirement 2) */}
+        {/* 1. SALES CHANNEL SEGMENTED BAR */}
         <div className="px-3 py-2 bg-slate-100/90 border-b border-slate-200/80 shrink-0">
-          <div className="flex items-center justify-between gap-1 overflow-x-auto no-scrollbar py-0.5">
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar scroll-smooth py-0.5 touch-pan-x -mx-1 px-1">
             {SALES_CHANNELS.map((ch) => {
               const isSelected = salesChannel === ch.id;
+              const presetPct = getChannelDefaultPct(ch.id);
               return (
                 <button
                   key={ch.id}
                   type="button"
                   onClick={() => handleSelectChannel(ch.id)}
-                  className={`flex-1 min-w-[70px] py-1.5 px-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer whitespace-nowrap active:scale-95 ${
-                    isSelected
-                      ? ch.activeClass
-                      : 'bg-white hover:bg-slate-50 text-slate-600 border border-slate-200/60'
-                  }`}
+                  className={`shrink-0 py-1.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap active:scale-95 select-none ${isSelected
+                      ? `${ch.activeClass} shadow-xs ring-2 ring-offset-1 ${ch.id === 'shopeefood'
+                        ? 'ring-orange-400'
+                        : ch.id === 'grabfood'
+                          ? 'ring-emerald-400'
+                          : ch.id === 'befood'
+                            ? 'ring-amber-400'
+                            : 'ring-purple-400'
+                      }`
+                      : 'bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/80 shadow-2xs hover:border-slate-300'
+                    }`}
                 >
-                  <span className="text-xs">{ch.icon}</span>
-                  <span className="text-[11px] font-extrabold">{ch.label}</span>
+                  <span className="text-xs leading-none">{ch.icon}</span>
+                  <span className="text-[11px] font-extrabold tracking-tight">{ch.label}</span>
+                  {presetPct > 0 && (
+                    <span
+                      className={`text-[10px] font-black px-1.5 py-0.5 rounded-md leading-none ${isSelected
+                          ? 'bg-black/20 text-white'
+                          : 'bg-amber-100 text-amber-900 border border-amber-200'
+                        }`}
+                      title={`Cài sẵn chiết khấu ${presetPct}%`}
+                    >
+                      -{presetPct}%
+                    </span>
+                  )}
                 </button>
               );
             })}
@@ -407,70 +423,104 @@ export default function CartDrawer({
 
           {/* Auto-Commission Badge & 1-Tap Toggle/Override (If delivery channel) */}
           {isDeliveryAppChannel && (
-            <div className="mt-1.5 pt-1.5 border-t border-slate-200/60 flex items-center justify-between gap-2 text-xs">
-              <div className="flex items-center gap-1.5 min-w-0">
-                <span className="text-[11px] font-bold text-slate-600 shrink-0">Chiết khấu sàn:</span>
-                {platformFeeDiscount > 0 ? (
-                  <button
-                    type="button"
-                    onClick={handleToggleAutoCommission}
-                    title="Bấm để bật/tắt chiết khấu sàn"
-                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 font-extrabold text-[11px] transition active:scale-95 cursor-pointer truncate"
-                  >
-                    <span>✓ -{platformCommissionPercent}% (-{formatCurrency(platformFeeDiscount, settings)})</span>
-                    <span className="text-amber-700 hover:text-amber-950 font-bold ml-0.5">✕</span>
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={handleToggleAutoCommission}
-                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-[11px] transition active:scale-95 cursor-pointer"
-                  >
-                    <span>+ Áp dụng % sàn</span>
-                  </button>
-                )}
+            <div className="mt-2 p-2 rounded-xl bg-white/95 border border-amber-200/80 shadow-2xs space-y-1.5 animate-in fade-in duration-150">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                  <span className="text-[10px] uppercase font-black tracking-wider text-amber-900 bg-amber-100/90 border border-amber-200 px-1.5 py-0.5 rounded-md shrink-0">
+                    Chiết khấu sàn
+                  </span>
+                  {platformFeeDiscount > 0 ? (
+                    <button
+                      type="button"
+                      onClick={handleToggleAutoCommission}
+                      title="Bấm để bật/tắt chiết khấu sàn"
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-950 border border-amber-300 font-extrabold text-[11px] transition active:scale-95 cursor-pointer min-w-0 max-w-[210px] sm:max-w-none"
+                    >
+                      <span className="truncate">
+                        ✓ -{platformCommissionPercent}% (-{formatCurrency(platformFeeDiscount, settings)})
+                      </span>
+                      <span className="text-amber-700 hover:text-amber-950 font-bold ml-0.5 shrink-0">✕</span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleToggleAutoCommission}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 font-bold text-[11px] transition active:scale-95 cursor-pointer shrink-0"
+                    >
+                      <span>+ Áp dụng % sàn</span>
+                    </button>
+                  )}
+                </div>
+
+                <div className="shrink-0">
+                  {!isEditingCommission ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCustomCommissionInput(
+                          platformCommissionPercent > 0 ? platformCommissionPercent.toString() : ''
+                        );
+                        setIsEditingCommission(true);
+                      }}
+                      className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-[10px] font-extrabold cursor-pointer transition active:scale-95 whitespace-nowrap"
+                    >
+                      <span>Sửa %</span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingCommission(false)}
+                      className="p-1 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 text-xs font-bold"
+                      title="Đóng sửa chiết khấu"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
               </div>
 
-              {/* Inline Custom Override Button */}
-              <div>
-                {!isEditingCommission ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCustomCommissionInput(platformCommissionPercent > 0 ? platformCommissionPercent.toString() : '');
-                      setIsEditingCommission(true);
-                    }}
-                    className="text-[10px] font-bold text-indigo-600 hover:text-indigo-800 hover:underline cursor-pointer whitespace-nowrap"
-                  >
-                    Sửa %
-                  </button>
-                ) : (
-                  <div className="flex items-center gap-1">
+              {/* Inline Custom Override Expandable Panel */}
+              {isEditingCommission && (
+                <div className="pt-1.5 border-t border-slate-100 flex flex-wrap items-center gap-1.5 animate-in fade-in duration-150">
+                  <div className="flex items-center gap-1 flex-1 min-w-[120px]">
                     <input
                       type="number"
-                      step="1"
+                      step="0.5"
+                      min="0"
+                      max="100"
                       placeholder="% hoặc đ"
                       value={customCommissionInput}
                       onChange={(e) => setCustomCommissionInput(e.target.value)}
-                      className="w-16 px-1.5 py-0.5 text-[11px] font-bold border border-indigo-300 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      className="w-full px-2 py-1 text-xs font-bold border border-indigo-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+                      autoFocus
                     />
                     <button
                       type="button"
                       onClick={handleCustomCommissionApply}
-                      className="px-1.5 py-0.5 rounded-lg bg-indigo-600 text-white text-[10px] font-bold hover:bg-indigo-700"
+                      className="px-2.5 py-1 rounded-lg bg-indigo-600 text-white text-[11px] font-extrabold hover:bg-indigo-700 active:scale-95 shrink-0"
                     >
                       Lưu
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => setIsEditingCommission(false)}
-                      className="p-0.5 text-slate-400 hover:text-slate-600"
-                    >
-                      ✕
-                    </button>
                   </div>
-                )}
-              </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    {[15, 20, 25].map((quickPct) => (
+                      <button
+                        key={quickPct}
+                        type="button"
+                        onClick={() => {
+                          setCustomCommissionInput(quickPct.toString());
+                          onPlatformCommissionPercentChange?.(quickPct);
+                          onPlatformFeeDiscountChange(Math.round((subtotal * quickPct) / 100));
+                          setIsEditingCommission(false);
+                        }}
+                        className="px-1.5 py-0.5 rounded-md bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 border border-slate-200 text-[10px] font-bold text-slate-700 active:scale-95"
+                      >
+                        {quickPct}%
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -659,16 +709,15 @@ export default function CartDrawer({
               <button
                 type="button"
                 onClick={() => setActiveTab(activeTab === 'note' ? 'none' : 'note')}
-                className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer whitespace-nowrap active:scale-95 ${
-                  orderNote
+                className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer whitespace-nowrap active:scale-95 ${orderNote
                     ? 'bg-purple-50 text-purple-800 border border-purple-300 ring-1 ring-purple-200'
                     : activeTab === 'note'
-                    ? 'bg-slate-800 text-white'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200/60'
-                }`}
+                      ? 'bg-slate-800 text-white'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200/60'
+                  }`}
               >
                 <FileText className="w-3.5 h-3.5 text-purple-600" />
-                <span>{orderNote ? `Ghi chú: ${orderNote.slice(0, 10)}...` : '+ Ghi chú'}</span>
+                <span>{orderNote ? `Ghi chú: ${orderNote.slice(0, 10)}...` : ''}</span>
                 {orderNote && (
                   <span
                     onClick={(e) => {
@@ -686,21 +735,20 @@ export default function CartDrawer({
               <button
                 type="button"
                 onClick={() => setActiveTab(activeTab === 'promo' ? 'none' : 'promo')}
-                className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer whitespace-nowrap active:scale-95 ${
-                  selectedPromotion
+                className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer whitespace-nowrap active:scale-95 ${selectedPromotion
                     ? 'bg-purple-100 text-purple-900 border border-purple-300 ring-1 ring-purple-200'
                     : activeTab === 'promo'
-                    ? 'bg-slate-800 text-white'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200/60'
-                }`}
+                      ? 'bg-slate-800 text-white'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200/60'
+                  }`}
               >
                 <Tag className="w-3.5 h-3.5 text-purple-600" />
                 <span>
                   {selectedPromotion
                     ? `🎟️ -${formatCurrency(promotionDiscount, settings)}`
                     : eligiblePromotions.length > 0
-                    ? `🎟️ + Khuyến mãi (${eligiblePromotions.length})`
-                    : '+ Khuyến mãi'}
+                      ? `🎟️ + Khuyến mãi (${eligiblePromotions.length})`
+                      : '+ Khuyến mãi'}
                 </span>
                 {selectedPromotion && (
                   <span
@@ -719,23 +767,22 @@ export default function CartDrawer({
               <button
                 type="button"
                 onClick={() => setActiveTab(activeTab === 'fees' ? 'none' : 'fees')}
-                className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer whitespace-nowrap active:scale-95 ${
-                  platformFeeDiscount > 0 || shippingFee > 0 || discountAmount > 0
+                className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer whitespace-nowrap active:scale-95 ${platformFeeDiscount > 0 || shippingFee > 0 || discountAmount > 0
                     ? 'bg-amber-50 text-amber-900 border border-amber-300 ring-1 ring-amber-200'
                     : activeTab === 'fees'
-                    ? 'bg-slate-800 text-white'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200/60'
-                }`}
+                      ? 'bg-slate-800 text-white'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200/60'
+                  }`}
               >
                 <Truck className="w-3.5 h-3.5 text-amber-600" />
                 <span>
                   {platformFeeDiscount > 0
                     ? `Sàn: -${formatCurrency(platformFeeDiscount, settings)}`
                     : shippingFee > 0
-                    ? `Ship: +${formatCurrency(shippingFee, settings)}`
-                    : discountAmount > 0
-                    ? `Giảm: -${formatCurrency(discountAmount, settings)}`
-                    : '+ Phí sàn / Ship'}
+                      ? `Ship: +${formatCurrency(shippingFee, settings)}`
+                      : discountAmount > 0
+                        ? `Giảm: -${formatCurrency(discountAmount, settings)}`
+                        : '+ Phí sàn / Ship'}
                 </span>
                 {(platformFeeDiscount > 0 || shippingFee > 0 || discountAmount > 0) && (
                   <span
@@ -756,13 +803,12 @@ export default function CartDrawer({
               <button
                 type="button"
                 onClick={() => setActiveTab(activeTab === 'surcharge' ? 'none' : 'surcharge')}
-                className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer whitespace-nowrap active:scale-95 ${
-                  surcharge > 0
+                className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer whitespace-nowrap active:scale-95 ${surcharge > 0
                     ? 'bg-violet-50 text-violet-900 border border-violet-300 ring-1 ring-violet-200'
                     : activeTab === 'surcharge'
-                    ? 'bg-slate-800 text-white'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200/60'
-                }`}
+                      ? 'bg-slate-800 text-white'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200/60'
+                  }`}
               >
                 <Plus className="w-3.5 h-3.5 text-violet-600" />
                 <span>{surcharge > 0 ? `Phụ thu: +${formatCurrency(surcharge, settings)}` : '+ Phụ thu'}</span>
@@ -784,13 +830,12 @@ export default function CartDrawer({
                 <button
                   type="button"
                   onClick={() => setActiveTab(activeTab === 'time' ? 'none' : 'time')}
-                  className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer whitespace-nowrap active:scale-95 ${
-                    orderCreatedAt
+                  className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer whitespace-nowrap active:scale-95 ${orderCreatedAt
                       ? 'bg-indigo-50 text-indigo-900 border border-indigo-300 ring-1 ring-indigo-200'
                       : activeTab === 'time'
-                      ? 'bg-slate-800 text-white'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200/60'
-                  }`}
+                        ? 'bg-slate-800 text-white'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200/60'
+                    }`}
                 >
                   <Clock className="w-3.5 h-3.5 text-indigo-600" />
                   <span>{orderCreatedAt ? '🕒 Quá khứ' : '+ Giờ tạo'}</span>
@@ -863,9 +908,8 @@ export default function CartDrawer({
                     return (
                       <div
                         key={promo.id}
-                        className={`p-2 rounded-xl border flex items-center justify-between gap-2 ${
-                          isSelected ? 'bg-purple-100 border-purple-300' : 'bg-white border-slate-200'
-                        }`}
+                        className={`p-2 rounded-xl border flex items-center justify-between gap-2 ${isSelected ? 'bg-purple-100 border-purple-300' : 'bg-white border-slate-200'
+                          }`}
                       >
                         <div className="min-w-0">
                           <p className="font-bold text-slate-900 text-xs truncate">{promo.name}</p>
@@ -873,16 +917,15 @@ export default function CartDrawer({
                             {promo.promo_type === 'discount_percent'
                               ? `Giảm -${promo.discount_value}%`
                               : promo.promo_type === 'discount_amount'
-                              ? `Giảm -${formatCurrency(promo.discount_value, settings)}`
-                              : '🎁 Tặng món'}
+                                ? `Giảm -${formatCurrency(promo.discount_value, settings)}`
+                                : '🎁 Tặng món'}
                           </p>
                         </div>
                         <button
                           type="button"
                           onClick={() => handleApplyPromo(promo)}
-                          className={`px-2.5 py-1 rounded-lg text-xs font-bold transition active:scale-95 ${
-                            isSelected ? 'bg-purple-700 text-white' : 'bg-slate-900 text-white'
-                          }`}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-bold transition active:scale-95 ${isSelected ? 'bg-purple-700 text-white' : 'bg-slate-900 text-white'
+                            }`}
                         >
                           {isSelected ? 'Đã chọn' : 'Áp dụng'}
                         </button>
@@ -985,15 +1028,15 @@ export default function CartDrawer({
                   value={
                     orderCreatedAt
                       ? (() => {
-                          try {
-                            const d = new Date(orderCreatedAt);
-                            if (isNaN(d.getTime())) return '';
-                            const pad = (n: number) => n.toString().padStart(2, '0');
-                            return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-                          } catch {
-                            return '';
-                          }
-                        })()
+                        try {
+                          const d = new Date(orderCreatedAt);
+                          if (isNaN(d.getTime())) return '';
+                          const pad = (n: number) => n.toString().padStart(2, '0');
+                          return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+                        } catch {
+                          return '';
+                        }
+                      })()
                       : ''
                   }
                   onChange={(e) => {
