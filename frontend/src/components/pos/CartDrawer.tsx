@@ -392,15 +392,15 @@ export default function CartDrawer({
                   type="button"
                   onClick={() => handleSelectChannel(ch.id)}
                   className={`shrink-0 py-1.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap active:scale-95 select-none ${isSelected
-                      ? `${ch.activeClass} shadow-xs ring-2 ring-offset-1 ${ch.id === 'shopeefood'
-                        ? 'ring-orange-400'
-                        : ch.id === 'grabfood'
-                          ? 'ring-emerald-400'
-                          : ch.id === 'befood'
-                            ? 'ring-amber-400'
-                            : 'ring-purple-400'
-                      }`
-                      : 'bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/80 shadow-2xs hover:border-slate-300'
+                    ? `${ch.activeClass} shadow-xs ring-2 ring-offset-1 ${ch.id === 'shopeefood'
+                      ? 'ring-orange-400'
+                      : ch.id === 'grabfood'
+                        ? 'ring-emerald-400'
+                        : ch.id === 'befood'
+                          ? 'ring-amber-400'
+                          : 'ring-purple-400'
+                    }`
+                    : 'bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/80 shadow-2xs hover:border-slate-300'
                     }`}
                 >
                   <span className="text-xs leading-none">{ch.icon}</span>
@@ -408,8 +408,8 @@ export default function CartDrawer({
                   {presetPct > 0 && (
                     <span
                       className={`text-[10px] font-black px-1.5 py-0.5 rounded-md leading-none ${isSelected
-                          ? 'bg-black/20 text-white'
-                          : 'bg-amber-100 text-amber-900 border border-amber-200'
+                        ? 'bg-black/20 text-white'
+                        : 'bg-amber-100 text-amber-900 border border-amber-200'
                         }`}
                       title={`Cài sẵn chiết khấu ${presetPct}%`}
                     >
@@ -710,14 +710,14 @@ export default function CartDrawer({
                 type="button"
                 onClick={() => setActiveTab(activeTab === 'note' ? 'none' : 'note')}
                 className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer whitespace-nowrap active:scale-95 ${orderNote
-                    ? 'bg-purple-50 text-purple-800 border border-purple-300 ring-1 ring-purple-200'
-                    : activeTab === 'note'
-                      ? 'bg-slate-800 text-white'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200/60'
+                  ? 'bg-purple-50 text-purple-800 border border-purple-300 ring-1 ring-purple-200'
+                  : activeTab === 'note'
+                    ? 'bg-slate-800 text-white'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200/60'
                   }`}
               >
                 <FileText className="w-3.5 h-3.5 text-purple-600" />
-                <span>{orderNote ? `Ghi chú: ${orderNote.slice(0, 10)}...` : ''}</span>
+                <span>{orderNote ? `Ghi chú: ${orderNote.slice(0, 10)}...` : 'Ghi Chú'}</span>
                 {orderNote && (
                   <span
                     onClick={(e) => {
@@ -736,10 +736,10 @@ export default function CartDrawer({
                 type="button"
                 onClick={() => setActiveTab(activeTab === 'promo' ? 'none' : 'promo')}
                 className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer whitespace-nowrap active:scale-95 ${selectedPromotion
-                    ? 'bg-purple-100 text-purple-900 border border-purple-300 ring-1 ring-purple-200'
-                    : activeTab === 'promo'
-                      ? 'bg-slate-800 text-white'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200/60'
+                  ? 'bg-purple-100 text-purple-900 border border-purple-300 ring-1 ring-purple-200'
+                  : activeTab === 'promo'
+                    ? 'bg-slate-800 text-white'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200/60'
                   }`}
               >
                 <Tag className="w-3.5 h-3.5 text-purple-600" />
@@ -747,8 +747,8 @@ export default function CartDrawer({
                   {selectedPromotion
                     ? `🎟️ -${formatCurrency(promotionDiscount, settings)}`
                     : eligiblePromotions.length > 0
-                      ? `🎟️ + Khuyến mãi (${eligiblePromotions.length})`
-                      : '+ Khuyến mãi'}
+                      ? `🎟️ Khuyến mãi (${eligiblePromotions.length})`
+                      : 'Khuyến mãi'}
                 </span>
                 {selectedPromotion && (
                   <span
@@ -768,10 +768,10 @@ export default function CartDrawer({
                 type="button"
                 onClick={() => setActiveTab(activeTab === 'fees' ? 'none' : 'fees')}
                 className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer whitespace-nowrap active:scale-95 ${platformFeeDiscount > 0 || shippingFee > 0 || discountAmount > 0
-                    ? 'bg-amber-50 text-amber-900 border border-amber-300 ring-1 ring-amber-200'
-                    : activeTab === 'fees'
-                      ? 'bg-slate-800 text-white'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200/60'
+                  ? 'bg-amber-50 text-amber-900 border border-amber-300 ring-1 ring-amber-200'
+                  : activeTab === 'fees'
+                    ? 'bg-slate-800 text-white'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200/60'
                   }`}
               >
                 <Truck className="w-3.5 h-3.5 text-amber-600" />
@@ -782,7 +782,7 @@ export default function CartDrawer({
                       ? `Ship: +${formatCurrency(shippingFee, settings)}`
                       : discountAmount > 0
                         ? `Giảm: -${formatCurrency(discountAmount, settings)}`
-                        : '+ Phí sàn / Ship'}
+                        : 'Phí sàn / Ship'}
                 </span>
                 {(platformFeeDiscount > 0 || shippingFee > 0 || discountAmount > 0) && (
                   <span
@@ -804,14 +804,14 @@ export default function CartDrawer({
                 type="button"
                 onClick={() => setActiveTab(activeTab === 'surcharge' ? 'none' : 'surcharge')}
                 className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer whitespace-nowrap active:scale-95 ${surcharge > 0
-                    ? 'bg-violet-50 text-violet-900 border border-violet-300 ring-1 ring-violet-200'
-                    : activeTab === 'surcharge'
-                      ? 'bg-slate-800 text-white'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200/60'
+                  ? 'bg-violet-50 text-violet-900 border border-violet-300 ring-1 ring-violet-200'
+                  : activeTab === 'surcharge'
+                    ? 'bg-slate-800 text-white'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200/60'
                   }`}
               >
                 <Plus className="w-3.5 h-3.5 text-violet-600" />
-                <span>{surcharge > 0 ? `Phụ thu: +${formatCurrency(surcharge, settings)}` : '+ Phụ thu'}</span>
+                <span>{surcharge > 0 ? `Phụ thu: +${formatCurrency(surcharge, settings)}` : 'Phụ thu'}</span>
                 {surcharge > 0 && (
                   <span
                     onClick={(e) => {
@@ -831,14 +831,14 @@ export default function CartDrawer({
                   type="button"
                   onClick={() => setActiveTab(activeTab === 'time' ? 'none' : 'time')}
                   className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer whitespace-nowrap active:scale-95 ${orderCreatedAt
-                      ? 'bg-indigo-50 text-indigo-900 border border-indigo-300 ring-1 ring-indigo-200'
-                      : activeTab === 'time'
-                        ? 'bg-slate-800 text-white'
-                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200/60'
+                    ? 'bg-indigo-50 text-indigo-900 border border-indigo-300 ring-1 ring-indigo-200'
+                    : activeTab === 'time'
+                      ? 'bg-slate-800 text-white'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200/60'
                     }`}
                 >
                   <Clock className="w-3.5 h-3.5 text-indigo-600" />
-                  <span>{orderCreatedAt ? '🕒 Quá khứ' : '+ Giờ tạo'}</span>
+                  <span>{orderCreatedAt ? '🕒 Quá khứ' : 'Giờ tạo'}</span>
                   {orderCreatedAt && (
                     <span
                       onClick={(e) => {
