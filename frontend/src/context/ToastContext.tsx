@@ -16,31 +16,58 @@ const DEDUPLICATION_WINDOW_MS = 2000;
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
-  const timersRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
-  const recentToastsRef = useRef<Map<string, number>>(new Map());
+  const timersRef = useRef<Map<string, { timer: NodeJS.Timeout | null; startedAt: number; remaining: number }>>(new Map());
+  const recentToastsRef = useRef<Map<string, { id: string; timestamp: number }>>(new Map());
 
   // Cleanup all active timers when provider unmounts
   useEffect(() => {
     const activeTimers = timersRef.current;
     return () => {
-      activeTimers.forEach((timer) => clearTimeout(timer));
+      activeTimers.forEach((item) => {
+        if (item.timer) clearTimeout(item.timer);
+      });
       activeTimers.clear();
     };
   }, []);
 
   const dismiss = useCallback((id: string) => {
-    // Clear auto-dismiss timer if pending
-    const timer = timersRef.current.get(id);
-    if (timer) {
-      clearTimeout(timer);
-      timersRef.current.delete(id);
+    const item = timersRef.current.get(id);
+    if (item && item.timer) {
+      clearTimeout(item.timer);
     }
+    timersRef.current.delete(id);
 
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
+  const pause = useCallback((id: string) => {
+    const item = timersRef.current.get(id);
+    if (item && item.timer) {
+      clearTimeout(item.timer);
+      const elapsed = Date.now() - item.startedAt;
+      const remaining = Math.max(1000, item.remaining - elapsed);
+      timersRef.current.set(id, { timer: null, startedAt: Date.now(), remaining });
+    }
+  }, []);
+
+  const resume = useCallback(
+    (id: string) => {
+      const item = timersRef.current.get(id);
+      if (item && !item.timer && item.remaining > 0) {
+        const startedAt = Date.now();
+        const timer = setTimeout(() => {
+          dismiss(id);
+        }, item.remaining);
+        timersRef.current.set(id, { timer, startedAt, remaining: item.remaining });
+      }
+    },
+    [dismiss]
+  );
+
   const clearAll = useCallback(() => {
-    timersRef.current.forEach((timer) => clearTimeout(timer));
+    timersRef.current.forEach((item) => {
+      if (item.timer) clearTimeout(item.timer);
+    });
     timersRef.current.clear();
     setToasts([]);
   }, []);
@@ -67,14 +94,36 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       const dedupKey = `${type}:${message.trim()}`;
 
       // Deduplication check within 2 seconds
-      const lastShown = recentToastsRef.current.get(dedupKey);
-      if (lastShown && now - lastShown < DEDUPLICATION_WINDOW_MS) {
-        // Return existing or ignore duplicate spam
-        return options.id || dedupKey;
+      const lastEntry = recentToastsRef.current.get(dedupKey);
+      if (lastEntry && now - lastEntry.timestamp < DEDUPLICATION_WINDOW_MS) {
+        // Increment count on existing toast!
+        setToasts((prev) =>
+          prev.map((t) => {
+            if (t.id === lastEntry.id) {
+              return { ...t, count: (t.count || 1) + 1, createdAt: now };
+            }
+            return t;
+          })
+        );
+        // Refresh timer if active
+        const duration = options.duration !== undefined ? options.duration : getDefaultDuration(type);
+        const existingTimer = timersRef.current.get(lastEntry.id);
+        if (existingTimer && existingTimer.timer) {
+          clearTimeout(existingTimer.timer);
+        }
+        if (duration > 0) {
+          const newTimer = setTimeout(() => {
+            dismiss(lastEntry.id);
+          }, duration);
+          timersRef.current.set(lastEntry.id, { timer: newTimer, startedAt: now, remaining: duration });
+        }
+        recentToastsRef.current.set(dedupKey, { id: lastEntry.id, timestamp: now });
+        return lastEntry.id;
       }
-      recentToastsRef.current.set(dedupKey, now);
 
       const id = options.id || `toast_${now}_${Math.random().toString(36).substring(2, 7)}`;
+      recentToastsRef.current.set(dedupKey, { id, timestamp: now });
+
       const duration = options.duration !== undefined ? options.duration : getDefaultDuration(type);
       const dismissible = options.dismissible !== undefined ? options.dismissible : true;
 
@@ -87,6 +136,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
         dismissible,
         action: options.action,
         createdAt: now,
+        count: 1,
       };
 
       // Set auto-dismiss timer if duration > 0
@@ -94,7 +144,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
         const timer = setTimeout(() => {
           dismiss(id);
         }, duration);
-        timersRef.current.set(id, timer);
+        timersRef.current.set(id, { timer, startedAt: now, remaining: duration });
       }
 
       setToasts((prev) => {
@@ -103,11 +153,11 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
         if (filtered.length >= MAX_TOASTS) {
           const removed = filtered.slice(0, filtered.length - MAX_TOASTS + 1);
           removed.forEach((r) => {
-            const oldTimer = timersRef.current.get(r.id);
-            if (oldTimer) {
-              clearTimeout(oldTimer);
-              timersRef.current.delete(r.id);
+            const oldItem = timersRef.current.get(r.id);
+            if (oldItem && oldItem.timer) {
+              clearTimeout(oldItem.timer);
             }
+            timersRef.current.delete(r.id);
           });
           return [...filtered.slice(filtered.length - MAX_TOASTS + 1), newToast];
         }
@@ -131,9 +181,9 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
             options.duration !== undefined ? options.duration : getDefaultDuration(updatedType);
 
           // Clear previous timer and set new if duration > 0
-          const oldTimer = timersRef.current.get(id);
-          if (oldTimer) {
-            clearTimeout(oldTimer);
+          const oldItem = timersRef.current.get(id);
+          if (oldItem && oldItem.timer) {
+            clearTimeout(oldItem.timer);
             timersRef.current.delete(id);
           }
 
@@ -141,7 +191,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
             const newTimer = setTimeout(() => {
               dismiss(id);
             }, updatedDuration);
-            timersRef.current.set(id, newTimer);
+            timersRef.current.set(id, { timer: newTimer, startedAt: Date.now(), remaining: updatedDuration });
           }
 
           return {
@@ -224,6 +274,8 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       update,
       dismiss,
       clearAll,
+      pause,
+      resume,
       offline,
       online,
       queuedOrder,
@@ -241,6 +293,8 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       update,
       dismiss,
       clearAll,
+      pause,
+      resume,
       offline,
       online,
       queuedOrder,
@@ -252,7 +306,12 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
     <ToastContext.Provider value={contextValue}>
       {children}
-      <ToastContainer toasts={toasts} onDismiss={dismiss} />
+      <ToastContainer
+        toasts={toasts}
+        onDismiss={dismiss}
+        onPause={pause}
+        onResume={resume}
+      />
     </ToastContext.Provider>
   );
 }

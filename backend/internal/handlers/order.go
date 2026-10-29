@@ -345,11 +345,10 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 
 		// 3c. Determine Sales Channel & Commission Percent
 		channel := strings.ToLower(strings.TrimSpace(req.SalesChannel))
-		switch channel {
-		case models.SalesChannelTakeaway, models.SalesChannelShopeeFood, models.SalesChannelGrabFood, models.SalesChannelBeFood:
-			// valid
-		default:
+		if channel == "" {
 			channel = models.SalesChannelDineIn
+		} else if len(channel) > 30 {
+			channel = channel[:30]
 		}
 
 		var platformCommissionPct float64 = 0

@@ -579,6 +579,16 @@ export default function ToppingManagerModal({
                             <span className="text-[10px] text-slate-400">
                               (Vốn: {formatPrice(tp.cogs || 0)})
                             </span>
+                            {Number(tp.price) > 0 && (
+                              <span
+                                className={`text-[10px] font-bold ${
+                                  (Number(tp.price) - (tp.cogs || 0)) / Number(tp.price) >= 0.5 ? 'text-emerald-600' : 'text-amber-600'
+                                }`}
+                                title="Biên lợi nhuận"
+                              >
+                                {Math.round(((Number(tp.price) - (tp.cogs || 0)) / Number(tp.price)) * 100)}%
+                              </span>
+                            )}
                           </div>
 
                           <div>
@@ -589,7 +599,7 @@ export default function ToppingManagerModal({
                               </span>
                             ) : (
                               <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
-                                Toàn cục
+                                Tất cả danh mục
                               </span>
                             )}
                           </div>
@@ -634,6 +644,7 @@ export default function ToppingManagerModal({
                         <th className="px-3 py-3">Tên Topping</th>
                         <th className="px-3 py-3 text-right">Giá Bán</th>
                         <th className="px-3 py-3 text-right">Giá Vốn</th>
+                        <th className="px-3 py-3 text-right">Margin %</th>
                         <th className="px-3 py-3 text-center">Nhóm Áp Dụng</th>
                         <th className="px-3 py-3 text-center">Trạng Thái</th>
                         <th className="px-3.5 py-3 text-right">Thao Tác</th>
@@ -688,6 +699,22 @@ export default function ToppingManagerModal({
                               {formatPrice(tp.cogs || 0)}
                             </td>
 
+                            <td className="px-3 py-3 text-right font-bold text-xs">
+                              {Number(tp.price) > 0 ? (
+                                <span
+                                  className={
+                                    (Number(tp.price) - (tp.cogs || 0)) / Number(tp.price) >= 0.5
+                                      ? 'text-emerald-600'
+                                      : 'text-amber-600'
+                                  }
+                                >
+                                  {Math.round(((Number(tp.price) - (tp.cogs || 0)) / Number(tp.price)) * 100)}%
+                                </span>
+                              ) : (
+                                <span className="text-slate-400">—</span>
+                              )}
+                            </td>
+
                             <td className="px-3 py-3 text-center">
                               {linkedCat ? (
                                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
@@ -696,7 +723,7 @@ export default function ToppingManagerModal({
                                 </span>
                               ) : (
                                 <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
-                                  Toàn cục
+                                  Tất cả danh mục
                                 </span>
                               )}
                             </td>

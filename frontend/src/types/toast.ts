@@ -23,6 +23,7 @@ export interface ToastItem {
   dismissible: boolean;
   action?: ToastAction;
   createdAt: number;
+  count?: number;
 }
 
 export interface ToastContextType {
@@ -36,6 +37,8 @@ export interface ToastContextType {
   update: (id: string, options: Partial<ToastOptions> & { type?: ToastType; message?: string }) => void;
   dismiss: (id: string) => void;
   clearAll: () => void;
+  pause?: (id: string) => void;
+  resume?: (id: string) => void;
 
   // Dedicated helpers for Offline POS Phase
   offline: (message?: string) => string;

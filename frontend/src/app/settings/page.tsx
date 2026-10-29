@@ -32,6 +32,8 @@ import {
   Receipt,
   ShieldCheck,
   Truck,
+  Plus,
+  Edit2,
 } from 'lucide-react';
 import AppShell from '@/components/AppShell';
 import { fetchApi, uploadImage, getImageUrl, getApiBaseUrl, authHeaders } from '@/lib/api';
@@ -41,6 +43,13 @@ import { useToast } from '@/context/ToastContext';
 import ModernSelect from '@/components/common/ModernSelect';
 import ImageCropModal from '@/components/common/ImageCropModal';
 import HorizontalScroller from '@/components/common/HorizontalScroller';
+import SalesChannelModal from '@/components/common/SalesChannelModal';
+import {
+  SalesChannel,
+  CHANNEL_COLORS,
+  DEFAULT_SALES_CHANNELS,
+  parseSalesChannels,
+} from '@/types/sales_channel';
 import { useStore } from '@/lib/StoreContext';
 
 export default function SettingsPage() {
@@ -115,7 +124,6 @@ export default function SettingsPage() {
   });
 
   const [testingSmtp, setTestingSmtp] = useState<boolean>(false);
-  const [smtpTestResult, setSmtpTestResult] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   // Google Sheets Action States
   const [testingSheets, setTestingSheets] = useState<boolean>(false);
@@ -144,12 +152,19 @@ export default function SettingsPage() {
   const [importResult, setImportResult] = useState<any | null>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
 
+  // Sales Channel State
+  const [isChannelModalOpen, setIsChannelModalOpen] = useState<boolean>(false);
+  const [salesChannels, setSalesChannels] = useState<SalesChannel[]>(DEFAULT_SALES_CHANNELS);
+
   const loadSettings = async () => {
     setLoading(true);
     try {
       const res = await fetchApi<SettingsMap>('/settings');
       if (res.status === 'success' && res.data) {
         const data = res.data;
+        if (data.sales_channels_config) {
+          setSalesChannels(parseSalesChannels(data.sales_channels_config));
+        }
         setForm((prev) => ({
           ...prev,
           ...data,
@@ -394,22 +409,20 @@ export default function SettingsPage() {
   // SMTP Test Handler
   const handleTestSMTP = async () => {
     setTestingSmtp(true);
-    setSmtpTestResult(null);
     try {
       const res = await fetchApi<any>('/settings/test-smtp', {
         method: 'POST',
         body: JSON.stringify(form),
       });
       if (res.status === 'success') {
-        setSmtpTestResult({ type: 'success', message: t('email_report.test_smtp_success') });
+        toast.success(t('email_report.test_smtp_success') || 'Gửi email thử nghiệm thành công');
       } else {
-        setSmtpTestResult({ type: 'error', message: res.message || t('email_report.test_smtp_error') });
+        toast.error(res.message || t('email_report.test_smtp_error') || 'Gửi email thử nghiệm thất bại');
       }
     } catch (e: any) {
-      setSmtpTestResult({ type: 'error', message: e.message || t('email_report.test_smtp_error') });
+      toast.error(e.message || t('email_report.test_smtp_error') || 'Gửi email thử nghiệm thất bại');
     } finally {
       setTestingSmtp(false);
-      setTimeout(() => setSmtpTestResult(null), 5000);
     }
   };
 
@@ -780,168 +793,74 @@ export default function SettingsPage() {
                     </div>
                   </div>
 
-                  {/* Sales Channel Commissions Section */}
+                  {/* Sales Channel Management & Commissions Section */}
                   <div className="md:col-span-2 pt-4 border-t border-slate-100 space-y-3">
-                    <div>
-                      <label className="font-bold text-slate-800 text-sm flex items-center gap-2">
-                        <Truck className="w-4 h-4 text-amber-600" />
-                        <span>{t('settings.sales_channel_commission') || 'Cài sẵn % Chiết khấu Kênh Bán Hàng / App Giao Đồ Ăn'}</span>
-                      </label>
-                      <p className="text-[11px] text-slate-500 mt-0.5">
-                        {t('settings.sales_channel_commission_desc')}
-                      </p>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div>
+                        <label className="font-bold text-slate-800 text-sm flex items-center gap-2">
+                          <Truck className="w-4 h-4 text-purple-600" />
+                          <span>Kênh Bán Hàng & Chiết Khấu Ứng Dụng</span>
+                        </label>
+                        <p className="text-[11px] text-slate-500 mt-0.5">
+                          Quản lý các kênh bán hàng (Tại quán, Mang về, App giao hàng...) và cấu hình % hoa hồng tự động.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setIsChannelModalOpen(true)}
+                        className="px-3.5 py-2 bg-purple-700 hover:bg-purple-800 active:scale-95 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition cursor-pointer shadow-xs shrink-0"
+                      >
+                        <Plus className="w-4 h-4" />
+                        <span>Thêm / Quản lý kênh</span>
+                      </button>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
-                      {/* ShopeeFood */}
-                      <div className="p-3.5 bg-orange-50/70 border border-orange-200/90 rounded-2xl space-y-2.5 shadow-2xs">
-                        <div className="flex items-center justify-between">
-                          <span className="font-bold text-xs text-orange-950 flex items-center gap-1.5">
-                            <span className="text-sm">🧡</span>
-                            <span>ShopeeFood</span>
-                          </span>
-                          <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-orange-200/80 text-orange-950 border border-orange-300/60">
-                            App
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="relative flex-1">
-                            <input
-                              type="number"
-                              min="0"
-                              max="100"
-                              step="0.5"
-                              value={form.commission_shopeefood_pct || '0'}
-                              onChange={(e) => handleChange('commission_shopeefood_pct', e.target.value)}
-                              className="w-full pl-3 pr-7 py-2 bg-white border border-orange-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-500 shadow-2xs"
-                              placeholder="VD: 20"
-                            />
-                            <span className="absolute right-2.5 top-1/2 -translate-y-1/2 font-bold text-xs text-orange-900 pointer-events-none">
-                              %
-                            </span>
-                          </div>
-                        </div>
-                        {/* Quick preset buttons */}
-                        <div className="flex items-center gap-1 pt-0.5">
-                          {['0', '15', '20', '25', '30'].map((pct) => (
-                            <button
-                              key={pct}
-                              type="button"
-                              onClick={() => handleChange('commission_shopeefood_pct', pct)}
-                              className={`flex-1 py-1 rounded-lg text-[10px] font-bold border transition active:scale-95 cursor-pointer ${
-                                form.commission_shopeefood_pct === pct
-                                  ? 'bg-orange-600 text-white border-orange-600 shadow-2xs'
-                                  : 'bg-white hover:bg-orange-100/60 text-orange-900 border-orange-200/80'
-                              }`}
-                            >
-                              {pct}%
-                            </button>
-                          ))}
-                        </div>
-                        <p className="text-[10px] text-orange-800/80 leading-relaxed">
-                          Chiết khấu tự động trừ khi tạo đơn ShopeeFood
-                        </p>
-                      </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {salesChannels.map((ch) => {
+                        const colorDef = CHANNEL_COLORS.find((c) => c.id === ch.color) || CHANNEL_COLORS[0];
+                        const isActive = ch.is_active !== false;
 
-                      {/* GrabFood */}
-                      <div className="p-3.5 bg-emerald-50/70 border border-emerald-200/90 rounded-2xl space-y-2.5 shadow-2xs">
-                        <div className="flex items-center justify-between">
-                          <span className="font-bold text-xs text-emerald-950 flex items-center gap-1.5">
-                            <span className="text-sm">💚</span>
-                            <span>GrabFood</span>
-                          </span>
-                          <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-emerald-200/80 text-emerald-950 border border-emerald-300/60">
-                            App
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="relative flex-1">
-                            <input
-                              type="number"
-                              min="0"
-                              max="100"
-                              step="0.5"
-                              value={form.commission_grabfood_pct || '0'}
-                              onChange={(e) => handleChange('commission_grabfood_pct', e.target.value)}
-                              className="w-full pl-3 pr-7 py-2 bg-white border border-emerald-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-2xs"
-                              placeholder="VD: 20"
-                            />
-                            <span className="absolute right-2.5 top-1/2 -translate-y-1/2 font-bold text-xs text-emerald-900 pointer-events-none">
-                              %
-                            </span>
-                          </div>
-                        </div>
-                        {/* Quick preset buttons */}
-                        <div className="flex items-center gap-1 pt-0.5">
-                          {['0', '15', '20', '25', '30'].map((pct) => (
-                            <button
-                              key={pct}
-                              type="button"
-                              onClick={() => handleChange('commission_grabfood_pct', pct)}
-                              className={`flex-1 py-1 rounded-lg text-[10px] font-bold border transition active:scale-95 cursor-pointer ${
-                                form.commission_grabfood_pct === pct
-                                  ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs'
-                                  : 'bg-white hover:bg-emerald-100/60 text-emerald-900 border-emerald-200/80'
-                              }`}
-                            >
-                              {pct}%
-                            </button>
-                          ))}
-                        </div>
-                        <p className="text-[10px] text-emerald-800/80 leading-relaxed">
-                          Chiết khấu tự động trừ khi tạo đơn GrabFood
-                        </p>
-                      </div>
+                        return (
+                          <div
+                            key={ch.id}
+                            className={`p-3.5 rounded-2xl border transition-all space-y-2.5 shadow-2xs ${
+                              isActive
+                                ? 'bg-white border-slate-200 hover:border-slate-300'
+                                : 'bg-slate-50 border-slate-200 opacity-60'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="font-bold text-xs text-slate-900 flex items-center gap-2">
+                                <span className="text-base">{ch.icon || '🛵'}</span>
+                                <span>{ch.name}</span>
+                              </span>
+                              <div className="flex items-center gap-1">
+                                <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded border ${colorDef.bg} ${colorDef.text} ${colorDef.border}`}>
+                                  {ch.is_delivery_app ? 'App giao' : 'Trực tiếp'}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => setIsChannelModalOpen(true)}
+                                  className="p-1 text-slate-400 hover:text-purple-700 transition cursor-pointer"
+                                  title="Chỉnh sửa kênh"
+                                >
+                                  <Edit2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
 
-                      {/* BeFood */}
-                      <div className="p-3.5 bg-amber-50/70 border border-amber-200/90 rounded-2xl space-y-2.5 shadow-2xs">
-                        <div className="flex items-center justify-between">
-                          <span className="font-bold text-xs text-amber-950 flex items-center gap-1.5">
-                            <span className="text-sm">💛</span>
-                            <span>BeFood</span>
-                          </span>
-                          <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-amber-200/80 text-amber-950 border border-amber-300/60">
-                            App
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="relative flex-1">
-                            <input
-                              type="number"
-                              min="0"
-                              max="100"
-                              step="0.5"
-                              value={form.commission_befood_pct || '0'}
-                              onChange={(e) => handleChange('commission_befood_pct', e.target.value)}
-                              className="w-full pl-3 pr-7 py-2 bg-white border border-amber-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500 shadow-2xs"
-                              placeholder="VD: 20"
-                            />
-                            <span className="absolute right-2.5 top-1/2 -translate-y-1/2 font-bold text-xs text-amber-900 pointer-events-none">
-                              %
-                            </span>
+                            <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-100">
+                              <span className="text-slate-500 text-[11px] font-mono">{ch.id}</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-[11px] text-slate-500 font-semibold">Chiết khấu:</span>
+                                <span className="text-xs font-black text-purple-700">
+                                  {ch.default_commission_pct || 0}%
+                                </span>
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                        {/* Quick preset buttons */}
-                        <div className="flex items-center gap-1 pt-0.5">
-                          {['0', '15', '20', '25', '30'].map((pct) => (
-                            <button
-                              key={pct}
-                              type="button"
-                              onClick={() => handleChange('commission_befood_pct', pct)}
-                              className={`flex-1 py-1 rounded-lg text-[10px] font-bold border transition active:scale-95 cursor-pointer ${
-                                form.commission_befood_pct === pct
-                                  ? 'bg-amber-600 text-white border-amber-600 shadow-2xs'
-                                  : 'bg-white hover:bg-amber-100/60 text-amber-900 border-amber-200/80'
-                              }`}
-                            >
-                              {pct}%
-                            </button>
-                          ))}
-                        </div>
-                        <p className="text-[10px] text-amber-800/80 leading-relaxed">
-                          Chiết khấu tự động trừ khi tạo đơn BeFood
-                        </p>
-                      </div>
+                        );
+                      })}
                     </div>
                   </div>
                 </div>
@@ -2252,15 +2171,6 @@ export default function SettingsPage() {
           </div>
         )}
 
-        {/* SMTP Test Result toast */}
-        {smtpTestResult && (
-          <div className={`fixed top-4 right-4 z-[60] px-4 py-3 rounded-2xl shadow-2xl text-sm font-semibold animate-in fade-in slide-in-from-top-2 ${
-            smtpTestResult.type === 'success' ? 'bg-purple-600 text-white' : 'bg-red-600 text-white'
-          }`}>
-            {smtpTestResult.message}
-          </div>
-        )}
-
         {/* 1:1 Image Crop Modal */}
         <ImageCropModal
           isOpen={isCropModalOpen}
@@ -2268,6 +2178,20 @@ export default function SettingsPage() {
           onClose={() => setIsCropModalOpen(false)}
           onCropComplete={handleLogoCropComplete}
           aspectRatio={1}
+        />
+
+        {/* Sales Channel Management Modal */}
+        <SalesChannelModal
+          isOpen={isChannelModalOpen}
+          onClose={() => setIsChannelModalOpen(false)}
+          channels={salesChannels}
+          onChannelsUpdated={(updated) => {
+            setSalesChannels(updated);
+            setForm((prev) => ({
+              ...prev,
+              sales_channels_config: JSON.stringify(updated),
+            }));
+          }}
         />
       </div>
     </AppShell>

@@ -34,8 +34,18 @@ export function buildCacheKey(endpoint: string, storeId?: number | null): string
   return sid ? `s${sid}:${endpoint}` : endpoint;
 }
 
+type InvalidationListener = (pattern?: string | RegExp, storeId?: number | null) => void;
+
 class MemoryCache {
   private store = new Map<string, CacheEntry<any>>();
+  private listeners: InvalidationListener[] = [];
+
+  public onInvalidate(listener: InvalidationListener): () => void {
+    this.listeners.push(listener);
+    return () => {
+      this.listeners = this.listeners.filter((l) => l !== listener);
+    };
+  }
 
   public get<T>(key: string, storeId?: number | null): T | null {
     const fullKey = buildCacheKey(key, storeId);
@@ -63,6 +73,7 @@ class MemoryCache {
   public invalidate(pattern?: string | RegExp, storeId?: number | null): void {
     if (!pattern && !storeId) {
       this.store.clear();
+      this.listeners.forEach((l) => l(pattern, storeId));
       return;
     }
 
@@ -88,10 +99,13 @@ class MemoryCache {
         }
       }
     }
+
+    this.listeners.forEach((l) => l(pattern, storeId));
   }
 
   public clear(): void {
     this.store.clear();
+    this.listeners.forEach((l) => l());
   }
 }
 
@@ -99,6 +113,7 @@ export const clientCache = new MemoryCache();
 
 // Standard TTL presets
 export const TTL = {
+  PRODUCTS: 3 * 60 * 1000,   // 3 minutes
   CATEGORIES: 5 * 60 * 1000, // 5 minutes
   TOPPINGS: 5 * 60 * 1000,   // 5 minutes
   SETTINGS: 10 * 60 * 1000,  // 10 minutes
@@ -110,6 +125,7 @@ export const TTL = {
  * Determine default cache TTL based on endpoint pattern
  */
 export function getDefaultTtlForEndpoint(endpoint: string): number | null {
+  if (endpoint === '/products' || endpoint.startsWith('/products?')) return TTL.PRODUCTS;
   if (endpoint === '/categories' || endpoint.startsWith('/categories?')) return TTL.CATEGORIES;
   if (endpoint === '/toppings' || endpoint.startsWith('/toppings/')) return TTL.TOPPINGS;
   if (endpoint === '/settings/store' || endpoint === '/settings') return TTL.SETTINGS;

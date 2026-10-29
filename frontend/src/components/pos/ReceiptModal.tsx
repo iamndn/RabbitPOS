@@ -7,6 +7,7 @@ import { useTranslation } from '@/lib/i18n/LanguageContext';
 import { fetchApi, getImageUrl } from '@/lib/api';
 import { formatCurrency, SettingsMap } from '@/lib/utils';
 import { useStore } from '@/lib/StoreContext';
+import { getChannelBadge, parseSalesChannels } from '@/types/sales_channel';
 
 export interface CompletedOrderData {
   order_code: string;
@@ -138,15 +139,10 @@ export default function ReceiptModal({ isOpen, onClose, order, settings: initial
               </div>
               <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-extrabold uppercase bg-slate-200 text-slate-900">
                 <span>
-                  {order.sales_channel === 'takeaway'
-                    ? '🛍️ Mang về'
-                    : order.sales_channel === 'shopeefood'
-                    ? '🧡 ShopeeFood'
-                    : order.sales_channel === 'grabfood'
-                    ? '💚 GrabFood'
-                    : order.sales_channel === 'befood'
-                    ? '💛 BeFood'
-                    : '🏠 Tại quán'}
+                  {(() => {
+                    const badge = getChannelBadge(order.sales_channel, parseSalesChannels(settings?.sales_channels_config));
+                    return `${badge.icon} ${badge.name}`;
+                  })()}
                 </span>
               </div>
             </div>

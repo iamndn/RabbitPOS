@@ -43,6 +43,7 @@ import AppShell from '@/components/AppShell';
 import TransactionCategoryModal from '@/components/transactions/TransactionCategoryModal';
 import TransactionModal from '@/components/transactions/TransactionModal';
 import EmailReportModal from '@/components/common/EmailReportModal';
+import { getChannelBadge, parseSalesChannels, SalesChannel } from '@/types/sales_channel';
 import ReceiptModal, { CompletedOrderData } from '@/components/pos/ReceiptModal';
 import ModernDateRangePicker, { DatePeriod, computeDateRange, getLocalMonthStr, getLocalDateStr, toLocalDateStr } from '@/components/common/ModernDateRangePicker';
 import ModernSelect from '@/components/common/ModernSelect';
@@ -52,6 +53,7 @@ import { getAuthUser, isStaffRole } from '@/lib/auth';
 import { getActiveStoreId } from '@/lib/store';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
 import { useConfirm } from '@/context/ConfirmContext';
+import { useToast } from '@/context/ToastContext';
 import { exportToCsv } from '@/lib/exportCsv';
 import { exportTransactionsToExcel, exportOrdersToExcel } from '@/lib/exportExcel';
 import { formatCurrency, SettingsMap, matchTransactionCategory } from '@/lib/utils';
@@ -145,20 +147,9 @@ function orderApiToReceiptData(order: OrderApi, products: Product[], funds: Fund
   };
 }
 
-const getSalesChannelBadge = (channel?: string) => {
-  switch (channel) {
-    case 'takeaway':
-      return { label: 'Mang về', bg: 'bg-blue-50 text-blue-700 border-blue-200' };
-    case 'shopeefood':
-      return { label: 'ShopeeFood', bg: 'bg-orange-50 text-orange-700 border-orange-200' };
-    case 'grabfood':
-      return { label: 'GrabFood', bg: 'bg-emerald-50 text-emerald-700 border-emerald-200' };
-    case 'befood':
-      return { label: 'BeFood', bg: 'bg-amber-50 text-amber-800 border-amber-200' };
-    case 'dine_in':
-    default:
-      return { label: 'Tại quán', bg: 'bg-slate-100 text-slate-600 border-slate-200' };
-  }
+const getSalesChannelBadge = (channel?: string, customChannels: SalesChannel[] = []) => {
+  const badge = getChannelBadge(channel, customChannels);
+  return { label: badge.name, icon: badge.icon, bg: badge.badgeClasses };
 };
 
 const formatDateTime = (dateStr?: string) => {
@@ -275,6 +266,7 @@ export default function TransactionsPage() {
   const router = useRouter();
   const { t } = useTranslation();
   const { confirm, showAlert } = useConfirm();
+  const toast = useToast();
   const isStaff = isStaffRole(getAuthUser()?.role);
 
   // Active View Tab: 'ledger' (Default) | 'orders' | 'funds'
@@ -303,11 +295,13 @@ export default function TransactionsPage() {
   const [reconcileNotes, setReconcileNotes] = useState<string>('');
   const [reconciling, setReconciling] = useState<boolean>(false);
   const [sendEmailAfterReconcile, setSendEmailAfterReconcile] = useState<boolean>(false);
-  const [reconcileToast, setReconcileToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   const showToast = (type: 'success' | 'error', message: string) => {
-    setReconcileToast({ type, message });
-    setTimeout(() => setReconcileToast(null), 5000);
+    if (type === 'success') {
+      toast.success(message);
+    } else {
+      toast.error(message);
+    }
   };
 
   // Update Reconciliation States
@@ -340,6 +334,10 @@ export default function TransactionsPage() {
   const [orderChannelFilter, setOrderChannelFilter] = useState<string>('all');
   const [isOrderFilterModalOpen, setIsOrderFilterModalOpen] = useState<boolean>(false);
   const [reprintOrder, setReprintOrder] = useState<OrderApi | null>(null);
+
+  const salesChannelsList = React.useMemo(() => {
+    return parseSalesChannels(settings?.sales_channels_config);
+  }, [settings?.sales_channels_config]);
 
   // Pagination States (25 items/page)
   const PAGE_SIZE = 25;
@@ -2217,15 +2215,10 @@ export default function TransactionsPage() {
                 {orderChannelFilter !== 'all' && (
                   <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-purple-50 text-purple-900 border border-purple-200 rounded-lg font-bold">
                     <span>
-                      Kênh: {orderChannelFilter === 'takeaway'
-                        ? '🛍️ Mang về'
-                        : orderChannelFilter === 'shopeefood'
-                        ? '🧡 ShopeeFood'
-                        : orderChannelFilter === 'grabfood'
-                        ? '💚 GrabFood'
-                        : orderChannelFilter === 'befood'
-                        ? '💛 BeFood'
-                        : '🏠 Tại quán'}
+                      Kênh: {(() => {
+                        const b = getSalesChannelBadge(orderChannelFilter, salesChannelsList);
+                        return `${b.icon} ${b.label}`;
+                      })()}
                     </span>
                     <button type="button" onClick={() => setOrderChannelFilter('all')} className="hover:text-purple-950">
                       <X className="w-3 h-3" />
@@ -2322,11 +2315,10 @@ export default function TransactionsPage() {
                       <div className="flex flex-wrap gap-2">
                         {[
                           { id: 'all', label: 'Tất cả kênh' },
-                          { id: 'dine_in', label: '🏠 Tại quán' },
-                          { id: 'takeaway', label: '🛍️ Mang về' },
-                          { id: 'shopeefood', label: '🧡 ShopeeFood' },
-                          { id: 'grabfood', label: '💚 GrabFood' },
-                          { id: 'befood', label: '💛 BeFood' },
+                          ...salesChannelsList.map((ch) => ({
+                            id: ch.id,
+                            label: `${ch.icon} ${ch.name}`,
+                          })),
                         ].map((ch) => (
                           <button
                             key={ch.id}
@@ -2422,10 +2414,11 @@ export default function TransactionsPage() {
                                         </span>
                                       ) : null}
                                       {(() => {
-                                        const badge = getSalesChannelBadge(order.sales_channel);
+                                        const badge = getSalesChannelBadge(order.sales_channel, salesChannelsList);
                                         return (
-                                          <span className={`inline-flex items-center px-1.5 py-0.2 rounded text-[10px] font-bold border ${badge.bg}`}>
-                                            {badge.label}
+                                          <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold border ${badge.bg}`}>
+                                            <span>{badge.icon}</span>
+                                            <span>{badge.label}</span>
                                           </span>
                                         );
                                       })()}
@@ -2644,10 +2637,11 @@ export default function TransactionsPage() {
                                 </span>
                               ) : null}
                               {(() => {
-                                const badge = getSalesChannelBadge(order.sales_channel);
+                                const badge = getSalesChannelBadge(order.sales_channel, salesChannelsList);
                                 return (
-                                  <span className={`inline-flex items-center px-1.5 py-0.2 rounded text-[10px] font-bold border ${badge.bg}`}>
-                                    {badge.label}
+                                  <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold border ${badge.bg}`}>
+                                    <span>{badge.icon}</span>
+                                    <span>{badge.label}</span>
                                   </span>
                                 );
                               })()}
@@ -3818,14 +3812,6 @@ export default function TransactionsPage() {
               </button>
             </div>
           </div>
-        </div>
-      )}
-
-      {/* Reconciliation Toast Notification */}
-      {reconcileToast && (
-        <div className={`fixed top-4 right-4 z-[60] px-4 py-3 rounded-2xl shadow-2xl text-sm font-semibold ${reconcileToast.type === 'success' ? 'bg-purple-600 text-white' : 'bg-red-600 text-white'
-          }`}>
-          {reconcileToast.message}
         </div>
       )}
 

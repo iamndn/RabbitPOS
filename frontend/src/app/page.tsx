@@ -56,6 +56,31 @@ import { formatCurrency, SettingsMap } from '@/lib/utils';
 import { CustomTag, DEFAULT_SYSTEM_TAGS, getTagBadgeStyle } from '@/components/products/TagManagerModal';
 import { useStore } from '@/lib/StoreContext';
 import { getActiveStoreId } from '@/lib/store';
+import { clientCache } from '@/lib/cache';
+
+interface PosMemoryCache {
+  storeId: number;
+  products: Product[];
+  categories: Category[];
+  settings: SettingsMap | null;
+  customTags: CustomTag[];
+  timestamp: number;
+}
+
+let globalPosMemoryCache: PosMemoryCache | null = null;
+
+// Reactive cache invalidation listener: purges memory cache when catalog mutates
+if (typeof window !== 'undefined') {
+  clientCache.onInvalidate((pattern) => {
+    if (
+      !pattern ||
+      (typeof pattern === 'string' &&
+        (pattern.includes('products') || pattern.includes('categories') || pattern.includes('settings')))
+    ) {
+      globalPosMemoryCache = null;
+    }
+  });
+}
 
 // ── VIETNAMESE FUZZY SEARCH HELPER ──────────────────────────────────────────
 /**
@@ -337,16 +362,23 @@ export default function PosPage() {
   const currentStoreId = activeStore?.id ?? getActiveStoreId() ?? 1;
   const cartStorageKey = `rabbitpos_active_cart_${currentStoreId}`;
 
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [customTags, setCustomTags] = useState<CustomTag[]>([]);
+  // Instant 0ms warm cache initialization (eliminates layout flash on tab switch)
+  const hasWarmCache = Boolean(
+    globalPosMemoryCache &&
+    globalPosMemoryCache.storeId === currentStoreId &&
+    globalPosMemoryCache.products.length > 0
+  );
+
+  const [categories, setCategories] = useState<Category[]>(() => hasWarmCache ? globalPosMemoryCache!.categories : []);
+  const [products, setProducts] = useState<Product[]>(() => hasWarmCache ? globalPosMemoryCache!.products : []);
+  const [customTags, setCustomTags] = useState<CustomTag[]>(() => hasWarmCache ? globalPosMemoryCache!.customTags : []);
   const [activeCategoryId, setActiveCategoryId] = useState<number | null>(null);
   const [activeTag, setActiveTag] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<ProductSortOption>('default');
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState<boolean>(() => !hasWarmCache);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [debouncedSearch, setDebouncedSearch] = useState<string>('');
-  const [settings, setSettings] = useState<SettingsMap | null>(null);
+  const [settings, setSettings] = useState<SettingsMap | null>(() => hasWarmCache ? globalPosMemoryCache!.settings : null);
   const [lastSyncedAt, setLastSyncedAt] = useState<number | null>(null);
   const [isOfflineData, setIsOfflineData] = useState<boolean>(false);
 
@@ -438,8 +470,16 @@ export default function PosPage() {
   }, [searchQuery]);
 
   // Parallelized initial data loading with in-memory caching, IndexedDB caching and automatic retry
-  const loadData = useCallback(async (retryCount = 0) => {
-    setLoading(true);
+  const loadData = useCallback(async (retryCount = 0, isBackground = false) => {
+    const isAlreadyLoaded = Boolean(
+      (globalPosMemoryCache && globalPosMemoryCache.storeId === currentStoreId && globalPosMemoryCache.products.length > 0) ||
+      products.length > 0
+    );
+
+    // Only show skeleton loader on cold start (no items in memory)
+    if (!isBackground && !isAlreadyLoaded) {
+      setLoading(true);
+    }
 
     // If browser is offline, directly load from IndexedDB
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
@@ -452,6 +492,14 @@ export default function PosPage() {
           if (cached.customTags) setCustomTags(cached.customTags);
           setLastSyncedAt(cached.lastSyncedAt);
           setIsOfflineData(true);
+          globalPosMemoryCache = {
+            storeId: currentStoreId,
+            products: cached.products,
+            categories: cached.categories,
+            settings: cached.settings,
+            customTags: cached.customTags || [],
+            timestamp: Date.now(),
+          };
         }
       } catch (err) {
         console.error('Failed to load catalog from IndexedDB:', err);
@@ -513,6 +561,18 @@ export default function PosPage() {
         setProducts(prodList);
       }
 
+      // Update warm memory cache
+      if (prodList.length > 0 || catList.length > 0) {
+        globalPosMemoryCache = {
+          storeId: currentStoreId,
+          products: prodList,
+          categories: catList,
+          settings: map,
+          customTags: parsedTags,
+          timestamp: Date.now(),
+        };
+      }
+
       // If online fetch succeeded, atomically persist into IndexedDB cache
       if (prodList.length > 0 || catList.length > 0) {
         const syncedTime = await saveCatalogToOfflineCache({
@@ -524,7 +584,7 @@ export default function PosPage() {
         setLastSyncedAt(syncedTime);
         setIsOfflineData(false);
       } else if (retryCount < 2) {
-        setTimeout(() => loadData(retryCount + 1), 800);
+        setTimeout(() => loadData(retryCount + 1, isBackground), 800);
         return;
       }
     } catch (err) {
@@ -538,8 +598,16 @@ export default function PosPage() {
           if (cached.customTags) setCustomTags(cached.customTags);
           setLastSyncedAt(cached.lastSyncedAt);
           setIsOfflineData(true);
+          globalPosMemoryCache = {
+            storeId: currentStoreId,
+            products: cached.products,
+            categories: cached.categories,
+            settings: cached.settings,
+            customTags: cached.customTags || [],
+            timestamp: Date.now(),
+          };
         } else if (retryCount < 2) {
-          setTimeout(() => loadData(retryCount + 1), 800);
+          setTimeout(() => loadData(retryCount + 1, isBackground), 800);
           return;
         }
       } catch (idbErr) {
@@ -548,10 +616,15 @@ export default function PosPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [currentStoreId, products.length]);
 
   useEffect(() => {
-    loadData();
+    const hasWarm = Boolean(
+      globalPosMemoryCache &&
+      globalPosMemoryCache.storeId === currentStoreId &&
+      globalPosMemoryCache.products.length > 0
+    );
+    loadData(0, hasWarm);
 
     // 0. One-time legacy cart migration (rabbitpos_active_cart -> rabbitpos_active_cart_1)
     if (typeof window !== 'undefined') {
@@ -1535,7 +1608,7 @@ export default function PosPage() {
               <button
                 onClick={() => setIsCheckoutModalOpen(true)}
                 disabled={cartItems.length === 0}
-                className="bg-purple-600 hover:bg-purple-700 disabled:bg-slate-800 disabled:text-slate-500 text-white text-[11px] sm:text-xs font-bold px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl shadow-lg transition active:scale-95 whitespace-nowrap"
+                className="bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white text-[11px] sm:text-xs font-bold px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl shadow-lg transition active:scale-95 whitespace-nowrap"
               >
                 {t('pos.checkout_now')}
               </button>

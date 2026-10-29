@@ -7,6 +7,7 @@ import { Store as StoreIcon, ChevronDown, Check, Search, PlusCircle, Settings, C
 import { useStore } from '@/lib/StoreContext';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
 import { getImageUrl } from '@/lib/api';
+import { useExclusivePopover } from '@/components/common/useExclusivePopover';
 import { Store } from '@/types/store';
 
 function getStoreInitials(name?: string): string {
@@ -34,7 +35,7 @@ export default function StoreSwitcher() {
   const { t } = useTranslation();
   const router = useRouter();
 
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useExclusivePopover('store-switcher');
   const [searchQuery, setSearchQuery] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -66,20 +67,9 @@ export default function StoreSwitcher() {
     return () => document.removeEventListener('mousedown', handleOutsideClick);
   }, [isOpen]);
 
-  // Handle escape key
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
-        setIsOpen(false);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen]);
-
   // Focus search input when open
   useEffect(() => {
-    if (isOpen && searchInputRef.current) {
+    if (isOpen && searchInputRef.current && window.innerWidth >= 768) {
       setTimeout(() => searchInputRef.current?.focus(), 50);
     }
     if (!isOpen) {
@@ -173,11 +163,14 @@ export default function StoreSwitcher() {
         <>
           {/* Mobile backdrop for easy dismissal */}
           <div
-            className="fixed inset-0 z-50 bg-slate-900/40 sm:hidden animate-in fade-in-0 duration-150"
+            className="fixed inset-0 z-[85] bg-slate-900/40 backdrop-blur-sm md:hidden animate-fadeIn"
             onClick={() => setIsOpen(false)}
           />
 
-          <div className="fixed sm:absolute left-3 sm:left-0 right-3 sm:right-auto top-14 sm:top-auto sm:mt-2 w-[calc(100vw-1.5rem)] sm:w-80 max-w-sm bg-white rounded-2xl shadow-2xl border border-slate-200 py-2 z-[100] text-slate-800 animate-in fade-in zoom-in-95 duration-150">
+          <div className="fixed inset-x-0 bottom-0 z-[90] md:z-[80] md:inset-x-auto md:bottom-auto md:absolute md:left-0 md:top-full md:mt-2 w-full md:w-80 md:max-w-[calc(100vw-1.5rem)] max-h-[85dvh] md:max-h-[75vh] overflow-y-auto bg-white rounded-t-3xl md:rounded-2xl shadow-2xl border border-slate-200 py-2 pb-safe md:pb-2 text-slate-800 animate-slideUp md:animate-scaleIn">
+            <div className="flex justify-center pt-1 pb-2 md:hidden">
+              <div className="w-10 h-1 bg-slate-300 rounded-full" />
+            </div>
             {/* Header: Title & Count */}
             <div className="px-4 py-2 border-b border-slate-100 flex items-center justify-between">
               <div className="flex items-center space-x-2">
@@ -202,14 +195,14 @@ export default function StoreSwitcher() {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder={t('storeSwitcher.search_store') || 'Tìm kiếm cửa hàng...'}
-                    className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-600 transition"
+                    className="w-full pl-8 pr-3 py-2 md:py-1.5 text-base md:text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-600 transition"
                   />
                 </div>
               </div>
             )}
 
             {/* Stores List */}
-            <div className="max-h-64 overflow-y-auto py-1 px-1.5 space-y-0.5">
+            <div className="max-h-[50dvh] md:max-h-64 overflow-y-auto py-1 px-1.5 space-y-0.5">
               {filteredStores.length === 0 ? (
                 <div className="py-6 text-center text-xs text-slate-400 font-medium">
                   {t('storeSwitcher.no_stores_found') || 'Không tìm thấy cửa hàng'}
@@ -228,7 +221,7 @@ export default function StoreSwitcher() {
                       className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-left transition cursor-pointer active:scale-[0.98] ${
                         isCurrent
                           ? 'bg-purple-50/90 text-purple-950 font-semibold border border-purple-200/80 shadow-xs'
-                          : 'hover:bg-slate-50 text-slate-700'
+                          : 'hover:bg-purple-50/70 text-slate-700'
                       }`}
                     >
                       {/* Store Avatar */}

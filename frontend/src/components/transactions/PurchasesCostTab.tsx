@@ -32,6 +32,7 @@ import ModernSelect, { ModernSelectOption } from '@/components/common/ModernSele
 import HorizontalScroller from '@/components/common/HorizontalScroller';
 import { fetchApi, getImageUrl } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
+import { useToast } from '@/context/ToastContext';
 import { formatCurrency, SettingsMap } from '@/lib/utils';
 import {
   Ingredient,
@@ -78,6 +79,7 @@ export default function PurchasesCostTab({
   refreshTrigger = 0,
 }: PurchasesCostTabProps) {
   const { t } = useTranslation();
+  const toast = useToast();
 
   // Active Sub-Tab: 'profit-recovery' | 'purchase-history' | 'ingredients'
   const [activeSubTab, setActiveSubTab] = useState<'profit-recovery' | 'purchase-history' | 'ingredients'>('profit-recovery');
@@ -162,13 +164,15 @@ export default function PurchasesCostTab({
   const [historyLoading, setHistoryLoading] = useState<boolean>(false);
 
   // Toast Notifications
-  const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [applyingCostId, setApplyingCostId] = useState<string | null>(null);
   const [bulkApplying, setBulkApplying] = useState<boolean>(false);
 
   const showToast = (type: 'success' | 'error', message: string) => {
-    setToast({ type, message });
-    setTimeout(() => setToast(null), 4000);
+    if (type === 'success') {
+      toast.success(message);
+    } else {
+      toast.error(message);
+    }
   };
 
   const loadData = async () => {
@@ -870,23 +874,6 @@ export default function PurchasesCostTab({
 
   return (
     <div className="space-y-4 w-full">
-      {/* Toast Alert */}
-      {toast && (
-        <div
-          className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-2xl shadow-xl border flex items-center gap-2 text-xs font-bold transition-all animate-in slide-in-from-top duration-200 ${toast.type === 'success'
-            ? 'bg-purple-50 text-purple-900 border-purple-200'
-            : 'bg-rose-50 text-rose-900 border-rose-200'
-            }`}
-        >
-          {toast.type === 'success' ? (
-            <CheckCircle2 className="w-4 h-4 text-purple-600 shrink-0" />
-          ) : (
-            <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
-          )}
-          <span>{toast.message}</span>
-        </div>
-      )}
-
       {/* Header Banner with Summary KPIs */}
       <div className="bg-white rounded-3xl p-4 sm:p-6 border border-slate-200/90 shadow-sm space-y-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">

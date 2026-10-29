@@ -27,6 +27,7 @@ import {
   QrCode,
   Calculator,
   RefreshCw,
+  Settings,
 } from 'lucide-react';
 import { CartItem, Product, ProductVariant } from './VariantSelectorModal';
 import { Promotion } from '@/types/promotion';
@@ -35,6 +36,13 @@ import { fetchApi } from '@/lib/api';
 import { formatCurrency, SettingsMap } from '@/lib/utils';
 import HorizontalScroller from '@/components/common/HorizontalScroller';
 import GiftItemSelectorModal from './GiftItemSelectorModal';
+import SalesChannelModal from '@/components/common/SalesChannelModal';
+import {
+  SalesChannel,
+  DEFAULT_SALES_CHANNELS,
+  parseSalesChannels,
+  getChannelBadge,
+} from '@/types/sales_channel';
 
 export interface SalesChannelOption {
   id: string;
@@ -142,6 +150,20 @@ export default function CartDrawer({
   // Active Collapsible Adjustment Tab ('none' by default to maximize item space)
   const [activeTab, setActiveTab] = useState<AdjustmentTab>('none');
 
+  // Sales Channels State
+  const [isChannelModalOpen, setIsChannelModalOpen] = useState(false);
+  const [localChannelsList, setLocalChannelsList] = useState<SalesChannel[]>(() => {
+    return parseSalesChannels(settings?.sales_channels_config);
+  });
+
+  useEffect(() => {
+    if (settings?.sales_channels_config) {
+      setLocalChannelsList(parseSalesChannels(settings.sales_channels_config));
+    }
+  }, [settings?.sales_channels_config]);
+
+  const activeChannels = localChannelsList.filter((c) => c.is_active !== false);
+
   // Custom commission override state (allow inline typing of custom % or custom VND)
   const [isEditingCommission, setIsEditingCommission] = useState<boolean>(false);
   const [customCommissionInput, setCustomCommissionInput] = useState<string>('');
@@ -224,6 +246,8 @@ export default function CartDrawer({
 
   // Helper to get configured preset commission % for a delivery channel
   const getChannelDefaultPct = (channelId?: string): number => {
+    const ch = localChannelsList.find((c) => c.id === channelId);
+    if (ch && ch.default_commission_pct !== undefined) return ch.default_commission_pct;
     if (channelId === 'shopeefood') return parseFloat(settings?.commission_shopeefood_pct || '0');
     if (channelId === 'grabfood') return parseFloat(settings?.commission_grabfood_pct || '0');
     if (channelId === 'befood') return parseFloat(settings?.commission_befood_pct || '0');
@@ -351,7 +375,10 @@ export default function CartDrawer({
     setEditingPriceItemId(null);
   };
 
-  const isDeliveryAppChannel = ['shopeefood', 'grabfood', 'befood'].includes(salesChannel);
+  const currentChannelObj = localChannelsList.find((c) => c.id === salesChannel);
+  const isDeliveryAppChannel = currentChannelObj
+    ? currentChannelObj.is_delivery_app
+    : ['shopeefood', 'grabfood', 'befood'].includes(salesChannel);
 
   if (!isOpen) return null;
 
@@ -383,34 +410,30 @@ export default function CartDrawer({
         {/* 1. SALES CHANNEL SEGMENTED BAR */}
         <div className="px-3 py-2 bg-slate-100/90 border-b border-slate-200/80 shrink-0">
           <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar scroll-smooth py-0.5 touch-pan-x -mx-1 px-1">
-            {SALES_CHANNELS.map((ch) => {
+            {activeChannels.map((ch) => {
               const isSelected = salesChannel === ch.id;
               const presetPct = getChannelDefaultPct(ch.id);
+              const badgeInfo = getChannelBadge(ch.id, localChannelsList);
               return (
                 <button
                   key={ch.id}
                   type="button"
                   onClick={() => handleSelectChannel(ch.id)}
-                  className={`shrink-0 py-1.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap active:scale-95 select-none ${isSelected
-                    ? `${ch.activeClass} shadow-xs ring-2 ring-offset-1 ${ch.id === 'shopeefood'
-                      ? 'ring-orange-400'
-                      : ch.id === 'grabfood'
-                        ? 'ring-emerald-400'
-                        : ch.id === 'befood'
-                          ? 'ring-amber-400'
-                          : 'ring-purple-400'
-                    }`
-                    : 'bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/80 shadow-2xs hover:border-slate-300'
-                    }`}
+                  className={`shrink-0 py-1.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap active:scale-95 select-none ${
+                    isSelected
+                      ? `${badgeInfo.activeClasses} ring-2 ring-offset-1`
+                      : 'bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/80 shadow-2xs hover:border-slate-300'
+                  }`}
                 >
                   <span className="text-xs leading-none">{ch.icon}</span>
-                  <span className="text-[11px] font-extrabold tracking-tight">{ch.label}</span>
+                  <span className="text-[11px] font-extrabold tracking-tight">{ch.name}</span>
                   {presetPct > 0 && (
                     <span
-                      className={`text-[10px] font-black px-1.5 py-0.5 rounded-md leading-none ${isSelected
-                        ? 'bg-black/20 text-white'
-                        : 'bg-amber-100 text-amber-900 border border-amber-200'
-                        }`}
+                      className={`text-[10px] font-black px-1.5 py-0.5 rounded-md leading-none ${
+                        isSelected
+                          ? 'bg-black/20 text-white'
+                          : 'bg-amber-100 text-amber-900 border border-amber-200'
+                      }`}
                       title={`Cài sẵn chiết khấu ${presetPct}%`}
                     >
                       -{presetPct}%
@@ -419,6 +442,15 @@ export default function CartDrawer({
                 </button>
               );
             })}
+
+            <button
+              type="button"
+              onClick={() => setIsChannelModalOpen(true)}
+              title="Cài đặt kênh bán hàng"
+              className="shrink-0 p-1.5 rounded-xl text-slate-400 hover:text-purple-700 hover:bg-white border border-transparent hover:border-slate-200 transition cursor-pointer"
+            >
+              <Settings className="w-3.5 h-3.5" />
+            </button>
           </div>
 
           {/* Auto-Commission Badge & 1-Tap Toggle/Override (If delivery channel) */}
@@ -1167,6 +1199,16 @@ export default function CartDrawer({
           settings={settings}
         />
       )}
+
+      {/* Sales Channel Management Modal */}
+      <SalesChannelModal
+        isOpen={isChannelModalOpen}
+        onClose={() => setIsChannelModalOpen(false)}
+        channels={localChannelsList}
+        onChannelsUpdated={(updated) => {
+          setLocalChannelsList(updated);
+        }}
+      />
     </div>
   );
 }

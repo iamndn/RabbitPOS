@@ -36,6 +36,7 @@ var StoreSettingsKeys = map[string]bool{
 	"commission_shopeefood_pct":        true,
 	"commission_grabfood_pct":          true,
 	"commission_befood_pct":            true,
+	"sales_channels_config":             true,
 }
 
 const (

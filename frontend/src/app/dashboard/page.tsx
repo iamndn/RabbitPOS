@@ -42,6 +42,20 @@ import { fetchApi } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
 import { exportToCsv } from '@/lib/exportCsv';
 import { formatCurrency, SettingsMap } from '@/lib/utils';
+import { useToast } from '@/context/ToastContext';
+import { getChannelBadge, parseSalesChannels, SalesChannel } from '@/types/sales_channel';
+
+const CHANNEL_BAR_COLORS: Record<string, string> = {
+  purple: 'bg-purple-600',
+  indigo: 'bg-indigo-600',
+  orange: 'bg-orange-500',
+  emerald: 'bg-emerald-600',
+  amber: 'bg-amber-500',
+  rose: 'bg-rose-600',
+  sky: 'bg-sky-600',
+  teal: 'bg-teal-600',
+  slate: 'bg-slate-600',
+};
 import {
   RevenueAnalyticsResponse,
   ProfitAnalyticsResponse,
@@ -54,6 +68,7 @@ import { getAuthUser, isStaffRole } from '@/lib/auth';
 
 export default function DashboardPage() {
   const { t } = useTranslation();
+  const toast = useToast();
 
   // Active View Tab: 'overview' | 'revenue' | 'profit' (defaults to 'overview')
   const [activeTab, setActiveTab] = useState<'overview' | 'revenue' | 'profit'>('overview');
@@ -110,6 +125,25 @@ export default function DashboardPage() {
   const [settings, setSettings] = useState<SettingsMap | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
+  const dashboardChannels = useMemo(() => {
+    const configured = parseSalesChannels(settings?.sales_channels_config);
+    const list: SalesChannel[] = [...configured];
+    (revenueData?.revenue_by_channel || []).forEach((c) => {
+      if (!list.some((item) => item.id === c.sales_channel)) {
+        list.push({
+          id: c.sales_channel,
+          name: c.sales_channel,
+          icon: '🛵',
+          color: 'slate',
+          default_commission_pct: 0,
+          is_delivery_app: false,
+          is_active: true,
+        });
+      }
+    });
+    return list;
+  }, [settings?.sales_channels_config, revenueData?.revenue_by_channel]);
+
   // All Products Modal
   const [isRankingModalOpen, setIsRankingModalOpen] = useState<boolean>(false);
   const [rankingSortBy, setRankingSortBy] = useState<'revenue' | 'profit' | 'quantity' | 'margin'>('revenue');
@@ -117,7 +151,6 @@ export default function DashboardPage() {
   // Email Report Modal state
   const [showEmailModal, setShowEmailModal] = useState<boolean>(false);
   const [emailDate, setEmailDate] = useState<string>(() => getLocalDateStr());
-  const [emailToast, setEmailToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   // Hover Tooltip States for SVG Charts
   const [hoveredOverviewIndex, setHoveredOverviewIndex] = useState<number | null>(null);
@@ -238,19 +271,9 @@ export default function DashboardPage() {
           initialDate={emailDate}
           settings={settings}
           onSuccess={(msg) => {
-            setEmailToast({ type: 'success', message: msg });
-            setTimeout(() => setEmailToast(null), 5000);
+            toast.success(msg);
           }}
         />
-
-        {/* Toast Notification */}
-        {emailToast && (
-          <div className={`fixed top-4 right-4 z-[60] flex items-center gap-3 px-4 py-3 rounded-2xl shadow-2xl text-sm font-semibold transition-all ${
-            emailToast.type === 'success' ? 'bg-purple-600 text-white' : 'bg-red-600 text-white'
-          }`}>
-            {emailToast.message}
-          </div>
-        )}
 
         {/* Timeframe Selector Bar */}
         <div className="flex flex-col sm:flex-row gap-3 items-center justify-between bg-white p-3.5 rounded-2xl border border-slate-200 shadow-sm">
@@ -1406,31 +1429,27 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* 5 Channels Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3.5">
-                {[
-                  { key: 'dine_in', name: 'Tại quán', icon: '🏠', badgeBg: 'bg-indigo-50 text-indigo-700 border-indigo-200', barBg: 'bg-indigo-600' },
-                  { key: 'takeaway', name: 'Mang về', icon: '🛍️', badgeBg: 'bg-blue-50 text-blue-700 border-blue-200', barBg: 'bg-blue-600' },
-                  { key: 'shopeefood', name: 'ShopeeFood', icon: '🧡', badgeBg: 'bg-orange-50 text-orange-700 border-orange-200', barBg: 'bg-orange-500' },
-                  { key: 'grabfood', name: 'GrabFood', icon: '💚', badgeBg: 'bg-emerald-50 text-emerald-700 border-emerald-200', barBg: 'bg-emerald-600' },
-                  { key: 'befood', name: 'BeFood', icon: '💛', badgeBg: 'bg-amber-50 text-amber-800 border-amber-200', barBg: 'bg-amber-500' },
-                ].map((ch) => {
-                  const data = revenueData?.revenue_by_channel?.find((c) => c.sales_channel === ch.key);
+              {/* Dynamic Channels Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3.5">
+                {dashboardChannels.map((ch) => {
+                  const badge = getChannelBadge(ch.id, dashboardChannels);
+                  const data = revenueData?.revenue_by_channel?.find((c) => c.sales_channel === ch.id);
                   const orderCount = data?.order_count || 0;
                   const grossSales = data?.gross_sales || 0;
                   const platformFee = data?.platform_fee_discount || 0;
                   const netRevenue = data?.net_revenue || 0;
                   const percentage = data?.percentage || 0;
+                  const barBg = CHANNEL_BAR_COLORS[badge.colorDef.id] || 'bg-purple-600';
 
                   return (
                     <div
-                      key={ch.key}
+                      key={ch.id}
                       className="p-3.5 rounded-xl bg-slate-50/70 border border-slate-200 flex flex-col justify-between space-y-3 hover:bg-white hover:shadow-md transition duration-200"
                     >
                       <div className="flex items-center justify-between">
-                        <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-xs font-bold border ${ch.badgeBg}`}>
-                          <span>{ch.icon}</span>
-                          <span>{ch.name}</span>
+                        <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-xs font-bold border ${badge.badgeClasses}`}>
+                          <span>{badge.icon}</span>
+                          <span>{badge.name}</span>
                         </span>
                         <span className="text-[11px] font-bold text-slate-500">
                           {percentage.toFixed(1)}%
@@ -1448,7 +1467,7 @@ export default function DashboardPage() {
                       {/* Progress bar */}
                       <div className="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
                         <div
-                          className={`h-full ${ch.barBg} rounded-full transition-all duration-300`}
+                          className={`h-full ${barBg} rounded-full transition-all duration-300`}
                           style={{ width: `${Math.min(100, Math.max(0, percentage))}%` }}
                         />
                       </div>

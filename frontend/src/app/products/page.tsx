@@ -40,6 +40,7 @@ import TagManagerModal, {
   getTagBadgeStyle,
 } from '@/components/products/TagManagerModal';
 import ImageCropModal from '@/components/common/ImageCropModal';
+import QuickTagPicker from '@/components/products/QuickTagPicker';
 import AutoTaggingModal from '@/components/products/AutoTaggingModal';
 import CategoryManagerModal from '@/components/products/CategoryManagerModal';
 import ToppingManagerModal from '@/components/products/ToppingManagerModal';
@@ -316,6 +317,22 @@ export default function ProductsPage() {
     setIsProductModalOpen(true);
   };
 
+  const handleQuickTag = async (product: Product, tagId: string) => {
+    const prevTag = product.tag;
+    const prevLocked = product.tag_locked;
+    setProducts((prev) => prev.map((p) => (p.id === product.id ? { ...p, tag: tagId, tag_locked: true } : p)));
+    try {
+      const res = await fetchApi<Product>(`/products/${product.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ tag: tagId, tag_locked: true }),
+      });
+      if (res.status !== 'success') throw new Error(res.message);
+    } catch (err: any) {
+      setProducts((prev) => prev.map((p) => (p.id === product.id ? { ...p, tag: prevTag, tag_locked: prevLocked } : p)));
+      showAlert(t('common.error') || 'Lỗi', t('products.update_failed', { message: err?.message }), 'danger');
+    }
+  };
+
   const handleToggleProductStatus = async (product: Product) => {
     const nextStatus = product.is_active === false ? true : false;
     // Optimistic update
@@ -533,21 +550,22 @@ export default function ProductsPage() {
               className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold px-3.5 py-2.5 rounded-xl border border-indigo-200 flex items-center justify-center gap-1.5 transition cursor-pointer shadow-2xs w-full sm:w-auto"
             >
               <Tag className="w-4 h-4 text-indigo-600 shrink-0" />
-              <span className="truncate">Quản lý Nhãn</span>
+              <span className="truncate">Nhãn / Tags</span>
+              <span className="tabular-nums text-[10px] px-1.5 py-0.5 rounded-full bg-white/70 font-black">{allAvailableTags.length}</span>
             </button>
             <button
               onClick={() => setIsCategoryManagerOpen(true)}
               className="bg-purple-50 hover:bg-purple-100 text-purple-700 text-xs font-bold px-3.5 py-2.5 rounded-xl border border-purple-200 flex items-center justify-center gap-1.5 transition cursor-pointer shadow-2xs w-full sm:w-auto"
             >
               <FolderOpen className="w-4 h-4 text-purple-600 shrink-0" />
-              <span className="truncate">Quản lý Danh mục</span>
+              <span className="truncate">{`Danh mục (${safeCategories.length})`}</span>
             </button>
             <button
               onClick={() => setIsToppingManagerOpen(true)}
               className="bg-violet-50 hover:bg-violet-100 text-violet-700 text-xs font-bold px-3.5 py-2.5 rounded-xl border border-violet-200 flex items-center justify-center gap-1.5 transition cursor-pointer shadow-2xs w-full sm:w-auto"
             >
               <Layers className="w-4 h-4 text-violet-600 shrink-0" />
-              <span className="truncate">Quản lý Topping</span>
+              <span className="truncate">{`Topping (${safeToppings.length})`}</span>
             </button>
             <button
               onClick={() => setIsPromotionsModalOpen(true)}
@@ -563,6 +581,47 @@ export default function ProductsPage() {
               <Plus className="w-4 h-4 shrink-0" /> <span className="truncate">{t('products.add_product')}</span>
             </button>
           </div>
+        </div>
+
+        {/* Quick Tag Bar: filter products by tag, open tag manager */}
+        <div className="flex items-center gap-2 bg-white p-2.5 rounded-2xl border border-slate-200 shadow-sm">
+          <div className="flex items-center gap-1.5 overflow-x-auto flex-1 min-w-0 pb-0.5">
+            <button
+              type="button"
+              onClick={() => setSelectedTag('all')}
+              className={`shrink-0 text-[11px] font-bold px-2.5 py-1 rounded-lg border cursor-pointer transition active:scale-95 ${
+                selectedTag === 'all' ? 'bg-purple-900 text-white border-purple-900' : 'bg-white text-slate-700 border-slate-200 hover:bg-purple-50'
+              }`}
+            >
+              Tất cả
+            </button>
+            {allAvailableTags.map((tg) => {
+              const st = getTagBadgeStyle(tg.id, customTags);
+              const active = selectedTag === tg.id;
+              return (
+                <button
+                  key={tg.id}
+                  type="button"
+                  onClick={() => setSelectedTag(active ? 'all' : tg.id)}
+                  className={`shrink-0 text-[11px] font-bold px-2.5 py-1 rounded-lg border inline-flex items-center gap-1.5 cursor-pointer transition active:scale-95 ${
+                    active ? `ring-2 ring-purple-400/50 ${st.badgeClasses}` : 'bg-white text-slate-700 border-slate-200 hover:bg-purple-50'
+                  }`}
+                >
+                  <span>{st.icon}</span>
+                  <span>{st.name}</span>
+                  <span className="tabular-nums text-[10px] font-black opacity-80">{productCountsByTag[tg.id] || 0}</span>
+                </button>
+              );
+            })}
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsTagModalOpen(true)}
+            className="shrink-0 text-[11px] font-bold px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 inline-flex items-center gap-1.5 cursor-pointer transition"
+          >
+            <Tag className="w-3.5 h-3.5 text-purple-600" />
+            <span className="hidden sm:inline">Quản lý nhãn</span>
+          </button>
         </div>
 
         {/* Products Search Bar & Filter Button */}
@@ -942,20 +1001,7 @@ export default function ProductsPage() {
                             <div>
                               <div className="font-semibold text-slate-900 text-sm flex items-center gap-1.5">
                                 <span className={product.is_active === false ? 'line-through text-slate-500' : ''}>{product.name}</span>
-                                {product.tag && product.tag !== 'none' && (() => {
-                                  const style = getTagBadgeStyle(product.tag, customTags);
-                                  return (
-                                    <span className={`text-[10px] uppercase font-extrabold px-2 py-0.5 rounded-lg border inline-flex items-center gap-1 ${style.badgeClasses}`}>
-                                      <span>{style.icon}</span>
-                                      <span>{style.name}</span>
-                                      {product.tag_locked && (
-                                        <span title="Đã khóa nhãn thủ công">
-                                          <Lock className="w-2.5 h-2.5 text-amber-500" />
-                                        </span>
-                                      )}
-                                    </span>
-                                  );
-                                })()}
+                                <QuickTagPicker currentTag={product.tag} locked={product.tag_locked} tags={allAvailableTags} customTags={customTags} onSelect={(id) => handleQuickTag(product, id)} />
                                 {product.tag_locked && (!product.tag || product.tag === 'none') && (
                                   <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 inline-flex items-center gap-1 border border-slate-200" title="Khóa không gắn nhãn">
                                     <Lock className="w-2.5 h-2.5 text-amber-500" /> Khóa
@@ -1088,16 +1134,7 @@ export default function ProductsPage() {
                             <span className={`font-bold text-sm text-slate-900 ${product.is_active === false ? 'line-through text-slate-500' : ''}`}>
                               {product.name}
                             </span>
-                            {product.tag && product.tag !== 'none' && (() => {
-                              const style = getTagBadgeStyle(product.tag, customTags);
-                              return (
-                                <span className={`text-[10px] uppercase font-extrabold px-2 py-0.5 rounded-lg border inline-flex items-center gap-1 ${style.badgeClasses}`}>
-                                  <span>{style.icon}</span>
-                                  <span>{style.name}</span>
-                                  {product.tag_locked && <Lock className="w-2.5 h-2.5 text-amber-500" />}
-                                </span>
-                              );
-                            })()}
+                            <QuickTagPicker currentTag={product.tag} locked={product.tag_locked} tags={allAvailableTags} customTags={customTags} onSelect={(id) => handleQuickTag(product, id)} />
                             {product.tag_locked && (!product.tag || product.tag === 'none') && (
                               <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 inline-flex items-center gap-1 border border-slate-200">
                                 <Lock className="w-2.5 h-2.5 text-amber-500" />

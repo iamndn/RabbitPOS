@@ -195,6 +195,7 @@ export async function fetchApi<T>(
 
     // 3. Invalidate relevant caches on mutation methods (POST, PUT, DELETE)
     if (method !== 'GET' && data.status === 'success') {
+      if (endpoint.includes('/products')) clientCache.invalidate('products', activeStoreId);
       if (endpoint.includes('/categories')) clientCache.invalidate('categories', activeStoreId);
       if (endpoint.includes('/toppings')) clientCache.invalidate('toppings', activeStoreId);
       if (endpoint.includes('/settings')) clientCache.invalidate('settings', activeStoreId);

@@ -30,6 +30,7 @@ import { getAuthUser, isAuthenticated, isMasterRole, isOwnerRole, logout as auth
 import { useTranslation } from '@/lib/i18n/LanguageContext';
 import { useStore } from '@/lib/StoreContext';
 import StoreSwitcher from '@/components/StoreSwitcher';
+import { useExclusivePopover } from '@/components/common/useExclusivePopover';
 
 interface HealthData {
   app: string;
@@ -47,7 +48,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState<boolean>(false);
   const [health, setHealth] = useState<HealthData | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [isUserMenuOpen, setIsUserMenuOpen] = useState<boolean>(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useExclusivePopover('user-menu');
   const userMenuRef = useRef<HTMLDivElement>(null);
 
   const isMaster = isMasterRole(currentUser?.role) || isSuperAdmin;
@@ -138,9 +139,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   const allNavItems = [
     { label: t('nav.pos'), href: '/', icon: ShoppingCart, visible: true },
-    { label: t('nav.transactions'), href: '/transactions', icon: ArrowUpRight, visible: true },
     { label: t('nav.catalog'), href: '/products', icon: Package, visible: canManageStore },
     { label: t('nav.purchases'), href: '/purchases', icon: ShoppingBag, visible: canManageStore },
+    { label: t('nav.transactions'), href: '/transactions', icon: ArrowUpRight, visible: true },
     { label: t('nav.dashboard'), href: '/dashboard', icon: LayoutDashboard, visible: canManageStore },
     { label: t('nav.stores') || 'Cửa hàng', href: '/stores', icon: StoreIcon, visible: isSuperAdmin },
   ];
@@ -202,7 +203,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex items-center space-x-2 px-3 py-1.5 rounded-lg text-xs font-medium transition active:scale-95 ${
+                  prefetch={true}
+                  className={`flex items-center space-x-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors active:scale-95 ${
                     isActive
                       ? 'bg-white/20 text-white shadow-sm font-bold'
                       : 'text-purple-100 hover:bg-white/10 hover:text-white'
@@ -244,13 +246,16 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               <>
                 {/* Mobile backdrop for easy dismissal */}
                 <div
-                  className="fixed inset-0 z-50 bg-slate-900/40 sm:hidden animate-in fade-in-0 duration-150"
+                  className="fixed inset-0 z-[85] bg-slate-900/40 backdrop-blur-sm md:hidden animate-fadeIn"
                   onClick={() => setIsUserMenuOpen(false)}
                 />
-                <div className="fixed sm:absolute right-3 sm:right-0 top-14 sm:top-auto sm:mt-2 w-[calc(100vw-1.5rem)] sm:w-64 max-w-xs bg-white rounded-2xl shadow-2xl border border-slate-200 py-2 z-[100] text-slate-800 animate-in fade-in zoom-in-95 duration-150 hardware-accelerated">
+                <div className="fixed inset-x-0 bottom-0 z-[90] md:z-[80] md:inset-x-auto md:bottom-auto md:absolute md:right-0 md:top-full md:mt-2 w-full md:w-72 md:max-w-[calc(100vw-1.5rem)] max-h-[85dvh] md:max-h-[75vh] overflow-y-auto bg-white rounded-t-3xl md:rounded-2xl shadow-2xl border border-slate-200 py-2 pb-safe md:pb-2 text-slate-800 animate-slideUp md:animate-scaleIn">
+                  <div className="flex justify-center pt-1 pb-2 md:hidden">
+                    <div className="w-10 h-1 bg-slate-300 rounded-full" />
+                  </div>
                   {/* Header: User Profile Info */}
                   <div className="px-4 py-3 border-b border-slate-100 flex items-center space-x-3">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-600 to-purple-800 text-white font-black flex items-center justify-center text-sm shadow-md shadow-purple-100 shrink-0">
+                    <div className="w-10 h-10 rounded-xl bg-purple-800 text-white font-black flex items-center justify-center text-sm shadow-sm shrink-0">
                       {currentUser?.username ? currentUser.username.slice(0, 2).toUpperCase() : <User className="w-5 h-5" />}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -280,7 +285,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                         href="/stores"
                         onClick={() => setIsUserMenuOpen(false)}
                         className={`flex items-center space-x-3 px-4 py-2.5 text-xs font-semibold transition active:scale-95 ${
-                          pathname === '/stores' ? 'bg-purple-50 text-purple-700 font-bold' : 'text-slate-700 hover:bg-slate-50 hover:text-purple-700'
+                          pathname === '/stores' ? 'bg-purple-50 text-purple-700 font-bold' : 'text-slate-700 hover:bg-purple-50 hover:text-purple-700'
                         }`}
                       >
                         <StoreIcon className="w-4 h-4 text-purple-600" />
@@ -294,7 +299,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                         href="/users"
                         onClick={() => setIsUserMenuOpen(false)}
                         className={`flex items-center space-x-3 px-4 py-2.5 text-xs font-semibold transition active:scale-95 ${
-                          pathname === '/users' ? 'bg-purple-50 text-purple-700 font-bold' : 'text-slate-700 hover:bg-slate-50 hover:text-purple-700'
+                          pathname === '/users' ? 'bg-purple-50 text-purple-700 font-bold' : 'text-slate-700 hover:bg-purple-50 hover:text-purple-700'
                         }`}
                       >
                         <Users className="w-4 h-4 text-blue-600" />
@@ -308,7 +313,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                         href="/settings"
                         onClick={() => setIsUserMenuOpen(false)}
                         className={`flex items-center space-x-3 px-4 py-2.5 text-xs font-semibold transition active:scale-95 ${
-                          pathname === '/settings' ? 'bg-purple-50 text-purple-700 font-bold' : 'text-slate-700 hover:bg-slate-50 hover:text-purple-700'
+                          pathname === '/settings' ? 'bg-purple-50 text-purple-700 font-bold' : 'text-slate-700 hover:bg-purple-50 hover:text-purple-700'
                         }`}
                       >
                         <Settings className="w-4 h-4 text-slate-400" />
@@ -377,7 +382,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       </header>
 
       {/* Main Page Content Area — Wrapped in key={activeStore?.id ?? 'default'} (Decision D-8) so store switch remounts active page cleanly */}
-      <div className="flex-1 flex flex-col min-h-0 overflow-y-auto overflow-x-hidden px-2 py-2 sm:px-4 sm:py-4 md:px-6 md:py-6 2xl:px-8 3xl:px-10 pb-24 md:pb-6 w-full max-w-full">
+      <div className="flex-1 flex flex-col min-h-0 overflow-y-auto overflow-x-hidden [scrollbar-gutter:stable] px-2 py-2 sm:px-4 sm:py-4 md:px-6 md:py-6 2xl:px-8 3xl:px-10 pb-24 md:pb-6 w-full max-w-full">
         <div key={activeStore?.id ?? 'default'} className="flex-1 flex flex-col min-h-0 w-full max-w-full">
           {children}
         </div>
@@ -392,7 +397,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex flex-col items-center py-1.5 px-3 rounded-xl text-[10px] font-medium transition active:scale-90 ${
+              prefetch={true}
+              className={`flex flex-col items-center py-1.5 px-3 rounded-xl text-[10px] font-medium transition-colors active:scale-95 ${
                 isActive
                   ? 'text-purple-800 font-bold bg-purple-50/80 shadow-xs'
                   : 'text-slate-500 hover:text-slate-800'
