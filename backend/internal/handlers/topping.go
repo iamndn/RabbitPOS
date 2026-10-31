@@ -54,11 +54,15 @@ func (h *ToppingHandler) ListToppings(c *gin.Context) {
 			models.SendError(c, http.StatusBadRequest, "Invalid category_id parameter")
 			return
 		}
-		query = query.Where("category_id IS NULL OR category_id = ?", catID)
+		query = database.ToppingAvailableForCategoryScope(query, uint(catID))
 	}
 
 	if err := query.Order("display_order asc, id asc").Find(&toppings).Error; err != nil {
 		models.SendInternalErrorLogged(c, "Failed to retrieve toppings", err)
+		return
+	}
+	if err := database.FillToppingCategoryIDs(h.db, toppings); err != nil {
+		models.SendInternalErrorLogged(c, "Failed to load topping categories", err)
 		return
 	}
 
@@ -89,6 +93,10 @@ func (h *ToppingHandler) ListAllToppings(c *gin.Context) {
 		models.SendInternalErrorLogged(c, "Failed to retrieve toppings", err)
 		return
 	}
+	if err := database.FillToppingCategoryIDs(h.db, toppings); err != nil {
+		models.SendInternalErrorLogged(c, "Failed to load topping categories", err)
+		return
+	}
 
 	if h.cache != nil {
 		h.cache.SetWithTTL(cacheKey, toppings, 5*time.Minute)
@@ -110,8 +118,9 @@ func (h *ToppingHandler) CreateTopping(c *gin.Context) {
 		return
 	}
 
-	if req.CategoryID != nil {
-		if err := database.AssertOwned(h.db, &models.Category{}, *req.CategoryID, storeID); err != nil {
+	categoryIDs := models.ResolveCategoryIDs(req.CategoryIDs, req.CategoryID)
+	if len(categoryIDs) > 0 {
+		if err := database.AssertOwnedIDs(h.db, &models.Category{}, categoryIDs, storeID); err != nil {
 			models.SendErrorCode(c, http.StatusBadRequest, "VALIDATION_ERROR", "Category does not belong to active store")
 			return
 		}
@@ -127,14 +136,29 @@ func (h *ToppingHandler) CreateTopping(c *gin.Context) {
 		Name:         req.Name,
 		Price:        req.Price,
 		COGS:         req.COGS,
-		CategoryID:   req.CategoryID,
 		DisplayOrder: req.DisplayOrder,
 		IsActive:     isActive,
 	}
 
-	if err := h.db.Create(&topping).Error; err != nil {
+	err := h.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Create(&topping).Error; err != nil {
+			return err
+		}
+		return database.SyncToppingCategories(tx, topping.ID, categoryIDs)
+	})
+	if err != nil {
 		models.SendInternalErrorLogged(c, "Failed to create topping", err)
 		return
+	}
+	topping.CategoryIDs = categoryIDs
+	if len(categoryIDs) > 0 {
+		first := categoryIDs[0]
+		for _, id := range categoryIDs {
+			if id < first {
+				first = id
+			}
+		}
+		topping.CategoryID = &first
 	}
 
 	if h.cache != nil {
@@ -174,8 +198,9 @@ func (h *ToppingHandler) UpdateTopping(c *gin.Context) {
 		return
 	}
 
-	if req.CategoryID != nil {
-		if err := database.AssertOwned(h.db, &models.Category{}, *req.CategoryID, storeID); err != nil {
+	categoryIDs := models.ResolveCategoryIDs(req.CategoryIDs, req.CategoryID)
+	if len(categoryIDs) > 0 {
+		if err := database.AssertOwnedIDs(h.db, &models.Category{}, categoryIDs, storeID); err != nil {
 			models.SendErrorCode(c, http.StatusBadRequest, "VALIDATION_ERROR", "Category does not belong to active store")
 			return
 		}
@@ -186,7 +211,6 @@ func (h *ToppingHandler) UpdateTopping(c *gin.Context) {
 	}
 	topping.Price = req.Price
 	topping.COGS = req.COGS
-	topping.CategoryID = req.CategoryID
 	if req.DisplayOrder != nil {
 		topping.DisplayOrder = *req.DisplayOrder
 	}
@@ -194,9 +218,26 @@ func (h *ToppingHandler) UpdateTopping(c *gin.Context) {
 		topping.IsActive = *req.IsActive
 	}
 
-	if err := h.db.Save(&topping).Error; err != nil {
+	err = h.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Omit("CategoryID", "Category").Save(&topping).Error; err != nil {
+			return err
+		}
+		return database.SyncToppingCategories(tx, topping.ID, categoryIDs)
+	})
+	if err != nil {
 		models.SendInternalErrorLogged(c, "Failed to update topping", err)
 		return
+	}
+	topping.CategoryIDs = categoryIDs
+	topping.CategoryID = nil
+	if len(categoryIDs) > 0 {
+		first := categoryIDs[0]
+		for _, id := range categoryIDs {
+			if id < first {
+				first = id
+			}
+		}
+		topping.CategoryID = &first
 	}
 
 	if h.cache != nil {
@@ -230,7 +271,13 @@ func (h *ToppingHandler) DeleteTopping(c *gin.Context) {
 		return
 	}
 
-	if err := h.db.Delete(&topping).Error; err != nil {
+	err = h.db.Transaction(func(tx *gorm.DB) error {
+		if err := database.DeleteToppingCategories(tx, topping.ID); err != nil {
+			return err
+		}
+		return tx.Delete(&topping).Error
+	})
+	if err != nil {
 		models.SendInternalErrorLogged(c, "Failed to delete topping", err)
 		return
 	}

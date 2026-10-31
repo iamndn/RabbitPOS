@@ -172,13 +172,20 @@ func (h *CategoryHandler) DeleteCategory(c *gin.Context) {
 		return
 	}
 
-	if err := h.db.Delete(&category).Error; err != nil {
+	err = h.db.Transaction(func(tx *gorm.DB) error {
+		if err := database.DetachCategoryFromToppings(tx, storeID, category.ID); err != nil {
+			return err
+		}
+		return tx.Delete(&category).Error
+	})
+	if err != nil {
 		models.SendInternalErrorLogged(c, "Failed to delete category", err)
 		return
 	}
 
 	if h.cache != nil {
 		h.cache.Invalidate(categoryCacheKey(storeID))
+		h.cache.InvalidatePrefix(toppingCachePrefix(storeID))
 	}
 
 	models.SendSuccess(c, http.StatusOK, nil, "Category deleted successfully")

@@ -38,6 +38,7 @@ import {
   Search,
   Printer,
   FileSpreadsheet,
+  Package,
 } from 'lucide-react';
 import AppShell from '@/components/AppShell';
 import TransactionCategoryModal from '@/components/transactions/TransactionCategoryModal';
@@ -61,6 +62,7 @@ import { CartItem, ProductVariant, Product } from '@/components/pos/VariantSelec
 import { CategoryBreakdownResponse, FundsPeriodSummaryResponse } from '@/types/analytics';
 import { TransactionCategory } from '@/types/transaction_category';
 import { PurchaseItem } from '@/types/purchase';
+import PurchaseVoucher from '@/components/transactions/PurchaseVoucher';
 
 function orderApiToReceiptData(order: OrderApi, products: Product[], funds: Fund[]): CompletedOrderData {
   const fundName = order.fund?.name || funds.find((f) => f.id === order.fund_id)?.name || 'Tiền mặt';
@@ -380,6 +382,9 @@ export default function TransactionsPage() {
       } else if (tabParam === 'orders') {
         setActiveTab('orders');
       }
+      if (params.get('type') === 'purchase') {
+        setSelectedType('purchase');
+      }
       const fundIdParam = params.get('fund_id');
       if (fundIdParam) {
         const parsed = parseInt(fundIdParam, 10);
@@ -448,6 +453,15 @@ export default function TransactionsPage() {
 
   // Modal State: Manual Expense / Inflow / Edit
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState<boolean>(false);
+  const [isPurchaseModalMode, setIsPurchaseModalMode] = useState<boolean>(false);
+  const [expandedTxIds, setExpandedTxIds] = useState<Set<number>>(new Set());
+  const toggleTxExpanded = (id: number) =>
+    setExpandedTxIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [modalFundId, setModalFundId] = useState<number>(0);
   const [modalType, setModalType] = useState<'inflow' | 'outflow'>('outflow');
@@ -817,7 +831,12 @@ export default function TransactionsPage() {
     loadData();
   }, []);
 
-  const handleOpenCreateModal = () => {
+  const handleOpenPurchaseModal = () => {
+    handleOpenCreateModal(true);
+  };
+
+  const handleOpenCreateModal = (purchaseMode: boolean = false) => {
+    setIsPurchaseModalMode(purchaseMode);
     setEditingTransaction(null);
     setModalType('outflow');
     if (funds.length > 0) setModalFundId(funds[0].id);
@@ -830,6 +849,7 @@ export default function TransactionsPage() {
   };
 
   const handleOpenEditModal = (tx: Transaction) => {
+    setIsPurchaseModalMode(false);
     setEditingTransaction(tx);
     setModalType(tx.transaction_type);
     setModalFundId(tx.fund_id);
@@ -1098,7 +1118,10 @@ export default function TransactionsPage() {
 
   const filteredTransactions = safeTransactions.filter((tx) => {
     const matchesFund = selectedFundId ? tx.fund_id === selectedFundId : true;
-    const matchesType = selectedType !== 'all' ? tx.transaction_type === selectedType : true;
+    const matchesType =
+      selectedType === 'all' ? true
+      : selectedType === 'purchase' ? (tx.purchase_items?.length ?? 0) > 0
+      : tx.transaction_type === selectedType;
     const matchesCat = selectedCategory !== 'all' ? matchTransactionCategory(tx.category, selectedCategory, txCategories) : true;
     const txDate = toLocalDateStr(tx.created_at);
     const matchesDate = (!customFrom || txDate >= customFrom) && (!customTo || txDate <= customTo);
@@ -1228,7 +1251,14 @@ export default function TransactionsPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={handleOpenCreateModal}
+                  onClick={handleOpenPurchaseModal}
+                  className="bg-purple-50 hover:bg-purple-100 text-purple-800 text-xs font-bold px-3 py-2 rounded-xl border border-purple-200 flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer w-full sm:w-auto shadow-2xs"
+                >
+                  <Package className="w-3.5 h-3.5 text-purple-600 shrink-0" aria-hidden="true" /> <span className="truncate">{t('tx.btn_purchase_ingredients')}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleOpenCreateModal()}
                   className="col-span-2 sm:col-span-1 bg-purple-700 hover:bg-purple-800 text-white text-xs font-black px-3.5 py-2 rounded-xl flex items-center justify-center gap-1.5 shadow-xs transition active:scale-95 cursor-pointer w-full sm:w-auto"
                 >
                   <Plus className="w-3.5 h-3.5 shrink-0" /> <span className="truncate">{t('tx.add_expense')}</span>
@@ -1341,7 +1371,7 @@ export default function TransactionsPage() {
           <div className="space-y-4 sm:space-y-6">
             {/* Active Fund Filter Banner if filtered by a specific fund */}
             {selectedFundId !== null && (
-              <div className="bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200/80 p-3 sm:p-3.5 rounded-2xl flex items-center justify-between gap-3 text-xs shadow-xs">
+              <div className="bg-slate-50 border border-slate-200 p-3 sm:p-3.5 rounded-2xl flex items-center justify-between gap-3 text-xs shadow-xs">
                 <div className="flex items-center gap-2 text-indigo-950 font-bold">
                   <Wallet className="w-4 h-4 text-indigo-600 shrink-0" />
                   <span>
@@ -1363,7 +1393,7 @@ export default function TransactionsPage() {
               <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
                 <div>
                   <span className="text-xs font-semibold text-slate-500">{t('tx.inflows')}</span>
-                  <div className="text-2xl font-extrabold text-purple-600 mt-1">{formatCurrency(totalInflow, settings)}</div>
+                  <div className="text-2xl font-extrabold text-emerald-700 mt-1">{formatCurrency(totalInflow, settings)}</div>
                 </div>
                 <div className="p-3 rounded-2xl bg-purple-50 text-purple-600 border border-purple-100">
                   <ArrowDownLeft className="w-6 h-6" />
@@ -1383,7 +1413,7 @@ export default function TransactionsPage() {
               <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
                 <div>
                   <span className="text-xs font-semibold text-slate-500">{t('tx.net_cash_flow')}</span>
-                  <div className={`text-2xl font-extrabold mt-1 ${netCashFlow >= 0 ? 'text-indigo-600' : 'text-rose-600'}`}>
+                  <div className={`text-2xl font-extrabold mt-1 ${netCashFlow >= 0 ? 'text-emerald-700' : 'text-rose-600'}`}>
                     {formatCurrency(netCashFlow, settings)}
                   </div>
                 </div>
@@ -1591,7 +1621,7 @@ export default function TransactionsPage() {
                 )}
                 {selectedType !== 'all' && (
                   <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-purple-50 text-purple-800 border border-purple-200 rounded-lg font-bold">
-                    <span>Loại: {selectedType === 'inflow' ? 'Khoản thu (+)' : 'Khoản chi (-)'}</span>
+                    <span>{t('tx.filter_type_label')}: {selectedType === 'inflow' ? t('tx.type_inflow') : selectedType === 'purchase' ? t('tx.filter_purchase_voucher') : t('tx.type_outflow')}</span>
                     <button type="button" onClick={() => setSelectedType('all')} className="hover:text-purple-950">
                       <X className="w-3 h-3" />
                     </button>
@@ -1735,6 +1765,18 @@ export default function TransactionsPage() {
                           <span className="w-2 h-2 rounded-full bg-rose-400" />
                           <span>{t('tx.type_outflow') || 'Khoản chi (-)'}</span>
                           <span className="text-[10px] opacity-85">({safeTransactions.filter((tx) => tx.transaction_type === 'outflow').length})</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedType('purchase')}
+                          className={`px-3.5 py-2 rounded-xl font-bold transition whitespace-nowrap cursor-pointer flex items-center gap-1 shadow-2xs ${selectedType === 'purchase'
+                              ? 'bg-purple-800 text-white shadow-xs'
+                              : 'bg-white text-purple-800 hover:bg-purple-50 border border-purple-200'
+                            }`}
+                        >
+                          <Package className="w-3.5 h-3.5" aria-hidden="true" />
+                          <span>{t('tx.filter_purchase_voucher')}</span>
+                          <span className="text-[10px] opacity-85">({safeTransactions.filter((tx) => (tx.purchase_items?.length ?? 0) > 0).length})</span>
                         </button>
                       </div>
                     </div>
@@ -1906,17 +1948,13 @@ export default function TransactionsPage() {
                                 </div>
                               )}
                               {tx.purchase_items && tx.purchase_items.length > 0 && (
-                                <div className="mt-1 flex flex-wrap gap-1">
-                                  {tx.purchase_items.map((pi, pidx) => (
-                                    <span
-                                      key={pidx}
-                                      className="inline-flex items-center text-[10px] font-semibold bg-purple-50 text-purple-800 border border-purple-200 px-1.5 py-0.5 rounded-md"
-                                    >
-                                      📦 {pi.ingredient?.name || pi.ingredient_name}: {pi.quantity} {pi.unit || pi.ingredient?.unit} @ {formatCurrency(pi.unit_price, settings)}
-                                    </span>
-                                  ))}
-                                </div>
-                              )}
+                              <PurchaseVoucher
+                                items={tx.purchase_items}
+                                settings={settings}
+                                expanded={expandedTxIds.has(tx.id)}
+                                onToggle={() => toggleTxExpanded(tx.id)}
+                              />
+                            )}
                             </td>
                             <td className={`py-3 px-4 text-right font-extrabold text-sm ${isInflow ? 'text-purple-600' : 'text-rose-600'}`}>
                               {isInflow ? '+' : '-'}{formatCurrency(tx.amount, settings)}
@@ -2040,16 +2078,12 @@ export default function TransactionsPage() {
                               </div>
                             )}
                             {tx.purchase_items && tx.purchase_items.length > 0 && (
-                              <div className="mt-1 flex flex-wrap gap-1">
-                                {tx.purchase_items.map((pi, pidx) => (
-                                  <span
-                                    key={pidx}
-                                    className="inline-flex items-center text-[10px] font-semibold bg-purple-50 text-purple-800 border border-purple-200 px-1.5 py-0.5 rounded-md"
-                                  >
-                                    📦 {pi.ingredient?.name || pi.ingredient_name}: {pi.quantity} {pi.unit || pi.ingredient?.unit} @ {formatCurrency(pi.unit_price, settings)}
-                                  </span>
-                                ))}
-                              </div>
+                              <PurchaseVoucher
+                                items={tx.purchase_items}
+                                settings={settings}
+                                expanded={expandedTxIds.has(tx.id)}
+                                onToggle={() => toggleTxExpanded(tx.id)}
+                              />
                             )}
                           </div>
                         )}
@@ -3124,6 +3158,7 @@ export default function TransactionsPage() {
         }}
         funds={safeFunds}
         txCategories={txCategories}
+        defaultPurchaseMode={isPurchaseModalMode}
         initialData={
           editingTransaction
             ? {

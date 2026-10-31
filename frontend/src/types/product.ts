@@ -35,6 +35,7 @@ export interface Topping {
   price: number;
   cogs: number;
   category_id: number | null;
+  category_ids?: number[];
   display_order?: number;
   is_active: boolean;
 }

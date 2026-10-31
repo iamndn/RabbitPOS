@@ -52,7 +52,7 @@ export default function ToppingManagerModal({
   const [toppingName, setToppingName] = useState('');
   const [toppingPrice, setToppingPrice] = useState<number>(0);
   const [toppingCogs, setToppingCogs] = useState<number>(0);
-  const [toppingCategoryId, setToppingCategoryId] = useState<number | null>(null);
+  const [toppingCategoryIds, setToppingCategoryIds] = useState<number[]>([]);
   const [toppingIsActive, setToppingIsActive] = useState<boolean>(true);
   const [saving, setSaving] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string>('');
@@ -68,7 +68,7 @@ export default function ToppingManagerModal({
     setToppingName('');
     setToppingPrice(0);
     setToppingCogs(0);
-    setToppingCategoryId(null);
+    setToppingCategoryIds([]);
     setToppingIsActive(true);
     setErrorMsg('');
     setShowForm(false);
@@ -79,7 +79,7 @@ export default function ToppingManagerModal({
     setToppingName('');
     setToppingPrice(0);
     setToppingCogs(0);
-    setToppingCategoryId(null);
+    setToppingCategoryIds([]);
     setToppingIsActive(true);
     setErrorMsg('');
     setShowForm(true);
@@ -90,7 +90,10 @@ export default function ToppingManagerModal({
     setToppingName(tp.name);
     setToppingPrice(Number(tp.price) || 0);
     setToppingCogs(Number(tp.cogs) || 0);
-    setToppingCategoryId(tp.category_id || null);
+    const initialCatIds = (tp.category_ids && tp.category_ids.length > 0)
+      ? tp.category_ids
+      : (tp.category_id ? [tp.category_id] : []);
+    setToppingCategoryIds(initialCatIds);
     setToppingIsActive(tp.is_active !== false);
     setErrorMsg('');
     setShowForm(true);
@@ -110,7 +113,8 @@ export default function ToppingManagerModal({
         name: toppingName.trim(),
         price: Number(toppingPrice) || 0,
         cogs: Number(toppingCogs) || 0,
-        category_id: toppingCategoryId,
+        category_ids: toppingCategoryIds,
+        category_id: toppingCategoryIds.length > 0 ? toppingCategoryIds[0] : null,
         is_active: toppingIsActive,
       };
 
@@ -153,6 +157,7 @@ export default function ToppingManagerModal({
           name: tp.name,
           price: Number(tp.price),
           cogs: Number(tp.cogs) || 0,
+          category_ids: (tp.category_ids && tp.category_ids.length > 0) ? tp.category_ids : (tp.category_id ? [tp.category_id] : []),
           category_id: tp.category_id,
           is_active: newStatus,
         }),
@@ -262,10 +267,14 @@ export default function ToppingManagerModal({
     const matchesSearch = tp.name.toLowerCase().includes(searchQuery.toLowerCase().trim());
     if (!matchesSearch) return false;
 
+    const tpCatIds = (tp.category_ids && tp.category_ids.length > 0)
+      ? tp.category_ids
+      : (tp.category_id ? [tp.category_id] : []);
+
     if (selectedCatFilter === 'global') {
-      return tp.category_id === null;
+      return tpCatIds.length === 0;
     } else if (selectedCatFilter !== 'all') {
-      return tp.category_id === Number(selectedCatFilter);
+      return tpCatIds.includes(Number(selectedCatFilter));
     }
     return true;
   });
@@ -276,13 +285,13 @@ export default function ToppingManagerModal({
         {/* Header */}
         <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-100 shrink-0 bg-slate-50/50">
           <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 pr-2">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-violet-50 text-violet-600 flex items-center justify-center font-bold shadow-2xs shrink-0">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold shadow-2xs shrink-0">
               <Layers className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-1.5 flex-wrap">
                 <h3 className="font-extrabold text-slate-900 text-sm sm:text-base truncate">Quản Lý Topping &amp; Món Thêm</h3>
-                <span className="bg-violet-100 text-violet-700 text-[11px] px-2 py-0.2 rounded-full font-black">
+                <span className="bg-emerald-100 text-emerald-700 text-[11px] px-2 py-0.2 rounded-full font-black">
                   {toppings.length}
                 </span>
               </div>
@@ -341,7 +350,7 @@ export default function ToppingManagerModal({
               <button
                 type="button"
                 onClick={handleStartCreate}
-                className="flex items-center justify-center gap-1.5 px-4 py-2 bg-violet-600 hover:bg-violet-700 active:scale-95 text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer shrink-0 w-full sm:w-auto"
+                className="flex items-center justify-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer shrink-0 w-full sm:w-auto"
               >
                 <Plus className="w-4 h-4" />
                 <span>Thêm Topping</span>
@@ -353,11 +362,11 @@ export default function ToppingManagerModal({
           {showForm && (
             <form
               onSubmit={handleSaveForm}
-              className="bg-violet-50/40 p-3.5 sm:p-5 rounded-2xl border border-violet-200/80 space-y-3.5 sm:space-y-4 animate-fade-in"
+              className="bg-emerald-50/40 p-3.5 sm:p-5 rounded-2xl border border-emerald-200/80 space-y-3.5 sm:space-y-4 animate-fade-in"
             >
               <div className="flex items-center justify-between">
-                <h4 className="text-xs font-black uppercase text-violet-800 flex items-center gap-1.5">
-                  <Layers className="w-4 h-4 text-violet-600" />
+                <h4 className="text-xs font-black uppercase text-emerald-800 flex items-center gap-1.5">
+                  <Layers className="w-4 h-4 text-emerald-600" />
                   <span>{editingTopping ? `Sửa topping: ${editingTopping.name}` : 'Thêm topping mới'}</span>
                 </h4>
                 <button
@@ -387,7 +396,7 @@ export default function ToppingManagerModal({
                     placeholder="VD: Trân châu đường đen, Thạch đào, Kem phô mai..."
                     value={toppingName}
                     onChange={(e) => setToppingName(e.target.value)}
-                    className="w-full text-xs font-bold px-3 py-2 bg-white text-slate-900 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500 shadow-2xs"
+                    className="w-full text-xs font-bold px-3 py-2 bg-white text-slate-900 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-2xs"
                   />
                 </div>
 
@@ -404,7 +413,7 @@ export default function ToppingManagerModal({
                       setToppingPrice(raw === '' ? 0 : parseInt(raw, 10));
                     }}
                     placeholder="VD: 5000, 10000..."
-                    className="w-full text-xs font-bold px-3 py-2 bg-white text-slate-900 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500 shadow-2xs"
+                    className="w-full text-xs font-bold px-3 py-2 bg-white text-slate-900 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-2xs"
                   />
                 </div>
 
@@ -421,35 +430,88 @@ export default function ToppingManagerModal({
                       setToppingCogs(raw === '' ? 0 : parseInt(raw, 10));
                     }}
                     placeholder="VD: 2000..."
-                    className="w-full text-xs font-bold px-3 py-2 bg-white text-slate-900 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500 shadow-2xs"
+                    className="w-full text-xs font-bold px-3 py-2 bg-white text-slate-900 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-2xs"
                   />
                 </div>
 
-                <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">
-                    Áp dụng cho nhóm
-                  </label>
-                  <ModernSelect
-                    value={toppingCategoryId ?? ''}
-                    placeholder="Toàn cục (Mọi món)"
-                    clearable={true}
-                    onChange={(val) =>
-                      setToppingCategoryId(val === '' || val === null ? null : Number(val))
-                    }
-                    options={[
-                      { value: '', label: 'Toàn cục (Dùng chung)', badge: 'Global', badgeColor: 'indigo' },
-                      ...categories.map((cat) => ({
-                        value: cat.id,
-                        label: cat.name,
-                        icon: <FolderOpen className="w-3.5 h-3.5 text-slate-400" />,
-                      })),
-                    ]}
-                  />
+                <div className="sm:col-span-3 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                      <FolderOpen className="w-3.5 h-3.5 text-slate-400" />
+                      <span>Áp dụng cho danh mục ({toppingCategoryIds.length === 0 ? 'Toàn cục / Mọi món' : `${toppingCategoryIds.length} danh mục`})</span>
+                    </label>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setToppingCategoryIds([])}
+                        className={`text-[11px] font-bold px-2 py-0.5 rounded-lg transition cursor-pointer ${
+                          toppingCategoryIds.length === 0
+                            ? 'bg-emerald-600 text-white shadow-2xs'
+                            : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                        }`}
+                      >
+                        🌐 Tất cả (Toàn cục)
+                      </button>
+                      {toppingCategoryIds.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setToppingCategoryIds([])}
+                          className="text-[11px] text-rose-600 hover:underline cursor-pointer"
+                        >
+                          Bỏ chọn
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="p-2.5 bg-white border border-slate-200 rounded-xl max-h-36 overflow-y-auto space-y-1 shadow-2xs">
+                    <div className="flex flex-wrap gap-1.5">
+                      {categories.map((cat) => {
+                        const isChecked = toppingCategoryIds.includes(cat.id);
+                        return (
+                          <button
+                            key={cat.id}
+                            type="button"
+                            onClick={() => {
+                              if (isChecked) {
+                                setToppingCategoryIds(toppingCategoryIds.filter((id) => id !== cat.id));
+                              } else {
+                                setToppingCategoryIds([...toppingCategoryIds, cat.id]);
+                              }
+                            }}
+                            className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer ${
+                              isChecked
+                                ? 'bg-emerald-600 text-white shadow-2xs font-bold'
+                                : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200'
+                            }`}
+                          >
+                            <span className={`w-3.5 h-3.5 rounded flex items-center justify-center text-[9px] font-black ${
+                              isChecked ? 'bg-white text-emerald-700' : 'border border-slate-300 bg-white'
+                            }`}>
+                              {isChecked ? '✓' : ''}
+                            </span>
+                            <span>{cat.name}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <p className="text-[11px] text-slate-500">
+                    {toppingCategoryIds.length === 0 ? (
+                      <span className="text-emerald-700 font-medium">
+                        ✓ Topping sẽ xuất hiện ở tất cả các món đồ uống thuộc mọi danh mục.
+                      </span>
+                    ) : (
+                      <span>
+                        Chỉ xuất hiện khi gọi các món thuộc: <strong className="text-slate-800">{categories.filter(c => toppingCategoryIds.includes(c.id)).map(c => c.name).join(', ')}</strong>.
+                      </span>
+                    )}
+                  </p>
                 </div>
               </div>
 
               {/* Status Switch */}
-              <div className="flex items-center justify-between p-3 bg-white rounded-xl border border-violet-200/80 shadow-2xs">
+              <div className="flex items-center justify-between p-3 bg-white rounded-xl border border-emerald-200/80 shadow-2xs">
                 <div>
                   <span className="text-xs font-bold text-slate-800 block">Trạng thái bán</span>
                   <span className="text-[11px] text-slate-500">
@@ -461,8 +523,8 @@ export default function ToppingManagerModal({
                   role="switch"
                   aria-checked={toppingIsActive}
                   onClick={() => setToppingIsActive(!toppingIsActive)}
-                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-violet-500 ${
-                    toppingIsActive ? 'bg-violet-600' : 'bg-slate-300'
+                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-emerald-500 ${
+                    toppingIsActive ? 'bg-emerald-600' : 'bg-slate-300'
                   }`}
                 >
                   <span
@@ -475,7 +537,7 @@ export default function ToppingManagerModal({
               </div>
 
               {/* Form Buttons (Balanced on mobile) */}
-              <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:justify-end pt-2 border-t border-violet-200/60">
+              <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:justify-end pt-2 border-t border-emerald-200/60">
                 <button
                   type="button"
                   onClick={resetForm}
@@ -486,7 +548,7 @@ export default function ToppingManagerModal({
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-4 py-2 text-xs font-bold text-white bg-violet-600 hover:bg-violet-700 rounded-xl shadow-xs transition cursor-pointer disabled:opacity-50 text-center justify-center flex items-center"
+                  className="px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-xs transition cursor-pointer disabled:opacity-50 text-center justify-center flex items-center"
                 >
                   {saving ? 'Đang lưu...' : editingTopping ? 'Lưu Thay Đổi' : 'Tạo Topping'}
                 </button>
@@ -517,7 +579,10 @@ export default function ToppingManagerModal({
                 {/* 1. Mobile Cards View (sm:hidden) */}
                 <div className="block sm:hidden space-y-2.5">
                   {filteredToppings.map((tp, idx) => {
-                    const linkedCat = categories.find((c) => c.id === tp.category_id);
+                    const tpCatIds = (tp.category_ids && tp.category_ids.length > 0)
+                      ? tp.category_ids
+                      : (tp.category_id ? [tp.category_id] : []);
+                    const linkedCats = categories.filter((c) => tpCatIds.includes(c.id));
                     const isEditing = editingTopping?.id === tp.id;
                     const isDragging = draggedIndex === idx;
                     const isDragOver = dragOverIndex === idx && draggedIndex !== idx;
@@ -532,11 +597,11 @@ export default function ToppingManagerModal({
                         onDrop={(e) => handleDrop(e, idx)}
                         className={`p-3 rounded-2xl border transition-all space-y-2.5 cursor-move select-none ${
                           isDragging
-                            ? 'opacity-40 scale-95 border-dashed border-violet-400 bg-violet-50/40'
+                            ? 'opacity-40 scale-95 border-dashed border-emerald-400 bg-emerald-50/40'
                             : isDragOver
-                            ? 'border-violet-500 ring-2 ring-violet-500/20 bg-violet-50/20'
+                            ? 'border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-50/20'
                             : isEditing
-                            ? 'bg-violet-50 border-violet-300 ring-2 ring-violet-500/20'
+                            ? 'bg-emerald-50 border-emerald-300 ring-2 ring-emerald-500/20'
                             : 'bg-white border-slate-200 shadow-2xs'
                         }`}
                       >
@@ -573,7 +638,7 @@ export default function ToppingManagerModal({
                         {/* Mid Info: Prices + Scope */}
                         <div className="flex items-center justify-between bg-slate-50 p-2 rounded-xl text-xs">
                           <div className="flex items-center gap-2">
-                            <span className="font-black text-violet-700 text-xs">
+                            <span className="font-black text-emerald-700 text-xs">
                               {formatPrice(tp.price)}
                             </span>
                             <span className="text-[10px] text-slate-400">
@@ -592,15 +657,26 @@ export default function ToppingManagerModal({
                           </div>
 
                           <div>
-                            {linkedCat ? (
+                            {linkedCats.length === 0 ? (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                                🌐 Toàn cục
+                              </span>
+                            ) : linkedCats.length === 1 ? (
                               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold bg-white text-slate-700 border border-slate-200">
-                                <FolderOpen className="w-3 h-3 text-slate-400" />
-                                {linkedCat.name}
+                                <FolderOpen className="w-3 h-3 text-emerald-600" />
+                                {linkedCats[0].name}
                               </span>
                             ) : (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
-                                Tất cả danh mục
-                              </span>
+                              <div className="flex flex-wrap gap-1">
+                                {linkedCats.map((c) => (
+                                  <span
+                                    key={c.id}
+                                    className="inline-flex items-center text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200"
+                                  >
+                                    {c.name}
+                                  </span>
+                                ))}
+                              </div>
                             )}
                           </div>
                         </div>
@@ -613,7 +689,7 @@ export default function ToppingManagerModal({
                               e.stopPropagation();
                               handleStartEdit(tp);
                             }}
-                            className="px-3 py-1 text-xs font-bold text-violet-700 bg-violet-50 hover:bg-violet-100 rounded-lg transition flex items-center gap-1 cursor-pointer"
+                            className="px-3 py-1 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition flex items-center gap-1 cursor-pointer"
                           >
                             <Edit2 className="w-3.5 h-3.5" />
                             <span>Sửa</span>
@@ -652,7 +728,10 @@ export default function ToppingManagerModal({
                     </thead>
                     <tbody className="divide-y divide-slate-100 bg-white">
                       {filteredToppings.map((tp, idx) => {
-                        const linkedCat = categories.find((c) => c.id === tp.category_id);
+                        const tpCatIds = (tp.category_ids && tp.category_ids.length > 0)
+                      ? tp.category_ids
+                      : (tp.category_id ? [tp.category_id] : []);
+                    const linkedCats = categories.filter((c) => tpCatIds.includes(c.id));
                         const isEditing = editingTopping?.id === tp.id;
                         const isDragging = draggedIndex === idx;
                         const isDragOver = dragOverIndex === idx && draggedIndex !== idx;
@@ -667,11 +746,11 @@ export default function ToppingManagerModal({
                             onDrop={(e) => handleDrop(e, idx)}
                             className={`hover:bg-slate-50 transition cursor-move select-none ${
                               isDragging
-                                ? 'opacity-40 bg-violet-50/50'
+                                ? 'opacity-40 bg-emerald-50/50'
                                 : isDragOver
-                                ? 'bg-violet-50/40 ring-2 ring-violet-500/20'
+                                ? 'bg-emerald-50/40 ring-2 ring-emerald-500/20'
                                 : isEditing
-                                ? 'bg-violet-50/70'
+                                ? 'bg-emerald-50/70'
                                 : ''
                             }`}
                           >
@@ -691,7 +770,7 @@ export default function ToppingManagerModal({
                               </div>
                             </td>
 
-                            <td className="px-3 py-3 text-right font-black text-violet-700">
+                            <td className="px-3 py-3 text-right font-black text-emerald-700">
                               {formatPrice(tp.price)}
                             </td>
 
@@ -716,15 +795,26 @@ export default function ToppingManagerModal({
                             </td>
 
                             <td className="px-3 py-3 text-center">
-                              {linkedCat ? (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
-                                  <FolderOpen className="w-3 h-3 text-slate-400" />
-                                  {linkedCat.name}
+                              {linkedCats.length === 0 ? (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                                  🌐 Toàn cục (Mọi món)
+                                </span>
+                              ) : linkedCats.length === 1 ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                                  <FolderOpen className="w-3 h-3 text-emerald-600" />
+                                  {linkedCats[0].name}
                                 </span>
                               ) : (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
-                                  Tất cả danh mục
-                                </span>
+                                <div className="flex flex-wrap justify-center gap-1 max-w-[220px] mx-auto">
+                                  {linkedCats.map((cat) => (
+                                    <span
+                                      key={cat.id}
+                                      className="inline-flex items-center text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200"
+                                    >
+                                      {cat.name}
+                                    </span>
+                                  ))}
+                                </div>
                               )}
                             </td>
 
@@ -759,7 +849,7 @@ export default function ToppingManagerModal({
                                     e.stopPropagation();
                                     handleStartEdit(tp);
                                   }}
-                                  className="p-1.5 rounded-xl text-slate-400 hover:text-violet-700 hover:bg-violet-50 transition cursor-pointer"
+                                  className="p-1.5 rounded-xl text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 transition cursor-pointer"
                                   title="Sửa topping"
                                 >
                                   <Edit2 className="w-3.5 h-3.5" />

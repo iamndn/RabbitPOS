@@ -60,7 +60,7 @@ func allModels() []interface{} {
 	return []interface{}{
 		&models.Category{}, &models.Product{}, &models.ProductVariant{}, &models.VariantGroup{},
 		&models.Fund{}, &models.Promotion{}, &models.Order{}, &models.OrderItem{}, &models.Transaction{},
-		&models.User{}, &models.Setting{}, &models.Topping{}, &models.TransactionCategoryItem{},
+		&models.User{}, &models.Setting{}, &models.Topping{}, &models.ToppingCategory{}, &models.TransactionCategoryItem{},
 		&models.Ingredient{}, &models.PurchaseItem{}, &models.RecipeItem{}, &models.IdempotencyRecord{},
 		&models.AuditLog{}, &models.RevokedToken{}, &models.FundReconciliation{},
 		&models.Store{}, &models.UserStore{}, &models.StoreSetting{},

@@ -40,6 +40,7 @@ interface ApiTopping {
   price: number;
   cogs: number;
   category_id: number | null;
+  category_ids?: number[];
   is_active: boolean;
 }
 
@@ -197,8 +198,17 @@ export default function VariantSelectorModal({ product, onClose, onAddToCart, se
 
         {/* 1. Size / Variant Selection */}
         <div className="space-y-2">
-          <label className="text-xs font-bold text-slate-800 uppercase tracking-wider block">{t('pos.select_variant')}</label>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-bold text-slate-800 uppercase tracking-wider block">
+              {safeVariants.length === 1 ? t('pos.variant_single') : t('pos.select_variant')}
+            </label>
+            {safeVariants.length === 1 && (
+              <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                1 size mặc định
+              </span>
+            )}
+          </div>
+          <div className={safeVariants.length === 1 ? 'grid grid-cols-1 gap-2' : 'grid grid-cols-2 gap-2'}>
             {safeVariants.map((v) => (
               <button
                 key={v.id}
@@ -206,15 +216,15 @@ export default function VariantSelectorModal({ product, onClose, onAddToCart, se
                 onClick={() => setSelectedVariant(v)}
                 className={`p-3 rounded-xl border text-left transition flex items-center justify-between active:scale-95 ${
                   selectedVariant.id === v.id
-                    ? 'border-purple-700 bg-purple-50/70 ring-2 ring-purple-600/30'
+                    ? 'border-emerald-600 bg-emerald-50/70 ring-2 ring-emerald-500/30'
                     : 'border-slate-200 hover:bg-slate-50'
                 }`}
               >
                 <div>
                   <span className="block text-xs font-bold text-slate-900">{v.variant_name}</span>
-                  <span className="text-xs text-purple-700 font-semibold">{formatCurrency(v.retail_price, settings)}</span>
+                  <span className="text-xs text-emerald-700 font-bold">{formatCurrency(v.retail_price, settings)}</span>
                 </div>
-                {selectedVariant.id === v.id && <Check className="w-4 h-4 text-purple-700" />}
+                {selectedVariant.id === v.id && <Check className="w-4 h-4 text-emerald-700" />}
               </button>
             ))}
           </div>
@@ -231,12 +241,12 @@ export default function VariantSelectorModal({ product, onClose, onAddToCart, se
                 onClick={() => setSugarLevel(lvl.value)}
                 className={`py-1.5 sm:py-2 px-0.5 sm:px-1 rounded-xl text-center transition active:scale-95 flex flex-col items-center justify-center ${
                   sugarLevel === lvl.value
-                    ? 'border-purple-700 bg-purple-700 text-white shadow-xs font-bold'
+                    ? 'border-emerald-600 bg-emerald-600 text-white shadow-xs font-bold'
                     : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
                 }`}
               >
                 <span className="text-xs font-bold leading-tight">{lvl.label}</span>
-                <span className={`text-[9px] leading-tight ${sugarLevel === lvl.value ? 'text-purple-100' : 'text-slate-400'}`}>
+                <span className={`text-[9px] leading-tight ${sugarLevel === lvl.value ? 'text-emerald-100' : 'text-slate-400'}`}>
                   {lvl.sub}
                 </span>
               </button>
@@ -255,12 +265,12 @@ export default function VariantSelectorModal({ product, onClose, onAddToCart, se
                 onClick={() => setIceLevel(lvl.value)}
                 className={`py-1.5 sm:py-2 px-0.5 sm:px-1 rounded-xl text-center transition active:scale-95 flex flex-col items-center justify-center ${
                   iceLevel === lvl.value
-                    ? 'border-cyan-700 bg-cyan-700 text-white shadow-xs font-bold'
+                    ? 'border-sky-600 bg-sky-600 text-white shadow-xs font-bold'
                     : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
                 }`}
               >
                 <span className="text-xs font-bold leading-tight">{lvl.label}</span>
-                <span className={`text-[9px] leading-tight ${iceLevel === lvl.value ? 'text-cyan-100' : 'text-slate-400'}`}>
+                <span className={`text-[9px] leading-tight ${iceLevel === lvl.value ? 'text-sky-100' : 'text-slate-400'}`}>
                   {lvl.sub}
                 </span>
               </button>
@@ -279,6 +289,7 @@ export default function VariantSelectorModal({ product, onClose, onAddToCart, se
             <div className="space-y-1.5">
               {availableToppings.map((topping) => {
                 const isSelected = selectedToppings.some((t) => t.id === topping.id);
+                const isGlobal = topping.category_id === null && (!topping.category_ids || topping.category_ids.length === 0);
                 return (
                   <button
                     key={topping.id}
@@ -286,22 +297,22 @@ export default function VariantSelectorModal({ product, onClose, onAddToCart, se
                     onClick={() => toggleTopping(topping)}
                     className={`w-full p-2.5 rounded-xl border flex items-center justify-between transition text-xs active:scale-98 ${
                       isSelected
-                        ? 'border-purple-700 bg-purple-50/70 text-purple-950 font-semibold'
+                        ? 'border-emerald-600 bg-emerald-50/70 text-emerald-950 font-semibold ring-1 ring-emerald-500/20'
                         : 'border-slate-200 text-slate-700 hover:bg-slate-50'
                     }`}
                   >
                     <div className="flex items-center space-x-2.5">
                       <div className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${
-                        isSelected ? 'bg-purple-700 border-purple-700' : 'border-slate-300 bg-white'
+                        isSelected ? 'bg-emerald-600 border-emerald-600' : 'border-slate-300 bg-white'
                       }`}>
                         {isSelected && <Check className="w-2.5 h-2.5 text-white" />}
                       </div>
                       <span>{topping.name}</span>
-                      {topping.category_id === null && (
+                      {isGlobal && (
                         <span className="text-[9px] bg-slate-100 text-slate-500 px-1 rounded">toàn cầu</span>
                       )}
                     </div>
-                    <span className="text-purple-700 font-bold">+{formatCurrency(topping.price, settings)}</span>
+                    <span className="text-emerald-700 font-bold">+{formatCurrency(topping.price, settings)}</span>
                   </button>
                 );
               })}
@@ -329,7 +340,7 @@ export default function VariantSelectorModal({ product, onClose, onAddToCart, se
 
           <button
             onClick={handleAdd}
-            className="flex-1 bg-purple-700 hover:bg-purple-800 text-white font-bold py-3.5 px-4 rounded-xl shadow-md transition flex items-center justify-between text-sm active:scale-95"
+            className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 px-4 rounded-xl shadow-md transition flex items-center justify-between text-sm active:scale-95 cursor-pointer"
           >
             <span>{t('pos.add_to_order')}</span>
             <span>{formatCurrency(lineTotal, settings)}</span>

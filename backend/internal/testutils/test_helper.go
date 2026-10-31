@@ -83,6 +83,7 @@ func AutoMigrateAll(db *gorm.DB) error {
 		&models.User{},
 		&models.Setting{},
 		&models.Topping{},
+		&models.ToppingCategory{},
 		&models.TransactionCategoryItem{},
 		&models.Ingredient{},
 		&models.PurchaseItem{},
@@ -112,6 +113,7 @@ func CleanTables(db *gorm.DB) error {
 		"promotions",
 		"variant_groups",
 		"product_variants",
+		"topping_categories",
 		"toppings",
 		"products",
 		"ingredients",
@@ -254,6 +256,9 @@ func SeedMinimalFixtures(db *gorm.DB) (*TestFixtures, error) {
 			IsActive:   true,
 		}
 		if err := tx.Create(&topping).Error; err != nil {
+			return err
+		}
+		if err := tx.Create(&models.ToppingCategory{ToppingID: topping.ID, CategoryID: cat.ID}).Error; err != nil {
 			return err
 		}
 

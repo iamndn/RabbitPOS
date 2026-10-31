@@ -127,7 +127,7 @@ export const TTL = {
 export function getDefaultTtlForEndpoint(endpoint: string): number | null {
   if (endpoint === '/products' || endpoint.startsWith('/products?')) return TTL.PRODUCTS;
   if (endpoint === '/categories' || endpoint.startsWith('/categories?')) return TTL.CATEGORIES;
-  if (endpoint === '/toppings' || endpoint.startsWith('/toppings/')) return TTL.TOPPINGS;
+  if (endpoint === '/toppings' || endpoint.startsWith('/toppings/') || endpoint.startsWith('/toppings?')) return TTL.TOPPINGS;
   if (endpoint === '/settings/store' || endpoint === '/settings') return TTL.SETTINGS;
   if (endpoint === '/funds' || endpoint.startsWith('/funds?')) return TTL.FUNDS;
   if (endpoint === '/promotions/active') return TTL.PROMOTIONS;

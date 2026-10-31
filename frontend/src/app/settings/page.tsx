@@ -538,24 +538,24 @@ export default function SettingsPage() {
           </div>
         ) : (
           <form onSubmit={handleSave} className="space-y-6">
-            {/* Main Tab Navigation Bar (5 Main Tabs) */}
+            {/* Main Tab Navigation Bar (5-6 Main Tabs) */}
             <HorizontalScroller
-              wrapperClassName="bg-slate-100/90 p-1.5 rounded-2xl border border-slate-200/80"
-              className="space-x-1.5 py-0.5"
-              scrollAmount={220}
+              wrapperClassName="bg-slate-200/70 p-1 rounded-2xl"
+              className="space-x-1 sm:space-x-2"
+              scrollAmount={200}
               arrowSize="sm"
             >
               {/* Tab 1: Store */}
               <button
                 type="button"
                 onClick={() => setActiveTab('store')}
-                className={`py-2.5 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 shrink-0 ${
+                className={`flex-1 min-w-[130px] py-2 px-3 text-xs sm:text-sm font-bold rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
                   activeTab === 'store'
-                    ? 'bg-white text-indigo-700 shadow-sm border border-slate-200/60'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+                    ? 'bg-white text-purple-900 shadow-sm font-extrabold'
+                    : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                <Store className={`w-4 h-4 ${activeTab === 'store' ? 'text-indigo-600' : 'text-slate-400'}`} />
+                <Store className={`w-4 h-4 shrink-0 ${activeTab === 'store' ? 'text-indigo-600' : 'text-slate-400'}`} />
                 <span>{t('settings.tab_store')}</span>
               </button>
 
@@ -563,13 +563,13 @@ export default function SettingsPage() {
               <button
                 type="button"
                 onClick={() => setActiveTab('currency')}
-                className={`py-2.5 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 shrink-0 ${
+                className={`flex-1 min-w-[130px] py-2 px-3 text-xs sm:text-sm font-bold rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
                   activeTab === 'currency'
-                    ? 'bg-white text-indigo-700 shadow-sm border border-slate-200/60'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+                    ? 'bg-white text-purple-900 shadow-sm font-extrabold'
+                    : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                <Coins className={`w-4 h-4 ${activeTab === 'currency' ? 'text-indigo-600' : 'text-slate-400'}`} />
+                <Coins className={`w-4 h-4 shrink-0 ${activeTab === 'currency' ? 'text-amber-600' : 'text-slate-400'}`} />
                 <span>{t('settings.tab_currency')}</span>
               </button>
 
@@ -577,13 +577,13 @@ export default function SettingsPage() {
               <button
                 type="button"
                 onClick={() => setActiveTab('vietqr')}
-                className={`py-2.5 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 shrink-0 ${
+                className={`flex-1 min-w-[130px] py-2 px-3 text-xs sm:text-sm font-bold rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
                   activeTab === 'vietqr'
-                    ? 'bg-white text-indigo-700 shadow-sm border border-slate-200/60'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+                    ? 'bg-white text-purple-900 shadow-sm font-extrabold'
+                    : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                <QrCode className={`w-4 h-4 ${activeTab === 'vietqr' ? 'text-indigo-600' : 'text-slate-400'}`} />
+                <QrCode className={`w-4 h-4 shrink-0 ${activeTab === 'vietqr' ? 'text-indigo-600' : 'text-slate-400'}`} />
                 <span>{t('settings.tab_vietqr')}</span>
               </button>
 
@@ -591,13 +591,13 @@ export default function SettingsPage() {
               <button
                 type="button"
                 onClick={() => setActiveTab('email')}
-                className={`py-2.5 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 shrink-0 ${
+                className={`flex-1 min-w-[130px] py-2 px-3 text-xs sm:text-sm font-bold rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
                   activeTab === 'email'
-                    ? 'bg-white text-purple-700 shadow-sm border border-slate-200/60'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+                    ? 'bg-white text-purple-900 shadow-sm font-extrabold'
+                    : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                <Mail className={`w-4 h-4 ${activeTab === 'email' ? 'text-purple-600' : 'text-slate-400'}`} />
+                <Mail className={`w-4 h-4 shrink-0 ${activeTab === 'email' ? 'text-purple-600' : 'text-slate-400'}`} />
                 <span>{t('settings.tab_email') || 'Cấu hình Email'}</span>
               </button>
 
@@ -605,13 +605,13 @@ export default function SettingsPage() {
               <button
                 type="button"
                 onClick={() => setActiveTab('sheets')}
-                className={`py-2.5 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 shrink-0 ${
+                className={`flex-1 min-w-[130px] py-2 px-3 text-xs sm:text-sm font-bold rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
                   activeTab === 'sheets'
-                    ? 'bg-white text-teal-700 shadow-sm border border-slate-200/60'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+                    ? 'bg-white text-purple-900 shadow-sm font-extrabold'
+                    : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                <FileSpreadsheet className={`w-4 h-4 ${activeTab === 'sheets' ? 'text-teal-600' : 'text-slate-400'}`} />
+                <FileSpreadsheet className={`w-4 h-4 shrink-0 ${activeTab === 'sheets' ? 'text-teal-600' : 'text-slate-400'}`} />
                 <span>{t('google_sheets.tab_title') || 'Google Sheets'}</span>
               </button>
 
@@ -620,13 +620,13 @@ export default function SettingsPage() {
                 <button
                   type="button"
                   onClick={() => setActiveTab('backup')}
-                  className={`py-2.5 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 shrink-0 ${
+                  className={`flex-1 min-w-[130px] py-2 px-3 text-xs sm:text-sm font-bold rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
                     activeTab === 'backup'
-                      ? 'bg-white text-violet-700 shadow-sm border border-slate-200/60'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+                      ? 'bg-white text-purple-900 shadow-sm font-extrabold'
+                      : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
-                  <Database className={`w-4 h-4 ${activeTab === 'backup' ? 'text-violet-600' : 'text-slate-400'}`} />
+                  <Database className={`w-4 h-4 shrink-0 ${activeTab === 'backup' ? 'text-violet-600' : 'text-slate-400'}`} />
                   <span>{t('settings.tab_backup')}</span>
                   <span className="text-[9px] bg-purple-100 text-purple-700 px-1.5 py-0.2 rounded font-extrabold">
                     Platform
@@ -1524,20 +1524,20 @@ export default function SettingsPage() {
             {activeTab === 'backup' && (
               <div className="space-y-6 text-xs animate-in fade-in duration-150">
                 {/* Sub-Tab Switcher inside Backup Tab */}
-                <div className="flex bg-slate-100 p-1 rounded-2xl border border-slate-200/80 w-full sm:w-fit gap-1">
+                <div className="flex bg-slate-200/70 p-1 rounded-2xl w-full sm:w-fit gap-1">
                   {isSuperAdmin && (
                     <button
                       type="button"
                       onClick={() => setBackupSubTab('json_backup')}
-                      className={`flex-1 sm:flex-none py-2 px-4 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 ${
+                      className={`flex-1 sm:flex-none py-2 px-4 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer ${
                         backupSubTab === 'json_backup'
-                          ? 'bg-white text-violet-700 shadow-xs'
+                          ? 'bg-white text-purple-900 shadow-sm font-extrabold'
                           : 'text-slate-600 hover:text-slate-900'
                       }`}
                     >
-                      <Database className="w-3.5 h-3.5" />
+                      <Database className="w-3.5 h-3.5 text-purple-600" />
                       <span>Sao Lưu & Phục Hồi (.json)</span>
-                      <span className="text-[9px] bg-purple-100 text-purple-800 px-1.5 py-0.2 rounded font-extrabold">
+                      <span className="text-[9px] bg-purple-100 text-purple-800 px-1.5 py-0.2 rounded-full font-extrabold">
                         Platform-Wide
                       </span>
                     </button>
@@ -1546,13 +1546,13 @@ export default function SettingsPage() {
                   <button
                     type="button"
                     onClick={() => setBackupSubTab('excel_import')}
-                    className={`flex-1 sm:flex-none py-2 px-4 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 ${
+                    className={`flex-1 sm:flex-none py-2 px-4 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer ${
                       backupSubTab === 'excel_import'
-                        ? 'bg-white text-purple-700 shadow-xs'
+                        ? 'bg-white text-purple-900 shadow-sm font-extrabold'
                         : 'text-slate-600 hover:text-slate-900'
                     }`}
                   >
-                    <FileSpreadsheet className="w-3.5 h-3.5" />
+                    <FileSpreadsheet className="w-3.5 h-3.5 text-teal-600" />
                     <span>Nhập Dữ Liệu Excel / CSV</span>
                   </button>
                 </div>

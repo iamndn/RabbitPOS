@@ -38,6 +38,7 @@ import ProductSalesPerformanceSection from '@/components/dashboard/ProductSalesP
 import WaterfallReconciliationWidget from '@/components/dashboard/WaterfallReconciliationWidget';
 import EmailReportModal from '@/components/common/EmailReportModal';
 import ModernDateRangePicker, { DatePeriod, computeDateRange, getLocalDateStr } from '@/components/common/ModernDateRangePicker';
+import HorizontalScroller from '@/components/common/HorizontalScroller';
 import { fetchApi } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
 import { exportToCsv } from '@/lib/exportCsv';
@@ -300,47 +301,57 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* 3-Tab Navigation Bar: Overview vs Revenue vs Profit & Loss */}
-        <div className="flex space-x-2 sm:space-x-3 border-b border-slate-200">
+        {/* Standardized 3-Tab Navigation Bar: Overview vs Revenue vs Profit & Loss */}
+        <HorizontalScroller
+          wrapperClassName="bg-slate-200/70 p-1 rounded-2xl"
+          className="space-x-1 sm:space-x-2"
+          scrollAmount={200}
+          arrowSize="sm"
+        >
+          {/* TAB 1: Overview */}
           <button
             type="button"
             onClick={() => setActiveTab('overview')}
-            className={`pb-3 px-3 sm:px-4 text-sm font-bold border-b-2 transition flex items-center gap-2 ${
+            className={`flex-1 min-w-[130px] py-2 px-3 text-xs sm:text-sm font-bold rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
               activeTab === 'overview'
-                ? 'border-indigo-600 text-indigo-600'
-                : 'border-transparent text-slate-500 hover:text-slate-700'
+                ? 'bg-white text-purple-900 shadow-sm font-extrabold'
+                : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            <LayoutDashboard className="w-4 h-4" />
-            {t('dashboard.tab_overview')}
+            <LayoutDashboard className="w-4 h-4 text-indigo-600 shrink-0" />
+            <span>{t('dashboard.tab_overview')}</span>
           </button>
+
+          {/* TAB 2: Revenue */}
           <button
             type="button"
             onClick={() => setActiveTab('revenue')}
-            className={`pb-3 px-3 sm:px-4 text-sm font-bold border-b-2 transition flex items-center gap-2 ${
+            className={`flex-1 min-w-[130px] py-2 px-3 text-xs sm:text-sm font-bold rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
               activeTab === 'revenue'
-                ? 'border-indigo-600 text-indigo-600'
-                : 'border-transparent text-slate-500 hover:text-slate-700'
+                ? 'bg-white text-purple-900 shadow-sm font-extrabold'
+                : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            <TrendingUp className="w-4 h-4" />
-            {t('dashboard.tab_revenue')}
+            <TrendingUp className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span>{t('dashboard.tab_revenue')}</span>
           </button>
+
+          {/* TAB 3: Profit & Loss */}
           {!isStaff && (
             <button
               type="button"
               onClick={() => setActiveTab('profit')}
-              className={`pb-3 px-3 sm:px-4 text-sm font-bold border-b-2 transition flex items-center gap-2 ${
+              className={`flex-1 min-w-[130px] py-2 px-3 text-xs sm:text-sm font-bold rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
                 activeTab === 'profit'
-                  ? 'border-purple-600 text-purple-600'
-                  : 'border-transparent text-slate-500 hover:text-slate-700'
+                  ? 'bg-white text-purple-900 shadow-sm font-extrabold'
+                  : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              <Coins className="w-4 h-4" />
-              {t('dashboard.tab_profit')}
+              <Coins className="w-4 h-4 text-purple-600 shrink-0" />
+              <span>{t('dashboard.tab_profit')}</span>
             </button>
           )}
-        </div>
+        </HorizontalScroller>
 
         {/* Loading Skeletons */}
         {loading && !revenueData && (

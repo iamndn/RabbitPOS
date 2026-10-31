@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/RabbitPOS/backend/internal/cache"
+	"github.com/RabbitPOS/backend/internal/database"
 	"github.com/RabbitPOS/backend/internal/models"
 	"github.com/RabbitPOS/backend/internal/utils"
 	"github.com/gin-gonic/gin"
@@ -100,6 +101,10 @@ func (h *BackupHandler) ExportBackup(c *gin.Context) {
 	}
 	if err := h.db.Find(&payload.Data.Toppings).Error; err != nil {
 		models.SendInternalError(c, "Failed to export toppings: "+err.Error())
+		return
+	}
+	if err := database.FillToppingCategoryIDs(h.db, payload.Data.Toppings); err != nil {
+		models.SendInternalError(c, "Failed to export topping categories: "+err.Error())
 		return
 	}
 	if err := h.db.Find(&payload.Data.ProductVariants).Error; err != nil {
@@ -457,6 +462,7 @@ func (h *BackupHandler) RestoreBackup(c *gin.Context) {
 			"promotions",
 			"variant_groups",
 			"product_variants",
+			"topping_categories",
 			"toppings",
 			"products",
 			"ingredients",
@@ -559,6 +565,15 @@ func (h *BackupHandler) RestoreBackup(c *gin.Context) {
 			}
 			if err := tx.Create(&payload.Data.Toppings).Error; err != nil {
 				return fmt.Errorf("failed to restore toppings: %w", err)
+			}
+			for _, tp := range payload.Data.Toppings {
+				scope := models.ResolveCategoryIDs(&tp.CategoryIDs, tp.CategoryID)
+				if len(scope) == 0 {
+					continue
+				}
+				if err := database.SyncToppingCategories(tx, tp.ID, scope); err != nil {
+					return fmt.Errorf("failed to restore topping categories: %w", err)
+				}
 			}
 			restoredStats.Toppings = len(payload.Data.Toppings)
 		}

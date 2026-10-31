@@ -143,7 +143,9 @@
     "order_time_now": "Now",
     "order_time_minus_15m": "-15 mins",
     "order_time_minus_1h": "-1 hr",
-    "order_time_yesterday": "Yesterday"
+    "order_time_yesterday": "Yesterday",
+    "variant_single": "Item size (Single size)",
+    "customize": "Customize"
   },
   "promotions": {
     "title": "Promotions & Discounts Management",
@@ -300,6 +302,15 @@
     "title": "Cash Flow & Transaction Ledger",
     "subtitle": "Track revenue inflows, raw ingredient purchases, operational outflows, and expenses.",
     "tab_purchases": "Purchases",
+    "purchase_voucher": "Ingredient purchase voucher ({count} items)",
+    "filter_purchase_voucher": "Ingredient purchases",
+    "btn_purchase_ingredients": "Buy ingredients",
+    "voucher_col_item": "Item",
+    "voucher_col_qty": "Qty",
+    "voucher_col_price": "Unit price",
+    "voucher_col_loss": "Loss",
+    "voucher_col_subtotal": "Subtotal",
+    "filter_type_label": "Type",
     "tab_ledger": "Cash Ledger",
     "tab_transactions": "Financial Ledger",
     "tab_orders": "POS Orders History",
@@ -765,6 +776,16 @@
     "permission_warning_desc": "Ensure the Service Account email (client_email in JSON) is granted 'Editor' access on the target Google Spreadsheet."
   },
   "purchases": {
+    "link_ledger_vouchers": "View purchase vouchers in Cash Ledger",
+    "btn_purchase_ingredients": "Buy ingredients",
+    "kpi_ingredients_variance": "Ingredients · Items with cost variance",
+    "kpi_ingredients_unit": "items · {count} off",
+    "view_bom_costing": "Recipes & COGS",
+    "view_ingredient_stock": "Ingredient stock",
+    "status_filter_label": "Filter by COGS status",
+    "pill_all": "All",
+    "pill_variance": "COGS variance",
+    "pill_no_recipe": "No recipe",
     "page_title": "Purchases & Cost Estimator",
     "page_subtitle": "Track ingredient price trends, estimate BOM recipe cost & synchronize with menu COGS",
     "btn_add_ingredient": "Add Ingredient",

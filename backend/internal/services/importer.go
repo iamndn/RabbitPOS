@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/RabbitPOS/backend/internal/database"
 	"github.com/RabbitPOS/backend/internal/models"
 	"github.com/xuri/excelize/v2"
 	"gorm.io/gorm"
@@ -508,13 +509,19 @@ func (s *ImporterService) importToppings(tx *gorm.DB, sheet string, rows [][]str
 			cogs = parsePrice(row[2])
 		}
 
-		var categoryID *uint
+		var categoryIDs []uint
 		if len(row) > 3 && strings.TrimSpace(row[3]) != "" {
-			catName := strings.TrimSpace(row[3])
-			if !strings.EqualFold(catName, "tất cả") && !strings.EqualFold(catName, "áp dụng tất cả") {
+			rawParts := strings.FieldsFunc(row[3], func(r rune) bool {
+				return r == ',' || r == ';'
+			})
+			for _, part := range rawParts {
+				catName := strings.TrimSpace(part)
+				if catName == "" || strings.EqualFold(catName, "tất cả") || strings.EqualFold(catName, "áp dụng tất cả") {
+					continue
+				}
 				var cat models.Category
 				if err := tx.Where("store_id = ? AND LOWER(name) = LOWER(?)", storeID, catName).First(&cat).Error; err == nil {
-					categoryID = &cat.ID
+					categoryIDs = append(categoryIDs, cat.ID)
 				}
 			}
 		}
@@ -532,7 +539,6 @@ func (s *ImporterService) importToppings(tx *gorm.DB, sheet string, rows [][]str
 				Name:       name,
 				Price:      price,
 				COGS:       cogs,
-				CategoryID: categoryID,
 				IsActive:   isActive,
 			}
 			if err := tx.Create(&topping).Error; err != nil {
@@ -547,10 +553,10 @@ func (s *ImporterService) importToppings(tx *gorm.DB, sheet string, rows [][]str
 		} else {
 			topping.Price = price
 			topping.COGS = cogs
-			topping.CategoryID = categoryID
 			topping.IsActive = isActive
 			tx.Save(&topping)
 		}
+		_ = database.SyncToppingCategories(tx, topping.ID, categoryIDs)
 		res.Stats.ToppingsCount++
 	}
 }

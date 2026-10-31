@@ -97,6 +97,7 @@ func InitDB(cfg *config.Config) (*gorm.DB, error) {
 		&models.Setting{},
 		&models.StoreSetting{},
 		&models.Topping{},
+		&models.ToppingCategory{},
 		&models.TransactionCategoryItem{},
 		&models.Ingredient{},
 		&models.PurchaseItem{},

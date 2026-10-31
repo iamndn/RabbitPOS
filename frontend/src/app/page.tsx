@@ -239,11 +239,7 @@ const ProductCard = React.memo(function ProductCard({
       toast.info(`${product.name} sắp ra mắt, quý khách vui lòng chờ nhé!`);
       return;
     }
-    if (isSingleVariant) {
-      onQuickAdd(product);
-    } else {
-      onSelect(product);
-    }
+    onSelect(product);
   };
 
   const handleOpenCustomize = (e: React.MouseEvent) => {
@@ -296,7 +292,7 @@ const ProductCard = React.memo(function ProductCard({
           </div>
         )}
 
-        <h3 className="font-bold text-slate-900 text-xs leading-snug group-hover:text-purple-700 transition line-clamp-2 break-words">
+        <h3 className="font-bold text-slate-900 text-xs leading-snug group-hover:text-emerald-700 transition line-clamp-2 break-words">
           {product.name}
         </h3>
       </div>
@@ -328,20 +324,34 @@ const ProductCard = React.memo(function ProductCard({
             ⏳ {t('products.coming_soon') || 'Sắp có'}
           </div>
         ) : isSingleVariant ? (
-          <button
-            type="button"
-            onClick={handleClick}
-            className="w-full py-1.5 px-2 bg-purple-600 hover:bg-purple-700 active:bg-purple-800 text-white text-[11px] sm:text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1 shadow-2xs active:scale-95 cursor-pointer"
-            title={orderBtnLabel || t('pos.order_button') || 'Gọi món'}
-          >
-            <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-            <span>{orderBtnLabel || t('pos.order_button') || 'Gọi món'}</span>
-          </button>
+          <div className="flex items-center gap-1.5 w-full">
+            <button
+              type="button"
+              onClick={handleClick}
+              className="flex-1 py-1.5 px-2 bg-emerald-50 hover:bg-emerald-600 hover:text-white group-hover:bg-emerald-600 group-hover:text-white text-emerald-800 text-[11px] sm:text-xs font-bold rounded-xl border border-emerald-200/80 transition-all flex items-center justify-center gap-1 shadow-2xs active:scale-95 cursor-pointer"
+              title={orderBtnLabel || t('pos.order_button') || 'Gọi món'}
+            >
+              <SlidersHorizontal className="w-3 h-3" />
+              <span>{orderBtnLabel || t('pos.order_button') || 'Gọi món'}</span>
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onQuickAdd(product);
+              }}
+              className="py-1.5 px-2.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-[11px] sm:text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1 shadow-2xs active:scale-95 cursor-pointer"
+              title="Thêm nhanh (mặc định không topping)"
+            >
+              <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+              <span className="hidden xs:inline">Nhanh</span>
+            </button>
+          </div>
         ) : (
           <button
             type="button"
             onClick={handleOpenCustomize}
-            className="w-full py-1.5 px-2 bg-purple-50 hover:bg-purple-600 hover:text-white group-hover:bg-purple-600 group-hover:text-white text-purple-700 text-[11px] sm:text-xs font-bold rounded-xl border border-purple-200/80 transition-all flex items-center justify-center gap-1 shadow-2xs active:scale-95 cursor-pointer"
+            className="w-full py-1.5 px-2 bg-emerald-50 hover:bg-emerald-600 hover:text-white group-hover:bg-emerald-600 group-hover:text-white text-emerald-800 text-[11px] sm:text-xs font-bold rounded-xl border border-emerald-200/80 transition-all flex items-center justify-center gap-1 shadow-2xs active:scale-95 cursor-pointer"
             title={t('pos.select_size') || 'Chọn size'}
           >
             <SlidersHorizontal className="w-3 h-3" />

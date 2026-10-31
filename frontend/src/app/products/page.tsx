@@ -82,6 +82,7 @@ interface Topping {
   price: number;
   cogs: number;
   category_id: number | null;
+  category_ids?: number[];
   is_active: boolean;
 }
 
@@ -581,47 +582,6 @@ export default function ProductsPage() {
               <Plus className="w-4 h-4 shrink-0" /> <span className="truncate">{t('products.add_product')}</span>
             </button>
           </div>
-        </div>
-
-        {/* Quick Tag Bar: filter products by tag, open tag manager */}
-        <div className="flex items-center gap-2 bg-white p-2.5 rounded-2xl border border-slate-200 shadow-sm">
-          <div className="flex items-center gap-1.5 overflow-x-auto flex-1 min-w-0 pb-0.5">
-            <button
-              type="button"
-              onClick={() => setSelectedTag('all')}
-              className={`shrink-0 text-[11px] font-bold px-2.5 py-1 rounded-lg border cursor-pointer transition active:scale-95 ${
-                selectedTag === 'all' ? 'bg-purple-900 text-white border-purple-900' : 'bg-white text-slate-700 border-slate-200 hover:bg-purple-50'
-              }`}
-            >
-              Tất cả
-            </button>
-            {allAvailableTags.map((tg) => {
-              const st = getTagBadgeStyle(tg.id, customTags);
-              const active = selectedTag === tg.id;
-              return (
-                <button
-                  key={tg.id}
-                  type="button"
-                  onClick={() => setSelectedTag(active ? 'all' : tg.id)}
-                  className={`shrink-0 text-[11px] font-bold px-2.5 py-1 rounded-lg border inline-flex items-center gap-1.5 cursor-pointer transition active:scale-95 ${
-                    active ? `ring-2 ring-purple-400/50 ${st.badgeClasses}` : 'bg-white text-slate-700 border-slate-200 hover:bg-purple-50'
-                  }`}
-                >
-                  <span>{st.icon}</span>
-                  <span>{st.name}</span>
-                  <span className="tabular-nums text-[10px] font-black opacity-80">{productCountsByTag[tg.id] || 0}</span>
-                </button>
-              );
-            })}
-          </div>
-          <button
-            type="button"
-            onClick={() => setIsTagModalOpen(true)}
-            className="shrink-0 text-[11px] font-bold px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 inline-flex items-center gap-1.5 cursor-pointer transition"
-          >
-            <Tag className="w-3.5 h-3.5 text-purple-600" />
-            <span className="hidden sm:inline">Quản lý nhãn</span>
-          </button>
         </div>
 
         {/* Products Search Bar & Filter Button */}

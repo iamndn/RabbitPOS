@@ -81,6 +81,8 @@ interface TransactionModalProps {
     created_at?: string | null;
     purchase_items?: any[];
   } | null;
+  /** Pre-toggle the itemized ingredient purchase switch when creating a new outflow. */
+  defaultPurchaseMode?: boolean;
 }
 
 const createDefaultPurchaseItem = (isCustom = false): PurchaseLineItem => ({
@@ -128,6 +130,7 @@ export default function TransactionModal({
   funds,
   txCategories,
   initialData,
+  defaultPurchaseMode = false,
 }: TransactionModalProps) {
   const { t } = useTranslation();
 
@@ -243,7 +246,7 @@ export default function TransactionModal({
           })
         );
       } else if (isPurchaseCat && initialData.transaction_type === 'outflow') {
-        setIsPurchaseLogging(false);
+        setIsPurchaseLogging(!isEditing && defaultPurchaseMode);
         setPurchaseItems([createDefaultPurchaseItem(false)]);
       } else {
         setIsPurchaseLogging(false);
@@ -259,10 +262,10 @@ export default function TransactionModal({
       setModalAmount(0);
       setModalDescription('');
       setModalCreatedAt(null);
-      setIsPurchaseLogging(false);
+      setIsPurchaseLogging(defaultPurchaseMode);
       setPurchaseItems([createDefaultPurchaseItem(false)]);
     }
-  }, [isOpen, initialData, funds, txCategories]);
+  }, [isOpen, initialData, funds, txCategories, defaultPurchaseMode]);
 
   // Auto calculate sum of purchase items and set modalAmount
   useEffect(() => {

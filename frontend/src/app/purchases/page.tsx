@@ -81,6 +81,7 @@ export default function PurchasesPage() {
         funds={funds}
         txCategories={txCategories}
         initialData={null}
+        defaultPurchaseMode
       />
     </AppShell>
   );

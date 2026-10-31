@@ -22,6 +22,8 @@ export interface Topping {
   id: number;
   name: string;
   price: number;
+  category_id?: number | null;
+  category_ids?: number[];
   is_active: boolean;
 }
 
