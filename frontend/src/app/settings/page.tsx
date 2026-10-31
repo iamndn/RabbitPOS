@@ -1524,7 +1524,7 @@ export default function SettingsPage() {
             {activeTab === 'backup' && (
               <div className="space-y-6 text-xs animate-in fade-in duration-150">
                 {/* Sub-Tab Switcher inside Backup Tab */}
-                <div className="flex bg-slate-200/70 p-1 rounded-2xl w-full sm:w-fit gap-1">
+                <div className="flex overflow-x-auto no-scrollbar bg-slate-200/70 p-1 rounded-2xl w-full sm:w-fit gap-1">
                   {isSuperAdmin && (
                     <button
                       type="button"

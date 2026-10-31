@@ -22,8 +22,8 @@ export default function HorizontalScroller({
   showArrows = true,
   arrowSize = 'sm',
   scrollAmount = 200,
-  customScrollbar = true,
-  gradientFade = true,
+  customScrollbar = false,
+  gradientFade = false,
 }: HorizontalScrollerProps) {
   const { ref, isDragging, canScrollLeft, canScrollRight, scrollLeft, scrollRight } =
     useDragScroll<HTMLDivElement>({ speed: 1.2, dragThreshold: 5 });

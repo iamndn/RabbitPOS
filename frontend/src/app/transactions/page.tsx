@@ -1204,17 +1204,6 @@ export default function TransactionsPage() {
             </p>
           </div>
           <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 w-full sm:w-auto">
-            {/* Email Report Trigger for all tabs */}
-            <button
-              type="button"
-              onClick={() => setShowEmailReportModal(true)}
-              className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold px-3 py-2 rounded-xl border border-indigo-200 flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer shadow-2xs w-full sm:w-auto"
-              title="Gửi báo cáo tài chính qua email"
-            >
-              <Mail className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
-              <span className="truncate">Email Báo Cáo</span>
-            </button>
-
             {activeTab === 'ledger' && (
               <>
                 <div className="col-span-2 sm:col-span-1 w-full sm:w-auto">
@@ -1230,38 +1219,46 @@ export default function TransactionsPage() {
                     align="right"
                   />
                 </div>
+                {/* 1. Danh Mục */}
                 {!isStaff && (
                   <button
                     type="button"
                     onClick={() => setIsCategoryModalOpen(true)}
-                    className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-3 py-2 rounded-xl border border-slate-200 flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer w-full sm:w-auto"
+                    className="col-span-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-3 py-2 rounded-xl border border-slate-200 flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer w-full sm:w-auto shadow-2xs"
                   >
-                    <Tag className="w-3.5 h-3.5 text-indigo-600 shrink-0" /> <span className="truncate">{t('tx_cat.btn_manage_categories') || 'Danh mục'}</span>
+                    <Tag className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                    <span className="truncate">{t('tx_cat.btn_manage_categories') || 'Danh mục'}</span>
                   </button>
                 )}
+                {/* 2. Xuất Excel */}
                 <button
                   type="button"
                   onClick={handleExportExcel}
                   disabled={exportingExcel}
-                  className="bg-purple-50 hover:bg-purple-100 text-purple-800 text-xs font-bold px-3 py-2 rounded-xl border border-purple-200 flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer w-full sm:w-auto shadow-2xs disabled:opacity-50"
+                  className="col-span-1 bg-purple-50 hover:bg-purple-100 text-purple-800 text-xs font-bold px-3 py-2 rounded-xl border border-purple-200 flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer w-full sm:w-auto shadow-2xs disabled:opacity-50"
                   title="Xuất dữ liệu ra file Excel (.xlsx)"
                 >
                   {exportingExcel ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <FileSpreadsheet className="w-3.5 h-3.5 text-purple-600 shrink-0" />}
                   <span className="truncate">Xuất Excel</span>
                 </button>
+                {/* 3. Email Báo Cáo */}
                 <button
                   type="button"
-                  onClick={handleOpenPurchaseModal}
-                  className="bg-purple-50 hover:bg-purple-100 text-purple-800 text-xs font-bold px-3 py-2 rounded-xl border border-purple-200 flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer w-full sm:w-auto shadow-2xs"
+                  onClick={() => setShowEmailReportModal(true)}
+                  className="col-span-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold px-3 py-2 rounded-xl border border-indigo-200 flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer shadow-2xs w-full sm:w-auto"
+                  title="Gửi báo cáo tài chính qua email"
                 >
-                  <Package className="w-3.5 h-3.5 text-purple-600 shrink-0" aria-hidden="true" /> <span className="truncate">{t('tx.btn_purchase_ingredients')}</span>
+                  <Mail className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                  <span className="truncate">Email Báo Cáo</span>
                 </button>
+                {/* 4. Nhập Thu/Chi */}
                 <button
                   type="button"
                   onClick={() => handleOpenCreateModal()}
-                  className="col-span-2 sm:col-span-1 bg-purple-700 hover:bg-purple-800 text-white text-xs font-black px-3.5 py-2 rounded-xl flex items-center justify-center gap-1.5 shadow-xs transition active:scale-95 cursor-pointer w-full sm:w-auto"
+                  className="col-span-1 bg-purple-700 hover:bg-purple-800 text-white text-xs font-black px-3.5 py-2 rounded-xl flex items-center justify-center gap-1.5 shadow-xs transition active:scale-95 cursor-pointer w-full sm:w-auto"
                 >
-                  <Plus className="w-3.5 h-3.5 shrink-0" /> <span className="truncate">{t('tx.add_expense')}</span>
+                  <Plus className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">Nhập Thu/Chi</span>
                 </button>
               </>
             )}
@@ -1285,11 +1282,20 @@ export default function TransactionsPage() {
                   type="button"
                   onClick={handleExportExcel}
                   disabled={exportingExcel}
-                  className="col-span-2 sm:col-span-1 bg-purple-50 hover:bg-purple-100 text-purple-800 text-xs font-bold px-3 py-2 rounded-xl border border-purple-200 flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer w-full sm:w-auto shadow-2xs disabled:opacity-50"
+                  className="col-span-1 bg-purple-50 hover:bg-purple-100 text-purple-800 text-xs font-bold px-3 py-2 rounded-xl border border-purple-200 flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer w-full sm:w-auto shadow-2xs disabled:opacity-50"
                   title="Xuất dữ liệu ra file Excel (.xlsx)"
                 >
                   {exportingExcel ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <FileSpreadsheet className="w-3.5 h-3.5 text-purple-600 shrink-0" />}
                   <span className="truncate">Xuất Excel</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowEmailReportModal(true)}
+                  className="col-span-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold px-3 py-2 rounded-xl border border-indigo-200 flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer shadow-2xs w-full sm:w-auto"
+                  title="Gửi báo cáo qua email"
+                >
+                  <Mail className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                  <span className="truncate">Email Báo Cáo</span>
                 </button>
               </>
             )}

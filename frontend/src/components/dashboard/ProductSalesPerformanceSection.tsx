@@ -478,7 +478,7 @@ export default function ProductSalesPerformanceSection({
         {/* 2. Mobile Cards View (< md) */}
         <div className="md:hidden divide-y divide-slate-100">
           {/* Quick Sort Bar for Mobile */}
-          <div className="p-3 bg-slate-50 border-b border-slate-100 flex items-center justify-between gap-2 overflow-x-auto text-[11px]">
+          <div className="p-3 bg-slate-50 border-b border-slate-100 flex items-center justify-between gap-2 overflow-x-auto no-scrollbar text-[11px]">
             <span className="text-slate-400 font-semibold shrink-0">Sắp xếp theo:</span>
             <div className="flex items-center gap-1.5 shrink-0">
               <button

@@ -10,6 +10,7 @@ import {
   Sparkles,
   ShoppingBag,
   Tag,
+  Package,
   ChevronRight,
   ChevronLeft,
   Zap,
@@ -83,6 +84,8 @@ interface TransactionModalProps {
   } | null;
   /** Pre-toggle the itemized ingredient purchase switch when creating a new outflow. */
   defaultPurchaseMode?: boolean;
+  /** When true, strictly dedicated to logging ingredient purchase outflow. Thu/Chi toggles and generic categories are hidden. */
+  purchaseOnlyMode?: boolean;
 }
 
 const createDefaultPurchaseItem = (isCustom = false): PurchaseLineItem => ({
@@ -131,9 +134,11 @@ export default function TransactionModal({
   txCategories,
   initialData,
   defaultPurchaseMode = false,
+  purchaseOnlyMode = false,
 }: TransactionModalProps) {
   const { t } = useTranslation();
 
+  const isPurchaseOnly = purchaseOnlyMode || (defaultPurchaseMode && (!initialData || (initialData.purchase_items && initialData.purchase_items.length > 0)));
   const isEditing = Boolean(initialData?.id);
   const isStaff = isStaffRole(getAuthUser()?.role);
 
@@ -258,14 +263,14 @@ export default function TransactionModal({
       const defaultCat =
         txCategories.find((c) => c.is_default && (c.type === 'outflow' || c.type === 'both')) ||
         txCategories.find((c) => c.type === 'outflow' || c.type === 'both');
-      setModalCategory(defaultCat?.code || defaultCat?.name || 'ingredient_purchase');
+      setModalCategory(isPurchaseOnly ? 'ingredient_purchase' : (defaultCat?.code || defaultCat?.name || 'ingredient_purchase'));
       setModalAmount(0);
       setModalDescription('');
       setModalCreatedAt(null);
-      setIsPurchaseLogging(defaultPurchaseMode);
+      setIsPurchaseLogging(isPurchaseOnly ? true : defaultPurchaseMode);
       setPurchaseItems([createDefaultPurchaseItem(false)]);
     }
-  }, [isOpen, initialData, funds, txCategories, defaultPurchaseMode]);
+  }, [isOpen, initialData, funds, txCategories, defaultPurchaseMode, isPurchaseOnly]);
 
   // Auto calculate sum of purchase items and set modalAmount
   useEffect(() => {
@@ -708,17 +713,27 @@ export default function TransactionModal({
           <div className="flex items-center space-x-2.5">
             <div
               className={`w-8 h-8 sm:w-9 sm:h-9 rounded-2xl flex items-center justify-center font-bold text-white shadow-xs shrink-0 ${
-                modalType === 'inflow' ? 'bg-purple-600' : 'bg-rose-600'
+                isPurchaseOnly
+                  ? 'bg-emerald-700'
+                  : modalType === 'inflow'
+                  ? 'bg-purple-600'
+                  : 'bg-rose-600'
               }`}
             >
-              {modalType === 'inflow' ? '+' : '-'}
+              {isPurchaseOnly ? <Package className="w-5 h-5 text-white" /> : modalType === 'inflow' ? '+' : '-'}
             </div>
             <div>
               <h3 className="font-extrabold text-slate-900 text-sm sm:text-base">
-                {isEditing ? (t('tx.modal_title_edit') || 'Chỉnh Sửa Giao Dịch') : (t('tx.modal_title_add') || 'Tạo Giao Dịch Mới')}
+                {isPurchaseOnly
+                  ? (isEditing ? 'Chỉnh Sửa Phiếu Nhập Hàng' : 'Chi Mua Nguyên Liệu')
+                  : isEditing
+                  ? (t('tx.modal_title_edit') || 'Chỉnh Sửa Giao Dịch')
+                  : (t('tx.modal_title_add') || 'Tạo Giao Dịch Mới')}
               </h3>
               <p className="text-[11px] sm:text-xs text-slate-500 line-clamp-1">
-                {isEditing
+                {isPurchaseOnly
+                  ? 'Nhập danh sách nguyên vật liệu, quy cách và chi tiền từ quỹ'
+                  : isEditing
                   ? (t('tx.modal_subtitle_edit') || 'Cập nhật phiếu thu chi hoặc nguyên liệu')
                   : (t('tx.modal_subtitle_add') || 'Ghi nhận dòng tiền hoặc chi mua nguyên liệu')}
               </p>
@@ -741,46 +756,48 @@ export default function TransactionModal({
             </div>
           )}
 
-          {/* Transaction Type Segmented Toggle */}
-          <div>
-            <label className="font-bold text-slate-700 mb-1.5 block text-xs">
-              {t('tx.modal_type_label')} *
-            </label>
-            <div className="grid grid-cols-2 gap-2 bg-slate-100 p-1 rounded-2xl">
-              <button
-                type="button"
-                disabled={isStaff}
-                onClick={() => setModalType('inflow')}
-                className={`py-2 text-xs font-extrabold rounded-xl transition ${
-                  isStaff
-                    ? 'opacity-40 cursor-not-allowed text-slate-400'
-                    : modalType === 'inflow'
-                    ? 'bg-purple-600 text-white shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-                title={isStaff ? 'Nhân viên chỉ được tạo phiếu chi (tiền ra)' : undefined}
-              >
-                + {t('tx.type_inflow')} (Tiền Vào)
-              </button>
-              <button
-                type="button"
-                onClick={() => setModalType('outflow')}
-                className={`py-2 text-xs font-extrabold rounded-xl transition ${
-                  modalType === 'outflow'
-                    ? 'bg-rose-600 text-white shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                - {t('tx.type_outflow')} (Tiền Ra)
-              </button>
+          {/* Transaction Type Segmented Toggle (Hidden in Purchase-Only Mode) */}
+          {!isPurchaseOnly && (
+            <div>
+              <label className="font-bold text-slate-700 mb-1.5 block text-xs">
+                {t('tx.modal_type_label')} *
+              </label>
+              <div className="grid grid-cols-2 gap-2 bg-slate-100 p-1 rounded-2xl">
+                <button
+                  type="button"
+                  disabled={isStaff}
+                  onClick={() => setModalType('inflow')}
+                  className={`py-2 text-xs font-extrabold rounded-xl transition ${
+                    isStaff
+                      ? 'opacity-40 cursor-not-allowed text-slate-400'
+                      : modalType === 'inflow'
+                      ? 'bg-purple-600 text-white shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                  title={isStaff ? 'Nhân viên chỉ được tạo phiếu chi (tiền ra)' : undefined}
+                >
+                  + {t('tx.type_inflow')} (Tiền Vào)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setModalType('outflow')}
+                  className={`py-2 text-xs font-extrabold rounded-xl transition ${
+                    modalType === 'outflow'
+                      ? 'bg-rose-600 text-white shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  - {t('tx.type_outflow')} (Tiền Ra)
+                </button>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Fund and Category Selection */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+          {isPurchaseOnly ? (
             <div>
-              <label className="font-bold text-slate-700 mb-1 block">
-                {t('tx.modal_fund_label')} *
+              <label className="font-bold text-slate-700 mb-1 block text-xs">
+                {t('tx.modal_fund_label') || 'Tài khoản chi trả tiền'} *
               </label>
               <ModernSelect
                 value={modalFundId}
@@ -793,23 +810,41 @@ export default function TransactionModal({
                 }))}
               />
             </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              <div>
+                <label className="font-bold text-slate-700 mb-1 block">
+                  {t('tx.modal_fund_label')} *
+                </label>
+                <ModernSelect
+                  value={modalFundId}
+                  onChange={(val) => setModalFundId(Number(val))}
+                  options={funds.map((f) => ({
+                    value: f.id,
+                    label: f.name,
+                    badge: formatCurrency(f.current_balance),
+                    badgeColor: f.current_balance >= 0 ? 'purple' : 'rose',
+                  }))}
+                />
+              </div>
 
-            <div>
-              <label className="font-bold text-slate-700 mb-1 block">
-                {t('tx.modal_category_label')} *
-              </label>
-              <ModernSelect
-                value={modalCategory}
-                onChange={(val) => {
-                  setModalCategory(String(val));
-                }}
-                options={categoryOptions}
-              />
+              <div>
+                <label className="font-bold text-slate-700 mb-1 block">
+                  {t('tx.modal_category_label')} *
+                </label>
+                <ModernSelect
+                  value={modalCategory}
+                  onChange={(val) => {
+                    setModalCategory(String(val));
+                  }}
+                  options={categoryOptions}
+                />
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Integrated Itemized Purchases Toggle & Detailed Conversion Engine */}
-          {modalType === 'outflow' && (
+          {(isPurchaseOnly || modalType === 'outflow') && (
             <div className="bg-purple-50/60 border border-purple-200/80 rounded-2xl p-3 sm:p-4 space-y-3 w-full max-w-full min-w-0 box-border">
               {/* Header Toggle */}
               <div className="flex items-center justify-between gap-2 w-full min-w-0">
@@ -819,7 +854,7 @@ export default function TransactionModal({
                   </div>
                   <div className="min-w-0">
                     <span className="font-extrabold text-purple-950 text-xs flex items-center gap-1.5 flex-wrap">
-                      Chi Mua Nguyên Liệu (Tự Tính Giá Vốn)
+                      {isPurchaseOnly ? 'Danh Sách Nguyên Liệu Mua Vào' : 'Chi Mua Nguyên Liệu (Tự Tính Giá Vốn)'}
                       <span className="bg-purple-200/80 text-purple-900 text-[10px] font-bold px-1.5 py-0.2 rounded-md">
                         Tự tính cost
                       </span>
@@ -830,24 +865,26 @@ export default function TransactionModal({
                   </div>
                 </div>
 
-                <label className="relative inline-flex items-center cursor-pointer shrink-0">
-                  <input
-                    type="checkbox"
-                    checked={isPurchaseLogging}
-                    onChange={(e) => {
-                      setIsPurchaseLogging(e.target.checked);
-                      if (e.target.checked) {
-                        setModalCategory('ingredient_purchase');
-                      }
-                    }}
-                    className="sr-only peer"
-                  />
-                  <div className="w-10 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-4 peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-700"></div>
-                </label>
+                {!isPurchaseOnly && (
+                  <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                    <input
+                      type="checkbox"
+                      checked={isPurchaseLogging}
+                      onChange={(e) => {
+                        setIsPurchaseLogging(e.target.checked);
+                        if (e.target.checked) {
+                          setModalCategory('ingredient_purchase');
+                        }
+                      }}
+                      className="sr-only peer"
+                    />
+                    <div className="w-10 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-4 peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-700"></div>
+                  </label>
+                )}
               </div>
 
               {/* Purchase Items List */}
-              {isPurchaseLogging && (
+              {(isPurchaseOnly || isPurchaseLogging) && (
                 <div className="space-y-3 pt-2 border-t border-purple-200/60 w-full min-w-0">
                   {purchaseItems.map((item, idx) => {
                     const matchedIng = knownIngredients.find(
@@ -1404,7 +1441,8 @@ export default function TransactionModal({
         {/* Sticky Action Footer */}
         <div className="px-4 py-3 sm:px-6 sm:py-3.5 border-t border-slate-100 bg-slate-50/95 backdrop-blur-xs flex items-center justify-between shrink-0 pb-6 sm:pb-3.5">
           <div className="text-xs font-bold text-slate-600">
-            Tổng: <span className="text-rose-600 text-sm font-black">{formatCurrency(modalAmount)}</span>
+            {isPurchaseOnly ? 'Tổng tiền nhập: ' : 'Tổng: '}
+            <span className="text-rose-600 text-sm font-black">{formatCurrency(modalAmount)}</span>
           </div>
 
           <div className="flex items-center space-x-2">
@@ -1420,7 +1458,9 @@ export default function TransactionModal({
               form="tx-modal-form"
               disabled={isSubmitting}
               className={`px-4 sm:px-5 py-2 text-xs font-extrabold text-white rounded-xl shadow-xs transition active:scale-95 cursor-pointer flex items-center gap-1.5 ${
-                modalType === 'inflow'
+                isPurchaseOnly
+                  ? 'bg-purple-700 hover:bg-purple-800'
+                  : modalType === 'inflow'
                   ? 'bg-purple-600 hover:bg-purple-700'
                   : 'bg-rose-600 hover:bg-rose-700'
               }`}
@@ -1428,7 +1468,13 @@ export default function TransactionModal({
               {isSubmitting ? (
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
               ) : null}
-              <span>{isEditing ? (t('common.save') || 'Lưu thay đổi') : (t('tx.modal_btn_submit') || 'Lưu Giao Dịch')}</span>
+              <span>
+                {isPurchaseOnly
+                  ? (isEditing ? 'Lưu Phiếu Nhập' : 'Lưu Phiếu Nhập Hàng')
+                  : isEditing
+                  ? (t('common.save') || 'Lưu thay đổi')
+                  : (t('tx.modal_btn_submit') || 'Lưu Giao Dịch')}
+              </span>
             </button>
           </div>
         </div>

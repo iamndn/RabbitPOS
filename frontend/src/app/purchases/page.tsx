@@ -82,6 +82,7 @@ export default function PurchasesPage() {
         txCategories={txCategories}
         initialData={null}
         defaultPurchaseMode
+        purchaseOnlyMode
       />
     </AppShell>
   );
