@@ -15,9 +15,8 @@ import {
   ChevronLeft,
   Zap,
   Settings2,
-  ChevronDown,
 } from 'lucide-react';
-import ModernSelect from '@/components/common/ModernSelect';
+import ModernSelect, { ModernSelectOption } from '@/components/common/ModernSelect';
 import HorizontalScroller from '@/components/common/HorizontalScroller';
 import { formatCurrency } from '@/lib/utils';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
@@ -174,6 +173,52 @@ export default function TransactionModal({
         .catch(() => {});
     }
   }, [isOpen]);
+
+  const ingredientOptions = useMemo<ModernSelectOption[]>(() => {
+    const opts: ModernSelectOption[] = knownIngredients.map((ing) => ({
+      value: String(ing.id),
+      label: `${ing.name} (${ing.base_unit || ing.unit})`,
+      subLabel:
+        ing.latest_purchase_price > 0
+          ? `${formatCurrency(ing.latest_purchase_price)}/${ing.base_unit || ing.unit}`
+          : undefined,
+    }));
+    opts.push({
+      value: '__custom_new__',
+      label: '➕ Nhập nguyên liệu mới...',
+    });
+    return opts;
+  }, [knownIngredients]);
+
+  const purchaseUnitOptions = useMemo<ModernSelectOption[]>(
+    () => COMMON_PURCHASE_UNITS.map((u) => ({ value: u, label: u })),
+    []
+  );
+
+  const capacityUnitOptions = useMemo<ModernSelectOption[]>(
+    () => [
+      { value: 'ml', label: 'ml' },
+      { value: 'l', label: 'Lít' },
+      { value: 'g', label: 'g' },
+      { value: 'kg', label: 'kg' },
+      { value: 'cái', label: 'cái' },
+      { value: 'quả', label: 'quả' },
+      { value: 'lon', label: 'lon' },
+      { value: 'hộp', label: 'hộp' },
+      { value: 'gói', label: 'gói' },
+    ],
+    []
+  );
+
+  const purchaseItemCategoryOptions = useMemo<ModernSelectOption[]>(
+    () => [
+      { value: 'ingredient', label: 'NL / Sữa' },
+      { value: 'fruit', label: 'Hoa quả' },
+      { value: 'packaging', label: 'Bao bì' },
+      { value: 'other', label: 'Khác' },
+    ],
+    []
+  );
 
   // Reset or initialize state on open
   useEffect(() => {
@@ -968,44 +1013,29 @@ export default function TransactionModal({
                                 </button>
                               </div>
                             ) : (
-                              <div className="relative w-full min-w-0">
-                                <select
-                                  required
-                                  value={item.ingredient_id || ''}
-                                  onChange={(e) => handleSelectIngredient(idx, e.target.value)}
-                                  className="w-full appearance-none min-w-0 h-9 pl-2.5 pr-7 border border-slate-200/90 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-600 bg-white cursor-pointer shadow-2xs hover:border-purple-300 transition"
-                                >
-                                  <option value="">— Chọn nguyên liệu có sẵn —</option>
-                                  {knownIngredients.map((ing) => (
-                                    <option key={ing.id} value={ing.id}>
-                                      {ing.name} ({ing.base_unit || ing.unit})
-                                      {ing.latest_purchase_price > 0
-                                        ? ` — ${formatCurrency(ing.latest_purchase_price)}/${ing.base_unit || ing.unit}`
-                                        : ''}
-                                    </option>
-                                  ))}
-                                  <option value="__custom_new__" className="font-bold text-amber-700">
-                                    ➕ + Nhập nguyên liệu mới...
-                                  </option>
-                                </select>
-                                <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+                              <div className="w-full min-w-0">
+                                <ModernSelect
+                                  value={item.ingredient_id ? String(item.ingredient_id) : ''}
+                                  onChange={(val) => handleSelectIngredient(idx, String(val))}
+                                  placeholder="— Chọn nguyên liệu có sẵn —"
+                                  searchable
+                                  size="sm"
+                                  options={ingredientOptions}
+                                  title="Chọn nguyên liệu"
+                                />
                               </div>
                             )}
                           </div>
 
                           {!isBasic && (
-                            <div className="relative shrink-0">
-                              <select
-                                value={item.category}
-                                onChange={(e) => handleItemChange(idx, 'category', e.target.value)}
-                                className="appearance-none h-9 pl-2 pr-6 border border-slate-200/90 rounded-xl text-[10px] font-bold bg-slate-50 text-slate-700 shrink-0 cursor-pointer shadow-2xs hover:bg-slate-100 transition"
-                              >
-                                <option value="ingredient">NL / Sữa</option>
-                                <option value="fruit">Hoa quả</option>
-                                <option value="packaging">Bao bì</option>
-                                <option value="other">Khác</option>
-                              </select>
-                              <ChevronDown className="w-3 h-3 text-slate-400 absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                            <div className="w-28 shrink-0">
+                              <ModernSelect
+                                value={item.category || 'ingredient'}
+                                onChange={(val) => handleItemChange(idx, 'category', val)}
+                                size="sm"
+                                options={purchaseItemCategoryOptions}
+                                title="Phân loại"
+                              />
                             </div>
                           )}
 
@@ -1068,23 +1098,18 @@ export default function TransactionModal({
                               />
 
                               {/* Purchase Unit */}
-                              <div className="relative w-20 shrink-0">
-                                <select
+                              <div className="w-24 shrink-0">
+                                <ModernSelect
                                   value={item.purchase_unit}
-                                  onChange={(e) => {
-                                    const newUnit = e.target.value;
+                                  onChange={(newUnit) => {
                                     handleItemChange(idx, 'purchase_unit', newUnit);
-                                    // In basic mode, keep capacity_unit = purchase_unit
                                     handleItemChange(idx, 'capacity_unit', newUnit);
-                                    handleItemChange(idx, 'base_unit', newUnit.toLowerCase());
+                                    handleItemChange(idx, 'base_unit', String(newUnit).toLowerCase());
                                   }}
-                                  className="w-full appearance-none h-9 pl-2 pr-6 border border-slate-200/90 rounded-xl text-xs font-bold bg-white text-slate-900 cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-600 shadow-2xs transition"
-                                >
-                                  {COMMON_PURCHASE_UNITS.map((u) => (
-                                    <option key={u} value={u}>{u}</option>
-                                  ))}
-                                </select>
-                                <ChevronDown className="w-3 h-3 text-slate-400 absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                                  size="sm"
+                                  options={purchaseUnitOptions}
+                                  title="Đơn vị mua"
+                                />
                               </div>
 
                               <span className="text-slate-400 font-bold text-xs">×</span>
@@ -1206,17 +1231,14 @@ export default function TransactionModal({
                                     placeholder="1"
                                     className="w-16 h-8 px-1.5 border border-slate-200 rounded-lg text-xs font-black text-center text-slate-900 bg-white"
                                   />
-                                  <div className="relative flex-1 min-w-0">
-                                    <select
+                                  <div className="flex-1 min-w-0">
+                                    <ModernSelect
                                       value={item.purchase_unit}
-                                      onChange={(e) => handleItemChange(idx, 'purchase_unit', e.target.value)}
-                                      className="w-full appearance-none h-8 pl-1.5 pr-5 border border-slate-200/90 rounded-lg text-xs font-bold bg-white text-slate-900 cursor-pointer shadow-2xs"
-                                    >
-                                      {COMMON_PURCHASE_UNITS.map((u) => (
-                                        <option key={u} value={u}>{u}</option>
-                                      ))}
-                                    </select>
-                                    <ChevronDown className="w-3 h-3 text-slate-400 absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none" />
+                                      onChange={(newUnit) => handleItemChange(idx, 'purchase_unit', newUnit)}
+                                      size="sm"
+                                      options={purchaseUnitOptions}
+                                      title="Đơn vị mua"
+                                    />
                                   </div>
                                 </div>
                               </div>
@@ -1243,23 +1265,14 @@ export default function TransactionModal({
                                     placeholder="1000"
                                     className="w-20 h-8 px-1.5 border border-slate-200 rounded-lg text-xs font-black text-right text-slate-900 bg-white"
                                   />
-                                  <div className="relative flex-1 min-w-0">
-                                    <select
+                                  <div className="flex-1 min-w-0">
+                                    <ModernSelect
                                       value={item.capacity_unit || item.base_unit || 'ml'}
-                                      onChange={(e) => handleItemChange(idx, 'capacity_unit', e.target.value)}
-                                      className="w-full appearance-none h-8 pl-1 pr-5 border border-slate-200/90 rounded-lg text-xs font-bold bg-white text-slate-900 cursor-pointer shadow-2xs"
-                                    >
-                                      <option value="ml">ml</option>
-                                      <option value="l">Lít</option>
-                                      <option value="g">g</option>
-                                      <option value="kg">kg</option>
-                                      <option value="cái">cái</option>
-                                      <option value="quả">quả</option>
-                                      <option value="lon">lon</option>
-                                      <option value="hộp">hộp</option>
-                                      <option value="gói">gói</option>
-                                    </select>
-                                    <ChevronDown className="w-3 h-3 text-slate-400 absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none" />
+                                      onChange={(val) => handleItemChange(idx, 'capacity_unit', val)}
+                                      size="sm"
+                                      options={capacityUnitOptions}
+                                      title="Đơn vị thể tích / khối lượng"
+                                    />
                                   </div>
                                 </div>
                               </div>

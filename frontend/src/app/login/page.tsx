@@ -23,6 +23,7 @@ import { fetchApi, getImageUrl } from '@/lib/api';
 import { setAuth, UserInfo } from '@/lib/auth';
 import { getSavedStoreBrand, setActiveStoreId } from '@/lib/store';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
+import ModernSelect from '@/components/common/ModernSelect';
 import LanguageToggle from '@/components/LanguageToggle';
 
 interface LoginData {
@@ -512,17 +513,19 @@ export default function LoginPage() {
                 <label className="text-xs font-bold text-slate-700 mb-1 block">
                   Loại hình kinh doanh
                 </label>
-                <select
+                <ModernSelect
                   value={regBusinessType}
-                  onChange={(e) => setRegBusinessType(e.target.value)}
-                  className="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-600 bg-slate-50 focus:bg-white font-medium cursor-pointer transition"
-                >
-                  <option value="cafe">Quán Cà phê / Trà sữa / Đồ uống</option>
-                  <option value="fnb">F&B / Nhà hàng / Quán ăn</option>
-                  <option value="bakery">Tiệm Bánh & Tráng miệng</option>
-                  <option value="retail">Cửa hàng Bán lẻ</option>
-                  <option value="other">Mô hình kinh doanh khác</option>
-                </select>
+                  onChange={(val) => setRegBusinessType(String(val))}
+                  size="md"
+                  options={[
+                    { value: 'cafe', label: 'Quán Cà phê / Trà sữa / Đồ uống' },
+                    { value: 'fnb', label: 'F&B / Nhà hàng / Quán ăn' },
+                    { value: 'bakery', label: 'Tiệm Bánh & Tráng miệng' },
+                    { value: 'retail', label: 'Cửa hàng Bán lẻ' },
+                    { value: 'other', label: 'Mô hình kinh doanh khác' },
+                  ]}
+                  title="Loại hình kinh doanh"
+                />
               </div>
             </div>
 
