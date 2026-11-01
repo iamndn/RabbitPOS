@@ -33,6 +33,7 @@ import {
   Coffee,
 } from 'lucide-react';
 import AppShell from '@/components/AppShell';
+import { FilterBar } from '@/components/ui';
 import AllProductsRankingModal from '@/components/dashboard/AllProductsRankingModal';
 import ProductSalesPerformanceSection from '@/components/dashboard/ProductSalesPerformanceSection';
 import WaterfallReconciliationWidget from '@/components/dashboard/WaterfallReconciliationWidget';
@@ -277,8 +278,8 @@ export default function DashboardPage() {
         />
 
         {/* Timeframe Selector Bar */}
-        <div className="flex flex-col sm:flex-row gap-3 items-center justify-between bg-white p-3.5 rounded-2xl border border-slate-200 shadow-sm">
-          <div className="flex items-center space-x-2 w-full sm:w-auto">
+        <FilterBar
+          searchSlot={
             <ModernDateRangePicker
               period={period}
               customFrom={customFrom}
@@ -290,16 +291,17 @@ export default function DashboardPage() {
               }}
               align="left"
             />
-          </div>
-
-          <div className="text-xs text-slate-500 font-medium">
-            {activeTab === 'overview'
-              ? t('dashboard.tab_overview')
-              : activeTab === 'revenue'
-              ? t('dashboard.tab_revenue')
-              : t('dashboard.tab_profit')}
-          </div>
-        </div>
+          }
+          actionsSlot={
+            <div className="text-xs font-bold text-slate-500">
+              {activeTab === 'overview'
+                ? t('dashboard.tab_overview')
+                : activeTab === 'revenue'
+                ? t('dashboard.tab_revenue')
+                : t('dashboard.tab_profit')}
+            </div>
+          }
+        />
 
         {/* Standardized 3-Tab Navigation Bar: Overview vs Revenue vs Profit & Loss */}
         <HorizontalScroller
