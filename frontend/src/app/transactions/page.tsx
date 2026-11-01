@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   ArrowDownLeft,
@@ -47,7 +47,8 @@ import EmailReportModal from '@/components/common/EmailReportModal';
 import { getChannelBadge, parseSalesChannels, SalesChannel } from '@/types/sales_channel';
 import ReceiptModal, { CompletedOrderData } from '@/components/pos/ReceiptModal';
 import ModernDateRangePicker, { DatePeriod, computeDateRange, getLocalMonthStr, getLocalDateStr, toLocalDateStr } from '@/components/common/ModernDateRangePicker';
-import ModernSelect from '@/components/common/ModernSelect';
+import ModernSelect, { ModernSelectOption } from '@/components/common/ModernSelect';
+import { FilterBar, FilterPill, Chip } from '@/components/ui';
 import HorizontalScroller from '@/components/common/HorizontalScroller';
 import { fetchApi } from '@/lib/api';
 import { getAuthUser, isStaffRole } from '@/lib/auth';
@@ -327,7 +328,6 @@ export default function TransactionsPage() {
   const [period, setPeriod] = useState<DatePeriod>('today');
   const [customFrom, setCustomFrom] = useState<string>(() => computeDateRange('today').from);
   const [customTo, setCustomTo] = useState<string>(() => computeDateRange('today').to);
-  const [isLedgerFilterModalOpen, setIsLedgerFilterModalOpen] = useState<boolean>(false);
 
   // Filters for Orders
   const [orderSearchQuery, setOrderSearchQuery] = useState<string>('');
@@ -1136,6 +1136,82 @@ export default function TransactionsPage() {
   const totalTxPages = Math.max(1, Math.ceil(filteredTransactions.length / PAGE_SIZE));
   const paginatedTransactions = filteredTransactions.slice((txPage - 1) * PAGE_SIZE, txPage * PAGE_SIZE);
 
+  const ledgerFundSelectOptions = useMemo<ModernSelectOption[]>(() => {
+    const opts: ModernSelectOption[] = [
+      { value: 'all', label: `Tất cả nguồn tiền (${safeTransactions.length})` },
+    ];
+    safeFunds.forEach((f) => {
+      const count = safeTransactions.filter((tx) => tx.fund_id === f.id).length;
+      opts.push({
+        value: String(f.id),
+        label: `${f.name} (${count})`,
+      });
+    });
+    return opts;
+  }, [safeTransactions, safeFunds]);
+
+  const ledgerTypeSelectOptions = useMemo<ModernSelectOption[]>(
+    () => [
+      {
+        value: 'all',
+        label: `${t('tx.filter_all_types') || 'Tất cả loại'} (${safeTransactions.length})`,
+      },
+      {
+        value: 'inflow',
+        label: `${t('tx.type_inflow') || 'Khoản thu (+)'} (${
+          safeTransactions.filter((tx) => tx.transaction_type === 'inflow').length
+        })`,
+      },
+      {
+        value: 'outflow',
+        label: `${t('tx.type_outflow') || 'Khoản chi (-)'} (${
+          safeTransactions.filter((tx) => tx.transaction_type === 'outflow').length
+        })`,
+      },
+      {
+        value: 'purchase',
+        label: `${t('tx.filter_purchase_voucher') || 'Đơn nhập hàng'} (${
+          safeTransactions.filter((tx) => (tx.purchase_items?.length ?? 0) > 0).length
+        })`,
+      },
+    ],
+    [safeTransactions, t]
+  );
+
+  const ledgerCategorySelectOptions = useMemo<ModernSelectOption[]>(() => {
+    const countTotal = safeTransactions.filter(
+      (tx) => selectedType === 'all' || tx.transaction_type === selectedType
+    ).length;
+    const opts: ModernSelectOption[] = [
+      {
+        value: 'all',
+        label: `${t('tx.filter_all_categories') || 'Tất cả danh mục'} (${countTotal})`,
+      },
+    ];
+    const defaultCats = [
+      { id: 1, name: t('tx.cat_sale') || 'Doanh thu bán hàng', code: 'sale', type: 'inflow' as const },
+      { id: 2, name: t('tx.cat_ingredient') || 'Mua nguyên liệu', code: 'ingredient_purchase', type: 'outflow' as const },
+      { id: 3, name: t('tx.cat_utility') || 'Chi phí vận hành', code: 'utility_bill', type: 'outflow' as const },
+      { id: 4, name: t('tx.cat_reconciliation') || 'Chênh lệch đối soát', code: 'reconciliation_variance', type: 'both' as const },
+    ];
+    const list = txCategories.length > 0 ? txCategories : defaultCats;
+    list
+      .filter((c) => selectedType === 'all' || c.type === selectedType || c.type === 'both')
+      .forEach((cat) => {
+        const catCode = cat.code || cat.name;
+        const count = safeTransactions.filter(
+          (tx) =>
+            matchTransactionCategory(tx.category, catCode, txCategories) &&
+            (selectedType === 'all' || tx.transaction_type === selectedType)
+        ).length;
+        opts.push({
+          value: catCode,
+          label: `${cat.name} (${count})`,
+        });
+      });
+    return opts;
+  }, [safeTransactions, txCategories, selectedType, t]);
+
   const filteredOrders = safeOrders.filter((order) => {
     const matchesSearch =
       debouncedOrderSearch.trim() === '' ||
@@ -1569,319 +1645,103 @@ export default function TransactionsPage() {
               )}
             </div>
 
-            {/* 1. Ledger Search Bar & Filter Button */}
-            <div className="flex items-center gap-2 w-full">
-              <div className="relative flex-1 min-w-0">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                <input
-                  type="text"
-                  placeholder={t('tx.search_placeholder') || 'Tìm kiếm giao dịch theo mô tả, thu ngân, mã đơn...'}
-                  value={txSearchQuery}
-                  onChange={(e) => setTxSearchQuery(e.target.value)}
-                  className="app-input pl-9 pr-28 sm:pr-32 py-2 text-xs placeholder:text-xs"
-                />
-                {txSearchQuery ? (
-                  <button
-                    type="button"
-                    onClick={() => setTxSearchQuery('')}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition cursor-pointer"
-                    title="Xóa tìm kiếm"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                ) : (
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-md pointer-events-none">
-                    {filteredTransactions.length} GD
-                  </span>
-                )}
-              </div>
-
-              {/* Button Mở Popup Filter */}
-              <button
-                type="button"
-                onClick={() => setIsLedgerFilterModalOpen(true)}
-                className={`px-3.5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer shadow-2xs ${selectedFundId !== null || selectedType !== 'all' || selectedCategory !== 'all'
-                    ? 'bg-purple-800 text-white shadow-sm ring-2 ring-purple-600/30 font-extrabold'
-                    : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
-                  }`}
-              >
-                <Filter className="w-4 h-4" />
-                <span>Bộ lọc</span>
-                {(selectedFundId !== null || selectedType !== 'all' || selectedCategory !== 'all') && (
-                  <span className="w-2 h-2 rounded-full bg-purple-400 animate-pulse" />
-                )}
-              </button>
-            </div>
-
-            {/* Active Filter Chips */}
-            {(selectedFundId !== null || selectedType !== 'all' || selectedCategory !== 'all') && (
-              <div className="flex flex-wrap items-center gap-1.5 text-xs pt-0.5">
-                <span className="text-slate-400 font-semibold text-[11px]">Đang lọc:</span>
-                {selectedFundId !== null && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-indigo-50 text-indigo-800 border border-indigo-200 rounded-lg font-bold">
-                    <span>Nguồn: {safeFunds.find((f) => f.id === selectedFundId)?.name || selectedFundId}</span>
-                    <button type="button" onClick={() => setSelectedFundId(null)} className="hover:text-indigo-950">
-                      <X className="w-3 h-3" />
-                    </button>
-                  </span>
-                )}
-                {selectedType !== 'all' && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-purple-50 text-purple-800 border border-purple-200 rounded-lg font-bold">
-                    <span>{t('tx.filter_type_label')}: {selectedType === 'inflow' ? t('tx.type_inflow') : selectedType === 'purchase' ? t('tx.filter_purchase_voucher') : t('tx.type_outflow')}</span>
-                    <button type="button" onClick={() => setSelectedType('all')} className="hover:text-purple-950">
-                      <X className="w-3 h-3" />
-                    </button>
-                  </span>
-                )}
-                {selectedCategory !== 'all' && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 text-slate-800 border border-slate-200 rounded-lg font-bold">
-                    <span>
-                      Danh mục: {getCategoryName(selectedCategory)}
-                    </span>
-                    <button type="button" onClick={() => setSelectedCategory('all')} className="hover:text-slate-950">
-                      <X className="w-3 h-3" />
-                    </button>
-                  </span>
-                )}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedFundId(null);
-                    setSelectedType('all');
-                    setSelectedCategory('all');
-                  }}
-                  className="text-rose-600 hover:text-rose-700 font-bold text-[11px] ml-1 underline cursor-pointer"
-                >
-                  Xóa tất cả
-                </button>
-              </div>
-            )}
-
-            {/* Popup Filter Modal (For Ledger) */}
-            {isLedgerFilterModalOpen && (
-              <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-150">
-                <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-xl w-full p-4 sm:p-6 shadow-2xl space-y-4 max-h-[92dvh] sm:max-h-[85vh] flex flex-col animate-in slide-in-from-bottom-6 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200 pb-safe sm:pb-6 border border-slate-100">
-                  {/* Modal Header */}
-                  <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                    <div className="flex items-center gap-2">
-                      <div className="p-2 bg-purple-50 text-purple-700 rounded-xl">
-                        <Filter className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <h3 className="font-extrabold text-base text-slate-900">Bộ Lọc Sổ Thu Chi</h3>
-                        <p className="text-xs text-slate-400">Chọn nguồn tiền, loại giao dịch và danh mục</p>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setIsLedgerFilterModalOpen(false)}
-                      className="p-1.5 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 transition cursor-pointer"
-                    >
-                      <X className="w-5 h-5" />
-                    </button>
+            {/* Standardized Unified FilterBar for Financial Ledger */}
+            <FilterBar
+              searchValue={txSearchQuery}
+              onSearchChange={setTxSearchQuery}
+              searchPlaceholder={t('tx.search_placeholder') || 'Tìm kiếm giao dịch theo mô tả, thu ngân, mã đơn...'}
+              activeFiltersCount={
+                (selectedFundId !== null ? 1 : 0) +
+                (selectedType !== 'all' ? 1 : 0) +
+                (selectedCategory !== 'all' ? 1 : 0)
+              }
+              sheetTitle="Bộ Lọc Sổ Thu Chi"
+              onReset={() => {
+                setSelectedFundId(null);
+                setSelectedType('all');
+                setSelectedCategory('all');
+              }}
+              filters={
+                <div className="flex flex-col md:flex-row md:items-center gap-2.5 w-full md:w-auto">
+                  <div className="w-full md:w-44">
+                    <label className="text-caption font-bold text-slate-500 uppercase block mb-1 md:hidden">
+                      🏛️ Nguồn Tiền
+                    </label>
+                    <ModernSelect
+                      value={selectedFundId === null ? 'all' : String(selectedFundId)}
+                      onChange={(val) => setSelectedFundId(val === 'all' ? null : Number(val))}
+                      size="sm"
+                      options={ledgerFundSelectOptions}
+                      title="Nguồn tiền / Quỹ"
+                    />
                   </div>
-
-                  {/* Modal Scrollable Content */}
-                  <div className="flex-1 overflow-y-auto space-y-4 pr-1 text-xs">
-                    {/* Section 1: Nguồn Tiền / Tài Khoản */}
-                    <div>
-                      <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-2">
-                        🏛️ Nguồn Tiền / Tài Khoản
-                      </label>
-                      <div className="flex flex-wrap gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setSelectedFundId(null)}
-                          className={`px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs ${selectedFundId === null
-                              ? 'bg-indigo-700 text-white shadow-sm font-black ring-2 ring-indigo-500/30'
-                              : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
-                            }`}
-                        >
-                          <span>Tất cả nguồn tiền</span>
-                          <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${selectedFundId === null ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600'
-                            }`}>
-                            {safeTransactions.length}
-                          </span>
-                        </button>
-                        {safeFunds.map((f) => {
-                          const count = safeTransactions.filter((tx) => tx.fund_id === f.id).length;
-                          const isSelected = selectedFundId === f.id;
-                          return (
-                            <button
-                              key={f.id}
-                              type="button"
-                              onClick={() => setSelectedFundId(isSelected ? null : f.id)}
-                              className={`px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs ${isSelected
-                                  ? 'bg-indigo-700 text-white shadow-sm font-black ring-2 ring-indigo-500/30'
-                                  : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
-                                }`}
-                            >
-                              <Wallet className="w-3.5 h-3.5 text-indigo-500" />
-                              <span>{f.name}</span>
-                              <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${isSelected ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600'
-                                }`}>
-                                {count}
-                              </span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-
-                    {/* Divider */}
-                    <hr className="border-slate-100" />
-
-                    {/* Section 2: Loại Giao Dịch */}
-                    <div>
-                      <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-2">
-                        ⚡ Loại Giao Dịch
-                      </label>
-                      <div className="flex flex-wrap gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setSelectedType('all')}
-                          className={`px-3.5 py-2 rounded-xl font-bold transition whitespace-nowrap cursor-pointer shadow-2xs ${selectedType === 'all'
-                              ? 'bg-white text-slate-900 border-2 border-slate-800 shadow-xs'
-                              : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
-                            }`}
-                        >
-                          <span>{t('tx.filter_all_types') || 'Tất cả loại'}</span>
-                          <span className="ml-1 text-[10px] opacity-75">({safeTransactions.length})</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setSelectedType('inflow')}
-                          className={`px-3.5 py-2 rounded-xl font-bold transition whitespace-nowrap cursor-pointer flex items-center gap-1 shadow-2xs ${selectedType === 'inflow'
-                              ? 'bg-purple-600 text-white shadow-xs'
-                              : 'bg-white text-purple-700 hover:bg-purple-50 border border-purple-200'
-                            }`}
-                        >
-                          <span className="w-2 h-2 rounded-full bg-purple-400" />
-                          <span>{t('tx.type_inflow') || 'Khoản thu (+)'}</span>
-                          <span className="text-[10px] opacity-85">({safeTransactions.filter((tx) => tx.transaction_type === 'inflow').length})</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setSelectedType('outflow')}
-                          className={`px-3.5 py-2 rounded-xl font-bold transition whitespace-nowrap cursor-pointer flex items-center gap-1 shadow-2xs ${selectedType === 'outflow'
-                              ? 'bg-rose-600 text-white shadow-xs'
-                              : 'bg-white text-rose-700 hover:bg-rose-50 border border-rose-200'
-                            }`}
-                        >
-                          <span className="w-2 h-2 rounded-full bg-rose-400" />
-                          <span>{t('tx.type_outflow') || 'Khoản chi (-)'}</span>
-                          <span className="text-[10px] opacity-85">({safeTransactions.filter((tx) => tx.transaction_type === 'outflow').length})</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setSelectedType('purchase')}
-                          className={`px-3.5 py-2 rounded-xl font-bold transition whitespace-nowrap cursor-pointer flex items-center gap-1 shadow-2xs ${selectedType === 'purchase'
-                              ? 'bg-purple-800 text-white shadow-xs'
-                              : 'bg-white text-purple-800 hover:bg-purple-50 border border-purple-200'
-                            }`}
-                        >
-                          <Package className="w-3.5 h-3.5" aria-hidden="true" />
-                          <span>{t('tx.filter_purchase_voucher')}</span>
-                          <span className="text-[10px] opacity-85">({safeTransactions.filter((tx) => (tx.purchase_items?.length ?? 0) > 0).length})</span>
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Divider */}
-                    <hr className="border-slate-100" />
-
-                    {/* Section 3: Danh Mục Thu Chi */}
-                    <div>
-                      <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-2">
-                        📂 Danh Mục Thu Chi
-                      </label>
-                      <div className="flex flex-wrap gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setSelectedCategory('all')}
-                          className={`px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs ${selectedCategory === 'all'
-                              ? 'bg-slate-900 text-white font-extrabold shadow-sm ring-1 ring-slate-700'
-                              : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
-                            }`}
-                        >
-                          <span>{t('tx.filter_all_categories') || 'Tất cả danh mục'}</span>
-                          <span
-                            className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${selectedCategory === 'all' ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-600'
-                              }`}
-                          >
-                            {safeTransactions.filter((tx) => selectedType === 'all' || tx.transaction_type === selectedType).length}
-                          </span>
-                        </button>
-                        {(txCategories.length > 0
-                          ? txCategories
-                          : [
-                            { id: 1, name: t('tx.cat_sale') || 'Doanh thu bán hàng', code: 'sale', type: 'inflow' as const },
-                            { id: 2, name: t('tx.cat_ingredient') || 'Mua nguyên liệu', code: 'ingredient_purchase', type: 'outflow' as const },
-                            { id: 3, name: t('tx.cat_utility') || 'Chi phí vận hành', code: 'utility_bill', type: 'outflow' as const },
-                            { id: 4, name: t('tx.cat_reconciliation') || 'Chênh lệch đối soát', code: 'reconciliation_variance', type: 'both' as const },
-                          ]
-                        )
-                          .filter((c) => selectedType === 'all' || c.type === selectedType || c.type === 'both')
-                          .map((cat) => {
-                            const catCode = cat.code || cat.name;
-                            const count = safeTransactions.filter(
-                              (tx) =>
-                                matchTransactionCategory(tx.category, catCode, txCategories) &&
-                                (selectedType === 'all' || tx.transaction_type === selectedType)
-                            ).length;
-                            const isSelected = selectedCategory !== 'all' && matchTransactionCategory(selectedCategory, catCode, txCategories);
-                            return (
-                              <button
-                                key={cat.id}
-                                type="button"
-                                onClick={() => setSelectedCategory(isSelected ? 'all' : catCode)}
-                                className={`px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs ${isSelected
-                                    ? 'bg-slate-900 text-white font-extrabold shadow-sm ring-1 ring-slate-700'
-                                    : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
-                                  }`}
-                              >
-                                <span
-                                  className={`w-1.5 h-1.5 rounded-full ${cat.type === 'inflow' ? 'bg-purple-500' : cat.type === 'outflow' ? 'bg-rose-500' : 'bg-indigo-500'
-                                    }`}
-                                />
-                                <span>{cat.name}</span>
-                                <span
-                                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${isSelected ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-600'
-                                    }`}
-                                >
-                                  {count}
-                                </span>
-                              </button>
-                            );
-                          })}
-                      </div>
-                    </div>
+                  <div className="w-full md:w-44">
+                    <label className="text-caption font-bold text-slate-500 uppercase block mb-1 md:hidden">
+                      ⚡ Loại Giao Dịch
+                    </label>
+                    <ModernSelect
+                      value={selectedType}
+                      onChange={(val) => setSelectedType(val as any)}
+                      size="sm"
+                      options={ledgerTypeSelectOptions}
+                      title="Loại giao dịch"
+                    />
                   </div>
-
-                  {/* Modal Footer */}
-                  <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:justify-between border-t border-slate-100 pt-3">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedFundId(null);
-                        setSelectedType('all');
-                        setSelectedCategory('all');
-                      }}
-                      className="text-xs font-bold text-slate-500 hover:text-rose-600 transition cursor-pointer px-3 py-2.5 rounded-xl border border-slate-200 sm:border-transparent text-center justify-center flex items-center"
-                    >
-                      Đặt lại bộ lọc
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setIsLedgerFilterModalOpen(false)}
-                      className="bg-purple-700 hover:bg-purple-800 text-white text-xs font-extrabold px-5 py-2.5 rounded-xl shadow-xs transition active:scale-95 cursor-pointer text-center justify-center flex items-center"
-                    >
-                      Áp dụng ({filteredTransactions.length})
-                    </button>
+                  <div className="w-full md:w-48">
+                    <label className="text-caption font-bold text-slate-500 uppercase block mb-1 md:hidden">
+                      📂 Danh Mục
+                    </label>
+                    <ModernSelect
+                      value={selectedCategory}
+                      onChange={(val) => setSelectedCategory(String(val))}
+                      size="sm"
+                      options={ledgerCategorySelectOptions}
+                      title="Danh mục thu chi"
+                    />
                   </div>
                 </div>
-              </div>
-            )}
+              }
+              chipsSlot={
+                <div className="flex items-center gap-1.5">
+                  {[
+                    { id: 'all', label: t('tx.filter_all_types') || 'Tất cả' },
+                    { id: 'inflow', label: t('tx.type_inflow') || 'Thu tiền (+)' },
+                    { id: 'outflow', label: t('tx.type_outflow') || 'Chi tiền (-)' },
+                    { id: 'purchase', label: t('tx.filter_purchase_voucher') || 'Nhập hàng' },
+                  ].map((item) => {
+                    const isSelected = selectedType === item.id;
+                    return (
+                      <Chip
+                        key={item.id}
+                        active={isSelected}
+                        onClick={() => setSelectedType(item.id as any)}
+                        size="sm"
+                      >
+                        {item.label}
+                      </Chip>
+                    );
+                  })}
+                  {selectedFundId !== null && (
+                    <Chip
+                      variant="brand"
+                      size="sm"
+                      onRemove={() => setSelectedFundId(null)}
+                    >
+                      Quỹ: {safeFunds.find((f) => f.id === selectedFundId)?.name || selectedFundId}
+                    </Chip>
+                  )}
+                  {selectedCategory !== 'all' && (
+                    <Chip
+                      variant="default"
+                      size="sm"
+                      onRemove={() => setSelectedCategory('all')}
+                    >
+                      DM: {getCategoryName(selectedCategory)}
+                    </Chip>
+                  )}
+                </div>
+              }
+            />
 
             {/* Transaction History Table */}
             <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
