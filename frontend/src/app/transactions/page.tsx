@@ -334,7 +334,6 @@ export default function TransactionsPage() {
   const [debouncedOrderSearch, setDebouncedOrderSearch] = useState<string>('');
   const [orderStatusFilter, setOrderStatusFilter] = useState<string>('all');
   const [orderChannelFilter, setOrderChannelFilter] = useState<string>('all');
-  const [isOrderFilterModalOpen, setIsOrderFilterModalOpen] = useState<boolean>(false);
   const [reprintOrder, setReprintOrder] = useState<OrderApi | null>(null);
 
   const salesChannelsList = React.useMemo(() => {
@@ -1227,6 +1226,42 @@ export default function TransactionsPage() {
   const totalOrderPages = Math.max(1, Math.ceil(filteredOrders.length / PAGE_SIZE));
   const paginatedOrders = filteredOrders.slice((orderPage - 1) * PAGE_SIZE, orderPage * PAGE_SIZE);
 
+  const orderStatusOptions = useMemo<ModernSelectOption[]>(
+    () => [
+      {
+        value: 'all',
+        label: `${t('tx.filter_all_order_status') || 'Tất cả trạng thái'} (${safeOrders.length})`,
+      },
+      {
+        value: 'completed',
+        label: `${t('tx.order_status_completed') || 'Hoàn thành'} (${
+          safeOrders.filter((o) => o.status === 'completed').length
+        })`,
+      },
+      {
+        value: 'cancelled',
+        label: `${t('tx.order_status_cancelled') || 'Đã hủy'} (${
+          safeOrders.filter((o) => o.status === 'cancelled').length
+        })`,
+      },
+    ],
+    [safeOrders, t]
+  );
+
+  const orderChannelOptions = useMemo<ModernSelectOption[]>(() => {
+    const opts: ModernSelectOption[] = [
+      { value: 'all', label: `Tất cả kênh (${safeOrders.length})` },
+    ];
+    salesChannelsList.forEach((ch) => {
+      const count = safeOrders.filter((o) => (o.sales_channel || 'dine_in') === ch.id).length;
+      opts.push({
+        value: ch.id,
+        label: `${ch.icon} ${ch.name} (${count})`,
+      });
+    });
+    return opts;
+  }, [safeOrders, salesChannelsList]);
+
   // Track cancelled order IDs to exclude their initial inflows from financial totals
   const cancelledOrderIds = new Set(safeOrders.filter((o) => o.status === 'cancelled').map((o) => o.id));
   const isTxFromCancelledOrder = (tx: Transaction) => {
@@ -2056,210 +2091,76 @@ export default function TransactionsPage() {
         {/* ── TAB 3: POS ORDERS & CANCELLATION LIFECYCLE ───────────────── */}
         {activeTab === 'orders' && (
           <div className="space-y-4">
-            {/* Orders Search & Filter Bar */}
-            <div className="flex items-center gap-2 w-full">
-              <div className="relative flex-1 min-w-0">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                <input
-                  type="text"
-                  placeholder={t('tx.search_orders_placeholder') || 'Tìm kiếm mã đơn, thu ngân...'}
-                  value={orderSearchQuery}
-                  onChange={(e) => setOrderSearchQuery(e.target.value)}
-                  className="app-input pl-9 pr-28 sm:pr-32 py-2 text-xs placeholder:text-xs"
-                />
-                {orderSearchQuery ? (
-                  <button
-                    type="button"
-                    onClick={() => setOrderSearchQuery('')}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition cursor-pointer"
-                    title="Xóa tìm kiếm"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                ) : (
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-md pointer-events-none">
-                    {filteredOrders.length} đơn
-                  </span>
-                )}
-              </div>
-
-              {/* Button Mở Popup Filter */}
-              <button
-                type="button"
-                onClick={() => setIsOrderFilterModalOpen(true)}
-                className={`px-3.5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer shadow-2xs ${orderStatusFilter !== 'all'
-                    ? 'bg-amber-700 text-white shadow-sm ring-2 ring-amber-500/30 font-extrabold'
-                    : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
-                  }`}
-              >
-                <Filter className="w-4 h-4" />
-                <span>Bộ lọc</span>
-                {(orderStatusFilter !== 'all' || orderChannelFilter !== 'all') && (
-                  <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-                )}
-              </button>
-            </div>
-
-            {/* Active Filter Chips */}
-            {(orderStatusFilter !== 'all' || orderChannelFilter !== 'all') && (
-              <div className="flex flex-wrap items-center gap-1.5 text-xs pt-0.5">
-                <span className="text-slate-400 font-semibold text-[11px]">Đang lọc:</span>
-                {orderStatusFilter !== 'all' && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-50 text-amber-900 border border-amber-200 rounded-lg font-bold">
-                    <span>Trạng thái: {orderStatusFilter === 'completed' ? 'Hoàn thành' : 'Đã hủy'}</span>
-                    <button type="button" onClick={() => setOrderStatusFilter('all')} className="hover:text-amber-950">
-                      <X className="w-3 h-3" />
-                    </button>
-                  </span>
-                )}
-                {orderChannelFilter !== 'all' && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-purple-50 text-purple-900 border border-purple-200 rounded-lg font-bold">
-                    <span>
-                      Kênh: {(() => {
-                        const b = getSalesChannelBadge(orderChannelFilter, salesChannelsList);
-                        return `${b.icon} ${b.label}`;
-                      })()}
-                    </span>
-                    <button type="button" onClick={() => setOrderChannelFilter('all')} className="hover:text-purple-950">
-                      <X className="w-3 h-3" />
-                    </button>
-                  </span>
-                )}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setOrderStatusFilter('all');
-                    setOrderChannelFilter('all');
-                  }}
-                  className="text-rose-600 hover:text-rose-700 font-bold text-[11px] ml-1 underline cursor-pointer"
-                >
-                  Xóa bộ lọc
-                </button>
-              </div>
-            )}
-
-            {/* Popup Filter Modal (For Orders) */}
-            {isOrderFilterModalOpen && (
-              <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-150">
-                <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-lg w-full p-4 sm:p-6 shadow-2xl space-y-4 max-h-[92dvh] sm:max-h-[85vh] flex flex-col animate-in slide-in-from-bottom-6 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200 pb-safe sm:pb-6 border border-slate-100">
-                  {/* Modal Header */}
-                  <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                    <div className="flex items-center gap-2">
-                      <div className="p-2 bg-amber-50 text-amber-700 rounded-xl">
-                        <Filter className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <h3 className="font-extrabold text-base text-slate-900">Bộ Lọc Đơn Hàng</h3>
-                        <p className="text-xs text-slate-400">Chọn trạng thái và kênh bán hàng</p>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setIsOrderFilterModalOpen(false)}
-                      className="p-1.5 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 transition cursor-pointer"
-                    >
-                      <X className="w-5 h-5" />
-                    </button>
+            {/* Standardized Unified FilterBar for POS Orders */}
+            <FilterBar
+              searchValue={orderSearchQuery}
+              onSearchChange={setOrderSearchQuery}
+              searchPlaceholder={t('tx.search_orders_placeholder') || 'Tìm kiếm mã đơn, thu ngân...'}
+              activeFiltersCount={(orderStatusFilter !== 'all' ? 1 : 0) + (orderChannelFilter !== 'all' ? 1 : 0)}
+              sheetTitle="Bộ Lọc Đơn Hàng"
+              onReset={() => {
+                setOrderStatusFilter('all');
+                setOrderChannelFilter('all');
+              }}
+              filters={
+                <div className="flex flex-col md:flex-row md:items-center gap-2.5 w-full md:w-auto">
+                  <div className="w-full md:w-48">
+                    <label className="text-caption font-bold text-slate-500 uppercase block mb-1 md:hidden">
+                      ⚡ Trạng Thái Đơn Hàng
+                    </label>
+                    <ModernSelect
+                      value={orderStatusFilter}
+                      onChange={(val) => setOrderStatusFilter(val as any)}
+                      size="sm"
+                      options={orderStatusOptions}
+                      title="Trạng thái đơn hàng"
+                    />
                   </div>
-
-                  {/* Modal Content */}
-                  <div className="flex-1 overflow-y-auto space-y-4 pr-1 text-xs">
-                    <div>
-                      <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-2">
-                        ⚡ Trạng Thái Đơn Hàng
-                      </label>
-                      <div className="flex flex-wrap gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setOrderStatusFilter('all')}
-                          className={`px-3.5 py-2 rounded-xl font-bold transition whitespace-nowrap cursor-pointer shadow-2xs ${orderStatusFilter === 'all'
-                              ? 'bg-white text-slate-900 border-2 border-slate-800 shadow-xs'
-                              : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
-                            }`}
-                        >
-                          <span>{t('tx.filter_all_order_status') || 'Tất cả trạng thái'}</span>
-                          <span className="ml-1 text-[10px] opacity-75">({safeOrders.length})</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setOrderStatusFilter('completed')}
-                          className={`px-3.5 py-2 rounded-xl font-bold transition whitespace-nowrap cursor-pointer flex items-center gap-1 shadow-2xs ${orderStatusFilter === 'completed'
-                              ? 'bg-purple-600 text-white shadow-xs'
-                              : 'bg-white text-purple-700 hover:bg-purple-50 border border-purple-200'
-                            }`}
-                        >
-                          <span className="w-2 h-2 rounded-full bg-purple-400" />
-                          <span>{t('tx.order_status_completed') || 'Hoàn thành'}</span>
-                          <span className="text-[10px] opacity-85">({safeOrders.filter((o) => o.status === 'completed').length})</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setOrderStatusFilter('cancelled')}
-                          className={`px-3.5 py-2 rounded-xl font-bold transition whitespace-nowrap cursor-pointer flex items-center gap-1 shadow-2xs ${orderStatusFilter === 'cancelled'
-                              ? 'bg-rose-600 text-white shadow-xs'
-                              : 'bg-white text-rose-700 hover:bg-rose-50 border border-rose-200'
-                            }`}
-                        >
-                          <span className="w-2 h-2 rounded-full bg-rose-400" />
-                          <span>{t('tx.order_status_cancelled') || 'Đã hủy'}</span>
-                          <span className="text-[10px] opacity-85">({safeOrders.filter((o) => o.status === 'cancelled').length})</span>
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Sales Channel Filter Section */}
-                    <div>
-                      <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-2">
-                        🛵 Kênh Bán Hàng
-                      </label>
-                      <div className="flex flex-wrap gap-2">
-                        {[
-                          { id: 'all', label: 'Tất cả kênh' },
-                          ...salesChannelsList.map((ch) => ({
-                            id: ch.id,
-                            label: `${ch.icon} ${ch.name}`,
-                          })),
-                        ].map((ch) => (
-                          <button
-                            key={ch.id}
-                            type="button"
-                            onClick={() => setOrderChannelFilter(ch.id)}
-                            className={`px-3 py-1.5 rounded-xl font-bold transition whitespace-nowrap cursor-pointer shadow-2xs ${
-                              orderChannelFilter === ch.id
-                                ? 'bg-indigo-600 text-white shadow-xs'
-                                : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
-                            }`}
-                          >
-                            <span>{ch.label}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Modal Footer */}
-                  <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:justify-between border-t border-slate-100 pt-3">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setOrderStatusFilter('all');
-                        setOrderChannelFilter('all');
-                      }}
-                      className="text-xs font-bold text-slate-500 hover:text-rose-600 transition cursor-pointer px-3 py-2.5 rounded-xl border border-slate-200 sm:border-transparent text-center justify-center flex items-center"
-                    >
-                      Đặt lại
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setIsOrderFilterModalOpen(false)}
-                      className="bg-amber-700 hover:bg-amber-800 text-white text-xs font-extrabold px-5 py-2.5 rounded-xl shadow-xs transition active:scale-95 cursor-pointer text-center justify-center flex items-center"
-                    >
-                      Áp dụng ({filteredOrders.length})
-                    </button>
+                  <div className="w-full md:w-52">
+                    <label className="text-caption font-bold text-slate-500 uppercase block mb-1 md:hidden">
+                      🛵 Kênh Bán Hàng
+                    </label>
+                    <ModernSelect
+                      value={orderChannelFilter}
+                      onChange={(val) => setOrderChannelFilter(String(val))}
+                      size="sm"
+                      options={orderChannelOptions}
+                      title="Kênh bán hàng"
+                    />
                   </div>
                 </div>
-              </div>
-            )}
+              }
+              chipsSlot={
+                <div className="flex items-center gap-1.5">
+                  {[
+                    { id: 'all', label: t('tx.filter_all_order_status') || 'Tất cả' },
+                    { id: 'completed', label: t('tx.order_status_completed') || 'Hoàn thành' },
+                    { id: 'cancelled', label: t('tx.order_status_cancelled') || 'Đã hủy' },
+                  ].map((item) => {
+                    const isSelected = orderStatusFilter === item.id;
+                    return (
+                      <Chip
+                        key={item.id}
+                        active={isSelected}
+                        onClick={() => setOrderStatusFilter(item.id as any)}
+                        size="sm"
+                      >
+                        {item.label}
+                      </Chip>
+                    );
+                  })}
+                  {orderChannelFilter !== 'all' && (
+                    <Chip
+                      variant="brand"
+                      size="sm"
+                      onRemove={() => setOrderChannelFilter('all')}
+                    >
+                      Kênh: {salesChannelsList.find((ch) => ch.id === orderChannelFilter)?.name || orderChannelFilter}
+                    </Chip>
+                  )}
+                </div>
+              }
+            />
 
             {/* Orders Table */}
             <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
