@@ -5,17 +5,20 @@ import { cn } from '@/lib/cn';
 
 export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
   interactive?: boolean;
+  selected?: boolean;
 }
 
 export const Card = forwardRef<HTMLDivElement, CardProps>(
-  ({ className, interactive = false, ...props }, ref) => {
+  ({ className, interactive = false, selected = false, ...props }, ref) => {
     return (
       <div
         ref={ref}
         className={cn(
-          'bg-white border border-slate-200/90 rounded-2xl shadow-sm font-sans overflow-hidden',
+          // Layer A Content Surface: Strictly OPAQUE (0px backdrop-filter), concentric 16px radius
+          'bg-surface-card border border-card rounded-card shadow-card font-sans overflow-hidden',
           interactive &&
-            'transition-all duration-150 hover:border-slate-300 hover:shadow-md active:scale-[0.99] cursor-pointer',
+            'transition-all duration-press ease-press hover:border-slate-300/90 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/45 focus-visible:ring-offset-2 cursor-pointer',
+          selected && 'border-brand-500 ring-2 ring-brand-500/20',
           className
         )}
         {...props}
@@ -29,7 +32,7 @@ export const CardHeader = forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDi
   ({ className, ...props }, ref) => (
     <div
       ref={ref}
-      className={cn('p-4 sm:p-5 flex flex-col gap-1.5 border-b border-slate-100', className)}
+      className={cn('p-4 sm:p-5 flex flex-col gap-1 border-b border-hairline', className)}
       {...props}
     />
   )
@@ -40,7 +43,7 @@ export const CardTitle = forwardRef<HTMLHeadingElement, React.HTMLAttributes<HTM
   ({ className, ...props }, ref) => (
     <h3
       ref={ref}
-      className={cn('text-base sm:text-lg font-bold text-slate-900 leading-snug', className)}
+      className={cn('text-title-3 sm:text-title-2 font-semibold text-slate-900 leading-[1.35]', className)}
       {...props}
     />
   )
@@ -51,7 +54,7 @@ export const CardDescription = forwardRef<HTMLParagraphElement, React.HTMLAttrib
   ({ className, ...props }, ref) => (
     <p
       ref={ref}
-      className={cn('text-caption sm:text-xs text-slate-500 leading-normal', className)}
+      className={cn('text-footnote text-slate-500 leading-normal', className)}
       {...props}
     />
   )
@@ -69,7 +72,7 @@ export const CardFooter = forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDi
   ({ className, ...props }, ref) => (
     <div
       ref={ref}
-      className={cn('p-4 sm:p-5 pt-0 flex items-center justify-between border-t border-slate-50 mt-auto', className)}
+      className={cn('px-4 py-3.5 sm:px-5 sm:py-4 flex items-center justify-between border-t border-hairline mt-auto', className)}
       {...props}
     />
   )

@@ -16,32 +16,33 @@ export interface ChipProps extends React.ButtonHTMLAttributes<HTMLButtonElement>
   onRemove?: () => void;
 }
 
+// Opaque capsule filter chips (0px backdrop-filter, tint + hairline hierarchy per P3)
 const chipVariantStyles: Record<ChipVariant, { inactive: string; active: string }> = {
   default: {
-    inactive: 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200/90',
-    active: 'bg-slate-900 text-white border-slate-900 shadow-sm',
+    inactive: 'bg-surface-card hover:bg-slate-50 text-slate-700 border-slate-900/10',
+    active: 'bg-slate-900 text-white border-slate-900 font-semibold',
   },
   brand: {
-    inactive: 'bg-white hover:bg-brand-50/50 text-slate-700 border-slate-200/90',
-    active: 'bg-brand-50 text-brand-700 border-brand-300 font-semibold shadow-sm',
+    inactive: 'bg-surface-card hover:bg-brand-50/50 text-slate-700 border-slate-900/10',
+    active: 'bg-brand-600/[0.12] text-brand-700 border-brand-500/35 font-semibold',
   },
   success: {
-    inactive: 'bg-white hover:bg-emerald-50/50 text-slate-700 border-slate-200/90',
-    active: 'bg-emerald-50 text-emerald-800 border-emerald-300 font-semibold shadow-sm',
+    inactive: 'bg-surface-card hover:bg-emerald-50/50 text-slate-700 border-slate-900/10',
+    active: 'bg-emerald-50 text-emerald-800 border-emerald-400/50 font-semibold',
   },
   warning: {
-    inactive: 'bg-white hover:bg-amber-50/50 text-slate-700 border-slate-200/90',
-    active: 'bg-amber-50 text-amber-800 border-amber-300 font-semibold shadow-sm',
+    inactive: 'bg-surface-card hover:bg-amber-50/50 text-slate-700 border-slate-900/10',
+    active: 'bg-amber-50 text-amber-800 border-amber-400/50 font-semibold',
   },
   danger: {
-    inactive: 'bg-white hover:bg-rose-50/50 text-slate-700 border-slate-200/90',
-    active: 'bg-rose-50 text-rose-800 border-rose-300 font-semibold shadow-sm',
+    inactive: 'bg-surface-card hover:bg-rose-50/50 text-slate-700 border-slate-900/10',
+    active: 'bg-rose-50 text-rose-800 border-rose-400/50 font-semibold',
   },
 };
 
 const chipSizeStyles: Record<ChipSize, string> = {
-  sm: 'h-7 px-2.5 text-caption rounded-full gap-1.5',
-  md: 'h-9 px-3.5 text-xs md:text-sm rounded-full gap-2',
+  sm: 'h-8 px-3 text-caption rounded-full gap-1.5',
+  md: 'h-9 px-3.5 text-footnote md:text-subhead rounded-full gap-2',
 };
 
 export const Chip: React.FC<ChipProps> = ({
@@ -65,11 +66,12 @@ export const Chip: React.FC<ChipProps> = ({
       type={type}
       onClick={onClick}
       disabled={disabled}
+      aria-pressed={active}
       className={cn(
         'inline-flex items-center justify-center font-sans select-none border shrink-0',
-        'transition-all duration-150 ease-out active:scale-[0.97]',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30',
-        'touch-manipulation disabled:opacity-50 disabled:pointer-events-none',
+        'transition-all duration-press ease-press active:scale-[0.97]',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/45 focus-visible:ring-offset-1',
+        'touch-manipulation disabled:opacity-45 disabled:pointer-events-none disabled:active:scale-100',
         chipSizeStyles[size],
         active ? currentVariant.active : currentVariant.inactive,
         className
@@ -82,10 +84,12 @@ export const Chip: React.FC<ChipProps> = ({
       {typeof count === 'number' && (
         <span
           className={cn(
-            'inline-flex items-center justify-center text-[10px] font-bold px-1.5 py-0.2 rounded-full min-w-[18px]',
+            'inline-flex items-center justify-center text-caption font-semibold px-1.5 rounded-full min-w-[20px] font-num',
             active
-              ? 'bg-brand-600 text-white'
-              : 'bg-slate-100 text-slate-600 group-hover:bg-slate-200'
+              ? variant === 'default'
+                ? 'bg-white/20 text-white'
+                : 'bg-brand-600 text-white'
+              : 'bg-slate-100 text-slate-600'
           )}
         >
           {count}
@@ -126,6 +130,7 @@ export interface FilterPillProps {
   value?: string | null;
   active?: boolean;
   count?: number;
+  disabled?: boolean;
   onOpen?: () => void;
   onClear?: () => void;
   className?: string;
@@ -136,25 +141,32 @@ export const FilterPill: React.FC<FilterPillProps> = ({
   value,
   active = false,
   count,
+  disabled = false,
   onOpen,
   onClear,
   className,
 }) => {
   return (
     <div
-      onClick={onOpen}
+      onClick={disabled ? undefined : onOpen}
       role="button"
-      tabIndex={0}
+      tabIndex={disabled ? -1 : 0}
+      aria-disabled={disabled || undefined}
       onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') onOpen?.();
+        if (disabled) return;
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onOpen?.();
+        }
       }}
       className={cn(
-        'inline-flex items-center gap-1.5 h-9 px-3 rounded-full border text-xs md:text-sm font-sans shrink-0 cursor-pointer select-none',
-        'transition-all duration-150 active:scale-[0.98]',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30',
+        'inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full border text-footnote md:text-subhead font-sans shrink-0 cursor-pointer select-none',
+        'transition-all duration-press ease-press active:scale-[0.97]',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/45 focus-visible:ring-offset-1',
+        disabled && 'opacity-45 pointer-events-none',
         active
-          ? 'bg-brand-50 border-brand-300 text-brand-800 font-medium shadow-sm'
-          : 'bg-white border-slate-200/90 text-slate-700 hover:bg-slate-50',
+          ? 'bg-brand-600/[0.12] border-brand-500/35 text-brand-800 font-medium'
+          : 'bg-surface-card border-slate-900/10 text-slate-700 hover:bg-slate-50',
         className
       )}
     >
@@ -164,7 +176,7 @@ export const FilterPill: React.FC<FilterPillProps> = ({
       </span>
 
       {typeof count === 'number' && count > 0 && (
-        <span className="w-4 h-4 rounded-full bg-brand-600 text-white text-[10px] font-bold inline-flex items-center justify-center">
+        <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-brand-600 text-white text-caption font-semibold font-num inline-flex items-center justify-center">
           {count}
         </span>
       )}
@@ -177,6 +189,12 @@ export const FilterPill: React.FC<FilterPillProps> = ({
           onClick={(e) => {
             e.stopPropagation();
             onClear();
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.stopPropagation();
+              onClear();
+            }
           }}
           className="p-0.5 rounded-full hover:bg-brand-200/60 transition-colors ml-0.5"
         >

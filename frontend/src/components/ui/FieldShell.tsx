@@ -10,6 +10,7 @@ export interface FieldShellProps {
   hint?: React.ReactNode;
   error?: React.ReactNode;
   optionalText?: React.ReactNode;
+  compact?: boolean;
   className?: string;
   children: React.ReactNode;
 }
@@ -21,6 +22,7 @@ export const FieldShell: React.FC<FieldShellProps> = ({
   hint,
   error,
   optionalText,
+  compact = false,
   className,
   children,
 }) => {
@@ -28,22 +30,26 @@ export const FieldShell: React.FC<FieldShellProps> = ({
   const errorId = id ? `${id}-error` : undefined;
 
   return (
-    <div className={cn('flex flex-col gap-1.5 w-full font-sans', className)}>
+    <div className={cn('flex flex-col w-full font-sans', compact ? 'gap-1' : 'gap-1.5', className)}>
       {label && (
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2">
           <label
             htmlFor={id}
-            className="text-xs md:text-xs font-semibold text-slate-700 tracking-wide select-none"
+            className={cn(
+              // Sentence-case Tahoe field label (anti-generic: no uppercase eyebrow tracking)
+              'font-medium select-none',
+              compact ? 'text-footnote text-slate-600' : 'text-subhead text-slate-700'
+            )}
           >
             {label}
             {required && (
-              <span className="text-rose-500 ml-1 font-bold" aria-hidden="true">
+              <span className="text-rose-500 ml-1 font-semibold" aria-hidden="true">
                 *
               </span>
             )}
           </label>
           {optionalText && (
-            <span className="text-caption text-slate-400 select-none">
+            <span className="text-footnote text-slate-500 select-none shrink-0">
               {optionalText}
             </span>
           )}
@@ -58,14 +64,14 @@ export const FieldShell: React.FC<FieldShellProps> = ({
         <p
           id={errorId}
           role="alert"
-          className="text-caption md:text-xs text-rose-600 font-medium flex items-center gap-1 mt-0.5 animate-fadeIn"
+          className="text-footnote text-rose-600 font-medium flex items-center gap-1 mt-0.5 animate-fadeIn"
         >
           {error}
         </p>
       ) : hint ? (
         <p
           id={hintId}
-          className="text-caption md:text-xs text-slate-500 mt-0.5 select-none"
+          className="text-footnote text-slate-500 mt-0.5 select-none leading-normal"
         >
           {hint}
         </p>
