@@ -1,4 +1,13 @@
 # RabbitPOS — UI Modernization Plan (Mobile-First)
+
+> [!IMPORTANT]
+> **SUPERSEDED BY TAHOE ("LIQUID GLASS") REDESIGN PLAN (`2026-11-01`)**:
+> - **Phases 1B through 6**, Section **2A ("evolve, do not redesign")**, and tokens **D2 (type scale numbers)**, **D3 (radius)**, **D6 (surfaces)**, and **D7 (overlay)** in this document are **SUPERSEDED** by [`docs/ui-tahoe/05-execution-plan.md`](file:///opt/RabbitPOS/docs/ui-tahoe/05-execution-plan.md) and the full specification suite under [`docs/ui-tahoe/`](file:///opt/RabbitPOS/docs/ui-tahoe/) (`00` through `06`).
+> - **STILL BINDING / ACTIVE REFERENCE**:
+>   1. All **HARD GUARDRAILS** in Section 5.0 (presentation layer only; zero backend/API/DB/business-logic/auth/offline/cart-state changes; zero new npm dependencies; no global find-and-replace; all user-facing strings through `vi.json` + `en.json`; `src/tests/*` untouched; `AGENTS.md` compliance).
+>   2. The **skill precedence order** in Section 2A (`owner decisions` -> `AGENTS.md + hard guardrails` -> `repo conventions` -> `skills`) and logging of rejected skill rules.
+>   3. **Phase 1A measured font benchmark outputs** (`docs/font-specimen/README.md`), as updated by Owner Override **Q1** in [`docs/ui-tahoe/06-open-questions.md`](file:///opt/RabbitPOS/docs/ui-tahoe/06-open-questions.md) (system font stack on Apple platforms + self-hosted **Inter Variable** `latin` + `vietnamese` subsets as fallback on non-Apple platforms and for all tabular numerals; `Nunito` and static font files removed).
+
 Scope: font, border/radius, buttons, layout, **all dropdown menus and filters**. Focus: phones (360–430px), then tablet/desktop.
 Source of truth: live repo `github.com/iamndn/RabbitPOS` → `frontend/src` (audited; the older snapshot in project docs is outdated).
 Mode: **planning document + scoped prompts for the Antigravity Agent.** No code in this file.
