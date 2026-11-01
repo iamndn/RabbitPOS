@@ -1,5 +1,18 @@
 # Quyết Định Font Chữ Chính Thức (Font Decision Gate) — RabbitPOS
 
+> [!IMPORTANT]
+> **CẬP NHẬT THEO TAHOE ("LIQUID GLASS") REDESIGN — OWNER OVERRIDE Q1 (`2026-11-02`, Phase T1)**:
+> - **Quyết định mới có hiệu lực (Supersedes Pairing C Nunito):**
+>   1. **Giao diện, Tiêu đề, Nhãn nút & Nội dung (`--font-sans` / `--font-display`):** Sử dụng **System Font Stack** (`-apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display"`) để hiển thị native **San Francisco (`SF Pro`)** trên thiết bị Apple (iOS / iPadOS / macOS, `0` byte tải mạng), kết hợp **self-hosted Inter Variable** (`latin` + `vietnamese` subsets) làm fallback đồng nhất trên các nền tảng không phải Apple (Android / Windows / Linux). **Loại bỏ hoàn toàn `Nunito`.**
+>   2. **Số tiền, KPI, Bảng kê & Ngày giờ (`.font-num` / `.tabular-nums`):** Sử dụng **Inter Variable** với `font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1` trên mọi nền tảng *(Lưu ý: Câu hỏi mở `Q8` về việc ưu tiên `SF Pro tabular-nums` trên thiết bị Apple để tránh trộn 2 họ font trên cùng một dòng sẽ được Owner chốt trực quan trên iPhone tại Gate G1 — xem `docs/ui-tahoe/06-open-questions.md`)*.
+>   3. **Dung lượng file WOFF2 đo đạc thực tế còn giữ lại (`ls -l` — `[VERIFIED]`):**
+>      - `inter-latin-wght-normal.woff2`: **`48,256` bytes** (`47.12 KiB`)
+>      - `inter-vietnamese-wght-normal.woff2`: **`10,252` bytes** (`10.01 KiB`)
+>      - **Tổng dung lượng giữ lại mỗi thư mục:** **`58,508` bytes** (`57.14 KiB` — giảm từ `525,016` bytes/thư mục, giải phóng `466,508` bytes/thư mục và `1,399,524` bytes trên cả 3 thư mục `docs/font-specimen/fonts/`, `frontend/src/fonts/`, `frontend/public/fonts/`).
+>   4. **Quy tắc vẫn giữ nguyên hiệu lực:** Mục 5 (Tabular Numerals) và Mục 6 (Quy tắc `line-height >= 1.35` cho tiêu đề / `>= 1.45` cho nội dung chống cắt dấu tiếng Việt) bên dưới vẫn là quy chuẩn bắt buộc.
+
+*(Nội dung lịch sử Phase 1A bên dưới được lưu giữ để đối chiếu số liệu đo đạc ban đầu.)*
+
 Tài liệu này ghi nhận quyết định lựa chọn font chính thức của chủ sở hữu dự án (Owner) sau khi thẩm định trực quan trên file thử nghiệm `docs/font-specimen/index.html`. Đây là điều kiện tiên quyết (Precondition) bắt buộc để mở khóa và thực thi **Phase 1B (Foundations)**.
 
 ---
