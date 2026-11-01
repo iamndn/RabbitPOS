@@ -1,0 +1,2274 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RabbitPOS — Typography Specimen & Decision Gate (Phase 1A)</title>
+  <style>
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('./fonts/plus-jakarta-sans-vietnamese-400-normal.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('./fonts/plus-jakarta-sans-latin-ext-400-normal.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('./fonts/plus-jakarta-sans-latin-400-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('./fonts/plus-jakarta-sans-vietnamese-500-normal.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('./fonts/plus-jakarta-sans-latin-ext-500-normal.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('./fonts/plus-jakarta-sans-latin-500-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('./fonts/plus-jakarta-sans-vietnamese-600-normal.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('./fonts/plus-jakarta-sans-latin-ext-600-normal.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('./fonts/plus-jakarta-sans-latin-600-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('./fonts/plus-jakarta-sans-vietnamese-700-normal.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('./fonts/plus-jakarta-sans-latin-ext-700-normal.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('./fonts/plus-jakarta-sans-latin-700-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('./fonts/inter-vietnamese-400-normal.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('./fonts/inter-latin-ext-400-normal.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('./fonts/inter-latin-400-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('./fonts/inter-vietnamese-500-normal.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('./fonts/inter-latin-ext-500-normal.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('./fonts/inter-latin-500-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('./fonts/inter-vietnamese-600-normal.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('./fonts/inter-latin-ext-600-normal.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('./fonts/inter-latin-600-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('./fonts/inter-vietnamese-700-normal.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('./fonts/inter-latin-ext-700-normal.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('./fonts/inter-latin-700-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Be Vietnam Pro';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('./fonts/be-vietnam-pro-vietnamese-400-normal.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Be Vietnam Pro';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('./fonts/be-vietnam-pro-latin-ext-400-normal.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Be Vietnam Pro';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('./fonts/be-vietnam-pro-latin-400-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Be Vietnam Pro';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('./fonts/be-vietnam-pro-vietnamese-500-normal.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Be Vietnam Pro';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('./fonts/be-vietnam-pro-latin-ext-500-normal.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Be Vietnam Pro';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('./fonts/be-vietnam-pro-latin-500-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Be Vietnam Pro';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('./fonts/be-vietnam-pro-vietnamese-600-normal.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Be Vietnam Pro';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('./fonts/be-vietnam-pro-latin-ext-600-normal.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Be Vietnam Pro';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('./fonts/be-vietnam-pro-latin-600-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Be Vietnam Pro';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('./fonts/be-vietnam-pro-vietnamese-700-normal.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Be Vietnam Pro';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('./fonts/be-vietnam-pro-latin-ext-700-normal.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Be Vietnam Pro';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('./fonts/be-vietnam-pro-latin-700-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('./fonts/nunito-vietnamese-400-normal.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('./fonts/nunito-latin-ext-400-normal.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('./fonts/nunito-latin-400-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('./fonts/nunito-vietnamese-500-normal.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('./fonts/nunito-latin-ext-500-normal.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('./fonts/nunito-latin-500-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('./fonts/nunito-vietnamese-600-normal.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('./fonts/nunito-latin-ext-600-normal.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('./fonts/nunito-latin-600-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('./fonts/nunito-vietnamese-700-normal.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('./fonts/nunito-latin-ext-700-normal.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('./fonts/nunito-latin-700-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Lexend';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('./fonts/lexend-vietnamese-400-normal.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Lexend';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('./fonts/lexend-latin-ext-400-normal.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Lexend';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('./fonts/lexend-latin-400-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Lexend';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('./fonts/lexend-vietnamese-500-normal.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Lexend';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('./fonts/lexend-latin-ext-500-normal.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Lexend';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('./fonts/lexend-latin-500-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Lexend';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('./fonts/lexend-vietnamese-600-normal.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Lexend';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('./fonts/lexend-latin-ext-600-normal.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Lexend';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('./fonts/lexend-latin-600-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Lexend';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('./fonts/lexend-vietnamese-700-normal.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Lexend';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('./fonts/lexend-latin-ext-700-normal.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Lexend';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('./fonts/lexend-latin-700-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('./fonts/manrope-vietnamese-400-normal.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('./fonts/manrope-latin-ext-400-normal.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('./fonts/manrope-latin-400-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('./fonts/manrope-vietnamese-500-normal.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('./fonts/manrope-latin-ext-500-normal.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('./fonts/manrope-latin-500-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('./fonts/manrope-vietnamese-600-normal.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('./fonts/manrope-latin-ext-600-normal.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('./fonts/manrope-latin-600-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('./fonts/manrope-vietnamese-700-normal.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('./fonts/manrope-latin-ext-700-normal.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('./fonts/manrope-latin-700-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+
+    
+/* Inter Variable (Control Pairing F) */
+@font-face {
+  font-family: 'Inter Variable';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('./fonts/inter-vietnamese-wght-normal.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Inter Variable';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('./fonts/inter-latin-wght-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+    /* CSS Reset & Variables */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg-canvas: #f8fafc;
+      --bg-surface: #ffffff;
+      --border-subtle: #e2e8f0;
+      --border-strong: #cbd5e1;
+      --text-primary: #0f172a;
+      --text-secondary: #475569;
+      --text-muted: #64748b;
+      --text-disabled: #94a3b8;
+      
+      --brand-primary: #7c3aed;
+      --brand-primary-hover: #6d28d9;
+      --brand-surface: #f5f3ff;
+      --brand-border: #ddd6fe;
+
+      --emerald-surface: #ecfdf5;
+      --emerald-text: #047857;
+      --emerald-border: #a7f3d0;
+
+      --amber-surface: #fffbeb;
+      --amber-text: #b45309;
+      --amber-border: #fde68a;
+
+      --rose-surface: #fff1f2;
+      --rose-text: #be123c;
+      --rose-border: #fecdd3;
+
+      --radius-sm: 6px;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --radius-xl: 16px;
+      --radius-2xl: 20px;
+      --radius-full: 9999px;
+
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+      --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+    }
+
+    body {
+      background-color: var(--bg-canvas);
+      color: var(--text-primary);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Controls Bar */
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 12px 24px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .topbar-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--brand-primary);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .badge-phase {
+      background: var(--brand-surface);
+      color: var(--brand-primary);
+      border: 1px solid var(--brand-border);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: var(--radius-full);
+    }
+
+    .topbar-toggles {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .btn-toggle {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-strong);
+      color: var(--text-secondary);
+      font-size: 13px;
+      font-weight: 600;
+      padding: 8px 14px;
+      border-radius: var(--radius-lg);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.15s ease;
+    }
+
+    .btn-toggle:hover {
+      background: #f1f5f9;
+      color: var(--text-primary);
+    }
+
+    .btn-toggle.active {
+      background: var(--brand-primary);
+      color: #ffffff;
+      border-color: var(--brand-primary);
+    }
+
+    .toggle-indicator {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #cbd5e1;
+    }
+
+    .btn-toggle.active .toggle-indicator {
+      background: #4ade80;
+    }
+
+    .pairing-nav {
+      display: flex;
+      gap: 6px;
+      background: #f1f5f9;
+      padding: 4px;
+      border-radius: var(--radius-xl);
+      overflow-x: auto;
+    }
+
+    .btn-pairing {
+      background: transparent;
+      border: none;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      padding: 6px 12px;
+      border-radius: var(--radius-lg);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s ease;
+    }
+
+    .btn-pairing:hover {
+      color: var(--text-primary);
+    }
+
+    .btn-pairing.active {
+      background: #ffffff;
+      color: var(--brand-primary);
+      box-shadow: var(--shadow-sm);
+    }
+
+    /* Main Container */
+    .container {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    .intro-banner {
+      background: #ffffff;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-xl);
+      padding: 20px 24px;
+      margin-bottom: 24px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .intro-banner h1 {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+    }
+
+    .intro-banner p {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    .legend-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 12px;
+      margin-top: 14px;
+      padding-top: 14px;
+      border-top: 1px solid var(--border-subtle);
+    }
+
+    .legend-item {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .legend-item strong {
+      color: var(--text-primary);
+    }
+
+    /* Specimen Sections */
+    .pairing-section {
+      margin-bottom: 48px;
+      background: #ffffff;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-2xl);
+      padding: 24px;
+      box-shadow: var(--shadow-sm);
+      transition: border-color 0.2s ease;
+    }
+
+    .pairing-header {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: baseline;
+      padding-bottom: 16px;
+      margin-bottom: 20px;
+      border-bottom: 2px solid #f1f5f9;
+      gap: 12px;
+    }
+
+    .pairing-title-group h2 {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .pairing-tag {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: var(--radius-full);
+      background: #f1f5f9;
+      color: var(--text-secondary);
+    }
+
+    .pairing-specs {
+      font-size: 12px;
+      color: var(--text-muted);
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .spec-item span {
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    /* Frame Grid: Mobile (390px) + Desktop Side-by-side */
+    .frames-wrapper {
+      display: grid;
+      grid-template-columns: 390px 1fr;
+      gap: 28px;
+      align-items: start;
+    }
+
+    @media (max-width: 1024px) {
+      .frames-wrapper {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* 390px Phone Frame */
+    .phone-frame {
+      width: 390px;
+      max-width: 100%;
+      background: #ffffff;
+      border: 10px solid #1e293b;
+      border-radius: 40px;
+      box-shadow: var(--shadow-xl);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      margin: 0 auto;
+    }
+
+    .phone-speaker {
+      width: 120px;
+      height: 18px;
+      background: #1e293b;
+      margin: 0 auto 4px auto;
+      border-bottom-left-radius: 12px;
+      border-bottom-right-radius: 12px;
+    }
+
+    .phone-status-bar {
+      display: flex;
+      justify-content: space-between;
+      padding: 4px 18px 8px 18px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      border-bottom: 1px solid #f1f5f9;
+    }
+
+    .phone-viewport {
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      background: #fafafa;
+    }
+
+    /* Desktop Frame */
+    .desktop-frame {
+      background: #ffffff;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .desktop-header {
+      background: #f8fafc;
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .desktop-dots {
+      display: flex;
+      gap: 6px;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+    .dot-red { background: #f87171; }
+    .dot-yellow { background: #fbbf24; }
+    .dot-green { background: #34d399; }
+
+    .desktop-viewport {
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      background: #fafafa;
+    }
+
+    /* UI Components Inside Specimen */
+    .ui-card {
+      background: #ffffff;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-xl);
+      padding: 14px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .stress-box {
+      background: #fef2f2;
+      border: 1px dashed #fca5a5;
+      border-radius: var(--radius-lg);
+      padding: 10px 12px;
+      color: #991b1b;
+    }
+
+    .stress-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+      color: #b91c1c;
+    }
+
+    .stress-text {
+      font-size: 14px;
+      word-break: break-word;
+    }
+
+    /* Badges */
+    .badge-row {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: var(--radius-lg);
+      line-height: 1.3;
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .badge-purple { background: var(--brand-surface); color: var(--brand-primary); border: 1px solid var(--brand-border); }
+    .badge-emerald { background: var(--emerald-surface); color: var(--emerald-text); border: 1px solid var(--emerald-border); }
+    .badge-amber { background: var(--amber-surface); color: var(--amber-text); border: 1px solid var(--amber-border); }
+    .badge-rose { background: var(--rose-surface); color: var(--rose-text); border: 1px solid var(--rose-border); }
+
+    /* KPI Cards */
+    .kpi-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    .kpi-card {
+      background: #ffffff;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 10px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .kpi-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-bottom: 2px;
+    }
+
+    .kpi-val {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .kpi-sub {
+      font-size: 11px;
+      color: var(--emerald-text);
+      font-weight: 500;
+      margin-top: 2px;
+    }
+
+    /* Table */
+    .table-container {
+      background: #ffffff;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-xl);
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    th {
+      background: #f8fafc;
+      color: var(--text-secondary);
+      font-weight: 600;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border-subtle);
+      text-align: left;
+    }
+
+    td {
+      padding: 9px 12px;
+      border-bottom: 1px solid #f1f5f9;
+      color: var(--text-primary);
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    .text-right { text-align: right; }
+    .text-center { text-align: center; }
+
+    /* Form & Dropdown */
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    .app-input {
+      height: 44px;
+      padding: 0 14px;
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-xl);
+      background: #ffffff;
+      color: var(--text-primary);
+      outline: none;
+      font-size: 16px; /* 16px mobile-safe */
+      width: 100%;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .app-input:focus {
+      border-color: var(--brand-primary);
+      box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
+    }
+
+    .app-select-trigger {
+      height: 44px;
+      padding: 0 14px;
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-xl);
+      background: #ffffff;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    .select-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #10b981;
+    }
+
+    /* Buttons */
+    .btn-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-primary {
+      height: 44px;
+      padding: 0 16px;
+      background: var(--brand-primary);
+      color: #ffffff;
+      border: none;
+      border-radius: var(--radius-xl);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      flex: 1;
+      transition: background-color 0.15s ease;
+    }
+
+    .btn-primary:hover {
+      background: var(--brand-primary-hover);
+    }
+
+    .btn-secondary {
+      height: 44px;
+      padding: 0 16px;
+      background: #ffffff;
+      color: var(--text-primary);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-xl);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .btn-secondary:hover {
+      background: #f8fafc;
+    }
+
+    /* Type Scale Sample Box */
+    .type-scale-box {
+      margin-top: 14px;
+      padding: 14px;
+      background: #f8fafc;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border-subtle);
+    }
+
+    .type-scale-row {
+      display: flex;
+      align-items: baseline;
+      padding: 4px 0;
+      border-bottom: 1px dashed #e2e8f0;
+    }
+
+    .type-scale-meta {
+      width: 75px;
+      font-size: 11px;
+      color: var(--text-muted);
+      font-family: monospace;
+      flex-shrink: 0;
+    }
+
+    /* TOGGLE BEHAVIORS */
+    /* Tabular Numerals Toggle */
+    body.tabular-nums-on .num-target,
+    body.tabular-nums-on td.text-right,
+    body.tabular-nums-on .kpi-val,
+    body.tabular-nums-on .price-tag {
+      font-variant-numeric: tabular-nums;
+      font-feature-settings: 'tnum' 1;
+    }
+
+    body:not(.tabular-nums-on) .num-target,
+    body:not(.tabular-nums-on) td.text-right,
+    body:not(.tabular-nums-on) .kpi-val,
+    body:not(.tabular-nums-on) .price-tag {
+      font-variant-numeric: proportional-nums;
+      font-feature-settings: 'tnum' 0;
+    }
+
+    /* Tight Line Height Toggle */
+    body.tight-lh-on .lh-target {
+      line-height: 1.15 !important;
+    }
+    body.tight-lh-on p,
+    body.tight-lh-on .stress-text {
+      line-height: 1.25 !important;
+    }
+
+    body:not(.tight-lh-on) .lh-target {
+      line-height: 1.4 !important;
+    }
+    body:not(.tight-lh-on) p,
+    body:not(.tight-lh-on) .stress-text {
+      line-height: 1.6 !important;
+    }
+
+    /* FONT PAIRING CLASSES */
+    /* Pairing A: Plus Jakarta Sans (Headings/Buttons) + Inter (Body/Inputs/Tables/Numbers) */
+    .pairing-a .font-heading,
+    .pairing-a .btn-primary,
+    .pairing-a .btn-secondary,
+    .pairing-a .brand-title {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+    .pairing-a,
+    .pairing-a .font-body,
+    .pairing-a input,
+    .pairing-a table,
+    .pairing-a .kpi-val,
+    .pairing-a .num-target {
+      font-family: 'Inter', sans-serif;
+    }
+
+    /* Pairing B: Be Vietnam Pro (Single Family) */
+    .pairing-b,
+    .pairing-b .font-heading,
+    .pairing-b .font-body,
+    .pairing-b .btn-primary,
+    .pairing-b .btn-secondary,
+    .pairing-b input,
+    .pairing-b table,
+    .pairing-b .kpi-val,
+    .pairing-b .num-target {
+      font-family: 'Be Vietnam Pro', sans-serif;
+    }
+
+    /* Pairing C: Nunito (Headings/Body) + Inter (Numbers/Tables) */
+    .pairing-c,
+    .pairing-c .font-heading,
+    .pairing-c .font-body,
+    .pairing-c .btn-primary,
+    .pairing-c .btn-secondary,
+    .pairing-c input {
+      font-family: 'Nunito', sans-serif;
+    }
+    .pairing-c table,
+    .pairing-c .kpi-val,
+    .pairing-c .num-target,
+    .pairing-c .price-tag {
+      font-family: 'Inter', sans-serif;
+    }
+
+    /* Pairing D: Lexend (Headings/Buttons) + Inter (Body/Tables/Numbers) */
+    .pairing-d .font-heading,
+    .pairing-d .btn-primary,
+    .pairing-d .btn-secondary,
+    .pairing-d .brand-title {
+      font-family: 'Lexend', sans-serif;
+    }
+    .pairing-d,
+    .pairing-d .font-body,
+    .pairing-d input,
+    .pairing-d table,
+    .pairing-d .kpi-val,
+    .pairing-d .num-target {
+      font-family: 'Inter', sans-serif;
+    }
+
+    /* Pairing E: Manrope (Headings/Buttons) + Inter (Body/Tables/Numbers) */
+    .pairing-e .font-heading,
+    .pairing-e .btn-primary,
+    .pairing-e .btn-secondary,
+    .pairing-e .brand-title {
+      font-family: 'Manrope', sans-serif;
+    }
+    .pairing-e,
+    .pairing-e .font-body,
+    .pairing-e input,
+    .pairing-e table,
+    .pairing-e .kpi-val,
+    .pairing-e .num-target {
+      font-family: 'Inter', sans-serif;
+    }
+
+    
+    /* Pairing F: Inter Variable Only (Control) */
+    .pairing-f,
+    .pairing-f .font-heading,
+    .pairing-f .font-body,
+    .pairing-f .btn-primary,
+    .pairing-f .btn-secondary,
+    .pairing-f input,
+    .pairing-f table,
+    .pairing-f .kpi-val,
+    .pairing-f .num-target {
+      font-family: 'Inter Variable', sans-serif;
+    }
+
+    /* Tabular Alignment Demo Grid */
+    .tabular-demo-box {
+      margin-top: 14px;
+      padding: 12px;
+      background: #f1f5f9;
+      border-radius: var(--radius-lg);
+    }
+
+    .tabular-demo-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      font-size: 13px;
+    }
+
+    .tabular-demo-col {
+      background: #ffffff;
+      padding: 8px 12px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-subtle);
+    }
+    .tabular-demo-col span {
+      display: block;
+      letter-spacing: 0px;
+    }
+
+  </style>
+</head>
+<body class="tabular-nums-on">
+
+  <!-- Sticky Controls Header -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <div class="brand-title">
+        <span>🐰 RabbitPOS</span>
+      </div>
+      <span class="badge-phase">Phase 1A: Font Specimen</span>
+    </div>
+
+    <div class="topbar-toggles">
+      <!-- Toggle 1: Tabular Numerals -->
+      <button class="btn-toggle active" id="toggle-tabular" onclick="toggleTabular()">
+        <span class="toggle-indicator"></span>
+        <span>Tabular Numerals: <strong id="tabular-status">ON</strong></span>
+      </button>
+
+      <!-- Toggle 2: Line Height -->
+      <button class="btn-toggle" id="toggle-lh" onclick="toggleLineHeight()">
+        <span class="toggle-indicator"></span>
+        <span>Line Height: <strong id="lh-status">NORMAL (1.5)</strong></span>
+      </button>
+
+      <!-- Pairing Quick Nav -->
+      <div class="pairing-nav">
+        <button class="btn-pairing active" onclick="filterPairing('all')">Tất cả (So sánh)</button>
+        <button class="btn-pairing" onclick="filterPairing('pairing-a')">Pairing A</button>
+        <button class="btn-pairing" onclick="filterPairing('pairing-b')">Pairing B</button>
+        <button class="btn-pairing" onclick="filterPairing('pairing-c')">Pairing C</button>
+        <button class="btn-pairing" onclick="filterPairing('pairing-d')">Pairing D (Lexend)</button>
+        <button class="btn-pairing" onclick="filterPairing('pairing-e')">Pairing E (Manrope)</button>
+        <button class="btn-pairing" onclick="filterPairing('pairing-f')">Pairing F (Inter Variable - Control)</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- Introduction & Guidance -->
+    <section class="intro-banner">
+      <h1>Bảng So Sánh Font Chữ RabbitPOS — Cổng Quyết Định (Phase 1A)</h1>
+      <p>
+        Bản thử nghiệm trực tiếp trên dữ liệu bán hàng thực tế của RabbitPOS: tên món tiếng Việt có dấu, số tiền VNĐ (45.000đ, 1.250.000 ₫), thẻ KPI, bảng hoá đơn căn phải, nút bấm cảm ứng (44px) và ô nhập mã (16px).
+        Tất cả font được self-host 100% bằng file woff2 cục bộ trong <code>docs/font-specimen/fonts/</code> (không kết nối mạng khi tải trang).
+      </p>
+      <div class="legend-grid">
+        <div class="legend-item">💡 <strong>Cách chọn:</strong> Bấm đổi toggle Tabular Numerals và Line Height ở trên để kiểm tra căn lề số tiền và va chạm dấu tiếng Việt.</div>
+        <div class="legend-item">📱 <strong>Khung di động 390px:</strong> Mô phỏng chính xác giao diện thu ngân trên màn hình iPhone 13/14/15.</div>
+        <div class="legend-item">🖥️ <strong>Khung Desktop:</strong> Kiểm tra độ sắc nét của bảng kê hoá đơn và khối thẻ doanh thu khi hiển thị rộng.</div>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- PAIRING A: Plus Jakarta Sans + Inter -->
+    <!-- ========================================== -->
+    <section class="pairing-section pairing-a" id="pairing-a">
+      <div class="pairing-header">
+        <div class="pairing-title-group">
+          <h2>A — Plus Jakarta Sans + Inter</h2>
+          <span class="pairing-tag">Đề xuất khuyến nghị #1</span>
+        </div>
+        <div class="pairing-specs">
+          <div class="spec-item">Tiêu đề & Nút: <span>Plus Jakarta Sans</span></div>
+          <div class="spec-item">Nội dung & Số liệu: <span>Inter</span></div>
+          <div class="spec-item">Dung lượng WOFF2: <span>92.0 KB MEASURED (PJS Var 34.9 KB + Inter Var 57.1 KB)</span></div>
+          <div class="spec-item">Bản quyền: <span>OFL 1.1</span></div>
+        </div>
+      </div>
+
+      <div class="frames-wrapper">
+        <!-- Phone Frame (390px) -->
+        <div class="phone-frame">
+          <div class="phone-speaker"></div>
+          <div class="phone-status-bar">
+            <span>09:41</span>
+            <span>📶 5G 🔋 98%</span>
+          </div>
+          <div class="phone-viewport">
+            <!-- Header -->
+            <div class="brand-title font-heading lh-target" style="font-size: 20px; font-weight: 700;">
+              🐰 RabbitPOS • Quầy Thu Ngân
+            </div>
+
+            <!-- Diacritic Stress Line -->
+            <div class="stress-box">
+              <div class="stress-title">Kiểm tra dấu tiếng Việt (Stress Test)</div>
+              <div class="stress-text lh-target">
+                ệ ẫ ử ỗ ặ ớ ữ ổ — ĐẬM ĐÀ, TINH TẾ, TRÀ SỮA, CÀ PHÊ SỮA ĐÁ
+              </div>
+            </div>
+
+            <!-- Badges -->
+            <div class="badge-row">
+              <span class="badge badge-purple">Bán chạy</span>
+              <span class="badge badge-emerald">Món mới</span>
+              <span class="badge badge-amber">Giảm 15%</span>
+              <span class="badge badge-rose">Tạm hết</span>
+            </div>
+
+            <!-- 3 KPI Cards -->
+            <div class="kpi-row">
+              <div class="kpi-card">
+                <div class="kpi-label">Doanh thu</div>
+                <div class="kpi-val num-target">1.250.000 ₫</div>
+                <div class="kpi-sub">+14.2%</div>
+              </div>
+              <div class="kpi-card">
+                <div class="kpi-label">Đơn hàng</div>
+                <div class="kpi-val num-target">48 đơn</div>
+                <div class="kpi-sub">Tb 26k</div>
+              </div>
+              <div class="kpi-card">
+                <div class="kpi-label">Két tiền</div>
+                <div class="kpi-val num-target">850.000 ₫</div>
+                <div class="kpi-sub">Đã khớp</div>
+              </div>
+            </div>
+
+            <!-- 6-Row Ledger Table -->
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Mã / Tên món</th>
+                    <th class="text-center">SL</th>
+                    <th class="text-right">Thành tiền</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>#HD-1092</strong><br><span style="font-size: 11px; color: var(--text-secondary);">Cà phê sữa đá</span></td>
+                    <td class="text-center num-target">02</td>
+                    <td class="text-right num-target">58.000 ₫</td>
+                  </tr>
+                  <tr>
+                    <td><strong>#HD-1093</strong><br><span style="font-size: 11px; color: var(--text-secondary);">Sinh tố bơ dừa Đắk Lắk</span></td>
+                    <td class="text-center num-target">01</td>
+                    <td class="text-right num-target">45.000 ₫</td>
+                  </tr>
+                  <tr>
+                    <td><strong>#HD-1094</strong><br><span style="font-size: 11px; color: var(--text-secondary);">Trà sữa trân châu hoàng gia</span></td>
+                    <td class="text-center num-target">03</td>
+                    <td class="text-right num-target">114.000 ₫</td>
+                  </tr>
+                  <tr>
+                    <td><strong>#HD-1095</strong><br><span style="font-size: 11px; color: var(--text-secondary);">Nước ép cam tươi nguyên chất</span></td>
+                    <td class="text-center num-target">01</td>
+                    <td class="text-right num-target">35.000 ₫</td>
+                  </tr>
+                  <tr>
+                    <td><strong>#HD-1096</strong><br><span style="font-size: 11px; color: var(--text-secondary);">Combo Điểm tâm & Bạc xỉu</span></td>
+                    <td class="text-center num-target">02</td>
+                    <td class="text-right num-target">110.000 ₫</td>
+                  </tr>
+                  <tr>
+                    <td><strong>#HD-1097</strong><br><span style="font-size: 11px; color: var(--text-secondary);">Trà đào cam sả thạch đào</span></td>
+                    <td class="text-center num-target">02</td>
+                    <td class="text-right num-target">88.000 ₫</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Form Input & Dropdown -->
+            <div class="form-group">
+              <label class="form-label font-body">Mã khuyến mãi (16px text - chống zoom iOS)</label>
+              <input type="text" class="app-input font-body" value="RABBIT15OFF" placeholder="Nhập mã voucher...">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label font-body">Chọn vị trí / Bàn</label>
+              <div class="app-select-trigger font-body">
+                <div class="select-left">
+                  <span class="status-dot"></span>
+                  <span>Bàn 04 (Tầng 1 - Khu máy lạnh)</span>
+                </div>
+                <span>▼</span>
+              </div>
+            </div>
+
+            <!-- Buttons -->
+            <div class="btn-row">
+              <button class="btn-primary font-heading">
+                <span>+ Thanh toán ngay (1.250.000 ₫)</span>
+              </button>
+              <button class="btn-secondary font-heading">In tạm tính</button>
+            </div>
+
+            <!-- Type Scale Check -->
+            <div class="type-scale-box">
+              <div class="type-scale-row"><span class="type-scale-meta">28px/700</span><span class="font-heading lh-target" style="font-size:28px; font-weight:700;">Cà phê sữa đá</span></div>
+              <div class="type-scale-row"><span class="type-scale-meta">20px/600</span><span class="font-heading lh-target" style="font-size:20px; font-weight:600;">Sinh tố bơ 45.000đ</span></div>
+              <div class="type-scale-row"><span class="type-scale-meta">16px/500</span><span class="font-body lh-target" style="font-size:16px; font-weight:500;">Trà sữa trân châu đường đen</span></div>
+              <div class="type-scale-row"><span class="type-scale-meta">14px/400</span><span class="font-body lh-target" style="font-size:14px; font-weight:400;">Nước ép cam nguyên chất sành</span></div>
+              <div class="type-scale-row"><span class="type-scale-meta">12px/500</span><span class="font-body lh-target" style="font-size:12px; font-weight:500;">Giảm giá 15% cho thành viên VIP</span></div>
+              <div class="type-scale-row"><span class="type-scale-meta">11px/600</span><span class="font-body lh-target" style="font-size:11px; font-weight:600;">#HD-1092 • ĐÃ HOÀN TẤT THANH TOÁN</span></div>
+            </div>
+
+            <!-- Tabular Alignment Demo -->
+            <div class="tabular-demo-box">
+              <div style="font-size:11px; font-weight:700; color:var(--text-muted); margin-bottom:6px;">KIỂM TRA CĂN CỘT SỐ TIỀN (Tabular Digits)</div>
+              <div class="tabular-demo-grid">
+                <div class="tabular-demo-col num-target">
+                  <span>111.111 ₫</span>
+                  <span>888.888 ₫</span>
+                  <span>101.010 ₫</span>
+                </div>
+                <div class="tabular-demo-col num-target">
+                  <span>01/01/2026</span>
+                  <span>28/08/2026</span>
+                  <span>19:11:01</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Desktop Frame -->
+        <div class="desktop-frame">
+          <div class="desktop-header">
+            <div class="desktop-dots">
+              <div class="dot dot-red"></div>
+              <div class="dot dot-yellow"></div>
+              <div class="dot dot-green"></div>
+            </div>
+            <div style="font-size: 12px; font-weight: 600; color: var(--text-muted);">Desktop POS View (1024px+) — Pairing A</div>
+            <div style="width: 40px;"></div>
+          </div>
+          <div class="desktop-viewport">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <div>
+                <h1 class="font-heading lh-target" style="font-size:24px; font-weight:700;">Sổ Quỹ & Giao Dịch Bán Hàng Trong Ngày</h1>
+                <p class="font-body" style="font-size:13px; color:var(--text-secondary);">Chi nhánh: RabbitPOS Quận 1 • Ca sáng: 06:00 - 14:00</p>
+              </div>
+              <div style="display:flex; gap:10px;">
+                <button class="btn-secondary font-heading" style="height:38px;">Xuất Excel</button>
+                <button class="btn-primary font-heading" style="height:38px;">+ Đơn Hàng Mới</button>
+              </div>
+            </div>
+
+            <div class="kpi-row" style="grid-template-columns: repeat(3, 1fr);">
+              <div class="kpi-card" style="padding:16px;">
+                <div class="kpi-label">Tổng doanh thu ca</div>
+                <div class="kpi-val num-target" style="font-size:24px;">1.250.000 ₫</div>
+                <div class="kpi-sub">+14.2% so với hôm qua</div>
+              </div>
+              <div class="kpi-card" style="padding:16px;">
+                <div class="kpi-label">Số lượng hoá đơn</div>
+                <div class="kpi-val num-target" style="font-size:24px;">48 đơn hàng</div>
+                <div class="kpi-sub">Trung bình 26.040 ₫ / đơn</div>
+              </div>
+              <div class="kpi-card" style="padding:16px;">
+                <div class="kpi-label">Tiền mặt thực tế tại két</div>
+                <div class="kpi-val num-target" style="font-size:24px;">850.000 ₫</div>
+                <div class="kpi-sub">Chuyển khoản: 400.000 ₫</div>
+              </div>
+            </div>
+
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Mã Đơn</th>
+                    <th>Thời gian</th>
+                    <th>Chi tiết món & Tuỳ chọn</th>
+                    <th class="text-center">Số lượng</th>
+                    <th>Trạng thái</th>
+                    <th class="text-right">Doanh thu</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="num-target"><strong>#HD-1092</strong></td>
+                    <td class="num-target">14:20:15</td>
+                    <td>Cà phê sữa đá (Ít ngọt, 50% đá)</td>
+                    <td class="text-center num-target">02</td>
+                    <td><span class="badge badge-purple">Đã thanh toán</span></td>
+                    <td class="text-right num-target" style="font-weight:600;">58.000 ₫</td>
+                  </tr>
+                  <tr>
+                    <td class="num-target"><strong>#HD-1093</strong></td>
+                    <td class="num-target">14:25:40</td>
+                    <td>Sinh tố bơ dừa sáp Đắk Lắk</td>
+                    <td class="text-center num-target">01</td>
+                    <td><span class="badge badge-emerald">Hoàn tất</span></td>
+                    <td class="text-right num-target" style="font-weight:600;">45.000 ₫</td>
+                  </tr>
+                  <tr>
+                    <td class="num-target"><strong>#HD-1094</strong></td>
+                    <td class="num-target">14:32:02</td>
+                    <td>Trà sữa trân châu hoàng gia (Full topping)</td>
+                    <td class="text-center num-target">03</td>
+                    <td><span class="badge badge-purple">Đã thanh toán</span></td>
+                    <td class="text-right num-target" style="font-weight:600;">114.000 ₫</td>
+                  </tr>
+                  <tr>
+                    <td class="num-target"><strong>#HD-1095</strong></td>
+                    <td class="num-target">14:41:19</td>
+                    <td>Nước ép cam tươi nguyên chất sành</td>
+                    <td class="text-center num-target">01</td>
+                    <td><span class="badge badge-purple">Đã thanh toán</span></td>
+                    <td class="text-right num-target" style="font-weight:600;">35.000 ₫</td>
+                  </tr>
+                  <tr>
+                    <td class="num-target"><strong>#HD-1096</strong></td>
+                    <td class="num-target">14:50:55</td>
+                    <td>Combo Điểm tâm & Bạc xỉu Sài Gòn</td>
+                    <td class="text-center num-target">02</td>
+                    <td><span class="badge badge-purple">Đã thanh toán</span></td>
+                    <td class="text-right num-target" style="font-weight:600;">110.000 ₫</td>
+                  </tr>
+                  <tr>
+                    <td class="num-target"><strong>#HD-1097</strong></td>
+                    <td class="num-target">15:05:12</td>
+                    <td>Trà đào cam sả thạch đào giòn</td>
+                    <td class="text-center num-target">02</td>
+                    <td><span class="badge badge-amber">Đang xử lý</span></td>
+                    <td class="text-right num-target" style="font-weight:600;">88.000 ₫</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- PAIRING B: Be Vietnam Pro Only -->
+    <!-- ========================================== -->
+    <section class="pairing-section pairing-b" id="pairing-b">
+      <div class="pairing-header">
+        <div class="pairing-title-group">
+          <h2>B — Be Vietnam Pro (Single Family)</h2>
+          <span class="pairing-tag">Thuần Việt & Tinh gọn (1 Family)</span>
+        </div>
+        <div class="pairing-specs">
+          <div class="spec-item">Tất cả thành phần: <span>Be Vietnam Pro (400, 500, 600, 700)</span></div>
+          <div class="spec-item">Dung lượng WOFF2: <span>65.3 KB MEASURED (Static 400+600, 4 files) / 132.4 KB (400-700, 8 files) [STATIC ONLY]</span></div>
+          <div class="spec-item">Bản quyền: <span>OFL 1.1</span></div>
+        </div>
+      </div>
+
+      <div class="frames-wrapper">
+        <div class="phone-frame">
+          <div class="phone-speaker"></div>
+          <div class="phone-status-bar"><span>09:41</span><span>📶 5G 🔋 98%</span></div>
+          <div class="phone-viewport">
+            <div class="brand-title font-heading lh-target" style="font-size: 20px; font-weight: 700;">🐰 RabbitPOS • Quầy Thu Ngân</div>
+            <div class="stress-box">
+              <div class="stress-title">Kiểm tra dấu tiếng Việt (Stress Test)</div>
+              <div class="stress-text lh-target">ệ ẫ ử ỗ ặ ớ ữ ổ — ĐẬM ĐÀ, TINH TẾ, TRÀ SỮA, CÀ PHÊ SỮA ĐÁ</div>
+            </div>
+            <div class="badge-row">
+              <span class="badge badge-purple">Bán chạy</span>
+              <span class="badge badge-emerald">Món mới</span>
+              <span class="badge badge-amber">Giảm 15%</span>
+              <span class="badge badge-rose">Tạm hết</span>
+            </div>
+            <div class="kpi-row">
+              <div class="kpi-card"><div class="kpi-label">Doanh thu</div><div class="kpi-val num-target">1.250.000 ₫</div><div class="kpi-sub">+14.2%</div></div>
+              <div class="kpi-card"><div class="kpi-label">Đơn hàng</div><div class="kpi-val num-target">48 đơn</div><div class="kpi-sub">Tb 26k</div></div>
+              <div class="kpi-card"><div class="kpi-label">Két tiền</div><div class="kpi-val num-target">850.000 ₫</div><div class="kpi-sub">Đã khớp</div></div>
+            </div>
+            <div class="table-container">
+              <table>
+                <thead><tr><th>Mã / Tên món</th><th class="text-center">SL</th><th class="text-right">Thành tiền</th></tr></thead>
+                <tbody>
+                  <tr><td><strong>#HD-1092</strong><br><span style="font-size: 11px; color: var(--text-secondary);">Cà phê sữa đá</span></td><td class="text-center num-target">02</td><td class="text-right num-target">58.000 ₫</td></tr>
+                  <tr><td><strong>#HD-1093</strong><br><span style="font-size: 11px; color: var(--text-secondary);">Sinh tố bơ dừa Đắk Lắk</span></td><td class="text-center num-target">01</td><td class="text-right num-target">45.000 ₫</td></tr>
+                  <tr><td><strong>#HD-1094</strong><br><span style="font-size: 11px; color: var(--text-secondary);">Trà sữa trân châu hoàng gia</span></td><td class="text-center num-target">03</td><td class="text-right num-target">114.000 ₫</td></tr>
+                  <tr><td><strong>#HD-1095</strong><br><span style="font-size: 11px; color: var(--text-secondary);">Nước ép cam tươi nguyên chất</span></td><td class="text-center num-target">01</td><td class="text-right num-target">35.000 ₫</td></tr>
+                  <tr><td><strong>#HD-1096</strong><br><span style="font-size: 11px; color: var(--text-secondary);">Combo Điểm tâm & Bạc xỉu</span></td><td class="text-center num-target">02</td><td class="text-right num-target">110.000 ₫</td></tr>
+                  <tr><td><strong>#HD-1097</strong><br><span style="font-size: 11px; color: var(--text-secondary);">Trà đào cam sả thạch đào</span></td><td class="text-center num-target">02</td><td class="text-right num-target">88.000 ₫</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="form-group">
+              <label class="form-label font-body">Mã khuyến mãi (16px text - chống zoom iOS)</label>
+              <input type="text" class="app-input font-body" value="RABBIT15OFF" placeholder="Nhập mã voucher...">
+            </div>
+            <div class="form-group">
+              <label class="form-label font-body">Chọn vị trí / Bàn</label>
+              <div class="app-select-trigger font-body"><div class="select-left"><span class="status-dot"></span><span>Bàn 04 (Tầng 1 - Khu máy lạnh)</span></div><span>▼</span></div>
+            </div>
+            <div class="btn-row">
+              <button class="btn-primary font-heading"><span>+ Thanh toán ngay (1.250.000 ₫)</span></button>
+              <button class="btn-secondary font-heading">In tạm tính</button>
+            </div>
+            <div class="type-scale-box">
+              <div class="type-scale-row"><span class="type-scale-meta">28px/700</span><span class="font-heading lh-target" style="font-size:28px; font-weight:700;">Cà phê sữa đá</span></div>
+              <div class="type-scale-row"><span class="type-scale-meta">20px/600</span><span class="font-heading lh-target" style="font-size:20px; font-weight:600;">Sinh tố bơ 45.000đ</span></div>
+              <div class="type-scale-row"><span class="type-scale-meta">16px/500</span><span class="font-body lh-target" style="font-size:16px; font-weight:500;">Trà sữa trân châu đường đen</span></div>
+              <div class="type-scale-row"><span class="type-scale-meta">14px/400</span><span class="font-body lh-target" style="font-size:14px; font-weight:400;">Nước ép cam nguyên chất sành</span></div>
+              <div class="type-scale-row"><span class="type-scale-meta">12px/500</span><span class="font-body lh-target" style="font-size:12px; font-weight:500;">Giảm giá 15% cho thành viên VIP</span></div>
+              <div class="type-scale-row"><span class="type-scale-meta">11px/600</span><span class="font-body lh-target" style="font-size:11px; font-weight:600;">#HD-1092 • ĐÃ HOÀN TẤT THANH TOÁN</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="desktop-frame">
+          <div class="desktop-header"><div class="desktop-dots"><div class="dot dot-red"></div><div class="dot dot-yellow"></div><div class="dot dot-green"></div></div><div style="font-size: 12px; font-weight: 600; color: var(--text-muted);">Desktop POS View — Pairing B</div><div style="width: 40px;"></div></div>
+          <div class="desktop-viewport">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <div><h1 class="font-heading lh-target" style="font-size:24px; font-weight:700;">Sổ Quỹ & Giao Dịch Bán Hàng Trong Ngày</h1><p class="font-body" style="font-size:13px; color:var(--text-secondary);">Chi nhánh: RabbitPOS Quận 1 • Ca sáng: 06:00 - 14:00</p></div>
+              <div style="display:flex; gap:10px;"><button class="btn-secondary font-heading" style="height:38px;">Xuất Excel</button><button class="btn-primary font-heading" style="height:38px;">+ Đơn Hàng Mới</button></div>
+            </div>
+            <div class="kpi-row" style="grid-template-columns: repeat(3, 1fr);">
+              <div class="kpi-card" style="padding:16px;"><div class="kpi-label">Tổng doanh thu ca</div><div class="kpi-val num-target" style="font-size:24px;">1.250.000 ₫</div><div class="kpi-sub">+14.2% so với hôm qua</div></div>
+              <div class="kpi-card" style="padding:16px;"><div class="kpi-label">Số lượng hoá đơn</div><div class="kpi-val num-target" style="font-size:24px;">48 đơn hàng</div><div class="kpi-sub">Trung bình 26.040 ₫ / đơn</div></div>
+              <div class="kpi-card" style="padding:16px;"><div class="kpi-label">Tiền mặt thực tế tại két</div><div class="kpi-val num-target" style="font-size:24px;">850.000 ₫</div><div class="kpi-sub">Chuyển khoản: 400.000 ₫</div></div>
+            </div>
+            <div class="table-container">
+              <table>
+                <thead><tr><th>Mã Đơn</th><th>Thời gian</th><th>Chi tiết món & Tuỳ chọn</th><th class="text-center">Số lượng</th><th>Trạng thái</th><th class="text-right">Doanh thu</th></tr></thead>
+                <tbody>
+                  <tr><td class="num-target"><strong>#HD-1092</strong></td><td class="num-target">14:20:15</td><td>Cà phê sữa đá (Ít ngọt, 50% đá)</td><td class="text-center num-target">02</td><td><span class="badge badge-purple">Đã thanh toán</span></td><td class="text-right num-target" style="font-weight:600;">58.000 ₫</td></tr>
+                  <tr><td class="num-target"><strong>#HD-1093</strong></td><td class="num-target">14:25:40</td><td>Sinh tố bơ dừa sáp Đắk Lắk</td><td class="text-center num-target">01</td><td><span class="badge badge-emerald">Hoàn tất</span></td><td class="text-right num-target" style="font-weight:600;">45.000 ₫</td></tr>
+                  <tr><td class="num-target"><strong>#HD-1094</strong></td><td class="num-target">14:32:02</td><td>Trà sữa trân châu hoàng gia (Full topping)</td><td class="text-center num-target">03</td><td><span class="badge badge-purple">Đã thanh toán</span></td><td class="text-right num-target" style="font-weight:600;">114.000 ₫</td></tr>
+                  <tr><td class="num-target"><strong>#HD-1095</strong></td><td class="num-target">14:41:19</td><td>Nước ép cam tươi nguyên chất sành</td><td class="text-center num-target">01</td><td><span class="badge badge-purple">Đã thanh toán</span></td><td class="text-right num-target" style="font-weight:600;">35.000 ₫</td></tr>
+                  <tr><td class="num-target"><strong>#HD-1096</strong></td><td class="num-target">14:50:55</td><td>Combo Điểm tâm & Bạc xỉu Sài Gòn</td><td class="text-center num-target">02</td><td><span class="badge badge-purple">Đã thanh toán</span></td><td class="text-right num-target" style="font-weight:600;">110.000 ₫</td></tr>
+                  <tr><td class="num-target"><strong>#HD-1097</strong></td><td class="num-target">15:05:12</td><td>Trà đào cam sả thạch đào giòn</td><td class="text-center num-target">02</td><td><span class="badge badge-amber">Đang xử lý</span></td><td class="text-right num-target" style="font-weight:600;">88.000 ₫</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- PAIRING C: Nunito + Inter -->
+    <!-- ========================================== -->
+    <section class="pairing-section pairing-c" id="pairing-c">
+      <div class="pairing-header">
+        <div class="pairing-title-group">
+          <h2>C — Nunito + Inter (Số liệu)</h2>
+          <span class="pairing-tag">Ấm áp & Thân thiện F&B</span>
+        </div>
+        <div class="pairing-specs">
+          <div class="spec-item">Tiêu đề & Nội dung: <span>Nunito</span></div>
+          <div class="spec-item">Số tiền & Bảng kê: <span>Inter</span></div>
+          <div class="spec-item">Dung lượng WOFF2: <span>108.1 KB MEASURED (Nunito Var 51.0 KB + Inter Var 57.1 KB)</span></div>
+          <div class="spec-item">Bản quyền: <span>OFL 1.1</span></div>
+        </div>
+      </div>
+
+      <div class="frames-wrapper">
+        <div class="phone-frame">
+          <div class="phone-speaker"></div>
+          <div class="phone-status-bar"><span>09:41</span><span>📶 5G 🔋 98%</span></div>
+          <div class="phone-viewport">
+            <div class="brand-title font-heading lh-target" style="font-size: 20px; font-weight: 700;">🐰 RabbitPOS • Quầy Thu Ngân</div>
+            <div class="stress-box">
+              <div class="stress-title">Kiểm tra dấu tiếng Việt (Stress Test)</div>
+              <div class="stress-text lh-target">ệ ẫ ử ỗ ặ ớ ữ ổ — ĐẬM ĐÀ, TINH TẾ, TRÀ SỮA, CÀ PHÊ SỮA ĐÁ</div>
+            </div>
+            <div class="badge-row">
+              <span class="badge badge-purple">Bán chạy</span>
+              <span class="badge badge-emerald">Món mới</span>
+              <span class="badge badge-amber">Giảm 15%</span>
+              <span class="badge badge-rose">Tạm hết</span>
+            </div>
+            <div class="kpi-row">
+              <div class="kpi-card"><div class="kpi-label">Doanh thu</div><div class="kpi-val num-target">1.250.000 ₫</div><div class="kpi-sub">+14.2%</div></div>
+              <div class="kpi-card"><div class="kpi-label">Đơn hàng</div><div class="kpi-val num-target">48 đơn</div><div class="kpi-sub">Tb 26k</div></div>
+              <div class="kpi-card"><div class="kpi-label">Két tiền</div><div class="kpi-val num-target">850.000 ₫</div><div class="kpi-sub">Đã khớp</div></div>
+            </div>
+            <div class="table-container">
+              <table>
+                <thead><tr><th>Mã / Tên món</th><th class="text-center">SL</th><th class="text-right">Thành tiền</th></tr></thead>
+                <tbody>
+                  <tr><td><strong>#HD-1092</strong><br><span style="font-size: 11px; color: var(--text-secondary);">Cà phê sữa đá</span></td><td class="text-center num-target">02</td><td class="text-right num-target">58.000 ₫</td></tr>
+                  <tr><td><strong>#HD-1093</strong><br><span style="font-size: 11px; color: var(--text-secondary);">Sinh tố bơ dừa Đắk Lắk</span></td><td class="text-center num-target">01</td><td class="text-right num-target">45.000 ₫</td></tr>
+                  <tr><td><strong>#HD-1094</strong><br><span style="font-size: 11px; color: var(--text-secondary);">Trà sữa trân châu hoàng gia</span></td><td class="text-center num-target">03</td><td class="text-right num-target">114.000 ₫</td></tr>
+                  <tr><td><strong>#HD-1095</strong><br><span style="font-size: 11px; color: var(--text-secondary);">Nước ép cam tươi nguyên chất</span></td><td class="text-center num-target">01</td><td class="text-right num-target">35.000 ₫</td></tr>
+                  <tr><td><strong>#HD-1096</strong><br><span style="font-size: 11px; color: var(--text-secondary);">Combo Điểm tâm & Bạc xỉu</span></td><td class="text-center num-target">02</td><td class="text-right num-target">110.000 ₫</td></tr>
+                  <tr><td><strong>#HD-1097</strong><br><span style="font-size: 11px; color: var(--text-secondary);">Trà đào cam sả thạch đào</span></td><td class="text-center num-target">02</td><td class="text-right num-target">88.000 ₫</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="form-group">
+              <label class="form-label font-body">Mã khuyến mãi (16px text - chống zoom iOS)</label>
+              <input type="text" class="app-input font-body" value="RABBIT15OFF" placeholder="Nhập mã voucher...">
+            </div>
+            <div class="form-group">
+              <label class="form-label font-body">Chọn vị trí / Bàn</label>
+              <div class="app-select-trigger font-body"><div class="select-left"><span class="status-dot"></span><span>Bàn 04 (Tầng 1 - Khu máy lạnh)</span></div><span>▼</span></div>
+            </div>
+            <div class="btn-row">
+              <button class="btn-primary font-heading"><span>+ Thanh toán ngay (1.250.000 ₫)</span></button>
+              <button class="btn-secondary font-heading">In tạm tính</button>
+            </div>
+            <div class="type-scale-box">
+              <div class="type-scale-row"><span class="type-scale-meta">28px/700</span><span class="font-heading lh-target" style="font-size:28px; font-weight:700;">Cà phê sữa đá</span></div>
+              <div class="type-scale-row"><span class="type-scale-meta">20px/600</span><span class="font-heading lh-target" style="font-size:20px; font-weight:600;">Sinh tố bơ 45.000đ</span></div>
+              <div class="type-scale-row"><span class="type-scale-meta">16px/500</span><span class="font-body lh-target" style="font-size:16px; font-weight:500;">Trà sữa trân châu đường đen</span></div>
+              <div class="type-scale-row"><span class="type-scale-meta">14px/400</span><span class="font-body lh-target" style="font-size:14px; font-weight:400;">Nước ép cam nguyên chất sành</span></div>
+              <div class="type-scale-row"><span class="type-scale-meta">12px/500</span><span class="font-body lh-target" style="font-size:12px; font-weight:500;">Giảm giá 15% cho thành viên VIP</span></div>
+              <div class="type-scale-row"><span class="type-scale-meta">11px/600</span><span class="font-body lh-target" style="font-size:11px; font-weight:600;">#HD-1092 • ĐÃ HOÀN TẤT THANH TOÁN</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="desktop-frame">
+          <div class="desktop-header"><div class="desktop-dots"><div class="dot dot-red"></div><div class="dot dot-yellow"></div><div class="dot dot-green"></div></div><div style="font-size: 12px; font-weight: 600; color: var(--text-muted);">Desktop POS View — Pairing C</div><div style="width: 40px;"></div></div>
+          <div class="desktop-viewport">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <div><h1 class="font-heading lh-target" style="font-size:24px; font-weight:700;">Sổ Quỹ & Giao Dịch Bán Hàng Trong Ngày</h1><p class="font-body" style="font-size:13px; color:var(--text-secondary);">Chi nhánh: RabbitPOS Quận 1 • Ca sáng: 06:00 - 14:00</p></div>
+              <div style="display:flex; gap:10px;"><button class="btn-secondary font-heading" style="height:38px;">Xuất Excel</button><button class="btn-primary font-heading" style="height:38px;">+ Đơn Hàng Mới</button></div>
+            </div>
+            <div class="kpi-row" style="grid-template-columns: repeat(3, 1fr);">
+              <div class="kpi-card" style="padding:16px;"><div class="kpi-label">Tổng doanh thu ca</div><div class="kpi-val num-target" style="font-size:24px;">1.250.000 ₫</div><div class="kpi-sub">+14.2% so với hôm qua</div></div>
+              <div class="kpi-card" style="padding:16px;"><div class="kpi-label">Số lượng hoá đơn</div><div class="kpi-val num-target" style="font-size:24px;">48 đơn hàng</div><div class="kpi-sub">Trung bình 26.040 ₫ / đơn</div></div>
+              <div class="kpi-card" style="padding:16px;"><div class="kpi-label">Tiền mặt thực tế tại két</div><div class="kpi-val num-target" style="font-size:24px;">850.000 ₫</div><div class="kpi-sub">Chuyển khoản: 400.000 ₫</div></div>
+            </div>
+            <div class="table-container">
+              <table>
+                <thead><tr><th>Mã Đơn</th><th>Thời gian</th><th>Chi tiết món & Tuỳ chọn</th><th class="text-center">Số lượng</th><th>Trạng thái</th><th class="text-right">Doanh thu</th></tr></thead>
+                <tbody>
+                  <tr><td class="num-target"><strong>#HD-1092</strong></td><td class="num-target">14:20:15</td><td>Cà phê sữa đá (Ít ngọt, 50% đá)</td><td class="text-center num-target">02</td><td><span class="badge badge-purple">Đã thanh toán</span></td><td class="text-right num-target" style="font-weight:600;">58.000 ₫</td></tr>
+                  <tr><td class="num-target"><strong>#HD-1093</strong></td><td class="num-target">14:25:40</td><td>Sinh tố bơ dừa sáp Đắk Lắk</td><td class="text-center num-target">01</td><td><span class="badge badge-emerald">Hoàn tất</span></td><td class="text-right num-target" style="font-weight:600;">45.000 ₫</td></tr>
+                  <tr><td class="num-target"><strong>#HD-1094</strong></td><td class="num-target">14:32:02</td><td>Trà sữa trân châu hoàng gia (Full topping)</td><td class="text-center num-target">03</td><td><span class="badge badge-purple">Đã thanh toán</span></td><td class="text-right num-target" style="font-weight:600;">114.000 ₫</td></tr>
+                  <tr><td class="num-target"><strong>#HD-1095</strong></td><td class="num-target">14:41:19</td><td>Nước ép cam tươi nguyên chất sành</td><td class="text-center num-target">01</td><td><span class="badge badge-purple">Đã thanh toán</span></td><td class="text-right num-target" style="font-weight:600;">35.000 ₫</td></tr>
+                  <tr><td class="num-target"><strong>#HD-1096</strong></td><td class="num-target">14:50:55</td><td>Combo Điểm tâm & Bạc xỉu Sài Gòn</td><td class="text-center num-target">02</td><td><span class="badge badge-purple">Đã thanh toán</span></td><td class="text-right num-target" style="font-weight:600;">110.000 ₫</td></tr>
+                  <tr><td class="num-target"><strong>#HD-1097</strong></td><td class="num-target">15:05:12</td><td>Trà đào cam sả thạch đào giòn</td><td class="text-center num-target">02</td><td><span class="badge badge-amber">Đang xử lý</span></td><td class="text-right num-target" style="font-weight:600;">88.000 ₫</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- PAIRING D: Lexend + Inter (Proposed) -->
+    <!-- ========================================== -->
+    <section class="pairing-section pairing-d" id="pairing-d">
+      <div class="pairing-header">
+        <div class="pairing-title-group">
+          <h2>D — Lexend + Inter</h2>
+          <span class="pairing-tag">Đề xuất ui-ux-pro-max #1 (Tối ưu đọc nhanh POS)</span>
+        </div>
+        <div class="pairing-specs">
+          <div class="spec-item">Tiêu đề & Nút: <span>Lexend (Thiết kế giảm mỏi mắt & đọc nhanh)</span></div>
+          <div class="spec-item">Nội dung & Số liệu: <span>Inter</span></div>
+          <div class="spec-item">Dung lượng WOFF2: <span>109.4 KB MEASURED (Lexend Var 52.3 KB + Inter Var 57.1 KB)</span></div>
+          <div class="spec-item">Bản quyền: <span>OFL 1.1</span></div>
+        </div>
+      </div>
+
+      <div class="frames-wrapper">
+        <div class="phone-frame">
+          <div class="phone-speaker"></div>
+          <div class="phone-status-bar"><span>09:41</span><span>📶 5G 🔋 98%</span></div>
+          <div class="phone-viewport">
+            <div class="brand-title font-heading lh-target" style="font-size: 20px; font-weight: 700;">🐰 RabbitPOS • Quầy Thu Ngân</div>
+            <div class="stress-box">
+              <div class="stress-title">Kiểm tra dấu tiếng Việt (Stress Test)</div>
+              <div class="stress-text lh-target">ệ ẫ ử ỗ ặ ớ ữ ổ — ĐẬM ĐÀ, TINH TẾ, TRÀ SỮA, CÀ PHÊ SỮA ĐÁ</div>
+            </div>
+            <div class="badge-row">
+              <span class="badge badge-purple">Bán chạy</span>
+              <span class="badge badge-emerald">Món mới</span>
+              <span class="badge badge-amber">Giảm 15%</span>
+              <span class="badge badge-rose">Tạm hết</span>
+            </div>
+            <div class="kpi-row">
+              <div class="kpi-card"><div class="kpi-label">Doanh thu</div><div class="kpi-val num-target">1.250.000 ₫</div><div class="kpi-sub">+14.2%</div></div>
+              <div class="kpi-card"><div class="kpi-label">Đơn hàng</div><div class="kpi-val num-target">48 đơn</div><div class="kpi-sub">Tb 26k</div></div>
+              <div class="kpi-card"><div class="kpi-label">Két tiền</div><div class="kpi-val num-target">850.000 ₫</div><div class="kpi-sub">Đã khớp</div></div>
+            </div>
+            <div class="table-container">
+              <table>
+                <thead><tr><th>Mã / Tên món</th><th class="text-center">SL</th><th class="text-right">Thành tiền</th></tr></thead>
+                <tbody>
+                  <tr><td><strong>#HD-1092</strong><br><span style="font-size: 11px; color: var(--text-secondary);">Cà phê sữa đá</span></td><td class="text-center num-target">02</td><td class="text-right num-target">58.000 ₫</td></tr>
+                  <tr><td><strong>#HD-1093</strong><br><span style="font-size: 11px; color: var(--text-secondary);">Sinh tố bơ dừa Đắk Lắk</span></td><td class="text-center num-target">01</td><td class="text-right num-target">45.000 ₫</td></tr>
+                  <tr><td><strong>#HD-1094</strong><br><span style="font-size: 11px; color: var(--text-secondary);">Trà sữa trân châu hoàng gia</span></td><td class="text-center num-target">03</td><td class="text-right num-target">114.000 ₫</td></tr>
+                  <tr><td><strong>#HD-1095</strong><br><span style="font-size: 11px; color: var(--text-secondary);">Nước ép cam tươi nguyên chất</span></td><td class="text-center num-target">01</td><td class="text-right num-target">35.000 ₫</td></tr>
+                  <tr><td><strong>#HD-1096</strong><br><span style="font-size: 11px; color: var(--text-secondary);">Combo Điểm tâm & Bạc xỉu</span></td><td class="text-center num-target">02</td><td class="text-right num-target">110.000 ₫</td></tr>
+                  <tr><td><strong>#HD-1097</strong><br><span style="font-size: 11px; color: var(--text-secondary);">Trà đào cam sả thạch đào</span></td><td class="text-center num-target">02</td><td class="text-right num-target">88.000 ₫</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="form-group">
+              <label class="form-label font-body">Mã khuyến mãi (16px text - chống zoom iOS)</label>
+              <input type="text" class="app-input font-body" value="RABBIT15OFF" placeholder="Nhập mã voucher...">
+            </div>
+            <div class="form-group">
+              <label class="form-label font-body">Chọn vị trí / Bàn</label>
+              <div class="app-select-trigger font-body"><div class="select-left"><span class="status-dot"></span><span>Bàn 04 (Tầng 1 - Khu máy lạnh)</span></div><span>▼</span></div>
+            </div>
+            <div class="btn-row">
+              <button class="btn-primary font-heading"><span>+ Thanh toán ngay (1.250.000 ₫)</span></button>
+              <button class="btn-secondary font-heading">In tạm tính</button>
+            </div>
+            <div class="type-scale-box">
+              <div class="type-scale-row"><span class="type-scale-meta">28px/700</span><span class="font-heading lh-target" style="font-size:28px; font-weight:700;">Cà phê sữa đá</span></div>
+              <div class="type-scale-row"><span class="type-scale-meta">20px/600</span><span class="font-heading lh-target" style="font-size:20px; font-weight:600;">Sinh tố bơ 45.000đ</span></div>
+              <div class="type-scale-row"><span class="type-scale-meta">16px/500</span><span class="font-body lh-target" style="font-size:16px; font-weight:500;">Trà sữa trân châu đường đen</span></div>
+              <div class="type-scale-row"><span class="type-scale-meta">14px/400</span><span class="font-body lh-target" style="font-size:14px; font-weight:400;">Nước ép cam nguyên chất sành</span></div>
+              <div class="type-scale-row"><span class="type-scale-meta">12px/500</span><span class="font-body lh-target" style="font-size:12px; font-weight:500;">Giảm giá 15% cho thành viên VIP</span></div>
+              <div class="type-scale-row"><span class="type-scale-meta">11px/600</span><span class="font-body lh-target" style="font-size:11px; font-weight:600;">#HD-1092 • ĐÃ HOÀN TẤT THANH TOÁN</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="desktop-frame">
+          <div class="desktop-header"><div class="desktop-dots"><div class="dot dot-red"></div><div class="dot dot-yellow"></div><div class="dot dot-green"></div></div><div style="font-size: 12px; font-weight: 600; color: var(--text-muted);">Desktop POS View — Pairing D</div><div style="width: 40px;"></div></div>
+          <div class="desktop-viewport">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <div><h1 class="font-heading lh-target" style="font-size:24px; font-weight:700;">Sổ Quỹ & Giao Dịch Bán Hàng Trong Ngày</h1><p class="font-body" style="font-size:13px; color:var(--text-secondary);">Chi nhánh: RabbitPOS Quận 1 • Ca sáng: 06:00 - 14:00</p></div>
+              <div style="display:flex; gap:10px;"><button class="btn-secondary font-heading" style="height:38px;">Xuất Excel</button><button class="btn-primary font-heading" style="height:38px;">+ Đơn Hàng Mới</button></div>
+            </div>
+            <div class="kpi-row" style="grid-template-columns: repeat(3, 1fr);">
+              <div class="kpi-card" style="padding:16px;"><div class="kpi-label">Tổng doanh thu ca</div><div class="kpi-val num-target" style="font-size:24px;">1.250.000 ₫</div><div class="kpi-sub">+14.2% so với hôm qua</div></div>
+              <div class="kpi-card" style="padding:16px;"><div class="kpi-label">Số lượng hoá đơn</div><div class="kpi-val num-target" style="font-size:24px;">48 đơn hàng</div><div class="kpi-sub">Trung bình 26.040 ₫ / đơn</div></div>
+              <div class="kpi-card" style="padding:16px;"><div class="kpi-label">Tiền mặt thực tế tại két</div><div class="kpi-val num-target" style="font-size:24px;">850.000 ₫</div><div class="kpi-sub">Chuyển khoản: 400.000 ₫</div></div>
+            </div>
+            <div class="table-container">
+              <table>
+                <thead><tr><th>Mã Đơn</th><th>Thời gian</th><th>Chi tiết món & Tuỳ chọn</th><th class="text-center">Số lượng</th><th>Trạng thái</th><th class="text-right">Doanh thu</th></tr></thead>
+                <tbody>
+                  <tr><td class="num-target"><strong>#HD-1092</strong></td><td class="num-target">14:20:15</td><td>Cà phê sữa đá (Ít ngọt, 50% đá)</td><td class="text-center num-target">02</td><td><span class="badge badge-purple">Đã thanh toán</span></td><td class="text-right num-target" style="font-weight:600;">58.000 ₫</td></tr>
+                  <tr><td class="num-target"><strong>#HD-1093</strong></td><td class="num-target">14:25:40</td><td>Sinh tố bơ dừa sáp Đắk Lắk</td><td class="text-center num-target">01</td><td><span class="badge badge-emerald">Hoàn tất</span></td><td class="text-right num-target" style="font-weight:600;">45.000 ₫</td></tr>
+                  <tr><td class="num-target"><strong>#HD-1094</strong></td><td class="num-target">14:32:02</td><td>Trà sữa trân châu hoàng gia (Full topping)</td><td class="text-center num-target">03</td><td><span class="badge badge-purple">Đã thanh toán</span></td><td class="text-right num-target" style="font-weight:600;">114.000 ₫</td></tr>
+                  <tr><td class="num-target"><strong>#HD-1095</strong></td><td class="num-target">14:41:19</td><td>Nước ép cam tươi nguyên chất sành</td><td class="text-center num-target">01</td><td><span class="badge badge-purple">Đã thanh toán</span></td><td class="text-right num-target" style="font-weight:600;">35.000 ₫</td></tr>
+                  <tr><td class="num-target"><strong>#HD-1096</strong></td><td class="num-target">14:50:55</td><td>Combo Điểm tâm & Bạc xỉu Sài Gòn</td><td class="text-center num-target">02</td><td><span class="badge badge-purple">Đã thanh toán</span></td><td class="text-right num-target" style="font-weight:600;">110.000 ₫</td></tr>
+                  <tr><td class="num-target"><strong>#HD-1097</strong></td><td class="num-target">15:05:12</td><td>Trà đào cam sả thạch đào giòn</td><td class="text-center num-target">02</td><td><span class="badge badge-amber">Đang xử lý</span></td><td class="text-right num-target" style="font-weight:600;">88.000 ₫</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- PAIRING E: Manrope + Inter (Proposed) -->
+    <!-- ========================================== -->
+    <section class="pairing-section pairing-e" id="pairing-e">
+      <div class="pairing-header">
+        <div class="pairing-title-group">
+          <h2>E — Manrope + Inter</h2>
+          <span class="pairing-tag">Đề xuất ui-ux-pro-max #2 (Hình học hiện đại & Cá tính F&B)</span>
+        </div>
+        <div class="pairing-specs">
+          <div class="spec-item">Tiêu đề & Nút: <span>Manrope (Geometric Modern, Nét thoáng)</span></div>
+          <div class="spec-item">Nội dung & Số liệu: <span>Inter</span></div>
+          <div class="spec-item">Dung lượng WOFF2: <span>89.7 KB MEASURED (Manrope Var 32.6 KB + Inter Var 57.1 KB)</span></div>
+          <div class="spec-item">Bản quyền: <span>OFL 1.1</span></div>
+        </div>
+      </div>
+
+      <div class="frames-wrapper">
+        <div class="phone-frame">
+          <div class="phone-speaker"></div>
+          <div class="phone-status-bar"><span>09:41</span><span>📶 5G 🔋 98%</span></div>
+          <div class="phone-viewport">
+            <div class="brand-title font-heading lh-target" style="font-size: 20px; font-weight: 700;">🐰 RabbitPOS • Quầy Thu Ngân</div>
+            <div class="stress-box">
+              <div class="stress-title">Kiểm tra dấu tiếng Việt (Stress Test)</div>
+              <div class="stress-text lh-target">ệ ẫ ử ỗ ặ ớ ữ ổ — ĐẬM ĐÀ, TINH TẾ, TRÀ SỮA, CÀ PHÊ SỮA ĐÁ</div>
+            </div>
+            <div class="badge-row">
+              <span class="badge badge-purple">Bán chạy</span>
+              <span class="badge badge-emerald">Món mới</span>
+              <span class="badge badge-amber">Giảm 15%</span>
+              <span class="badge badge-rose">Tạm hết</span>
+            </div>
+            <div class="kpi-row">
+              <div class="kpi-card"><div class="kpi-label">Doanh thu</div><div class="kpi-val num-target">1.250.000 ₫</div><div class="kpi-sub">+14.2%</div></div>
+              <div class="kpi-card"><div class="kpi-label">Đơn hàng</div><div class="kpi-val num-target">48 đơn</div><div class="kpi-sub">Tb 26k</div></div>
+              <div class="kpi-card"><div class="kpi-label">Két tiền</div><div class="kpi-val num-target">850.000 ₫</div><div class="kpi-sub">Đã khớp</div></div>
+            </div>
+            <div class="table-container">
+              <table>
+                <thead><tr><th>Mã / Tên món</th><th class="text-center">SL</th><th class="text-right">Thành tiền</th></tr></thead>
+                <tbody>
+                  <tr><td><strong>#HD-1092</strong><br><span style="font-size: 11px; color: var(--text-secondary);">Cà phê sữa đá</span></td><td class="text-center num-target">02</td><td class="text-right num-target">58.000 ₫</td></tr>
+                  <tr><td><strong>#HD-1093</strong><br><span style="font-size: 11px; color: var(--text-secondary);">Sinh tố bơ dừa Đắk Lắk</span></td><td class="text-center num-target">01</td><td class="text-right num-target">45.000 ₫</td></tr>
+                  <tr><td><strong>#HD-1094</strong><br><span style="font-size: 11px; color: var(--text-secondary);">Trà sữa trân châu hoàng gia</span></td><td class="text-center num-target">03</td><td class="text-right num-target">114.000 ₫</td></tr>
+                  <tr><td><strong>#HD-1095</strong><br><span style="font-size: 11px; color: var(--text-secondary);">Nước ép cam tươi nguyên chất</span></td><td class="text-center num-target">01</td><td class="text-right num-target">35.000 ₫</td></tr>
+                  <tr><td><strong>#HD-1096</strong><br><span style="font-size: 11px; color: var(--text-secondary);">Combo Điểm tâm & Bạc xỉu</span></td><td class="text-center num-target">02</td><td class="text-right num-target">110.000 ₫</td></tr>
+                  <tr><td><strong>#HD-1097</strong><br><span style="font-size: 11px; color: var(--text-secondary);">Trà đào cam sả thạch đào</span></td><td class="text-center num-target">02</td><td class="text-right num-target">88.000 ₫</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="form-group">
+              <label class="form-label font-body">Mã khuyến mãi (16px text - chống zoom iOS)</label>
+              <input type="text" class="app-input font-body" value="RABBIT15OFF" placeholder="Nhập mã voucher...">
+            </div>
+            <div class="form-group">
+              <label class="form-label font-body">Chọn vị trí / Bàn</label>
+              <div class="app-select-trigger font-body"><div class="select-left"><span class="status-dot"></span><span>Bàn 04 (Tầng 1 - Khu máy lạnh)</span></div><span>▼</span></div>
+            </div>
+            <div class="btn-row">
+              <button class="btn-primary font-heading"><span>+ Thanh toán ngay (1.250.000 ₫)</span></button>
+              <button class="btn-secondary font-heading">In tạm tính</button>
+            </div>
+            <div class="type-scale-box">
+              <div class="type-scale-row"><span class="type-scale-meta">28px/700</span><span class="font-heading lh-target" style="font-size:28px; font-weight:700;">Cà phê sữa đá</span></div>
+              <div class="type-scale-row"><span class="type-scale-meta">20px/600</span><span class="font-heading lh-target" style="font-size:20px; font-weight:600;">Sinh tố bơ 45.000đ</span></div>
+              <div class="type-scale-row"><span class="type-scale-meta">16px/500</span><span class="font-body lh-target" style="font-size:16px; font-weight:500;">Trà sữa trân châu đường đen</span></div>
+              <div class="type-scale-row"><span class="type-scale-meta">14px/400</span><span class="font-body lh-target" style="font-size:14px; font-weight:400;">Nước ép cam nguyên chất sành</span></div>
+              <div class="type-scale-row"><span class="type-scale-meta">12px/500</span><span class="font-body lh-target" style="font-size:12px; font-weight:500;">Giảm giá 15% cho thành viên VIP</span></div>
+              <div class="type-scale-row"><span class="type-scale-meta">11px/600</span><span class="font-body lh-target" style="font-size:11px; font-weight:600;">#HD-1092 • ĐÃ HOÀN TẤT THANH TOÁN</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="desktop-frame">
+          <div class="desktop-header"><div class="desktop-dots"><div class="dot dot-red"></div><div class="dot dot-yellow"></div><div class="dot dot-green"></div></div><div style="font-size: 12px; font-weight: 600; color: var(--text-muted);">Desktop POS View — Pairing E</div><div style="width: 40px;"></div></div>
+          <div class="desktop-viewport">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <div><h1 class="font-heading lh-target" style="font-size:24px; font-weight:700;">Sổ Quỹ & Giao Dịch Bán Hàng Trong Ngày</h1><p class="font-body" style="font-size:13px; color:var(--text-secondary);">Chi nhánh: RabbitPOS Quận 1 • Ca sáng: 06:00 - 14:00</p></div>
+              <div style="display:flex; gap:10px;"><button class="btn-secondary font-heading" style="height:38px;">Xuất Excel</button><button class="btn-primary font-heading" style="height:38px;">+ Đơn Hàng Mới</button></div>
+            </div>
+            <div class="kpi-row" style="grid-template-columns: repeat(3, 1fr);">
+              <div class="kpi-card" style="padding:16px;"><div class="kpi-label">Tổng doanh thu ca</div><div class="kpi-val num-target" style="font-size:24px;">1.250.000 ₫</div><div class="kpi-sub">+14.2% so với hôm qua</div></div>
+              <div class="kpi-card" style="padding:16px;"><div class="kpi-label">Số lượng hoá đơn</div><div class="kpi-val num-target" style="font-size:24px;">48 đơn hàng</div><div class="kpi-sub">Trung bình 26.040 ₫ / đơn</div></div>
+              <div class="kpi-card" style="padding:16px;"><div class="kpi-label">Tiền mặt thực tế tại két</div><div class="kpi-val num-target" style="font-size:24px;">850.000 ₫</div><div class="kpi-sub">Chuyển khoản: 400.000 ₫</div></div>
+            </div>
+            <div class="table-container">
+              <table>
+                <thead><tr><th>Mã Đơn</th><th>Thời gian</th><th>Chi tiết món & Tuỳ chọn</th><th class="text-center">Số lượng</th><th>Trạng thái</th><th class="text-right">Doanh thu</th></tr></thead>
+                <tbody>
+                  <tr><td class="num-target"><strong>#HD-1092</strong></td><td class="num-target">14:20:15</td><td>Cà phê sữa đá (Ít ngọt, 50% đá)</td><td class="text-center num-target">02</td><td><span class="badge badge-purple">Đã thanh toán</span></td><td class="text-right num-target" style="font-weight:600;">58.000 ₫</td></tr>
+                  <tr><td class="num-target"><strong>#HD-1093</strong></td><td class="num-target">14:25:40</td><td>Sinh tố bơ dừa sáp Đắk Lắk</td><td class="text-center num-target">01</td><td><span class="badge badge-emerald">Hoàn tất</span></td><td class="text-right num-target" style="font-weight:600;">45.000 ₫</td></tr>
+                  <tr><td class="num-target"><strong>#HD-1094</strong></td><td class="num-target">14:32:02</td><td>Trà sữa trân châu hoàng gia (Full topping)</td><td class="text-center num-target">03</td><td><span class="badge badge-purple">Đã thanh toán</span></td><td class="text-right num-target" style="font-weight:600;">114.000 ₫</td></tr>
+                  <tr><td class="num-target"><strong>#HD-1095</strong></td><td class="num-target">14:41:19</td><td>Nước ép cam tươi nguyên chất sành</td><td class="text-center num-target">01</td><td><span class="badge badge-purple">Đã thanh toán</span></td><td class="text-right num-target" style="font-weight:600;">35.000 ₫</td></tr>
+                  <tr><td class="num-target"><strong>#HD-1096</strong></td><td class="num-target">14:50:55</td><td>Combo Điểm tâm & Bạc xỉu Sài Gòn</td><td class="text-center num-target">02</td><td><span class="badge badge-purple">Đã thanh toán</span></td><td class="text-right num-target" style="font-weight:600;">110.000 ₫</td></tr>
+                  <tr><td class="num-target"><strong>#HD-1097</strong></td><td class="num-target">15:05:12</td><td>Trà đào cam sả thạch đào giòn</td><td class="text-center num-target">02</td><td><span class="badge badge-amber">Đang xử lý</span></td><td class="text-right num-target" style="font-weight:600;">88.000 ₫</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  
+    <!-- ========================================== -->
+    <!-- PAIRING F: Inter Only (Control / Variable) -->
+    <!-- ========================================== -->
+    <section class="pairing-section pairing-f" id="pairing-f">
+      <div class="pairing-header">
+        <div class="pairing-title-group">
+          <h2>F — Inter Variable Only (Đối chứng / Control)</h2>
+          <span class="pairing-tag" style="background:#e0f2fe; color:#0369a1;">Control • 1 Family Variable • An toàn 100%</span>
+        </div>
+        <div class="pairing-specs">
+          <div class="spec-item">Tất cả thành phần: <span>Inter Variable (wght 100-900)</span></div>
+          <div class="spec-item">Dung lượng tải POS: <span>57.1 KB MEASURED (Latin 47.1 KB + Viet 10.0 KB)</span></div>
+          <div class="spec-item">Bản quyền: <span>SIL OFL 1.1</span></div>
+          <div class="spec-item">Tabular: <span>OpenType tnum gốc</span></div>
+        </div>
+      </div>
+
+      <div class="frames-wrapper">
+        <div class="phone-frame">
+          <div class="phone-speaker"></div>
+          <div class="phone-status-bar"><span>09:41</span><span>📶 5G 🔋 98%</span></div>
+          <div class="phone-viewport">
+            <div class="brand-title font-heading lh-target" style="font-size: 20px; font-weight: 700;">🐰 RabbitPOS • Quầy Thu Ngân</div>
+            <div class="stress-box">
+              <div class="stress-title">Kiểm tra dấu tiếng Việt (Stress Test)</div>
+              <div class="stress-text lh-target">ệ ẫ ử ỗ ặ ớ ữ ổ — ĐẬM ĐÀ, TINH TẾ, TRÀ SỮA, CÀ PHÊ SỮA ĐÁ</div>
+            </div>
+            <div class="badge-row">
+              <span class="badge badge-purple">Bán chạy</span>
+              <span class="badge badge-emerald">Món mới</span>
+              <span class="badge badge-amber">Giảm 15%</span>
+              <span class="badge badge-rose">Tạm hết</span>
+            </div>
+            <div class="kpi-row">
+              <div class="kpi-card"><div class="kpi-label">Doanh thu</div><div class="kpi-val num-target">1.250.000 ₫</div><div class="kpi-sub">+14.2%</div></div>
+              <div class="kpi-card"><div class="kpi-label">Đơn hàng</div><div class="kpi-val num-target">48 đơn</div><div class="kpi-sub">Tb 26k</div></div>
+              <div class="kpi-card"><div class="kpi-label">Két tiền</div><div class="kpi-val num-target">850.000 ₫</div><div class="kpi-sub">Đã khớp</div></div>
+            </div>
+            <div class="table-container">
+              <table>
+                <thead><tr><th>Mã / Tên món</th><th class="text-center">SL</th><th class="text-right">Thành tiền</th></tr></thead>
+                <tbody>
+                  <tr><td><strong>#HD-1092</strong><br><span style="font-size: 11px; color: var(--text-secondary);">Cà phê sữa đá</span></td><td class="text-center num-target">02</td><td class="text-right num-target">58.000 ₫</td></tr>
+                  <tr><td><strong>#HD-1093</strong><br><span style="font-size: 11px; color: var(--text-secondary);">Sinh tố bơ dừa Đắk Lắk</span></td><td class="text-center num-target">01</td><td class="text-right num-target">45.000 ₫</td></tr>
+                  <tr><td><strong>#HD-1094</strong><br><span style="font-size: 11px; color: var(--text-secondary);">Trà sữa trân châu hoàng gia</span></td><td class="text-center num-target">03</td><td class="text-right num-target">114.000 ₫</td></tr>
+                  <tr><td><strong>#HD-1095</strong><br><span style="font-size: 11px; color: var(--text-secondary);">Nước ép cam tươi nguyên chất</span></td><td class="text-center num-target">01</td><td class="text-right num-target">35.000 ₫</td></tr>
+                  <tr><td><strong>#HD-1096</strong><br><span style="font-size: 11px; color: var(--text-secondary);">Combo Điểm tâm & Bạc xỉu</span></td><td class="text-center num-target">02</td><td class="text-right num-target">110.000 ₫</td></tr>
+                  <tr><td><strong>#HD-1097</strong><br><span style="font-size: 11px; color: var(--text-secondary);">Trà đào cam sả thạch đào</span></td><td class="text-center num-target">02</td><td class="text-right num-target">88.000 ₫</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="form-group">
+              <label class="form-label font-body">Mã khuyến mãi (16px text - chống zoom iOS)</label>
+              <input type="text" class="app-input font-body" value="RABBIT15OFF" placeholder="Nhập mã voucher...">
+            </div>
+            <div class="form-group">
+              <label class="form-label font-body">Chọn vị trí / Bàn</label>
+              <div class="app-select-trigger font-body"><div class="select-left"><span class="status-dot"></span><span>Bàn 04 (Tầng 1 - Khu máy lạnh)</span></div><span>▼</span></div>
+            </div>
+            <div class="btn-row">
+              <button class="btn-primary font-heading"><span>+ Thanh toán ngay (1.250.000 ₫)</span></button>
+              <button class="btn-secondary font-heading">In tạm tính</button>
+            </div>
+            <div class="type-scale-box">
+              <div class="type-scale-row"><span class="type-scale-meta">28px/700</span><span class="font-heading lh-target" style="font-size:28px; font-weight:700;">Cà phê sữa đá</span></div>
+              <div class="type-scale-row"><span class="type-scale-meta">20px/600</span><span class="font-heading lh-target" style="font-size:20px; font-weight:600;">Sinh tố bơ 45.000đ</span></div>
+              <div class="type-scale-row"><span class="type-scale-meta">16px/500</span><span class="font-body lh-target" style="font-size:16px; font-weight:500;">Trà sữa trân châu đường đen</span></div>
+              <div class="type-scale-row"><span class="type-scale-meta">14px/400</span><span class="font-body lh-target" style="font-size:14px; font-weight:400;">Nước ép cam nguyên chất sành</span></div>
+              <div class="type-scale-row"><span class="type-scale-meta">12px/500</span><span class="font-body lh-target" style="font-size:12px; font-weight:500;">Giảm giá 15% cho thành viên VIP</span></div>
+              <div class="type-scale-row"><span class="type-scale-meta">11px/600</span><span class="font-body lh-target" style="font-size:11px; font-weight:600;">#HD-1092 • ĐÃ HOÀN TẤT THANH TOÁN</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="desktop-frame">
+          <div class="desktop-header"><div class="desktop-dots"><div class="dot dot-red"></div><div class="dot dot-yellow"></div><div class="dot dot-green"></div></div><div style="font-size: 12px; font-weight: 600; color: var(--text-muted);">Desktop POS View — Pairing F (Control)</div><div style="width: 40px;"></div></div>
+          <div class="desktop-viewport">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <div><h1 class="font-heading lh-target" style="font-size:24px; font-weight:700;">Sổ Quỹ & Giao Dịch Bán Hàng Trong Ngày</h1><p class="font-body" style="font-size:13px; color:var(--text-secondary);">Chi nhánh: RabbitPOS Quận 1 • Ca sáng: 06:00 - 14:00</p></div>
+              <div style="display:flex; gap:10px;"><button class="btn-secondary font-heading" style="height:38px;">Xuất Excel</button><button class="btn-primary font-heading" style="height:38px;">+ Đơn Hàng Mới</button></div>
+            </div>
+            <div class="kpi-row" style="grid-template-columns: repeat(3, 1fr);">
+              <div class="kpi-card" style="padding:16px;"><div class="kpi-label">Tổng doanh thu ca</div><div class="kpi-val num-target" style="font-size:24px;">1.250.000 ₫</div><div class="kpi-sub">+14.2% so với hôm qua</div></div>
+              <div class="kpi-card" style="padding:16px;"><div class="kpi-label">Số lượng hoá đơn</div><div class="kpi-val num-target" style="font-size:24px;">48 đơn hàng</div><div class="kpi-sub">Trung bình 26.040 ₫ / đơn</div></div>
+              <div class="kpi-card" style="padding:16px;"><div class="kpi-label">Tiền mặt thực tế tại két</div><div class="kpi-val num-target" style="font-size:24px;">850.000 ₫</div><div class="kpi-sub">Chuyển khoản: 400.000 ₫</div></div>
+            </div>
+            <div class="table-container">
+              <table>
+                <thead><tr><th>Mã Đơn</th><th>Thời gian</th><th>Chi tiết món & Tuỳ chọn</th><th class="text-center">Số lượng</th><th>Trạng thái</th><th class="text-right">Doanh thu</th></tr></thead>
+                <tbody>
+                  <tr><td class="num-target"><strong>#HD-1092</strong></td><td class="num-target">14:20:15</td><td>Cà phê sữa đá (Ít ngọt, 50% đá)</td><td class="text-center num-target">02</td><td><span class="badge badge-purple">Đã thanh toán</span></td><td class="text-right num-target" style="font-weight:600;">58.000 ₫</td></tr>
+                  <tr><td class="num-target"><strong>#HD-1093</strong></td><td class="num-target">14:25:40</td><td>Sinh tố bơ dừa sáp Đắk Lắk</td><td class="text-center num-target">01</td><td><span class="badge badge-emerald">Hoàn tất</span></td><td class="text-right num-target" style="font-weight:600;">45.000 ₫</td></tr>
+                  <tr><td class="num-target"><strong>#HD-1094</strong></td><td class="num-target">14:32:02</td><td>Trà sữa trân châu hoàng gia (Full topping)</td><td class="text-center num-target">03</td><td><span class="badge badge-purple">Đã thanh toán</span></td><td class="text-right num-target" style="font-weight:600;">114.000 ₫</td></tr>
+                  <tr><td class="num-target"><strong>#HD-1095</strong></td><td class="num-target">14:41:19</td><td>Nước ép cam tươi nguyên chất sành</td><td class="text-center num-target">01</td><td><span class="badge badge-purple">Đã thanh toán</span></td><td class="text-right num-target" style="font-weight:600;">35.000 ₫</td></tr>
+                  <tr><td class="num-target"><strong>#HD-1096</strong></td><td class="num-target">14:50:55</td><td>Combo Điểm tâm & Bạc xỉu Sài Gòn</td><td class="text-center num-target">02</td><td><span class="badge badge-purple">Đã thanh toán</span></td><td class="text-right num-target" style="font-weight:600;">110.000 ₫</td></tr>
+                  <tr><td class="num-target"><strong>#HD-1097</strong></td><td class="num-target">15:05:12</td><td>Trà đào cam sả thạch đào giòn</td><td class="text-center num-target">02</td><td><span class="badge badge-amber">Đang xử lý</span></td><td class="text-right num-target" style="font-weight:600;">88.000 ₫</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    // Tabular numerals toggle
+    let isTabular = true;
+    function toggleTabular() {
+      isTabular = !isTabular;
+      document.body.classList.toggle('tabular-nums-on', isTabular);
+      const btn = document.getElementById('toggle-tabular');
+      const status = document.getElementById('tabular-status');
+      btn.classList.toggle('active', isTabular);
+      status.textContent = isTabular ? 'ON' : 'OFF (Proportional)';
+    }
+
+    // Line height toggle
+    let isTightLh = false;
+    function toggleLineHeight() {
+      isTightLh = !isTightLh;
+      document.body.classList.toggle('tight-lh-on', isTightLh);
+      const btn = document.getElementById('toggle-lh');
+      const status = document.getElementById('lh-status');
+      btn.classList.toggle('active', isTightLh);
+      status.textContent = isTightLh ? 'TIGHT (1.15-1.25)' : 'NORMAL (1.5)';
+    }
+
+    // Quick filter pairings
+    function filterPairing(id) {
+      document.querySelectorAll('.btn-pairing').forEach(b => b.classList.remove('active'));
+      event.target.classList.add('active');
+
+      const sections = document.querySelectorAll('.pairing-section');
+      if (id === 'all') {
+        sections.forEach(s => s.style.display = 'block');
+      } else {
+        sections.forEach(s => {
+          s.style.display = (s.id === id) ? 'block' : 'none';
+        });
+      }
+    }
+  </script>
+</body>
+</html>
