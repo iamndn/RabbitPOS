@@ -5,8 +5,18 @@ import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { IconButton } from './Button';
+import { useOverlayLayer } from './overlayStack';
 
 const EVENT_NAME = 'rabbitpos:header-popover-open';
+
+export type SheetDetent = 'compact' | 'medium' | 'large' | 'auto';
+
+const detentClasses: Record<SheetDetent, string> = {
+  compact: 'max-h-[48dvh]',
+  medium: 'max-h-[60dvh]',
+  large: 'max-h-[88dvh]',
+  auto: 'max-h-[85dvh]',
+};
 
 export interface ResponsiveSheetProps {
   isOpen: boolean;
@@ -17,6 +27,8 @@ export interface ResponsiveSheetProps {
   children: React.ReactNode;
   footer?: React.ReactNode;
   exclusiveId?: string;
+  /** Preset height detent for mobile bottom sheet (Override Q6) */
+  detent?: SheetDetent;
   sheetClassName?: string;
   popoverClassName?: string;
   align?: 'start' | 'center' | 'end';
@@ -34,6 +46,7 @@ export const ResponsiveSheet: React.FC<ResponsiveSheetProps> = ({
   children,
   footer,
   exclusiveId,
+  detent = 'auto',
   sheetClassName,
   popoverClassName,
   align = 'start',
@@ -43,6 +56,8 @@ export const ResponsiveSheet: React.FC<ResponsiveSheetProps> = ({
 }) => {
   const [mounted, setMounted] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [dragOffsetY, setDragOffsetY] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
   const [popoverCoords, setPopoverCoords] = useState<{
     top?: number;
     bottom?: number;
@@ -53,8 +68,20 @@ export const ResponsiveSheet: React.FC<ResponsiveSheetProps> = ({
 
   const sheetRef = useRef<HTMLDivElement>(null);
   const previouslyFocusedElement = useRef<HTMLElement | null>(null);
+  const dragSessionRef = useRef<{
+    pointerId: number;
+    startY: number;
+    startTime: number;
+  } | null>(null);
 
-  // Check client mounting
+  // Amendment A1: Register overlay at z-75 (mobile sheet) or z-70 (desktop popover)
+  const { underHigherOverlay, isTopmost } = useOverlayLayer(
+    mounted && isOpen,
+    isMobile ? 75 : 70,
+    isMobile
+  );
+
+  // Check client mounting & viewport breakpoint
   useEffect(() => {
     setMounted(true);
     const mediaQuery = window.matchMedia('(max-width: 767px)');
@@ -64,6 +91,15 @@ export const ResponsiveSheet: React.FC<ResponsiveSheetProps> = ({
     mediaQuery.addEventListener('change', handleMediaChange);
     return () => mediaQuery.removeEventListener('change', handleMediaChange);
   }, []);
+
+  // Reset drag state whenever sheet opens/closes
+  useEffect(() => {
+    if (!isOpen) {
+      setDragOffsetY(0);
+      setIsDragging(false);
+      dragSessionRef.current = null;
+    }
+  }, [isOpen]);
 
   // Mutual exclusivity broadcasting
   useEffect(() => {
@@ -89,18 +125,9 @@ export const ResponsiveSheet: React.FC<ResponsiveSheetProps> = ({
       } else {
         previouslyFocusedElement.current.focus?.();
       }
+      previouslyFocusedElement.current = null;
     }
   }, [isOpen, triggerRef]);
-
-  // Lock mobile body scroll
-  useEffect(() => {
-    if (!isOpen || !isMobile) return;
-    const originalOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = originalOverflow;
-    };
-  }, [isOpen, isMobile]);
 
   // Calculate desktop anchored popover position with collision flip
   const updatePopoverPosition = useCallback(() => {
@@ -110,14 +137,14 @@ export const ResponsiveSheet: React.FC<ResponsiveSheetProps> = ({
     const viewportHeight = window.innerHeight;
     const viewportWidth = window.innerWidth;
 
-    const estimatedHeight = 320;
+    const measuredHeight = sheetRef.current?.offsetHeight || 320;
+    const measuredWidth = sheetRef.current?.offsetWidth || 320;
     const spaceBelow = viewportHeight - rect.bottom;
     const spaceAbove = rect.top;
 
-    // Flip upwards if bottom space is constrained (< 280px) and top has more space
-    const shouldFlip = spaceBelow < 280 && spaceAbove > spaceBelow;
+    const shouldFlip = spaceBelow < Math.min(280, measuredHeight + 16) && spaceAbove > spaceBelow;
 
-    let coords: typeof popoverCoords = { flipped: shouldFlip };
+    const coords: typeof popoverCoords = { flipped: shouldFlip };
 
     if (shouldFlip) {
       coords.bottom = viewportHeight - rect.top + 8;
@@ -128,9 +155,12 @@ export const ResponsiveSheet: React.FC<ResponsiveSheetProps> = ({
     if (align === 'end') {
       coords.right = Math.max(12, viewportWidth - rect.right);
     } else if (align === 'center') {
-      coords.left = Math.max(12, Math.min(viewportWidth - 340, rect.left + rect.width / 2 - 160));
+      coords.left = Math.max(
+        12,
+        Math.min(viewportWidth - measuredWidth - 12, rect.left + rect.width / 2 - measuredWidth / 2)
+      );
     } else {
-      coords.left = Math.max(12, Math.min(viewportWidth - 340, rect.left));
+      coords.left = Math.max(12, Math.min(viewportWidth - measuredWidth - 12, rect.left));
     }
 
     setPopoverCoords(coords);
@@ -148,9 +178,9 @@ export const ResponsiveSheet: React.FC<ResponsiveSheetProps> = ({
     }
   }, [isOpen, isMobile, updatePopoverPosition]);
 
-  // Dismiss on outside click (desktop popover)
+  // Dismiss on outside click (desktop popover, topmost only)
   useEffect(() => {
-    if (!isOpen || isMobile) return;
+    if (!isOpen || isMobile || !isTopmost) return;
 
     const handleOutsideClick = (e: MouseEvent) => {
       const target = e.target as Node;
@@ -165,11 +195,11 @@ export const ResponsiveSheet: React.FC<ResponsiveSheetProps> = ({
 
     document.addEventListener('mousedown', handleOutsideClick);
     return () => document.removeEventListener('mousedown', handleOutsideClick);
-  }, [isOpen, isMobile, onClose, triggerRef]);
+  }, [isOpen, isMobile, isTopmost, onClose, triggerRef]);
 
-  // Dismiss on Escape key
+  // Dismiss topmost overlay on Escape key
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || !isTopmost) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -180,74 +210,153 @@ export const ResponsiveSheet: React.FC<ResponsiveSheetProps> = ({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
+  }, [isOpen, isTopmost, onClose]);
+
+  // Override Q6: Header/Grabber-only pointer-drag-to-dismiss (never attached to scrolling body!)
+  const handleHeaderPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.button !== 0) return;
+    const targetEl = e.target as HTMLElement | null;
+    if (targetEl?.closest('button, a, input, select, textarea, [role="button"]')) {
+      return;
+    }
+    dragSessionRef.current = {
+      pointerId: e.pointerId,
+      startY: e.clientY,
+      startTime: performance.now(),
+    };
+    setIsDragging(true);
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {
+      // Ignore synthetic events without active pointerId
+    }
+  };
+
+  const handleHeaderPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const session = dragSessionRef.current;
+    if (!session || session.pointerId !== e.pointerId) return;
+    const deltaY = Math.max(0, e.clientY - session.startY);
+    setDragOffsetY(deltaY);
+  };
+
+  const finishHeaderDrag = (e: React.PointerEvent<HTMLDivElement>, cancelled = false) => {
+    const session = dragSessionRef.current;
+    if (!session || session.pointerId !== e.pointerId) return;
+
+    const deltaY = Math.max(0, e.clientY - session.startY);
+    const elapsed = Math.max(1, performance.now() - session.startTime);
+    const velocity = deltaY / elapsed; // px/ms
+
+    dragSessionRef.current = null;
+    setIsDragging(false);
+
+    try {
+      if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      }
+    } catch {
+      // Ignore
+    }
+
+    if (!cancelled && (deltaY > 72 || (deltaY > 24 && velocity > 0.5))) {
+      setDragOffsetY(0);
+      onClose();
+    } else {
+      setDragOffsetY(0);
+    }
+  };
 
   if (!mounted || !isOpen) return null;
 
-  // ─── Mobile View: Bottom Sheet (< md) ─────────────────────────────────────
+  // ─── Mobile View: Tahoe Bottom Sheet (< 768px, z-sheet: 75) ────────────────
   if (isMobile) {
+    const sheetDragStyle: React.CSSProperties | undefined =
+      dragOffsetY > 0 || isDragging
+        ? {
+            transform: `translate3d(0, ${dragOffsetY}px, 0)`,
+            transition: isDragging
+              ? 'none'
+              : 'transform 200ms cubic-bezier(0.22, 1, 0.36, 1)',
+          }
+        : undefined;
+
     return createPortal(
-      <div className="fixed inset-0 z-sheet flex flex-col justify-end">
-        {/* Backdrop */}
+      <div className="fixed inset-0 z-sheet flex flex-col justify-end font-sans">
+        {/* Unblurred Backdrop Scrim (0px blur — Amendment A1) */}
         <div
-          className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm animate-fadeIn transition-opacity"
+          className="fixed inset-0 glass-scrim animate-fadeIn"
           onClick={onClose}
           aria-hidden="true"
         />
 
-        {/* Sheet Surface */}
+        {/* Sheet Platter (1 glass-thick blur pass) */}
         <div
           ref={sheetRef}
           role="dialog"
           aria-modal="true"
           aria-label={typeof title === 'string' ? title : ariaLabel || 'Bảng chọn tác vụ'}
+          data-under-nested-overlay={underHigherOverlay ? 'true' : undefined}
+          style={sheetDragStyle}
           className={cn(
-            'relative z-sheet w-full bg-white rounded-t-3xl shadow-2xl flex flex-col',
-            'max-h-[85dvh] overflow-hidden border-t border-slate-200/90 pb-safe font-sans',
-            'animate-slideUp',
+            'relative z-sheet w-full glass-thick rounded-t-sheet border-t border-glass flex flex-col',
+            'overflow-hidden pb-safe',
+            dragOffsetY === 0 && !isDragging && 'animate-slideUp',
+            detentClasses[detent],
             sheetClassName
           )}
         >
-          {/* Top Drag Handle Affordance */}
-          <div className="flex justify-center pt-2.5 pb-1 select-none">
-            <div className="w-10 h-1 bg-slate-300 rounded-full" />
+          {/* Non-Scrolling Grabber + Header Drag Zone (Override Q6: >= 48px touch zone, touch-none) */}
+          <div
+            onPointerDown={handleHeaderPointerDown}
+            onPointerMove={handleHeaderPointerMove}
+            onPointerUp={(e) => finishHeaderDrag(e, false)}
+            onPointerCancel={(e) => finishHeaderDrag(e, true)}
+            className={cn(
+              'shrink-0 select-none touch-none cursor-grab active:cursor-grabbing',
+              !(title || description) && 'min-h-[32px]'
+            )}
+          >
+            {/* Top Drag Handle Pill */}
+            <div className="flex justify-center pt-2.5 pb-1.5">
+              <div className="w-10 h-1.5 bg-slate-300/90 rounded-full" />
+            </div>
+
+            {/* Header */}
+            {(title || description) && (
+              <div className="px-4 pb-2.5 pt-0.5 border-b border-hairline flex items-center justify-between gap-3 min-h-[48px]">
+                <div className="flex flex-col min-w-0 flex-1">
+                  {title && (
+                    <div className="text-title-3 font-semibold text-slate-900 leading-snug truncate">
+                      {title}
+                    </div>
+                  )}
+                  {description && (
+                    <p className="text-footnote text-slate-500 mt-0.5 leading-normal">
+                      {description}
+                    </p>
+                  )}
+                </div>
+                <IconButton
+                  variant="ghost"
+                  size="md"
+                  aria-label="Đóng bảng chọn"
+                  onClick={onClose}
+                  className="text-slate-500 hover:text-slate-800 -mr-1.5 shrink-0"
+                >
+                  <X className="w-4 h-4" />
+                </IconButton>
+              </div>
+            )}
           </div>
 
-          {/* Header */}
-          {(title || description) && (
-            <div className="px-4 py-2 border-b border-slate-100 flex items-start justify-between gap-3">
-              <div className="flex flex-col min-w-0">
-                {title && (
-                  <h2 className="text-base font-bold text-slate-900 leading-snug truncate">
-                    {title}
-                  </h2>
-                )}
-                {description && (
-                  <p className="text-caption text-slate-500 mt-0.5 leading-normal">
-                    {description}
-                  </p>
-                )}
-              </div>
-              <IconButton
-                variant="ghost"
-                size="sm"
-                aria-label="Đóng bảng chọn"
-                onClick={onClose}
-                className="text-slate-400 hover:text-slate-700 -mr-1"
-              >
-                <X className="w-4 h-4" />
-              </IconButton>
-            </div>
-          )}
-
-          {/* Scrollable Content Body */}
+          {/* Scrollable Content Body (independent native touch scrolling) */}
           <div className="flex-1 overflow-y-auto px-4 py-3 custom-scrollbar min-h-0">
             {children}
           </div>
 
-          {/* Sticky Footer */}
+          {/* Sticky Footer (Opaque surface-card, 0px extra blur — Amendment A1) */}
           {footer && (
-            <div className="p-3 border-t border-slate-100 bg-slate-50/90 backdrop-blur-sm mt-auto shrink-0">
+            <div className="p-3 border-t border-hairline bg-surface-card/95 mt-auto shrink-0">
               {footer}
             </div>
           )}
@@ -257,7 +366,7 @@ export const ResponsiveSheet: React.FC<ResponsiveSheetProps> = ({
     );
   }
 
-  // ─── Desktop View: Anchored Popover (md+) ─────────────────────────────────
+  // ─── Desktop View: Anchored Popover (>= 768px, z-popover: 70) ─────────────
   const popoverStyle: React.CSSProperties = {
     position: 'fixed',
     top: popoverCoords.top !== undefined ? `${popoverCoords.top}px` : undefined,
@@ -272,9 +381,10 @@ export const ResponsiveSheet: React.FC<ResponsiveSheetProps> = ({
       role="dialog"
       aria-modal="true"
       aria-label={typeof title === 'string' ? title : ariaLabel || 'Menu thao tác'}
+      data-under-nested-overlay={underHigherOverlay ? 'true' : undefined}
       style={popoverStyle}
       className={cn(
-        'z-popover bg-white border border-slate-200/90 rounded-2xl shadow-xl overflow-hidden font-sans',
+        'z-popover glass-thick border border-glass rounded-card overflow-hidden font-sans',
         'animate-scaleIn flex flex-col',
         width,
         maxHeight,
@@ -282,15 +392,15 @@ export const ResponsiveSheet: React.FC<ResponsiveSheetProps> = ({
       )}
     >
       {(title || description) && (
-        <div className="px-4 py-2.5 border-b border-slate-100 flex items-center justify-between gap-2 shrink-0">
-          <div className="flex flex-col min-w-0">
+        <div className="px-4 py-2.5 border-b border-hairline flex items-center justify-between gap-2 shrink-0">
+          <div className="flex flex-col min-w-0 flex-1">
             {title && (
-              <h3 className="text-sm font-bold text-slate-900 truncate">
+              <div className="text-subhead font-semibold text-slate-900 truncate">
                 {title}
-              </h3>
+              </div>
             )}
             {description && (
-              <p className="text-caption text-slate-500 truncate">
+              <p className="text-footnote text-slate-500 truncate mt-0.5">
                 {description}
               </p>
             )}
@@ -300,7 +410,7 @@ export const ResponsiveSheet: React.FC<ResponsiveSheetProps> = ({
             size="sm"
             aria-label="Đóng"
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-700 w-6 h-6"
+            className="text-slate-500 hover:text-slate-800 -mr-1 shrink-0"
           >
             <X className="w-3.5 h-3.5" />
           </IconButton>
@@ -312,7 +422,7 @@ export const ResponsiveSheet: React.FC<ResponsiveSheetProps> = ({
       </div>
 
       {footer && (
-        <div className="p-2.5 border-t border-slate-100 bg-slate-50/80 shrink-0">
+        <div className="p-2.5 border-t border-hairline bg-surface-card/95 shrink-0">
           {footer}
         </div>
       )}
