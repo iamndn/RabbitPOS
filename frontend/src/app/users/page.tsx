@@ -537,17 +537,6 @@ export default function UsersPage() {
         </div>
 
         {/* Filters Bar */}
-        <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-col md:flex-row items-center gap-3">
-          <div className="relative flex-1 w-full">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={t('users.search_placeholder') || 'Tìm theo tên đăng nhập, họ tên, SĐT hoặc email...'}
-              className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-purple-600 focus:bg-white transition"
-            />
-          </div>
         <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200 shadow-xs space-y-3">
           <div className="flex flex-col md:flex-row items-center gap-3">
             <div className="relative flex-1 w-full">
@@ -570,17 +559,6 @@ export default function UsersPage() {
               )}
             </div>
 
-          <div className="flex items-center gap-2 w-full md:w-auto">
-            <select
-              value={roleFilter}
-              onChange={(e) => setRoleFilter(e.target.value)}
-              className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-600 cursor-pointer flex-1 md:flex-initial"
-            >
-              <option value="all">{t('users.filter_all_roles') || 'Tất cả vai trò'}</option>
-              <option value="master">{t('users.role_master') || 'Master'}</option>
-              <option value="owner">{t('users.role_owner') || 'Owner'}</option>
-              <option value="staff">{t('users.role_staff') || 'Staff'}</option>
-            </select>
             <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full md:w-auto">
               <div className="w-full sm:w-44">
                 <ModernSelect
@@ -591,15 +569,6 @@ export default function UsersPage() {
                 />
               </div>
 
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-600 cursor-pointer flex-1 md:flex-initial"
-            >
-              <option value="all">{t('users.filter_all_status') || 'Tất cả trạng thái'}</option>
-              <option value="active">{t('users.filter_active') || 'Đang hoạt động'}</option>
-              <option value="inactive">{t('users.filter_inactive') || 'Đã khóa'}</option>
-            </select>
               <div className="w-full sm:w-44">
                 <ModernSelect
                   value={statusFilter}

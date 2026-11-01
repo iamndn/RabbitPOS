@@ -685,7 +685,6 @@ export default function ProductsPage() {
               {/* Modal Header */}
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <div className="flex items-center gap-2">
-                  <div className="p-2 bg-indigo-50 text-indigo-700 rounded-xl">
                   <div className="p-2 bg-purple-50 text-purple-700 rounded-xl">
                     <Filter className="w-5 h-5" />
                   </div>
@@ -704,7 +703,6 @@ export default function ProductsPage() {
               </div>
 
               {/* Modal Scrollable Content */}
-              <div className="flex-1 overflow-y-auto space-y-4 pr-1 text-xs">
               <div className="flex-1 overflow-y-auto space-y-4 pr-1 text-xs custom-scrollbar">
                 {/* Section 1: Danh Mục (Wrap) */}
                 <div>
