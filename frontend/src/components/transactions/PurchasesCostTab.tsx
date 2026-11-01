@@ -29,6 +29,7 @@ import {
   Wallet,
 } from 'lucide-react';
 import ModernSelect, { ModernSelectOption } from '@/components/common/ModernSelect';
+import { FilterBar, Chip } from '@/components/ui';
 import HorizontalScroller from '@/components/common/HorizontalScroller';
 import { fetchApi, getImageUrl } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
@@ -99,14 +100,12 @@ export default function PurchasesCostTab({
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'needs_update' | 'low_margin' | 'high_margin' | 'no_recipe'>('all');
   const [costSortBy, setCostSortBy] = useState<'default' | 'diff_desc' | 'margin_asc' | 'margin_desc' | 'price_desc' | 'name_asc'>('default');
-  const [isCostFilterModalOpen, setIsCostFilterModalOpen] = useState<boolean>(false);
 
   // Search & Filters - Tab 2: Kho Nguyên Liệu
   const [ingSearchQuery, setIngSearchQuery] = useState<string>('');
   const [ingCategoryFilter, setIngCategoryFilter] = useState<string>('all');
   const [ingLossFilter, setIngLossFilter] = useState<'all' | 'has_loss' | 'no_loss'>('all');
   const [ingSortBy, setIngSortBy] = useState<'name_asc' | 'price_desc' | 'price_asc' | 'loss_desc'>('name_asc');
-  const [isIngFilterModalOpen, setIsIngFilterModalOpen] = useState<boolean>(false);
 
   // Expanded Recipe Details Card/Row
   const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
@@ -399,6 +398,53 @@ export default function PurchasesCostTab({
     (ingCategoryFilter !== 'all' ? 1 : 0) +
     (ingLossFilter !== 'all' ? 1 : 0) +
     (ingSortBy !== 'name_asc' ? 1 : 0);
+
+  const costStatusOptions: ModernSelectOption[] = useMemo(
+    () => [
+      { value: 'all', label: `Tất cả (${filterCounts.all})` },
+      { value: 'needs_update', label: `Cần cập nhật giá (${filterCounts.needsUpdate})` },
+      { value: 'low_margin', label: `Biên LN mỏng <50% (${filterCounts.lowMargin})` },
+      { value: 'high_margin', label: `Biên LN cao ≥65% (${filterCounts.highMargin})` },
+      { value: 'no_recipe', label: `Chưa có công thức (${filterCounts.noRecipe})` },
+    ],
+    [filterCounts]
+  );
+
+  const costSortOptions: ModernSelectOption[] = [
+    { value: 'default', label: 'Mặc định (Chênh lệch giá)' },
+    { value: 'diff_desc', label: 'Chênh lệch cao nhất' },
+    { value: 'margin_asc', label: 'Lợi nhuận thấp nhất' },
+    { value: 'margin_desc', label: 'Lợi nhuận cao nhất' },
+    { value: 'price_desc', label: 'Giá bán cao nhất' },
+    { value: 'name_asc', label: 'Tên món (A-Z)' },
+  ];
+
+  const ingCategoryOptions: ModernSelectOption[] = useMemo(
+    () => [
+      { value: 'all', label: `Tất cả (${ingredients.length})` },
+      { value: 'fruit', label: `Hoa quả tươi (${ingredients.filter((i) => i.category === 'fruit').length})` },
+      { value: 'ingredient', label: `Nguyên liệu / Sữa (${ingredients.filter((i) => i.category === 'ingredient').length})` },
+      { value: 'packaging', label: `Bao bì / Ly nắp (${ingredients.filter((i) => i.category === 'packaging').length})` },
+      { value: 'other', label: `Khác (${ingredients.filter((i) => !['fruit', 'ingredient', 'packaging'].includes(i.category || '')).length})` },
+    ],
+    [ingredients]
+  );
+
+  const ingLossOptions: ModernSelectOption[] = useMemo(
+    () => [
+      { value: 'all', label: `Tất cả tỷ lệ hao hụt (${ingredients.length})` },
+      { value: 'has_loss', label: `Có cấu hình hao hụt (${ingredients.filter((i) => (i.loss_rate || 0) > 0).length})` },
+      { value: 'no_loss', label: `Không hao hụt (0%) (${ingredients.filter((i) => (i.loss_rate || 0) === 0).length})` },
+    ],
+    [ingredients]
+  );
+
+  const ingSortOptions: ModernSelectOption[] = [
+    { value: 'name_asc', label: 'Tên nguyên liệu (A-Z)' },
+    { value: 'price_desc', label: 'Giá gần nhất cao nhất' },
+    { value: 'price_asc', label: 'Giá gần nhất thấp nhất' },
+    { value: 'loss_desc', label: 'Hao hụt cao nhất' },
+  ];
 
   const metrics = useMemo(() => {
     const totalItems = costItems.length;
@@ -942,474 +988,169 @@ export default function PurchasesCostTab({
       {/* ── TAB 1: PROFIT MARGIN & MENU RECOVERY ───────────────────────────────── */}
       {activeSubTab === 'profit-recovery' && (
         <div className="space-y-3 sm:space-y-4">
-          {/* Toolbar */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-3 sm:p-4 space-y-2.5">
-            <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-2.5">
-              {/* Search Bar */}
-              <div className="relative flex-1 min-w-[200px]">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  placeholder="Tìm kiếm món, đồ uống, topping..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="app-input pl-9 pr-24 py-2 text-xs placeholder:text-xs"
-                />
-                {searchQuery ? (
-                  <button
-                    type="button"
-                    onClick={() => setSearchQuery('')}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition cursor-pointer"
-                    title="Xóa tìm kiếm"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                ) : (
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-md pointer-events-none">
-                    {filteredCostItems.length} món
-                  </span>
-                )}
-              </div>
-
-              {/* Button Mở Bộ Lọc Gộp (Filter Button) */}
-              <button
-                type="button"
-                onClick={() => setIsCostFilterModalOpen(true)}
-                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer shadow-2xs ${costActiveFilterCount > 0
-                  ? 'bg-emerald-800 text-white shadow-sm ring-2 ring-emerald-600/30 font-extrabold'
-                  : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
-                  }`}
-              >
-                <Filter className="w-4 h-4" />
-                <span>Bộ lọc</span>
-                {costActiveFilterCount > 0 && (
-                  <span className="w-5 h-5 rounded-full bg-emerald-600 text-white text-[10px] font-extrabold flex items-center justify-center">
-                    {costActiveFilterCount}
-                  </span>
-                )}
-              </button>
-
-              {/* Pricing Mode Switcher */}
-              <div className="flex items-center bg-slate-100 p-1 rounded-xl text-xs font-bold shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setPricingBasis('latest')}
-                  className={`px-2.5 sm:px-3 py-1.5 rounded-lg transition cursor-pointer text-xs ${pricingBasis === 'latest'
-                    ? 'bg-white text-emerald-900 shadow-xs font-extrabold'
-                    : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  title="Tính theo giá quy đổi đợt nhập gần nhất"
-                >
-                  ⚡ Gần nhất
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPricingBasis('average')}
-                  className={`px-2.5 sm:px-3 py-1.5 rounded-lg transition cursor-pointer text-xs ${pricingBasis === 'average'
-                    ? 'bg-white text-emerald-900 shadow-xs font-extrabold'
-                    : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  title="Tính theo giá quy đổi bình quân các lần nhập"
-                >
-                  📊 Bình quân
-                </button>
-              </div>
-
-              {/* Bulk Apply Sync Button */}
-              <button
-                type="button"
-                onClick={handleBulkApplyAll}
-                disabled={bulkApplying}
-                className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-extrabold shadow-2xs transition active:scale-95 cursor-pointer shrink-0 ml-auto sm:ml-0"
-              >
-                <RefreshCw className={`w-3.5 h-3.5 ${bulkApplying ? 'animate-spin' : ''}`} />
-                <span className="hidden sm:inline">Đồng bộ</span>
-                <span className="sm:hidden">Đồng bộ</span>
-              </button>
-            </div>
-
-            {/* Quick status filter pills */}
-            <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label={t('purchases.status_filter_label')}>
-              <button
-                type="button"
-                onClick={() => setStatusFilter('all')}
-                aria-pressed={statusFilter === 'all'}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${statusFilter === 'all'
-                  ? 'bg-slate-800 text-white shadow-sm'
-                  : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
-                  }`}
-              >
-                <span>{t('purchases.pill_all')}</span>
-                <span className="text-[10px] tabular-nums opacity-80">{filterCounts.all}</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setStatusFilter('needs_update')}
-                aria-pressed={statusFilter === 'needs_update'}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${statusFilter === 'needs_update'
-                  ? 'bg-amber-600 text-white shadow-sm'
-                  : 'bg-amber-50 text-amber-900 hover:bg-amber-100 border border-amber-200'
-                  }`}
-              >
-                <span>{t('purchases.pill_variance')}</span>
-                <span className="text-[10px] tabular-nums opacity-80">{filterCounts.needsUpdate}</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setStatusFilter('no_recipe')}
-                aria-pressed={statusFilter === 'no_recipe'}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${statusFilter === 'no_recipe'
-                  ? 'bg-slate-800 text-white shadow-sm'
-                  : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
-                  }`}
-              >
-                <span>{t('purchases.pill_no_recipe')}</span>
-                <span className="text-[10px] tabular-nums opacity-80">{filterCounts.noRecipe}</span>
-              </button>
-            </div>
-
-            {/* Active Filter Chips (if any filter is selected) */}
-            {costActiveFilterCount > 0 && (
-              <div className="flex flex-wrap items-center gap-1.5 text-xs pt-2 border-t border-slate-100">
-                <span className="text-slate-400 font-semibold text-[11px]">Đang lọc:</span>
-                {selectedCategory !== 'all' && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-lg font-bold text-xs">
-                    <span>📂 Danh mục: {selectedCategory}</span>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedCategory('all')}
-                      className="hover:text-emerald-950 p-0.5 rounded cursor-pointer"
-                      title="Xóa lọc danh mục"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </span>
-                )}
-                {statusFilter !== 'all' && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-50 text-amber-900 border border-amber-200 rounded-lg font-bold text-xs">
-                    <span>
-                      🎯 Trạng thái:{' '}
-                      {statusFilter === 'needs_update'
-                        ? '⚠️ Cần cập nhật'
-                        : statusFilter === 'high_margin'
-                          ? '✅ Biên lãi cao ≥65%'
-                          : statusFilter === 'low_margin'
-                            ? '🔥 Biên lãi thấp <50%'
-                            : '📋 Chưa có BOM'}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setStatusFilter('all')}
-                      className="hover:text-amber-950 p-0.5 rounded cursor-pointer"
-                      title="Xóa lọc trạng thái"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </span>
-                )}
-                {costSortBy !== 'default' && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-indigo-50 text-indigo-800 border border-indigo-200 rounded-lg font-bold text-xs">
-                    <span>
-                      📶 Sắp xếp:{' '}
-                      {costSortBy === 'diff_desc'
-                        ? 'Chênh lệch COGS cao'
-                        : costSortBy === 'margin_asc'
-                          ? 'Biên lãi thấp nhất'
-                          : costSortBy === 'margin_desc'
-                            ? 'Biên lãi cao nhất'
-                            : costSortBy === 'price_desc'
-                              ? 'Giá bán cao nhất'
-                              : 'Tên món (A-Z)'}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setCostSortBy('default')}
-                      className="hover:text-indigo-950 p-0.5 rounded cursor-pointer"
-                      title="Hủy sắp xếp"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </span>
-                )}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedCategory('all');
-                    setStatusFilter('all');
-                    setCostSortBy('default');
-                  }}
-                  className="text-[11px] font-bold text-rose-600 hover:text-rose-800 hover:underline ml-1 cursor-pointer"
-                >
-                  Xóa tất cả
-                </button>
-              </div>
-            )}
+          {/* Quick status filter pills */}
+          <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label={t('purchases.status_filter_label')}>
+            <button
+              type="button"
+              onClick={() => setStatusFilter('all')}
+              aria-pressed={statusFilter === 'all'}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${statusFilter === 'all'
+                ? 'bg-slate-800 text-white shadow-sm'
+                : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+                }`}
+            >
+              <span>{t('purchases.pill_all')}</span>
+              <span className="text-[10px] tabular-nums opacity-80">{filterCounts.all}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setStatusFilter('needs_update')}
+              aria-pressed={statusFilter === 'needs_update'}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${statusFilter === 'needs_update'
+                ? 'bg-amber-600 text-white shadow-sm'
+                : 'bg-amber-50 text-amber-900 hover:bg-amber-100 border border-amber-200'
+                }`}
+            >
+              <span>{t('purchases.pill_variance')}</span>
+              <span className="text-[10px] tabular-nums opacity-80">{filterCounts.needsUpdate}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setStatusFilter('no_recipe')}
+              aria-pressed={statusFilter === 'no_recipe'}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${statusFilter === 'no_recipe'
+                ? 'bg-slate-800 text-white shadow-sm'
+                : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+                }`}
+            >
+              <span>{t('purchases.pill_no_recipe')}</span>
+              <span className="text-[10px] tabular-nums opacity-80">{filterCounts.noRecipe}</span>
+            </button>
           </div>
 
-          {/* Popup Filter Modal cho Định Lượng Món */}
-          {isCostFilterModalOpen && (
-            <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-150">
-              <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-xl w-full p-4 sm:p-6 shadow-2xl space-y-4 max-h-[92dvh] sm:max-h-[85vh] flex flex-col animate-in slide-in-from-bottom-6 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200 pb-safe sm:pb-6 border border-slate-100">
-                {/* Modal Header */}
-                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                  <div className="flex items-center gap-2">
-                    <div className="p-2 bg-emerald-50 text-emerald-800 rounded-xl">
-                      <Filter className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h3 className="font-extrabold text-base text-slate-900">Bộ Lọc Định Lượng Món</h3>
-                      <p className="text-xs text-slate-400">Lọc theo danh mục món và trạng thái biên lợi nhuận BOM</p>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setIsCostFilterModalOpen(false)}
-                    className="p-1.5 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition cursor-pointer"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
+          <FilterBar
+            searchValue={searchQuery}
+            onSearchChange={setSearchQuery}
+            searchPlaceholder="Tìm kiếm món, đồ uống, topping..."
+            activeFiltersCount={costActiveFilterCount}
+            onReset={() => {
+              setSelectedCategory('all');
+              setStatusFilter('all');
+              setCostSortBy('default');
+            }}
+            sheetTitle="Bộ Lọc Định Lượng Món"
+            filters={
+              <div className="flex flex-col md:flex-row md:items-center gap-2.5 w-full md:w-auto">
+                <div className="w-full md:w-48">
+                  <label className="text-caption font-bold text-slate-500 uppercase block mb-1 md:hidden">
+                    Danh mục món
+                  </label>
+                  <ModernSelect
+                    value={selectedCategory}
+                    onChange={setSelectedCategory}
+                    size="sm"
+                    options={[
+                      { value: 'all', label: `Tất cả (${costItems.length})` },
+                      ...categoriesList.map((cat) => ({
+                        value: cat,
+                        label: `${cat} (${costItems.filter((i) => i.category_name === cat).length})`,
+                      })),
+                    ]}
+                  />
                 </div>
-
-                {/* Modal Scrollable Content */}
-                <div className="flex-1 overflow-y-auto space-y-4 pr-1 text-xs">
-                  {/* Section 1: Danh Mục Món */}
-                  <div>
-                    <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-2">
-                      📂 Danh Mục Món ({categoriesList.length})
-                    </label>
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setSelectedCategory('all')}
-                        className={`px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs ${selectedCategory === 'all'
-                          ? 'bg-emerald-800 text-white shadow-sm font-black ring-2 ring-emerald-600/30'
-                          : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
-                          }`}
-                      >
-                        <span>Tất cả danh mục</span>
-                        <span
-                          className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${selectedCategory === 'all' ? 'bg-emerald-700 text-white' : 'bg-slate-100 text-slate-600'
-                            }`}
-                        >
-                          {costItems.length}
-                        </span>
-                      </button>
-                      {categoriesList.map((cat) => {
-                        const count = costItems.filter((i) => i.category_name === cat).length;
-                        const isSelected = selectedCategory === cat;
-                        return (
-                          <button
-                            key={cat}
-                            type="button"
-                            onClick={() => setSelectedCategory(isSelected ? 'all' : cat)}
-                            className={`px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs ${isSelected
-                              ? 'bg-emerald-800 text-white shadow-sm font-black ring-2 ring-emerald-600/30'
-                              : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
-                              }`}
-                          >
-                            <span>{cat}</span>
-                            <span
-                              className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${isSelected ? 'bg-emerald-700 text-white' : 'bg-slate-100 text-slate-600'
-                                }`}
-                            >
-                              {count}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Divider */}
-                  <hr className="border-slate-100" />
-
-                  {/* Section 2: Trạng Thái Biên Lãi & BOM */}
-                  <div>
-                    <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-2">
-                      🎯 Trạng Thái Biên Lãi & BOM
-                    </label>
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setStatusFilter('all')}
-                        className={`px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs ${statusFilter === 'all'
-                          ? 'bg-slate-900 text-white font-extrabold shadow-sm ring-1 ring-slate-700'
-                          : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
-                          }`}
-                      >
-                        <span>Tất cả</span>
-                        <span
-                          className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${statusFilter === 'all' ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-600'
-                            }`}
-                        >
-                          {filterCounts.all}
-                        </span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setStatusFilter('needs_update')}
-                        className={`px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs ${statusFilter === 'needs_update'
-                          ? 'bg-amber-600 text-white font-extrabold shadow-sm ring-2 ring-amber-400/40'
-                          : 'bg-amber-50/70 text-amber-900 hover:bg-amber-100 border border-amber-200'
-                          }`}
-                      >
-                        <span>⚠️ Cần cập nhật</span>
-                        <span
-                          className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${statusFilter === 'needs_update' ? 'bg-amber-700 text-white' : 'bg-amber-200/80 text-amber-900'
-                            }`}
-                        >
-                          {filterCounts.needsUpdate}
-                        </span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setStatusFilter('high_margin')}
-                        className={`px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs ${statusFilter === 'high_margin'
-                          ? 'bg-emerald-600 text-white font-extrabold shadow-sm ring-2 ring-emerald-400/40'
-                          : 'bg-emerald-50/70 text-emerald-900 hover:bg-emerald-100 border border-emerald-200'
-                          }`}
-                      >
-                        <span>✅ Biên lãi cao ≥65%</span>
-                        <span
-                          className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${statusFilter === 'high_margin' ? 'bg-emerald-700 text-white' : 'bg-emerald-200/80 text-emerald-900'
-                            }`}
-                        >
-                          {filterCounts.highMargin}
-                        </span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setStatusFilter('low_margin')}
-                        className={`px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs ${statusFilter === 'low_margin'
-                          ? 'bg-rose-600 text-white font-extrabold shadow-sm ring-2 ring-rose-400/40'
-                          : 'bg-rose-50/70 text-rose-900 hover:bg-rose-100 border border-rose-200'
-                          }`}
-                      >
-                        <span>🔥 Biên lãi thấp &lt;50%</span>
-                        <span
-                          className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${statusFilter === 'low_margin' ? 'bg-rose-700 text-white' : 'bg-rose-200/80 text-rose-900'
-                            }`}
-                        >
-                          {filterCounts.lowMargin}
-                        </span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setStatusFilter('no_recipe')}
-                        className={`px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs ${statusFilter === 'no_recipe'
-                          ? 'bg-indigo-600 text-white font-extrabold shadow-sm ring-2 ring-indigo-400/40'
-                          : 'bg-indigo-50/70 text-indigo-900 hover:bg-indigo-100 border border-indigo-200'
-                          }`}
-                      >
-                        <span>📋 Chưa có BOM</span>
-                        <span
-                          className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${statusFilter === 'no_recipe' ? 'bg-indigo-700 text-white' : 'bg-indigo-200/80 text-indigo-900'
-                            }`}
-                        >
-                          {filterCounts.noRecipe}
-                        </span>
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Divider */}
-                  <hr className="border-slate-100" />
-
-                  {/* Section 3: Phương Pháp Tính Giá Vốn */}
-                  <div>
-                    <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-2">
-                      ⚡ Phương Pháp Tính Giá Vốn (COGS)
-                    </label>
-                    <div className="grid grid-cols-2 gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setPricingBasis('latest')}
-                        className={`p-3 rounded-xl border text-left transition cursor-pointer ${pricingBasis === 'latest'
-                          ? 'border-emerald-600 bg-emerald-50/70 ring-1 ring-emerald-600'
-                          : 'border-slate-200 hover:border-slate-300'
-                          }`}
-                      >
-                        <div className="font-extrabold text-xs text-slate-900 flex items-center gap-1.5">
-                          <span>⚡ Giá gần nhất</span>
-                        </div>
-                        <p className="text-[11px] text-slate-500 mt-1">Tính theo giá quy đổi đợt nhập nguyên liệu gần đây nhất</p>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setPricingBasis('average')}
-                        className={`p-3 rounded-xl border text-left transition cursor-pointer ${pricingBasis === 'average'
-                          ? 'border-emerald-600 bg-emerald-50/70 ring-1 ring-emerald-600'
-                          : 'border-slate-200 hover:border-slate-300'
-                          }`}
-                      >
-                        <div className="font-extrabold text-xs text-slate-900 flex items-center gap-1.5">
-                          <span>📊 Giá bình quân (BQ)</span>
-                        </div>
-                        <p className="text-[11px] text-slate-500 mt-1">Tính theo giá quy đổi bình quân gia quyền các đợt nhập</p>
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Divider */}
-                  <hr className="border-slate-100" />
-
-                  {/* Section 4: Sắp Xếp */}
-                  <div>
-                    <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-2">
-                      📶 Sắp Xếp Theo
-                    </label>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                      {[
-                        { key: 'default', label: 'Mặc định' },
-                        { key: 'diff_desc', label: 'Chênh lệch COGS cao' },
-                        { key: 'margin_asc', label: 'Biên lãi thấp nhất' },
-                        { key: 'margin_desc', label: 'Biên lãi cao nhất' },
-                        { key: 'price_desc', label: 'Giá bán cao nhất' },
-                        { key: 'name_asc', label: 'Tên món (A-Z)' },
-                      ].map((s) => {
-                        const isSelected = costSortBy === s.key;
-                        return (
-                          <button
-                            key={s.key}
-                            type="button"
-                            onClick={() => setCostSortBy(s.key as any)}
-                            className={`p-2.5 rounded-xl border text-xs font-bold transition text-left cursor-pointer ${isSelected
-                              ? 'bg-emerald-800 text-white border-emerald-800 shadow-xs'
-                              : 'bg-white text-slate-700 hover:bg-slate-50 border-slate-200'
-                              }`}
-                          >
-                            {s.label}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
+                <div className="w-full md:w-56">
+                  <label className="text-caption font-bold text-slate-500 uppercase block mb-1 md:hidden">
+                    Trạng thái BOM
+                  </label>
+                  <ModernSelect
+                    value={statusFilter}
+                    onChange={(val) => setStatusFilter(val as any)}
+                    size="sm"
+                    options={costStatusOptions}
+                  />
                 </div>
-
-                {/* Modal Footer */}
-                <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-3">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedCategory('all');
-                      setStatusFilter('all');
-                      setCostSortBy('default');
-                    }}
-                    className="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-800 transition cursor-pointer"
-                  >
-                    Đặt lại bộ lọc
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setIsCostFilterModalOpen(false)}
-                    className="px-5 py-2 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl text-xs font-extrabold shadow-sm transition active:scale-95 cursor-pointer"
-                  >
-                    Áp dụng ({filteredCostItems.length} món)
-                  </button>
+                <div className="w-full md:w-52">
+                  <label className="text-caption font-bold text-slate-500 uppercase block mb-1 md:hidden">
+                    Sắp xếp
+                  </label>
+                  <ModernSelect
+                    value={costSortBy}
+                    onChange={(val) => setCostSortBy(val as any)}
+                    size="sm"
+                    options={costSortOptions}
+                  />
                 </div>
               </div>
-            </div>
-          )}
+            }
+            actionsSlot={
+              <div className="flex items-center gap-2">
+                <div className="flex items-center bg-slate-100 p-1 rounded-xl text-xs font-bold shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setPricingBasis('latest')}
+                    className={`px-2.5 sm:px-3 py-1.5 rounded-lg transition cursor-pointer text-xs ${pricingBasis === 'latest'
+                      ? 'bg-white text-emerald-900 shadow-xs font-extrabold'
+                      : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    title="Tính theo giá quy đổi đợt nhập gần nhất"
+                  >
+                    ⚡ Gần nhất
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPricingBasis('average')}
+                    className={`px-2.5 sm:px-3 py-1.5 rounded-lg transition cursor-pointer text-xs ${pricingBasis === 'average'
+                      ? 'bg-white text-emerald-900 shadow-xs font-extrabold'
+                      : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    title="Tính theo giá quy đổi bình quân các lần nhập"
+                  >
+                    📊 Bình quân
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleBulkApplyAll}
+                  disabled={bulkApplying}
+                  className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-extrabold shadow-2xs transition active:scale-95 cursor-pointer shrink-0"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${bulkApplying ? 'animate-spin' : ''}`} />
+                  <span className="hidden sm:inline">Đồng bộ</span>
+                  <span className="sm:hidden">Đồng bộ</span>
+                </button>
+              </div>
+            }
+            chipsSlot={
+              costActiveFilterCount > 0 ? (
+                <>
+                  {selectedCategory !== 'all' && (
+                    <Chip
+                      variant="brand"
+                      onRemove={() => setSelectedCategory('all')}
+                    >
+                      Danh mục: {selectedCategory}
+                    </Chip>
+                  )}
+                  {statusFilter !== 'all' && (
+                    <Chip
+                      variant="brand"
+                      onRemove={() => setStatusFilter('all')}
+                    >
+                      Trạng thái: {costStatusOptions.find((o) => o.value === statusFilter)?.label || statusFilter}
+                    </Chip>
+                  )}
+                  {costSortBy !== 'default' && (
+                    <Chip
+                      variant="default"
+                      onRemove={() => setCostSortBy('default')}
+                    >
+                      Sắp xếp: {costSortOptions.find((o) => o.value === costSortBy)?.label || costSortBy}
+                    </Chip>
+                  )}
+                </>
+              ) : undefined
+            }
+          />
 
           {loading ? (
             <div className="flex items-center justify-center py-16 bg-white rounded-2xl border border-slate-200 shadow-sm">
@@ -1739,297 +1480,95 @@ export default function PurchasesCostTab({
       {/* ── TAB 2: INGREDIENTS PRICING & SPECIFICATIONS ───────────────────────── */}
       {activeSubTab === 'ingredients' && (
         <div className="space-y-3 sm:space-y-4">
-          {/* Toolbar */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-3 sm:p-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
-            <div className="flex items-center gap-2 flex-1 min-w-0">
-              <div className="relative flex-1 min-w-0">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  placeholder="Tìm kiếm nguyên liệu, bao bì..."
-                  value={ingSearchQuery}
-                  onChange={(e) => setIngSearchQuery(e.target.value)}
-                  className="app-input pl-9 pr-24 py-2 text-xs placeholder:text-xs"
-                />
-                {ingSearchQuery ? (
-                  <button
-                    type="button"
-                    onClick={() => setIngSearchQuery('')}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition cursor-pointer"
-                    title="Xóa tìm kiếm"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                ) : (
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-md pointer-events-none">
-                    {filteredIngredients.length} NL
-                  </span>
-                )}
-              </div>
-
-              {/* Button Mở Bộ Lọc Gộp (Filter Button) */}
-              <button
-                type="button"
-                onClick={() => setIsIngFilterModalOpen(true)}
-                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer shadow-2xs ${ingActiveFilterCount > 0
-                  ? 'bg-emerald-800 text-white shadow-sm ring-2 ring-emerald-600/30 font-extrabold'
-                  : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
-                  }`}
-              >
-                <Filter className="w-4 h-4" />
-                <span>Bộ lọc</span>
-                {ingActiveFilterCount > 0 && (
-                  <span className="w-5 h-5 rounded-full bg-emerald-600 text-white text-[10px] font-extrabold flex items-center justify-center">
-                    {ingActiveFilterCount}
-                  </span>
-                )}
-              </button>
-            </div>
-
-            <button
-              type="button"
-              onClick={handleOpenAddIngredient}
-              className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-extrabold shadow-2xs transition active:scale-95 cursor-pointer shrink-0"
-            >
-              <Plus className="w-4 h-4" />
-              <span>+ Thêm Nguyên Liệu</span>
-            </button>
-          </div>
-
-          {/* Active Filter Chips cho Nguyên Liệu */}
-          {ingActiveFilterCount > 0 && (
-            <div className="flex flex-wrap items-center gap-1.5 text-xs pt-2 border-t border-slate-100 bg-white rounded-2xl border border-slate-200 shadow-sm p-3">
-              <span className="text-slate-400 font-semibold text-[11px]">Đang lọc:</span>
-              {ingCategoryFilter !== 'all' && (
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-lg font-bold text-xs">
-                  <span>
-                    🏷️ Phân loại:{' '}
-                    {ingCategoryFilter === 'fruit'
-                      ? '🍎 Hoa quả tươi'
-                      : ingCategoryFilter === 'ingredient'
-                        ? '🥛 Nguyên liệu / Sữa'
-                        : ingCategoryFilter === 'packaging'
-                          ? '🥤 Bao bì / Ly nắp'
-                          : '📦 Khác'}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setIngCategoryFilter('all')}
-                    className="hover:text-emerald-950 p-0.5 rounded cursor-pointer"
-                    title="Xóa lọc phân loại"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </span>
-              )}
-
-              {ingLossFilter !== 'all' && (
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-50 text-amber-800 border border-amber-200 rounded-lg font-bold text-xs">
-                  <span>
-                    ⚖️ Hao hụt: {ingLossFilter === 'has_loss' ? 'Có hao hụt (>0%)' : 'Không hao hụt (0%)'}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setIngLossFilter('all')}
-                    className="hover:text-amber-950 p-0.5 rounded cursor-pointer"
-                    title="Xóa lọc hao hụt"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </span>
-              )}
-
-              {ingSortBy !== 'name_asc' && (
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-indigo-50 text-indigo-800 border border-indigo-200 rounded-lg font-bold text-xs">
-                  <span>
-                    📶 Sắp xếp:{' '}
-                    {ingSortBy === 'price_desc'
-                      ? 'Giá cao nhất'
-                      : ingSortBy === 'price_asc'
-                        ? 'Giá thấp nhất'
-                        : 'Hao hụt cao nhất'}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setIngSortBy('name_asc')}
-                    className="hover:text-indigo-950 p-0.5 rounded cursor-pointer"
-                    title="Hủy sắp xếp"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </span>
-              )}
-
-              <button
-                type="button"
-                onClick={() => {
-                  setIngCategoryFilter('all');
-                  setIngLossFilter('all');
-                  setIngSortBy('name_asc');
-                }}
-                className="text-[11px] font-bold text-rose-600 hover:text-rose-800 hover:underline ml-1 cursor-pointer"
-              >
-                Xóa tất cả
-              </button>
-            </div>
-          )}
-
-          {/* Popup Filter Modal cho Quản Lý Nguyên Liệu */}
-          {isIngFilterModalOpen && (
-            <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-150">
-              <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-lg w-full p-4 sm:p-6 shadow-2xl space-y-4 max-h-[92dvh] sm:max-h-[85vh] flex flex-col animate-in slide-in-from-bottom-6 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200 pb-safe sm:pb-6 border border-slate-100">
-                {/* Modal Header */}
-                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                  <div className="flex items-center gap-2">
-                    <div className="p-2 bg-emerald-50 text-emerald-800 rounded-xl">
-                      <Filter className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h3 className="font-extrabold text-base text-slate-900">Bộ Lọc Nguyên Liệu</h3>
-                      <p className="text-xs text-slate-400">Lọc theo phân loại nguyên vật liệu, hao hụt và giá nhập</p>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setIsIngFilterModalOpen(false)}
-                    className="p-1.5 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition cursor-pointer"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
+          <FilterBar
+            searchValue={ingSearchQuery}
+            onSearchChange={setIngSearchQuery}
+            searchPlaceholder="Tìm kiếm nguyên liệu, bao bì..."
+            activeFiltersCount={ingActiveFilterCount}
+            onReset={() => {
+              setIngCategoryFilter('all');
+              setIngLossFilter('all');
+              setIngSortBy('name_asc');
+            }}
+            sheetTitle="Bộ Lọc Nguyên Liệu"
+            filters={
+              <div className="flex flex-col md:flex-row md:items-center gap-2.5 w-full md:w-auto">
+                <div className="w-full md:w-48">
+                  <label className="text-caption font-bold text-slate-500 uppercase block mb-1 md:hidden">
+                    Phân loại
+                  </label>
+                  <ModernSelect
+                    value={ingCategoryFilter}
+                    onChange={setIngCategoryFilter}
+                    size="sm"
+                    options={ingCategoryOptions}
+                  />
                 </div>
-
-                {/* Content */}
-                <div className="flex-1 overflow-y-auto space-y-4 pr-1 text-xs">
-                  {/* Section 1: Phân Loại Nguyên Liệu */}
-                  <div>
-                    <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-2">
-                      🏷️ Phân Loại Nguyên Liệu
-                    </label>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      {[
-                        { key: 'all', label: 'Tất cả phân loại', icon: '📋', count: ingredients.length },
-                        { key: 'fruit', label: 'Hoa quả tươi', icon: '🍎', count: ingredients.filter((i) => i.category === 'fruit').length },
-                        { key: 'ingredient', label: 'Nguyên liệu / Sữa', icon: '🥛', count: ingredients.filter((i) => i.category === 'ingredient').length },
-                        { key: 'packaging', label: 'Bao bì / Ly nắp', icon: '🥤', count: ingredients.filter((i) => i.category === 'packaging').length },
-                        { key: 'other', label: 'Khác', icon: '📦', count: ingredients.filter((i) => i.category === 'other').length },
-                      ].map((cat) => {
-                        const isSelected = ingCategoryFilter === cat.key;
-                        return (
-                          <button
-                            key={cat.key}
-                            type="button"
-                            onClick={() => setIngCategoryFilter(cat.key)}
-                            className={`p-3 rounded-2xl border text-left transition flex items-center justify-between cursor-pointer ${isSelected
-                              ? 'border-emerald-600 bg-emerald-50 text-emerald-950 font-bold ring-2 ring-emerald-600/30'
-                              : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
-                              }`}
-                          >
-                            <span className="flex items-center gap-2">
-                              <span>{cat.icon}</span>
-                              <span className="font-bold">{cat.label}</span>
-                            </span>
-                            <span
-                              className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${isSelected ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600'
-                                }`}
-                            >
-                              {cat.count}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Divider */}
-                  <hr className="border-slate-100" />
-
-                  {/* Section 2: Trạng Thái Hao Hụt */}
-                  <div>
-                    <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-2">
-                      ⚖️ Trạng Thái Hao Hụt
-                    </label>
-                    <div className="grid grid-cols-3 gap-2">
-                      {[
-                        { key: 'all', label: 'Tất cả' },
-                        { key: 'has_loss', label: 'Có hao hụt (>0%)' },
-                        { key: 'no_loss', label: 'Không hao hụt (0%)' },
-                      ].map((item) => {
-                        const isSelected = ingLossFilter === item.key;
-                        return (
-                          <button
-                            key={item.key}
-                            type="button"
-                            onClick={() => setIngLossFilter(item.key as any)}
-                            className={`p-2.5 rounded-xl border text-xs font-bold transition text-center cursor-pointer ${isSelected
-                              ? 'bg-emerald-800 text-white border-emerald-800 shadow-xs'
-                              : 'bg-white text-slate-700 hover:bg-slate-50 border-slate-200'
-                              }`}
-                          >
-                            {item.label}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Divider */}
-                  <hr className="border-slate-100" />
-
-                  {/* Section 3: Sắp Xếp */}
-                  <div>
-                    <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-2">
-                      📶 Sắp Xếp Theo
-                    </label>
-                    <div className="grid grid-cols-2 gap-2">
-                      {[
-                        { key: 'name_asc', label: '🔤 Tên nguyên liệu (A-Z)' },
-                        { key: 'price_desc', label: '💰 Giá quy đổi cao nhất' },
-                        { key: 'price_asc', label: '🪙 Giá quy đổi thấp nhất' },
-                        { key: 'loss_desc', label: '📉 Tỷ lệ hao hụt cao nhất' },
-                      ].map((item) => {
-                        const isSelected = ingSortBy === item.key;
-                        return (
-                          <button
-                            key={item.key}
-                            type="button"
-                            onClick={() => setIngSortBy(item.key as any)}
-                            className={`p-2.5 rounded-xl border text-xs font-bold transition text-left cursor-pointer ${isSelected
-                              ? 'bg-emerald-800 text-white border-emerald-800 shadow-xs'
-                              : 'bg-white text-slate-700 hover:bg-slate-50 border-slate-200'
-                              }`}
-                          >
-                            {item.label}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
+                <div className="w-full md:w-56">
+                  <label className="text-caption font-bold text-slate-500 uppercase block mb-1 md:hidden">
+                    Hao hụt
+                  </label>
+                  <ModernSelect
+                    value={ingLossFilter}
+                    onChange={(val) => setIngLossFilter(val as any)}
+                    size="sm"
+                    options={ingLossOptions}
+                  />
                 </div>
-
-                {/* Footer */}
-                <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-3">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIngCategoryFilter('all');
-                      setIngLossFilter('all');
-                      setIngSortBy('name_asc');
-                    }}
-                    className="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-800 transition cursor-pointer"
-                  >
-                    Đặt lại bộ lọc
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setIsIngFilterModalOpen(false)}
-                    className="px-5 py-2 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl text-xs font-extrabold shadow-sm transition active:scale-95 cursor-pointer"
-                  >
-                    Áp dụng ({filteredIngredients.length} nguyên liệu)
-                  </button>
+                <div className="w-full md:w-52">
+                  <label className="text-caption font-bold text-slate-500 uppercase block mb-1 md:hidden">
+                    Sắp xếp
+                  </label>
+                  <ModernSelect
+                    value={ingSortBy}
+                    onChange={(val) => setIngSortBy(val as any)}
+                    size="sm"
+                    options={ingSortOptions}
+                  />
                 </div>
               </div>
-            </div>
-          )}
+            }
+            actionsSlot={
+              <button
+                type="button"
+                onClick={handleOpenAddIngredient}
+                className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-extrabold shadow-2xs transition active:scale-95 cursor-pointer shrink-0"
+              >
+                <Plus className="w-4 h-4" />
+                <span>+ Thêm Nguyên Liệu</span>
+              </button>
+            }
+            chipsSlot={
+              ingActiveFilterCount > 0 ? (
+                <>
+                  {ingCategoryFilter !== 'all' && (
+                    <Chip
+                      variant="brand"
+                      onRemove={() => setIngCategoryFilter('all')}
+                    >
+                      Phân loại: {ingCategoryOptions.find((o) => o.value === ingCategoryFilter)?.label || ingCategoryFilter}
+                    </Chip>
+                  )}
+                  {ingLossFilter !== 'all' && (
+                    <Chip
+                      variant="brand"
+                      onRemove={() => setIngLossFilter('all')}
+                    >
+                      Hao hụt: {ingLossOptions.find((o) => o.value === ingLossFilter)?.label || ingLossFilter}
+                    </Chip>
+                  )}
+                  {ingSortBy !== 'name_asc' && (
+                    <Chip
+                      variant="default"
+                      onRemove={() => setIngSortBy('name_asc')}
+                    >
+                      Sắp xếp: {ingSortOptions.find((o) => o.value === ingSortBy)?.label || ingSortBy}
+                    </Chip>
+                  )}
+                </>
+              ) : undefined
+            }
+          />
 
           {loading ? (
             <div className="flex items-center justify-center py-16 bg-white rounded-2xl border border-slate-200 shadow-sm">
