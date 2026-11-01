@@ -45,7 +45,15 @@
     "view_only": "Chỉ xem",
     "to": "đến",
     "date": "Ngày",
-    "app_title": "RabbitPOS"
+    "app_title": "RabbitPOS",
+    "select_placeholder": "Chọn...",
+    "search_placeholder": "Tìm kiếm...",
+    "no_results": "Không tìm thấy kết quả",
+    "clear_selection": "Xóa lựa chọn",
+    "select_title": "Chọn một mục",
+    "apply": "Áp dụng",
+    "reset": "Đặt lại",
+    "filters": "Bộ lọc"
   },
   "pos": {
     "search_placeholder": "Tìm kiếm đồ uống, cà phê...",

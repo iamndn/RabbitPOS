@@ -45,7 +45,15 @@
     "view_only": "View only",
     "to": "to",
     "date": "Date",
-    "app_title": "Rabbit POS"
+    "app_title": "Rabbit POS",
+    "select_placeholder": "Select...",
+    "search_placeholder": "Search...",
+    "no_results": "No results found",
+    "clear_selection": "Clear selection",
+    "select_title": "Select an item",
+    "apply": "Apply",
+    "reset": "Reset",
+    "filters": "Filters"
   },
   "pos": {
     "search_placeholder": "Search drinks, coffee...",
