@@ -6,10 +6,10 @@
  *           Stale-While-Revalidate for the Next.js app shell (/, /pos, /dashboard, etc.)
  */
 
-const CACHE_NAME = 'rabbitpos-shell-v2';
-const STATIC_CACHE_NAME = 'rabbitpos-static-v2';
+const CACHE_NAME = 'rabbitpos-shell-v3';
+const STATIC_CACHE_NAME = 'rabbitpos-static-v3';
 
-// Static assets to pre-cache on SW install (app shell)
+// Static assets to pre-cache on SW install (app shell & self-hosted fonts)
 const PRECACHE_URLS = [
   '/',
   '/manifest.json',
@@ -18,6 +18,10 @@ const PRECACHE_URLS = [
   '/icons/icon-512x512.png',
   '/icons/apple-touch-icon.png',
   '/logo.png',
+  '/fonts/nunito-latin-wght-normal.woff2',
+  '/fonts/nunito-vietnamese-wght-normal.woff2',
+  '/fonts/inter-latin-wght-normal.woff2',
+  '/fonts/inter-vietnamese-wght-normal.woff2',
 ];
 
 // ─── Install: Pre-cache app shell ───────────────────────────────────────────
@@ -64,9 +68,10 @@ self.addEventListener('fetch', (event) => {
   // 3. Next.js HMR / webpack dev server chunks → skip in dev
   if (url.pathname.startsWith('/_next/webpack-hmr')) return;
 
-  // 4. Static assets (icons, images, _next/static chunks) → Cache First
+  // 4. Static assets (icons, fonts, images, _next/static chunks) → Cache First
   if (
     url.pathname.startsWith('/_next/static/') ||
+    url.pathname.startsWith('/fonts/') ||
     url.pathname.startsWith('/icons/') ||
     url.pathname.match(/\.(png|jpg|jpeg|svg|ico|woff|woff2|ttf|otf|webp)$/)
   ) {

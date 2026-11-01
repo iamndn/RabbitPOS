@@ -1,10 +1,48 @@
 import type { Metadata, Viewport } from "next";
+import localFont from "next/font/local";
 import "./globals.css";
 import { LanguageProvider } from "@/lib/i18n/LanguageContext";
 import { StoreProvider } from "@/lib/StoreContext";
 import { ConfirmProvider } from "@/context/ConfirmContext";
 import { ToastProvider } from "@/context/ToastContext";
 import PWARegister from "@/components/common/PWARegister";
+
+// --- Self-hosted Variable Fonts (Pairing C: Nunito + Inter) ---
+const nunito = localFont({
+  src: [
+    {
+      path: "../fonts/nunito-latin-wght-normal.woff2",
+      weight: "200 1000",
+      style: "normal",
+    },
+    {
+      path: "../fonts/nunito-vietnamese-wght-normal.woff2",
+      weight: "200 1000",
+      style: "normal",
+    },
+  ],
+  variable: "--font-nunito",
+  display: "swap",
+  fallback: ["system-ui", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "sans-serif"],
+});
+
+const inter = localFont({
+  src: [
+    {
+      path: "../fonts/inter-latin-wght-normal.woff2",
+      weight: "100 900",
+      style: "normal",
+    },
+    {
+      path: "../fonts/inter-vietnamese-wght-normal.woff2",
+      weight: "100 900",
+      style: "normal",
+    },
+  ],
+  variable: "--font-inter",
+  display: "swap",
+  fallback: ["system-ui", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "sans-serif"],
+});
 
 // --- PWA Viewport: Prevents iOS auto-zoom, enables edge-to-edge rendering ---
 export const viewport: Viewport = {
@@ -70,8 +108,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="vi">
-      <body className="min-h-screen bg-slate-50 text-slate-900 antialiased selection:bg-purple-600 selection:text-white flex flex-col">
+    <html lang="vi" className={`${nunito.variable} ${inter.variable}`}>
+      <body className="min-h-screen bg-slate-50 text-slate-900 font-sans antialiased selection:bg-purple-600 selection:text-white flex flex-col">
         {/* Register service worker for offline shell caching */}
         <PWARegister />
         <LanguageProvider>
