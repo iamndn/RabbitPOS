@@ -168,6 +168,7 @@ export default function StoreSwitcher() {
           />
 
           <div className="fixed inset-x-0 bottom-0 z-[90] md:z-[80] md:inset-x-auto md:bottom-auto md:absolute md:left-0 md:top-full md:mt-2 w-full md:w-80 md:max-w-[calc(100vw-1.5rem)] max-h-[85dvh] md:max-h-[75vh] overflow-y-auto bg-white rounded-t-3xl md:rounded-2xl shadow-2xl border border-slate-200 py-2 pb-safe md:pb-2 text-slate-800 animate-slideUp md:animate-scaleIn">
+          <div className="fixed inset-x-0 bottom-0 z-[90] md:z-[80] md:inset-x-auto md:bottom-auto md:absolute md:left-0 md:top-full md:mt-2 w-full md:w-80 md:max-w-[calc(100vw-1.5rem)] max-h-[85dvh] md:max-h-[75vh] overflow-y-auto bg-white rounded-t-3xl md:rounded-2xl shadow-2xl ring-1 ring-black/5 border border-slate-200/90 py-2 pb-safe md:pb-2 text-slate-800 animate-slideUp md:animate-scaleIn">
             <div className="flex justify-center pt-1 pb-2 md:hidden">
               <div className="w-10 h-1 bg-slate-300 rounded-full" />
             </div>

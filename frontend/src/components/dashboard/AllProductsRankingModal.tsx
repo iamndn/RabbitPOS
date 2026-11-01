@@ -283,10 +283,15 @@ export default function AllProductsRankingModal({
         {isFilterModalOpen && (
           <div className="fixed inset-0 z-60 bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-150">
             <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-lg w-full p-4 sm:p-6 shadow-2xl space-y-4 max-h-[92dvh] sm:max-h-[85vh] flex flex-col animate-in slide-in-from-bottom-6 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200 pb-safe sm:pb-6 border border-slate-100">
+              {/* Mobile Grab Handle */}
+              <div className="flex justify-center pt-1 pb-1 sm:hidden">
+                <div className="w-10 h-1 bg-slate-300 rounded-full" />
+              </div>
+
               {/* Modal Header */}
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <div className="flex items-center gap-2">
-                  <div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl">
+                  <div className="p-2 bg-purple-50 text-purple-700 rounded-xl">
                     <Filter className="w-5 h-5" />
                   </div>
                   <div>
@@ -304,7 +309,7 @@ export default function AllProductsRankingModal({
               </div>
 
               {/* Content */}
-              <div className="flex-1 overflow-y-auto space-y-4 pr-1 text-xs">
+              <div className="flex-1 overflow-y-auto space-y-4 pr-1 text-xs custom-scrollbar">
                 {/* Section 1: Sắp xếp theo */}
                 <div>
                   <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-2">
@@ -314,9 +319,9 @@ export default function AllProductsRankingModal({
                     <button
                       type="button"
                       onClick={() => setSortBy('revenue')}
-                      className={`px-3.5 py-2 rounded-xl font-bold transition whitespace-nowrap cursor-pointer shadow-2xs ${
+                      className={`px-3.5 py-2 rounded-xl font-bold transition whitespace-nowrap cursor-pointer shadow-2xs active:scale-95 ${
                         sortBy === 'revenue'
-                          ? 'bg-indigo-600 text-white shadow-sm ring-2 ring-indigo-500/30 font-black'
+                          ? 'bg-purple-800 text-white shadow-sm ring-2 ring-purple-500/30 font-black'
                           : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
                       }`}
                     >
@@ -325,9 +330,9 @@ export default function AllProductsRankingModal({
                     <button
                       type="button"
                       onClick={() => setSortBy('profit')}
-                      className={`px-3.5 py-2 rounded-xl font-bold transition whitespace-nowrap cursor-pointer shadow-2xs ${
+                      className={`px-3.5 py-2 rounded-xl font-bold transition whitespace-nowrap cursor-pointer shadow-2xs active:scale-95 ${
                         sortBy === 'profit'
-                          ? 'bg-indigo-600 text-white shadow-sm ring-2 ring-indigo-500/30 font-black'
+                          ? 'bg-purple-800 text-white shadow-sm ring-2 ring-purple-500/30 font-black'
                           : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
                       }`}
                     >
@@ -336,9 +341,9 @@ export default function AllProductsRankingModal({
                     <button
                       type="button"
                       onClick={() => setSortBy('quantity')}
-                      className={`px-3.5 py-2 rounded-xl font-bold transition whitespace-nowrap cursor-pointer shadow-2xs ${
+                      className={`px-3.5 py-2 rounded-xl font-bold transition whitespace-nowrap cursor-pointer shadow-2xs active:scale-95 ${
                         sortBy === 'quantity'
-                          ? 'bg-indigo-600 text-white shadow-sm ring-2 ring-indigo-500/30 font-black'
+                          ? 'bg-purple-800 text-white shadow-sm ring-2 ring-purple-500/30 font-black'
                           : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
                       }`}
                     >
@@ -347,9 +352,9 @@ export default function AllProductsRankingModal({
                     <button
                       type="button"
                       onClick={() => setSortBy('margin')}
-                      className={`px-3.5 py-2 rounded-xl font-bold transition whitespace-nowrap cursor-pointer shadow-2xs ${
+                      className={`px-3.5 py-2 rounded-xl font-bold transition whitespace-nowrap cursor-pointer shadow-2xs active:scale-95 ${
                         sortBy === 'margin'
-                          ? 'bg-indigo-600 text-white shadow-sm ring-2 ring-indigo-500/30 font-black'
+                          ? 'bg-purple-800 text-white shadow-sm ring-2 ring-purple-500/30 font-black'
                           : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
                       }`}
                     >
@@ -373,9 +378,9 @@ export default function AllProductsRankingModal({
                         setSelectedCategoryId('');
                         setPage(1);
                       }}
-                      className={`px-3.5 py-2 rounded-xl font-bold transition whitespace-nowrap cursor-pointer shadow-2xs ${
+                      className={`px-3.5 py-2 rounded-xl font-bold transition whitespace-nowrap cursor-pointer shadow-2xs active:scale-95 ${
                         !selectedCategoryId
-                          ? 'bg-indigo-600 text-white shadow-sm font-black ring-2 ring-indigo-500/30'
+                          ? 'bg-purple-800 text-white shadow-sm font-black ring-2 ring-purple-500/30'
                           : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
                       }`}
                     >
@@ -391,9 +396,9 @@ export default function AllProductsRankingModal({
                             setSelectedCategoryId(isSelected ? '' : String(c.id));
                             setPage(1);
                           }}
-                          className={`px-3.5 py-2 rounded-xl font-bold transition whitespace-nowrap cursor-pointer shadow-2xs ${
+                          className={`px-3.5 py-2 rounded-xl font-bold transition whitespace-nowrap cursor-pointer shadow-2xs active:scale-95 ${
                             isSelected
-                              ? 'bg-indigo-600 text-white shadow-sm font-black ring-2 ring-indigo-500/30'
+                              ? 'bg-purple-800 text-white shadow-sm font-black ring-2 ring-purple-500/30'
                               : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
                           }`}
                         >
@@ -421,7 +426,7 @@ export default function AllProductsRankingModal({
                 <button
                   type="button"
                   onClick={() => setIsFilterModalOpen(false)}
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-extrabold px-5 py-2.5 rounded-xl shadow-xs transition active:scale-95 cursor-pointer text-center justify-center flex items-center"
+                  className="bg-purple-800 hover:bg-purple-900 text-white text-xs font-extrabold px-5 py-2.5 rounded-xl shadow-xs transition active:scale-95 cursor-pointer text-center justify-center flex items-center"
                 >
                   Áp dụng ({totalItems})
                 </button>

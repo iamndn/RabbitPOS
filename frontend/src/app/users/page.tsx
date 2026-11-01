@@ -21,8 +21,10 @@ import {
   X,
   Building2,
   Hash,
+  Sparkles,
 } from 'lucide-react';
 import AppShell from '@/components/AppShell';
+import ModernSelect, { ModernSelectOption } from '@/components/common/ModernSelect';
 import { fetchApi } from '@/lib/api';
 import { getAuthUser, isMasterRole, isOwnerRole, UserInfo } from '@/lib/auth';
 import { useStore } from '@/lib/StoreContext';
@@ -139,6 +141,19 @@ export default function UsersPage() {
   }, []);
 
   // Filtered users list
+  const roleFilterOptions: ModernSelectOption[] = useMemo(() => [
+    { value: 'all', label: t('users.filter_all_roles') || 'Tất cả vai trò', icon: <Users className="w-3.5 h-3.5 text-slate-400" /> },
+    { value: 'master', label: t('users.role_master') || 'Master', badge: 'Master', badgeColor: 'purple', icon: <Shield className="w-3.5 h-3.5 text-purple-600" /> },
+    { value: 'owner', label: t('users.role_owner') || 'Owner', badge: 'Owner', badgeColor: 'blue', icon: <Shield className="w-3.5 h-3.5 text-blue-600" /> },
+    { value: 'staff', label: t('users.role_staff') || 'Staff', badge: 'Staff', badgeColor: 'slate', icon: <Users className="w-3.5 h-3.5 text-slate-500" /> },
+  ], [t]);
+
+  const statusFilterOptions: ModernSelectOption[] = useMemo(() => [
+    { value: 'all', label: t('users.filter_all_status') || 'Tất cả trạng thái', icon: <Sparkles className="w-3.5 h-3.5 text-slate-400" /> },
+    { value: 'active', label: t('users.filter_active') || 'Đang hoạt động', badge: 'Active', badgeColor: 'purple', icon: <CheckCircle2 className="w-3.5 h-3.5 text-purple-600" /> },
+    { value: 'inactive', label: t('users.filter_inactive') || 'Đã khóa', badge: 'Locked', badgeColor: 'rose', icon: <Lock className="w-3.5 h-3.5 text-rose-500" /> },
+  ], [t]);
+
   const filteredUsers = useMemo(() => {
     return users.filter((u) => {
       const q = searchQuery.toLowerCase().trim();
@@ -533,6 +548,27 @@ export default function UsersPage() {
               className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-purple-600 focus:bg-white transition"
             />
           </div>
+        <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200 shadow-xs space-y-3">
+          <div className="flex flex-col md:flex-row items-center gap-3">
+            <div className="relative flex-1 w-full">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder={t('users.search_placeholder') || 'Tìm theo tên đăng nhập, họ tên, SĐT hoặc email...'}
+                className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-purple-600 focus:bg-white transition"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
 
           <div className="flex items-center gap-2 w-full md:w-auto">
             <select
@@ -545,6 +581,15 @@ export default function UsersPage() {
               <option value="owner">{t('users.role_owner') || 'Owner'}</option>
               <option value="staff">{t('users.role_staff') || 'Staff'}</option>
             </select>
+            <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full md:w-auto">
+              <div className="w-full sm:w-44">
+                <ModernSelect
+                  value={roleFilter}
+                  onChange={(val) => setRoleFilter(String(val))}
+                  options={roleFilterOptions}
+                  size="md"
+                />
+              </div>
 
             <select
               value={statusFilter}
@@ -555,7 +600,58 @@ export default function UsersPage() {
               <option value="active">{t('users.filter_active') || 'Đang hoạt động'}</option>
               <option value="inactive">{t('users.filter_inactive') || 'Đã khóa'}</option>
             </select>
+              <div className="w-full sm:w-44">
+                <ModernSelect
+                  value={statusFilter}
+                  onChange={(val) => setStatusFilter(String(val))}
+                  options={statusFilterOptions}
+                  size="md"
+                />
+              </div>
+            </div>
           </div>
+
+          {/* Active Filter Chips */}
+          {(roleFilter !== 'all' || statusFilter !== 'all' || searchQuery.trim()) && (
+            <div className="flex flex-wrap items-center gap-1.5 text-xs pt-1 border-t border-slate-100">
+              <span className="text-slate-400 font-semibold text-[11px]">Đang lọc:</span>
+              {roleFilter !== 'all' && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-purple-50 text-purple-800 border border-purple-200 rounded-lg font-bold text-[11px] animate-in fade-in duration-150">
+                  <span>Vai trò: {roleFilterOptions.find((r) => r.value === roleFilter)?.label || roleFilter}</span>
+                  <button type="button" onClick={() => setRoleFilter('all')} className="hover:text-purple-950 cursor-pointer">
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              )}
+              {statusFilter !== 'all' && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-indigo-50 text-indigo-800 border border-indigo-200 rounded-lg font-bold text-[11px] animate-in fade-in duration-150">
+                  <span>Trạng thái: {statusFilterOptions.find((s) => s.value === statusFilter)?.label || statusFilter}</span>
+                  <button type="button" onClick={() => setStatusFilter('all')} className="hover:text-indigo-950 cursor-pointer">
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              )}
+              {searchQuery.trim() && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-slate-100 text-slate-800 border border-slate-200 rounded-lg font-bold text-[11px] animate-in fade-in duration-150">
+                  <span>Từ khóa: &quot;{searchQuery}&quot;</span>
+                  <button type="button" onClick={() => setSearchQuery('')} className="hover:text-slate-950 cursor-pointer">
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              )}
+              <button
+                type="button"
+                onClick={() => {
+                  setRoleFilter('all');
+                  setStatusFilter('all');
+                  setSearchQuery('');
+                }}
+                className="text-rose-600 hover:text-rose-700 font-bold text-[11px] ml-1 underline cursor-pointer"
+              >
+                Xóa tất cả ({filteredUsers.length} kết quả)
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Mobile Card List (Visible on mobile, hidden on desktop) */}

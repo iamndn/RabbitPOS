@@ -677,10 +677,16 @@ export default function ProductsPage() {
         {isFilterModalOpen && (
           <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-150">
             <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-xl w-full p-4 sm:p-6 shadow-2xl space-y-4 max-h-[92dvh] sm:max-h-[85vh] flex flex-col animate-in slide-in-from-bottom-6 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200 pb-safe sm:pb-6 border border-slate-100">
+              {/* Mobile Grab Handle */}
+              <div className="flex justify-center pt-1 pb-1 sm:hidden">
+                <div className="w-10 h-1 bg-slate-300 rounded-full" />
+              </div>
+
               {/* Modal Header */}
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <div className="flex items-center gap-2">
                   <div className="p-2 bg-indigo-50 text-indigo-700 rounded-xl">
+                  <div className="p-2 bg-purple-50 text-purple-700 rounded-xl">
                     <Filter className="w-5 h-5" />
                   </div>
                   <div>
@@ -699,6 +705,7 @@ export default function ProductsPage() {
 
               {/* Modal Scrollable Content */}
               <div className="flex-1 overflow-y-auto space-y-4 pr-1 text-xs">
+              <div className="flex-1 overflow-y-auto space-y-4 pr-1 text-xs custom-scrollbar">
                 {/* Section 1: Danh Mục (Wrap) */}
                 <div>
                   <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-2">

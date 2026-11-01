@@ -15,6 +15,7 @@ import {
   Mail,
   Loader2,
   AlertCircle,
+  ChevronDown,
 } from 'lucide-react';
 import { fetchApi } from '@/lib/api';
 import { useToast } from '@/context/ToastContext';
@@ -374,15 +375,18 @@ export default function MemberManagerModal({
                       </button>
 
                       {/* Store role selector */}
-                      <select
-                        value={m.role}
-                        onChange={(e) => handleRoleChange(m, e.target.value as StoreRole)}
-                        disabled={isSuper}
-                        className="px-2.5 py-1 text-xs font-bold rounded-lg border border-slate-200 bg-slate-50 text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-60 cursor-pointer"
-                      >
-                        <option value="staff">Nhân viên (Staff)</option>
-                        <option value="store_admin">Quản lý (Store Admin)</option>
-                      </select>
+                      <div className="relative inline-block">
+                        <select
+                          value={m.role}
+                          onChange={(e) => handleRoleChange(m, e.target.value as StoreRole)}
+                          disabled={isSuper}
+                          className="appearance-none pl-2.5 pr-7 py-1 text-xs font-bold rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-600 disabled:opacity-60 cursor-pointer transition shadow-2xs"
+                        >
+                          <option value="staff">Nhân viên (Staff)</option>
+                          <option value="store_admin">Quản lý (Store Admin)</option>
+                        </select>
+                        <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      </div>
 
                       {/* Remove button */}
                       <button

@@ -2033,28 +2033,34 @@ export default function PurchasesCostTab({
                           <div className="grid grid-cols-2 gap-2">
                             <div>
                               <label className="text-[10px] font-bold text-slate-600 block mb-0.5">Phân loại</label>
-                              <select
-                                value={inlineForm.category}
-                                onChange={(e) => setInlineForm({ ...inlineForm, category: e.target.value })}
-                                className="w-full h-8 px-2 border border-slate-300 rounded-xl bg-white font-medium"
-                              >
-                                <option value="fruit">Hoa quả tươi</option>
-                                <option value="ingredient">Nguyên liệu</option>
-                                <option value="packaging">Bao bì</option>
-                                <option value="other">Khác</option>
-                              </select>
+                              <div className="relative">
+                                <select
+                                  value={inlineForm.category}
+                                  onChange={(e) => setInlineForm({ ...inlineForm, category: e.target.value })}
+                                  className="w-full appearance-none h-8 pl-2 pr-6 border border-slate-300 rounded-xl bg-white font-medium text-xs shadow-2xs cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                                >
+                                  <option value="fruit">Hoa quả tươi</option>
+                                  <option value="ingredient">Nguyên liệu</option>
+                                  <option value="packaging">Bao bì</option>
+                                  <option value="other">Khác</option>
+                                </select>
+                                <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+                              </div>
                             </div>
                             <div>
                               <label className="text-[10px] font-bold text-slate-600 block mb-0.5">Đơn vị cơ sở</label>
-                              <select
-                                value={inlineForm.base_unit}
-                                onChange={(e) => setInlineForm({ ...inlineForm, base_unit: e.target.value })}
-                                className="w-full h-8 px-2 border border-slate-300 rounded-xl bg-white font-bold text-emerald-950"
-                              >
-                                {COMMON_BASE_UNITS.map((u) => (
-                                  <option key={u.value} value={u.value}>{u.label}</option>
-                                ))}
-                              </select>
+                              <div className="relative">
+                                <select
+                                  value={inlineForm.base_unit}
+                                  onChange={(e) => setInlineForm({ ...inlineForm, base_unit: e.target.value })}
+                                  className="w-full appearance-none h-8 pl-2 pr-6 border border-slate-300 rounded-xl bg-white font-bold text-emerald-950 text-xs shadow-2xs cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                                >
+                                  {COMMON_BASE_UNITS.map((u) => (
+                                    <option key={u.value} value={u.value}>{u.label}</option>
+                                  ))}
+                                </select>
+                                <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+                              </div>
                             </div>
                           </div>
 
@@ -2262,27 +2268,33 @@ export default function PurchasesCostTab({
                                 />
                               </td>
                               <td className="py-2 px-2">
-                                <select
-                                  value={inlineForm.category}
-                                  onChange={(e) => setInlineForm({ ...inlineForm, category: e.target.value })}
-                                  className="w-full h-8 px-1 border border-slate-300 rounded-lg text-[11px] font-semibold bg-white"
-                                >
-                                  <option value="fruit">Hoa quả</option>
-                                  <option value="ingredient">Nguyên liệu</option>
-                                  <option value="packaging">Bao bì</option>
-                                  <option value="other">Khác</option>
-                                </select>
+                                <div className="relative">
+                                  <select
+                                    value={inlineForm.category}
+                                    onChange={(e) => setInlineForm({ ...inlineForm, category: e.target.value })}
+                                    className="w-full appearance-none h-8 pl-1.5 pr-5 border border-slate-300 rounded-lg text-[11px] font-semibold bg-white cursor-pointer shadow-2xs"
+                                  >
+                                    <option value="fruit">Hoa quả</option>
+                                    <option value="ingredient">Nguyên liệu</option>
+                                    <option value="packaging">Bao bì</option>
+                                    <option value="other">Khác</option>
+                                  </select>
+                                  <ChevronDown className="w-3 h-3 text-slate-400 absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none" />
+                                </div>
                               </td>
                               <td className="py-2 px-2">
-                                <select
-                                  value={inlineForm.base_unit}
-                                  onChange={(e) => setInlineForm({ ...inlineForm, base_unit: e.target.value })}
-                                  className="w-full h-8 px-1 border border-slate-300 rounded-lg text-xs font-bold bg-white text-emerald-950"
-                                >
-                                  {COMMON_BASE_UNITS.map((u) => (
-                                    <option key={u.value} value={u.value}>{u.label}</option>
-                                  ))}
-                                </select>
+                                <div className="relative">
+                                  <select
+                                    value={inlineForm.base_unit}
+                                    onChange={(e) => setInlineForm({ ...inlineForm, base_unit: e.target.value })}
+                                    className="w-full appearance-none h-8 pl-1.5 pr-5 border border-slate-300 rounded-lg text-xs font-bold bg-white text-emerald-950 cursor-pointer shadow-2xs"
+                                  >
+                                    {COMMON_BASE_UNITS.map((u) => (
+                                      <option key={u.value} value={u.value}>{u.label}</option>
+                                    ))}
+                                  </select>
+                                  <ChevronDown className="w-3 h-3 text-slate-400 absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none" />
+                                </div>
                               </td>
                               <td className="py-2 px-2">
                                 <input
@@ -2479,24 +2491,27 @@ export default function PurchasesCostTab({
                   </button>
                 )}
 
-                <select
-                  onChange={(e) => {
-                    const selected = POPULAR_RECIPE_TEMPLATES.find((t) => t.id === e.target.value);
-                    if (selected) handleApplyPresetTemplate(selected);
-                    e.target.value = '';
-                  }}
-                  defaultValue=""
-                  className="h-7 px-2 border border-slate-200 rounded-lg text-[11px] font-bold text-slate-600 bg-white hover:bg-slate-50 transition cursor-pointer"
-                >
-                  <option value="" disabled>
-                    + Chọn từ 11+ mẫu công thức khác...
-                  </option>
-                  {POPULAR_RECIPE_TEMPLATES.map((tmpl) => (
-                    <option key={tmpl.id} value={tmpl.id}>
-                      [{tmpl.category}] {tmpl.name}
+                <div className="relative inline-block">
+                  <select
+                    onChange={(e) => {
+                      const selected = POPULAR_RECIPE_TEMPLATES.find((t) => t.id === e.target.value);
+                      if (selected) handleApplyPresetTemplate(selected);
+                      e.target.value = '';
+                    }}
+                    defaultValue=""
+                    className="appearance-none h-7 pl-2.5 pr-6 border border-slate-200/90 rounded-xl text-[11px] font-bold text-slate-600 bg-white hover:bg-slate-50 transition cursor-pointer shadow-2xs focus:outline-none focus:ring-1 focus:ring-purple-500"
+                  >
+                    <option value="" disabled>
+                      + Chọn từ 11+ mẫu công thức khác...
                     </option>
-                  ))}
-                </select>
+                    {POPULAR_RECIPE_TEMPLATES.map((tmpl) => (
+                      <option key={tmpl.id} value={tmpl.id}>
+                        [{tmpl.category}] {tmpl.name}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="w-3 h-3 text-slate-400 absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                </div>
               </div>
             </div>
 
@@ -2578,24 +2593,27 @@ export default function PurchasesCostTab({
                     className="p-2.5 bg-slate-50 rounded-2xl border border-slate-200 flex items-center gap-2 text-xs"
                   >
                     <div className="flex-1 min-w-0">
-                      <select
-                        value={line.ingredient_id}
-                        onChange={(e) => {
-                          const newIngId = Number(e.target.value);
-                          setRecipeLines((prev) => {
-                            const updated = [...prev];
-                            updated[idx] = { ...updated[idx], ingredient_id: newIngId };
-                            return updated;
-                          });
-                        }}
-                        className="w-full h-9 px-2 border border-slate-200 rounded-xl text-xs font-bold bg-white"
-                      >
-                        {ingredients.map((ing) => (
-                          <option key={ing.id} value={ing.id}>
-                            {ing.name} ({formatCurrency(ing.latest_purchase_price, settings)}/{ing.base_unit || ing.unit})
-                          </option>
-                        ))}
-                      </select>
+                      <div className="relative">
+                        <select
+                          value={line.ingredient_id}
+                          onChange={(e) => {
+                            const newIngId = Number(e.target.value);
+                            setRecipeLines((prev) => {
+                              const updated = [...prev];
+                              updated[idx] = { ...updated[idx], ingredient_id: newIngId };
+                              return updated;
+                            });
+                          }}
+                          className="w-full appearance-none h-9 pl-2.5 pr-7 border border-slate-200/90 rounded-xl text-xs font-bold bg-white text-slate-900 cursor-pointer shadow-2xs hover:border-slate-300 transition"
+                        >
+                          {ingredients.map((ing) => (
+                            <option key={ing.id} value={ing.id}>
+                              {ing.name} ({formatCurrency(ing.latest_purchase_price, settings)}/{ing.base_unit || ing.unit})
+                            </option>
+                          ))}
+                        </select>
+                        <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      </div>
                     </div>
 
                     <div className="w-28 shrink-0">
@@ -2736,33 +2754,39 @@ export default function PurchasesCostTab({
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-bold text-slate-700 block mb-1">Phân Loại</label>
-                  <select
-                    value={ingFormCategory}
-                    onChange={(e) => setIngFormCategory(e.target.value)}
-                    className="w-full h-9 px-2 border border-slate-200 rounded-xl text-xs font-semibold bg-white"
-                  >
-                    <option value="fruit">Hoa quả tươi</option>
-                    <option value="ingredient">Nguyên liệu / Sữa</option>
-                    <option value="packaging">Bao bì / Ly nắp</option>
-                    <option value="other">Khác</option>
-                  </select>
+                  <div className="relative">
+                    <select
+                      value={ingFormCategory}
+                      onChange={(e) => setIngFormCategory(e.target.value)}
+                      className="w-full appearance-none h-9 pl-2.5 pr-7 border border-slate-200/90 rounded-xl text-xs font-semibold bg-white cursor-pointer shadow-2xs hover:border-slate-300 transition"
+                    >
+                      <option value="fruit">Hoa quả tươi</option>
+                      <option value="ingredient">Nguyên liệu / Sữa</option>
+                      <option value="packaging">Bao bì / Ly nắp</option>
+                      <option value="other">Khác</option>
+                    </select>
+                    <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  </div>
                 </div>
 
                 <div>
                   <label className="text-xs font-bold text-slate-700 block mb-1">
                     Đơn Vị Cơ Sở (Base Unit) *
                   </label>
-                  <select
-                    value={ingFormBaseUnit}
-                    onChange={(e) => setIngFormBaseUnit(e.target.value)}
-                    className="w-full h-9 px-2 border border-slate-200 rounded-xl text-xs font-bold bg-white text-emerald-950"
-                  >
-                    {COMMON_BASE_UNITS.map((u) => (
-                      <option key={u.value} value={u.value}>
-                        {u.label}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="relative">
+                    <select
+                      value={ingFormBaseUnit}
+                      onChange={(e) => setIngFormBaseUnit(e.target.value)}
+                      className="w-full appearance-none h-9 pl-2.5 pr-7 border border-slate-200/90 rounded-xl text-xs font-bold bg-white text-emerald-950 cursor-pointer shadow-2xs hover:border-slate-300 transition"
+                    >
+                      {COMMON_BASE_UNITS.map((u) => (
+                        <option key={u.value} value={u.value}>
+                          {u.label}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  </div>
                 </div>
               </div>
 
@@ -2842,17 +2866,20 @@ export default function PurchasesCostTab({
                     <div className="grid grid-cols-3 gap-2">
                       <div>
                         <span className="text-[10px] text-slate-400 font-bold block mb-0.5">Đơn vị mua</span>
-                        <select
-                          value={ingFormDefaultPurchaseUnit}
-                          onChange={(e) => setIngFormDefaultPurchaseUnit(e.target.value)}
-                          className="w-full h-8 px-1.5 border border-slate-200 rounded-lg text-xs font-bold bg-white"
-                        >
-                          {COMMON_PURCHASE_UNITS.map((u) => (
-                            <option key={u} value={u}>
-                              {u}
-                            </option>
-                          ))}
-                        </select>
+                        <div className="relative">
+                          <select
+                            value={ingFormDefaultPurchaseUnit}
+                            onChange={(e) => setIngFormDefaultPurchaseUnit(e.target.value)}
+                            className="w-full appearance-none h-8 pl-1.5 pr-5 border border-slate-200/90 rounded-lg text-xs font-bold bg-white cursor-pointer shadow-2xs"
+                          >
+                            {COMMON_PURCHASE_UNITS.map((u) => (
+                              <option key={u} value={u}>
+                                {u}
+                              </option>
+                            ))}
+                          </select>
+                          <ChevronDown className="w-3 h-3 text-slate-400 absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        </div>
                       </div>
 
                       <div>
@@ -2861,24 +2888,27 @@ export default function PurchasesCostTab({
                           type="number"
                           value={ingFormDefaultCapacityQty}
                           onChange={(e) => setIngFormDefaultCapacityQty(parseFloat(e.target.value) || 1)}
-                          className="w-full h-8 px-1.5 border border-slate-200 rounded-lg text-xs font-black text-center bg-white"
+                          className="w-full h-8 px-1.5 border border-slate-200/90 rounded-lg text-xs font-black text-center bg-white shadow-2xs"
                         />
                       </div>
 
                       <div>
                         <span className="text-[10px] text-slate-400 font-bold block mb-0.5">Đơn vị con</span>
-                        <select
-                          value={ingFormDefaultCapacityUnit}
-                          onChange={(e) => setIngFormDefaultCapacityUnit(e.target.value)}
-                          className="w-full h-8 px-1.5 border border-slate-200 rounded-lg text-xs font-bold bg-white"
-                        >
-                          <option value="ml">ml</option>
-                          <option value="l">Lít</option>
-                          <option value="g">g</option>
-                          <option value="kg">kg</option>
-                          <option value="cái">cái</option>
-                          <option value="quả">quả</option>
-                        </select>
+                        <div className="relative">
+                          <select
+                            value={ingFormDefaultCapacityUnit}
+                            onChange={(e) => setIngFormDefaultCapacityUnit(e.target.value)}
+                            className="w-full appearance-none h-8 pl-1.5 pr-5 border border-slate-200/90 rounded-lg text-xs font-bold bg-white cursor-pointer shadow-2xs"
+                          >
+                            <option value="ml">ml</option>
+                            <option value="l">Lít</option>
+                            <option value="g">g</option>
+                            <option value="kg">kg</option>
+                            <option value="cái">cái</option>
+                            <option value="quả">quả</option>
+                          </select>
+                          <ChevronDown className="w-3 h-3 text-slate-400 absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        </div>
                       </div>
                     </div>
                   </div>
