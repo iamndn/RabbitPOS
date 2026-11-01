@@ -53,7 +53,12 @@
     "select_title": "Chọn một mục",
     "apply": "Áp dụng",
     "reset": "Đặt lại",
-    "filters": "Bộ lọc"
+    "filters": "Bộ lọc",
+    "filters_title": "Bộ lọc nâng cao",
+    "filter_button": "Bộ lọc",
+    "active_filters": "bộ lọc đang áp dụng",
+    "reset_filters": "Đặt lại bộ lọc",
+    "apply_filters": "Áp dụng bộ lọc"
   },
   "pos": {
     "search_placeholder": "Tìm kiếm đồ uống, cà phê...",

@@ -5,3 +5,4 @@ export * from './SegmentedControl';
 export * from './Badge';
 export * from './Card';
 export * from './ResponsiveSheet';
+export * from './FilterBar';

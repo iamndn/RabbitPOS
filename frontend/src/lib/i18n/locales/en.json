@@ -53,7 +53,12 @@
     "select_title": "Select an item",
     "apply": "Apply",
     "reset": "Reset",
-    "filters": "Filters"
+    "filters": "Filters",
+    "filters_title": "Advanced Filters",
+    "filter_button": "Filters",
+    "active_filters": "active filters",
+    "reset_filters": "Reset filters",
+    "apply_filters": "Apply filters"
   },
   "pos": {
     "search_placeholder": "Search drinks, coffee...",
