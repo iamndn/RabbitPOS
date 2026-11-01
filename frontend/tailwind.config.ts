@@ -32,11 +32,13 @@ const config: Config = {
           "Roboto",
           "sans-serif",
         ],
-        // Override Q1: Inter Variable with tabular numerals across all platforms
+        // Gate G1 Locked Decision Q8 (Option A): SF Pro tabular figures on Apple + Inter Variable fallback on non-Apple
         num: [
-          "var(--font-inter)",
           "-apple-system",
           "BlinkMacSystemFont",
+          '"SF Pro Text"',
+          '"SF Pro Display"',
+          "var(--font-inter)",
           "system-ui",
           '"Segoe UI"',
           "Roboto",
