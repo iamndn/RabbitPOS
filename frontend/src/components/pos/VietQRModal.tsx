@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { X, CheckCircle2, QrCode, RefreshCw, Copy, Building2 } from 'lucide-react';
+import { CheckCircle2, QrCode, RefreshCw, Copy, Building2 } from 'lucide-react';
 import { fetchApi } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
 import { formatCurrency, SettingsMap } from '@/lib/utils';
-import { Button, IconButton } from '@/components/ui';
+import { Badge, Button, ModalShell } from '@/components/ui';
 
 interface VietQRData {
   order_code: string;
@@ -61,103 +61,39 @@ export default function VietQRModal({ totalAmount, onClose, onConfirmOrder, sett
     }
   };
 
+  const channelBadge =
+    salesChannel && salesChannel !== 'dine_in' ? (
+      <Badge
+        variant={
+          salesChannel === 'grabfood'
+            ? 'success'
+            : salesChannel === 'shopeefood' || salesChannel === 'befood'
+            ? 'warning'
+            : 'info'
+        }
+        size="sm"
+      >
+        {salesChannel === 'shopeefood'
+          ? t('pos.channel_shopeefood')
+          : salesChannel === 'grabfood'
+          ? t('pos.channel_grabfood')
+          : salesChannel === 'befood'
+          ? t('pos.channel_befood')
+          : t('pos.channel_takeaway')}
+      </Badge>
+    ) : null;
+
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
-      <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-sm w-full p-5 sm:p-6 shadow-2xl space-y-4 text-center animate-in slide-in-from-bottom sm:zoom-in-95 duration-200 hardware-accelerated pb-safe max-h-[92dvh] overflow-y-auto">
-        {/* Mobile Drag Indicator */}
-        <div className="flex justify-center sm:hidden pt-0.5 pb-1">
-          <div className="w-12 h-1.5 bg-slate-300 rounded-full" />
-        </div>
-
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-          <div className="flex items-center space-x-2 text-brand-700 font-bold text-sm">
-            <QrCode className="w-5 h-5 text-brand-600" />
-            <span>{t('pos.scan_vietqr_to_pay')}</span>
-            {salesChannel && salesChannel !== 'dine_in' && (
-              <span className={`px-2 py-0.5 rounded-full text-caption font-bold border ${
-                salesChannel === 'shopeefood'
-                  ? 'bg-orange-50 text-orange-700 border-orange-200'
-                  : salesChannel === 'grabfood'
-                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                  : salesChannel === 'befood'
-                  ? 'bg-amber-50 text-amber-800 border-amber-200'
-                  : 'bg-blue-50 text-blue-700 border-blue-200'
-              }`}>
-                {salesChannel === 'shopeefood'
-                  ? 'ShopeeFood'
-                  : salesChannel === 'grabfood'
-                  ? 'GrabFood'
-                  : salesChannel === 'befood'
-                  ? 'BeFood'
-                  : 'Mang về'}
-              </span>
-            )}
-          </div>
-          <IconButton
-            variant="ghost"
-            size="sm"
-            onClick={onClose}
-            disabled={isSubmitting}
-            aria-label={t('common.close') || 'Đóng'}
-          >
-            <X className="w-5 h-5" />
-          </IconButton>
-        </div>
-
-        {/* QR Code Container */}
-        <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 flex flex-col items-center justify-center min-h-[240px]">
-          {loading ? (
-            <div className="flex flex-col items-center space-y-2 text-slate-400 text-xs">
-              <RefreshCw className="w-8 h-8 animate-spin text-purple-700" />
-              <span>{t('pos.generating_qr')}</span>
-            </div>
-          ) : qrData?.qr_url ? (
-            <div className="space-y-2">
-              <div className="bg-white p-2 rounded-xl shadow-sm border border-slate-200 inline-block">
-                <img
-                  src={qrData.qr_url}
-                  alt="Napas 247 VietQR Code"
-                  className="w-52 h-52 object-contain mx-auto"
-                />
-              </div>
-              <p className="text-[11px] text-slate-500 font-medium">{t('pos.scan_banking_app')}</p>
-            </div>
-          ) : (
-            <span className="text-xs text-rose-500 font-semibold">{t('pos.failed_qr')}</span>
-          )}
-        </div>
-
-        {/* Account Details Card */}
-        {qrData && (
-          <div className="bg-purple-50/70 border border-purple-100 rounded-2xl p-3 text-left text-xs space-y-1.5">
-            <div className="flex items-center justify-between">
-              <span className="text-slate-500 font-medium">{t('pos.bank_name')}:</span>
-              <span className="font-bold text-purple-950 flex items-center gap-1">
-                <Building2 className="w-3.5 h-3.5 text-purple-700" /> MBBank (Napas 247)
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-slate-500 font-medium">{t('pos.account_no')}:</span>
-              <button
-                onClick={copyAccount}
-                className="font-mono font-bold text-purple-700 flex items-center gap-1 hover:underline active:scale-95 transition-transform"
-              >
-                {qrData.account_no} {copied ? <span className="text-caption font-bold text-purple-600">{t('pos.copied')}</span> : <Copy className="w-3 h-3" />}
-              </button>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-slate-500 font-medium">{t('pos.account_name')}:</span>
-              <span className="font-semibold text-slate-900 uppercase">{qrData.account_name}</span>
-            </div>
-            <div className="flex items-center justify-between border-t border-purple-100 pt-1.5 font-bold">
-              <span className="text-slate-700">{t('pos.amount')}:</span>
-              <span className="text-purple-800 text-sm">{formatCurrency(qrData.amount, settings)}</span>
-            </div>
-          </div>
-        )}
-
-        {/* Action Button */}
+    <ModalShell
+      isOpen={true}
+      onClose={onClose}
+      nested
+      size="sm"
+      preventClose={isSubmitting}
+      icon={<QrCode className="w-5 h-5" />}
+      title={t('pos.scan_vietqr_to_pay')}
+      headerActions={channelBadge}
+      footer={
         <Button
           variant="primary"
           size="lg"
@@ -165,11 +101,79 @@ export default function VietQRModal({ totalAmount, onClose, onConfirmOrder, sett
           isLoading={isSubmitting}
           onClick={handleConfirm}
           leftIcon={<CheckCircle2 className="w-5 h-5" />}
-          className="py-3.5 bg-purple-700 hover:bg-purple-800 text-white font-bold rounded-2xl shadow-lg text-sm"
         >
-          <span>{t('pos.confirm_payment_received')}</span>
+          {t('pos.confirm_payment_received')}
         </Button>
+      }
+    >
+      <div className="space-y-4">
+        {/* Opaque White QR Code Stage (Maximum Camera Contrast — 0px blur behind QR) */}
+        <div className="bg-surface-card p-4 rounded-card border border-card shadow-card flex flex-col items-center justify-center min-h-[248px] text-center">
+          {loading ? (
+            <div className="flex flex-col items-center gap-2 text-slate-500 text-footnote">
+              <RefreshCw className="w-8 h-8 animate-spin text-brand-600" />
+              <span>{t('pos.generating_qr')}</span>
+            </div>
+          ) : qrData?.qr_url ? (
+            <div className="space-y-2.5">
+              <div className="bg-white p-2.5 rounded-field border border-hairline inline-block">
+                <img
+                  src={qrData.qr_url}
+                  alt="Napas 247 VietQR Code"
+                  className="w-52 h-52 object-contain mx-auto"
+                />
+              </div>
+              <p className="text-caption text-slate-500 font-medium max-w-xs mx-auto leading-snug">
+                {t('pos.scan_banking_app')}
+              </p>
+            </div>
+          ) : (
+            <span className="text-footnote text-rose-600 font-semibold">{t('pos.failed_qr')}</span>
+          )}
+        </div>
+
+        {/* Account Details Card */}
+        {qrData && (
+          <div className="bg-surface-card border border-card shadow-card rounded-card p-3.5 text-left text-footnote space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-slate-500">{t('pos.bank_name')}:</span>
+              <span className="font-semibold text-slate-900 inline-flex items-center gap-1.5">
+                <Building2 className="w-3.5 h-3.5 text-brand-600" />
+                <span>MBBank (Napas 247)</span>
+              </span>
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-slate-500">{t('pos.account_no')}:</span>
+              <button
+                type="button"
+                onClick={copyAccount}
+                className="font-num font-bold text-brand-700 inline-flex items-center gap-1.5 hover:underline active:scale-[0.97] transition-transform"
+              >
+                <span>{qrData.account_no}</span>
+                {copied ? (
+                  <span className="text-caption font-semibold text-emerald-600">
+                    {t('pos.copied')}
+                  </span>
+                ) : (
+                  <Copy className="w-3.5 h-3.5" />
+                )}
+              </button>
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-slate-500">{t('pos.account_name')}:</span>
+              <span className="font-semibold text-slate-900 uppercase truncate">
+                {qrData.account_name}
+              </span>
+            </div>
+            <div className="flex items-center justify-between gap-2 border-t border-hairline pt-2 font-semibold">
+              <span className="text-slate-700">{t('pos.amount')}:</span>
+              <span className="text-brand-700 text-headline font-bold font-num">
+                {formatCurrency(qrData.amount, settings)}
+              </span>
+            </div>
+          </div>
+        )}
       </div>
-    </div>
+    </ModalShell>
   );
 }
