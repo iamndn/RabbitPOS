@@ -7,25 +7,7 @@ import { ConfirmProvider } from "@/context/ConfirmContext";
 import { ToastProvider } from "@/context/ToastContext";
 import PWARegister from "@/components/common/PWARegister";
 
-// --- Self-hosted Variable Fonts (Pairing C: Nunito + Inter) ---
-const nunito = localFont({
-  src: [
-    {
-      path: "../fonts/nunito-latin-wght-normal.woff2",
-      weight: "200 1000",
-      style: "normal",
-    },
-    {
-      path: "../fonts/nunito-vietnamese-wght-normal.woff2",
-      weight: "200 1000",
-      style: "normal",
-    },
-  ],
-  variable: "--font-nunito",
-  display: "swap",
-  fallback: ["system-ui", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "sans-serif"],
-});
-
+// --- Self-hosted Inter Variable (Fallback for non-Apple platforms & tabular numerals per Override Q1) ---
 const inter = localFont({
   src: [
     {
@@ -41,7 +23,16 @@ const inter = localFont({
   ],
   variable: "--font-inter",
   display: "swap",
-  fallback: ["system-ui", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "sans-serif"],
+  fallback: [
+    "-apple-system",
+    "BlinkMacSystemFont",
+    "SF Pro Text",
+    "SF Pro Display",
+    "system-ui",
+    "Segoe UI",
+    "Roboto",
+    "sans-serif",
+  ],
 });
 
 // --- PWA Viewport: Prevents iOS auto-zoom, enables edge-to-edge rendering ---
@@ -51,7 +42,7 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: "cover",
-  themeColor: "#3b0764",
+  themeColor: "#F2F4F8",
 };
 
 // --- PWA Metadata: Apple Web App capabilities, manifest, Open Graph ---
@@ -108,15 +99,23 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="vi" className={`${nunito.variable} ${inter.variable}`}>
-      <body className="min-h-screen bg-slate-50 text-slate-900 font-sans antialiased selection:bg-purple-600 selection:text-white flex flex-col">
+    <html lang="vi" className={inter.variable} suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "try{if(localStorage.getItem('rabbitpos_glass_effects')==='false'){document.documentElement.classList.add('no-glass');}}catch(e){}",
+          }}
+        />
+      </head>
+      <body className="min-h-screen bg-canvas text-slate-900 font-sans antialiased selection:bg-brand-600 selection:text-white flex flex-col">
         {/* Register service worker for offline shell caching */}
         <PWARegister />
         <LanguageProvider>
           <StoreProvider>
             <ToastProvider>
               <ConfirmProvider>
-                <main className="flex-1 flex flex-col w-full min-h-0 overflow-x-hidden bg-slate-50">
+                <main className="flex-1 flex flex-col w-full min-h-0 overflow-x-hidden bg-canvas">
                   {children}
                 </main>
               </ConfirmProvider>

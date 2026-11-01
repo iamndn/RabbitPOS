@@ -685,7 +685,13 @@
     "start_import_btn": "Bắt Đầu Nhập Dữ Liệu",
     "importing_loading": "Đang xử lý và nhập dữ liệu...",
     "import_success_title": "Nhập dữ liệu thành công!",
-    "import_errors_title": "Danh sách cảnh báo / lỗi chi tiết theo dòng"
+    "import_errors_title": "Danh sách cảnh báo / lỗi chi tiết theo dòng",
+    "tab_appearance": "Giao diện",
+    "appearance_section_title": "Giao diện & Hiệu ứng thị giác",
+    "appearance_section_desc": "Tùy chỉnh hiệu ứng chất liệu kính mờ trên thiết bị này.",
+    "glass_effects_label": "Hiệu ứng kính (Liquid Glass)",
+    "glass_effects_desc": "Áp dụng hiệu ứng kính mờ cho thanh điều hướng và bảng trượt trên thiết bị này. Tắt để dùng nền đặc.",
+    "glass_effects_forced_off_a11y": "Đang tự động tắt theo cài đặt trợ năng hệ thống (Giảm độ trong suốt hoặc Tăng tương phản)."
   },
   "email_report": {
     "send_button": "Gửi Báo Cáo Email",

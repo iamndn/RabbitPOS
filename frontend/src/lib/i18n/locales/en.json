@@ -685,7 +685,13 @@
     "start_import_btn": "Start Data Import",
     "importing_loading": "Parsing and ingesting data...",
     "import_success_title": "Data imported successfully!",
-    "import_errors_title": "Row-by-Row Warnings & Errors"
+    "import_errors_title": "Row-by-Row Warnings & Errors",
+    "tab_appearance": "Appearance",
+    "appearance_section_title": "Appearance & Visual Effects",
+    "appearance_section_desc": "Customize translucent Liquid Glass materials on this device.",
+    "glass_effects_label": "Glass effects (Liquid Glass)",
+    "glass_effects_desc": "Use translucent glass on navigation bars and sheets on this device. Turn off for solid opaque surfaces.",
+    "glass_effects_forced_off_a11y": "Automatically disabled by your system accessibility settings (Reduce Transparency or Increase Contrast)."
   },
   "email_report": {
     "send_button": "Send Email Report",

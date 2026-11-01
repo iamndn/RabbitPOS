@@ -6,10 +6,10 @@
  *           Stale-While-Revalidate for the Next.js app shell (/, /pos, /dashboard, etc.)
  */
 
-const CACHE_NAME = 'rabbitpos-shell-v3';
-const STATIC_CACHE_NAME = 'rabbitpos-static-v3';
+const CACHE_NAME = 'rabbitpos-shell-v4';
+const STATIC_CACHE_NAME = 'rabbitpos-static-v4';
 
-// Static assets to pre-cache on SW install (app shell & self-hosted fonts)
+// Static assets to pre-cache on SW install (app shell & self-hosted Inter Variable fonts)
 const PRECACHE_URLS = [
   '/',
   '/manifest.json',
@@ -18,8 +18,6 @@ const PRECACHE_URLS = [
   '/icons/icon-512x512.png',
   '/icons/apple-touch-icon.png',
   '/logo.png',
-  '/fonts/nunito-latin-wght-normal.woff2',
-  '/fonts/nunito-vietnamese-wght-normal.woff2',
   '/fonts/inter-latin-wght-normal.woff2',
   '/fonts/inter-vietnamese-wght-normal.woff2',
 ];
