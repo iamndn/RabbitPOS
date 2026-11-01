@@ -1,12 +1,12 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Printer, X, CheckCircle2 } from 'lucide-react';
+import { Printer, CheckCircle2 } from 'lucide-react';
 import { CartItem } from './VariantSelectorModal';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
 import { fetchApi, getImageUrl } from '@/lib/api';
 import { formatCurrency, SettingsMap } from '@/lib/utils';
-import { Button, IconButton } from '@/components/ui';
+import { Badge, Button, ModalShell } from '@/components/ui';
 import { useStore } from '@/lib/StoreContext';
 import { getChannelBadge, parseSalesChannels } from '@/types/sales_channel';
 
@@ -84,35 +84,44 @@ export default function ReceiptModal({ isOpen, onClose, order, settings: initial
   const currencyConfig = activeStore || settings;
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
-      {/* Container */}
-      <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-sm w-full p-4 sm:p-6 shadow-2xl space-y-4 animate-in slide-in-from-bottom sm:zoom-in-95 duration-150 max-h-[92dvh] sm:max-h-[90vh] overflow-y-auto pb-safe hardware-accelerated">
-        {/* Mobile Drag Indicator */}
-        <div className="flex justify-center sm:hidden pt-0.5 pb-1 print:hidden">
-          <div className="w-12 h-1.5 bg-slate-300 rounded-full" />
-        </div>
-
-        {/* Top Actions (Hidden during print) */}
-        <div className="flex items-center justify-between border-b border-slate-100 pb-3 print:hidden">
-          <div className="flex items-center space-x-2 text-purple-700 font-bold text-sm">
-            <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-            <div className="flex items-center gap-1.5">
-              <span>{t('pos.order_completed')}</span>
-              <span className="px-2 py-0.5 rounded-lg bg-purple-100 text-purple-900 font-black text-xs">
-                #{order.daily_seq_no ? order.daily_seq_no.toString().padStart(3, '0') : '001'}
-              </span>
-            </div>
+    <>
+      <ModalShell
+        isOpen={true}
+        onClose={onClose}
+        nested
+        size="sm"
+        icon={<CheckCircle2 className="w-5 h-5 text-emerald-600" />}
+        title={t('pos.order_completed')}
+        headerActions={
+          <Badge variant="brand" size="md" className="font-num print:hidden">
+            #{order.daily_seq_no ? order.daily_seq_no.toString().padStart(3, '0') : '001'}
+          </Badge>
+        }
+        panelClassName="print:!max-h-none print:!overflow-visible print:!transform-none print:!border-none print:!shadow-none print:!bg-transparent"
+        bodyClassName="print:!overflow-visible print:!p-0"
+        footerClassName="print:hidden"
+        footer={
+          <div className="flex items-center gap-2.5">
+            <Button
+              variant="primary"
+              size="md"
+              onClick={handlePrint}
+              leftIcon={<Printer className="w-4 h-4" />}
+              className="flex-1"
+            >
+              {t('pos.print_receipt')}
+            </Button>
+            <Button
+              variant="secondary"
+              size="md"
+              onClick={onClose}
+              className="px-5"
+            >
+              {t('common.close')}
+            </Button>
           </div>
-          <IconButton
-            variant="ghost"
-            size="sm"
-            onClick={onClose}
-            aria-label={t('common.close') || 'Đóng'}
-          >
-            <X className="w-5 h-5" />
-          </IconButton>
-        </div>
-
+        }
+      >
         {/* PRINTABLE THERMAL RECEIPT (Targeted by CSS print) */}
         <div id="thermal-receipt" className="bg-white p-4 font-mono text-xs text-slate-900 leading-tight border border-dashed border-slate-300 rounded-2xl print:border-none print:p-0 print:m-0 print:shadow-none">
           {/* Header */}
@@ -305,28 +314,7 @@ export default function ReceiptModal({ isOpen, onClose, order, settings: initial
             )}
           </div>
         </div>
-
-        {/* Bottom Actions (Hidden during print) */}
-        <div className="flex space-x-2 pt-2 print:hidden">
-          <Button
-            variant="primary"
-            size="md"
-            onClick={handlePrint}
-            leftIcon={<Printer className="w-4 h-4" />}
-            className="flex-1 bg-purple-700 hover:bg-purple-800 text-white font-bold"
-          >
-            <span>{t('pos.print_receipt')}</span>
-          </Button>
-          <Button
-            variant="secondary"
-            size="md"
-            onClick={onClose}
-            className="px-5 font-semibold"
-          >
-            {t('common.close')}
-          </Button>
-        </div>
-      </div>
+      </ModalShell>
 
       {/* Global CSS for Thermal Printing */}
       <style jsx global>{`
@@ -348,6 +336,6 @@ export default function ReceiptModal({ isOpen, onClose, order, settings: initial
           }
         }
       `}</style>
-    </div>
+    </>
   );
 }

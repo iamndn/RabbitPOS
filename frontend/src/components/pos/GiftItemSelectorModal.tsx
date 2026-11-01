@@ -5,7 +5,7 @@ import { X, Gift, Search, Sparkles, Check, Coffee } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
 import { getImageUrl } from '@/lib/api';
 import { formatCurrency, SettingsMap } from '@/lib/utils';
-import { IconButton } from '@/components/ui';
+import { Badge, Button, Chip, ModalShell } from '@/components/ui';
 import { Promotion } from '@/types/promotion';
 import { Product, ProductVariant } from './VariantSelectorModal';
 
@@ -104,97 +104,83 @@ export default function GiftItemSelectorModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-60 bg-slate-900/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
-      <div className="bg-white w-full max-w-2xl max-h-[92dvh] sm:max-h-[85vh] rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden border border-slate-200 animate-in slide-in-from-bottom sm:zoom-in-95 duration-200 pb-safe">
-        {/* Mobile Drag Indicator */}
-        <div className="flex justify-center sm:hidden pt-0.5 pb-1 shrink-0">
-          <div className="w-12 h-1.5 bg-slate-300 rounded-full" />
+    <ModalShell
+      isOpen={isOpen}
+      onClose={onClose}
+      nested
+      size="lg"
+      icon={<Gift className="w-5 h-5 text-amber-600" />}
+      title={t('promotions.select_gift_modal_title')}
+      description={
+        <span className="inline-flex items-center gap-1 text-amber-800 font-medium">
+          <Sparkles className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+          <span className="truncate">{t('pos.promo_label_prefix', { name: promotion.name })}</span>
+        </span>
+      }
+      headerActions={
+        <Badge variant="brand" size="sm">
+          {t('pos.free_0d')}
+        </Badge>
+      }
+      footer={
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-footnote text-slate-600 font-medium font-num">
+            {t('pos.gift_valid_count', { count: filteredOptions.length })}
+          </span>
+          <Button variant="secondary" size="sm" onClick={onClose}>
+            {t('common.close')}
+          </Button>
         </div>
-
-        {/* Header */}
-        <div className="px-5 py-4 border-b border-slate-200/80 bg-gradient-to-r from-amber-500/10 via-orange-500/5 to-purple-500/10 flex items-center justify-between">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-2xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-md shadow-amber-500/20">
-              <Gift className="w-5 h-5" />
-            </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <h3 className="font-extrabold text-slate-900 text-base leading-tight truncate">
-                  {t('promotions.select_gift_modal_title') || 'Chọn món quà tặng'}
-                </h3>
-                <span className="text-caption font-extrabold px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 border border-purple-200 shrink-0">
-                  0đ Miễn phí
-                </span>
-              </div>
-              <p className="text-xs text-amber-800 font-semibold truncate mt-0.5 flex items-center gap-1">
-                <Sparkles className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                <span>CTKM: {promotion.name}</span>
-              </p>
-            </div>
-          </div>
-
-          <IconButton
-            variant="ghost"
-            size="sm"
-            onClick={onClose}
-            aria-label="Đóng"
-          >
-            <X className="w-5 h-5" />
-          </IconButton>
-        </div>
-
-        {/* Search & Categories Bar */}
-        <div className="p-3.5 sm:p-4 border-b border-slate-100 space-y-2.5 bg-slate-50/50">
+      }
+    >
+      <div className="space-y-4">
+        {/* Search & Categories Bar (16px mobile capsule input to prevent iOS Safari zoom) */}
+        <div className="space-y-2.5">
           <div className="relative">
-            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
             <input
               type="text"
-              placeholder="Tìm kiếm món quà tặng theo tên..."
+              placeholder={t('pos.gift_search_placeholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-white border border-slate-200 pl-10 pr-9 py-2 rounded-xl text-xs font-semibold focus:outline-hidden focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition"
+              className="w-full h-11 md:h-9 bg-surface-card border border-slate-900/12 pl-10 pr-10 rounded-full text-base md:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition"
             />
             {searchQuery && (
               <button
                 type="button"
                 onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                aria-label={t('pos.clear_search')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition cursor-pointer"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
             )}
           </div>
 
-          {/* Category Filter Pills */}
+          {/* Category Filter Chips (Opaque capsule chips, 0px blur) */}
           {categories.length > 0 && (
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-              <button
-                type="button"
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 no-scrollbar">
+              <Chip
+                size="sm"
+                active={selectedCategoryId === 'all'}
+                count={allGiftOptions.length}
                 onClick={() => setSelectedCategoryId('all')}
-                className={`px-3 py-1 rounded-full text-[11px] font-bold whitespace-nowrap transition cursor-pointer shrink-0 ${
-                  selectedCategoryId === 'all'
-                    ? 'bg-amber-600 text-white shadow-2xs'
-                    : 'bg-white text-slate-600 border border-slate-200 hover:border-slate-300'
-                }`}
               >
-                Tất cả ({allGiftOptions.length})
-              </button>
+                {t('pos.queue_tab_all')}
+              </Chip>
               {categories.map((c) => {
                 const count = allGiftOptions.filter((o) => o.product.category_id === c.id).length;
                 if (count === 0) return null;
                 return (
-                  <button
+                  <Chip
                     key={c.id}
-                    type="button"
+                    size="sm"
+                    active={selectedCategoryId === c.id}
+                    count={count}
                     onClick={() => setSelectedCategoryId(c.id)}
-                    className={`px-3 py-1 rounded-full text-[11px] font-bold whitespace-nowrap transition cursor-pointer shrink-0 ${
-                      selectedCategoryId === c.id
-                        ? 'bg-amber-600 text-white shadow-2xs'
-                        : 'bg-white text-slate-600 border border-slate-200 hover:border-slate-300'
-                    }`}
                   >
-                    {c.name} ({count})
-                  </button>
+                    {c.name}
+                  </Chip>
                 );
               })}
             </div>
@@ -202,118 +188,100 @@ export default function GiftItemSelectorModal({
         </div>
 
         {/* Gift Options Grid */}
-        <div className="p-3.5 sm:p-5 overflow-y-auto flex-1 max-h-[50vh]">
-          {filteredOptions.length === 0 ? (
-            <div className="py-12 text-center text-slate-400 space-y-2">
-              <Gift className="w-10 h-10 mx-auto text-slate-300 stroke-[1.5]" />
-              <p className="text-xs font-semibold">Không tìm thấy món quà tặng phù hợp.</p>
-              {searchQuery && (
+        {filteredOptions.length === 0 ? (
+          <div className="py-12 text-center text-slate-500 space-y-2.5 bg-surface-card rounded-card border border-card shadow-card">
+            <Gift className="w-10 h-10 mx-auto text-slate-300 stroke-[1.5]" />
+            <p className="text-subhead font-medium text-slate-600">{t('pos.gift_empty')}</p>
+            {searchQuery && (
+              <Button variant="soft" size="sm" onClick={() => setSearchQuery('')}>
+                {t('pos.clear_search_filter')}
+              </Button>
+            )}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {filteredOptions.map(({ product, variant }) => {
+              const isCurrentSelected = selectedVariantId === variant.id;
+              const imgUrl = getImageUrl(product.image_url);
+
+              return (
                 <button
+                  key={variant.id}
                   type="button"
-                  onClick={() => setSearchQuery('')}
-                  className="text-xs font-bold text-amber-600 hover:underline cursor-pointer"
+                  onClick={() => {
+                    onSelectGift(variant, product);
+                    onClose();
+                  }}
+                  className={`p-3 rounded-card border text-left transition-all duration-press ease-press flex items-center justify-between gap-3 cursor-pointer select-none active:scale-[0.98] ${
+                    isCurrentSelected
+                      ? 'bg-brand-50/75 border-brand-500 ring-2 ring-brand-500/20'
+                      : 'bg-surface-card border-card shadow-card hover:border-brand-300 hover:bg-slate-50/70'
+                  }`}
                 >
-                  Xóa bộ lọc tìm kiếm
-                </button>
-              )}
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {filteredOptions.map(({ product, variant }) => {
-                const isCurrentSelected = selectedVariantId === variant.id;
-                const imgUrl = getImageUrl(product.image_url);
-
-                return (
-                  <div
-                    key={variant.id}
-                    onClick={() => {
-                      onSelectGift(variant, product);
-                      onClose();
-                    }}
-                    className={`p-3 rounded-2xl border transition flex items-center justify-between gap-3 cursor-pointer select-none active:scale-[0.98] ${
-                      isCurrentSelected
-                        ? 'bg-purple-50/70 border-purple-400 ring-2 ring-purple-500/20 shadow-xs'
-                        : 'bg-white border-slate-200 hover:border-amber-300 hover:shadow-xs'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      {/* Product Thumbnail */}
-                      <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center shrink-0 overflow-hidden border border-slate-200/60 relative">
-                        {imgUrl ? (
-                          <img
-                            src={imgUrl}
-                            alt={product.name}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).style.display = 'none';
-                            }}
-                          />
-                        ) : (
-                          <Coffee className="w-5 h-5 text-slate-400" />
-                        )}
-                        <span className="absolute bottom-0 right-0 bg-amber-500 text-caption font-black text-white px-1 rounded-tl-md">
-                          0đ
-                        </span>
-                      </div>
-
-                      {/* Product Details */}
-                      <div className="min-w-0">
-                        <h4 className="text-xs font-extrabold text-slate-900 truncate">
-                          {product.name}
-                        </h4>
-                        <div className="text-[11px] font-semibold text-slate-500 truncate">
-                          {variant.variant_name !== 'Default' ? variant.variant_name : 'Mặc định'}
-                        </div>
-                        <div className="flex items-center gap-1.5 mt-0.5">
-                          <span className="text-caption text-slate-400 line-through font-semibold">
-                            {formatCurrency(variant.retail_price, settings)}
-                          </span>
-                          <span className="text-[11px] font-black text-purple-600">
-                            0đ (Tặng)
-                          </span>
-                        </div>
-                      </div>
+                  <div className="flex items-center gap-3 min-w-0">
+                    {/* Product Thumbnail */}
+                    <div className="w-12 h-12 rounded-field bg-surface-grouped flex items-center justify-center shrink-0 overflow-hidden border border-hairline relative">
+                      {imgUrl ? (
+                        <img
+                          src={imgUrl}
+                          alt={product.name}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display = 'none';
+                          }}
+                        />
+                      ) : (
+                        <Coffee className="w-5 h-5 text-slate-400" />
+                      )}
+                      <span className="absolute bottom-0 right-0 bg-amber-500 text-caption font-bold text-white px-1.5 rounded-tl-md font-num">
+                        0đ
+                      </span>
                     </div>
 
-                    {/* Action Button */}
-                    <button
-                      type="button"
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition shrink-0 cursor-pointer flex items-center gap-1 shadow-2xs ${
-                        isCurrentSelected
-                          ? 'bg-purple-600 text-white'
-                          : 'bg-slate-900 hover:bg-amber-600 text-white'
-                      }`}
-                    >
-                      {isCurrentSelected ? (
-                        <>
-                          <Check className="w-3.5 h-3.5" />
-                          <span>Đang chọn</span>
-                        </>
-                      ) : (
-                        <span>Chọn</span>
-                      )}
-                    </button>
+                    {/* Product Details */}
+                    <div className="min-w-0">
+                      <h4 className="text-subhead font-semibold text-slate-900 truncate">
+                        {product.name}
+                      </h4>
+                      <div className="text-caption font-medium text-slate-500 truncate">
+                        {variant.variant_name !== 'Default'
+                          ? variant.variant_name
+                          : t('pos.default_variant')}
+                      </div>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <span className="text-caption text-slate-400 line-through font-medium font-num">
+                          {formatCurrency(variant.retail_price, settings)}
+                        </span>
+                        <span className="text-caption font-bold text-brand-700">
+                          {t('pos.free_gift_short')}
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
 
-        {/* Footer */}
-        <div className="px-5 py-3 border-t border-slate-200 bg-slate-50 flex items-center justify-between">
-          <span className="text-xs text-slate-500 font-medium">
-            Có {filteredOptions.length} món quà tặng hợp lệ
-          </span>
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-1.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-200 transition cursor-pointer"
-          >
-            Đóng
-          </button>
-        </div>
+                  {/* Capsule Action Pill */}
+                  <span
+                    className={`px-3 py-1.5 rounded-full text-caption font-semibold transition shrink-0 inline-flex items-center gap-1 ${
+                      isCurrentSelected
+                        ? 'bg-brand-600 text-white'
+                        : 'bg-slate-900 text-white'
+                    }`}
+                  >
+                    {isCurrentSelected ? (
+                      <>
+                        <Check className="w-3.5 h-3.5" />
+                        <span>{t('pos.selected_label')}</span>
+                      </>
+                    ) : (
+                      <span>{t('pos.choose_label')}</span>
+                    )}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
-    </div>
+    </ModalShell>
   );
 }

@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { X, Wallet, Building2, Check, ArrowRight, RefreshCw } from 'lucide-react';
+import { Wallet, Building2, Check, ArrowRight, RefreshCw } from 'lucide-react';
 import { fetchApi } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
 import { formatCurrency, SettingsMap } from '@/lib/utils';
-import { Button, IconButton } from '@/components/ui';
+import { Button, ModalShell } from '@/components/ui';
 
 export interface Fund {
   id: number;
@@ -71,42 +71,50 @@ export default function CheckoutModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
-      <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl space-y-4 max-h-[92dvh] sm:max-h-none overflow-y-auto pb-safe animate-in slide-in-from-bottom sm:zoom-in-95 duration-200 hardware-accelerated">
-        {/* Mobile Drag Indicator */}
-        <div className="flex justify-center sm:hidden pt-0.5 pb-1">
-          <div className="w-12 h-1.5 bg-slate-300 rounded-full" />
-        </div>
-
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-          <div>
-            <h2 className="font-bold text-lg text-slate-900">{t('pos.select_payment_method')}</h2>
-            <p className="text-xs text-slate-500">{t('pos.choose_target_fund')}</p>
-          </div>
-          <IconButton
-            variant="ghost"
-            size="sm"
-            onClick={onClose}
-            disabled={isSubmitting}
-            aria-label={t('common.close') || 'Đóng'}
-          >
-            <X className="w-5 h-5" />
-          </IconButton>
-        </div>
-
+    <ModalShell
+      isOpen={true}
+      onClose={onClose}
+      nested
+      size="sm"
+      preventClose={isSubmitting}
+      icon={<Wallet className="w-5 h-5" />}
+      title={t('pos.select_payment_method')}
+      description={t('pos.choose_target_fund')}
+      footer={
+        <Button
+          variant="primary"
+          size="lg"
+          fullWidth
+          isLoading={isSubmitting}
+          disabled={!selectedFundId || isSubmitting}
+          onClick={handleProceed}
+          rightIcon={<ArrowRight className="w-4 h-4" />}
+        >
+          {selectedFund?.fund_type === 'bank'
+            ? t('pos.generate_vietqr')
+            : t('pos.complete_cash_payment')}
+        </Button>
+      }
+    >
+      <div className="space-y-4">
         {/* Total Amount Display */}
-        <div className="bg-purple-50 border border-purple-100 rounded-2xl p-4 text-center">
-          <span className="text-xs font-bold uppercase text-purple-800 tracking-wider">{t('pos.total_payable')}</span>
-          <div className="text-3xl font-black text-purple-950 mt-1">{formatCurrency(totalAmount, settings)}</div>
+        <div className="bg-brand-50/85 border border-brand-200/80 rounded-card p-4 text-center">
+          <span className="text-footnote font-semibold text-brand-700 block">
+            {t('pos.total_payable')}
+          </span>
+          <div className="text-2xl sm:text-3xl font-bold text-brand-950 font-num mt-1">
+            {formatCurrency(totalAmount, settings)}
+          </div>
         </div>
 
         {/* Fund Selection */}
         <div className="space-y-2">
-          <label className="text-xs font-bold text-slate-800 uppercase tracking-wider block">{t('pos.target_fund_method')}</label>
+          <label className="text-footnote font-semibold text-slate-700 block">
+            {t('pos.target_fund_method')}
+          </label>
           {loading ? (
-            <div className="flex justify-center py-6">
-              <RefreshCw className="w-6 h-6 text-purple-700 animate-spin" />
+            <div className="flex justify-center py-8">
+              <RefreshCw className="w-6 h-6 text-brand-600 animate-spin" />
             </div>
           ) : (
             <div className="space-y-2">
@@ -120,51 +128,39 @@ export default function CheckoutModal({
                     type="button"
                     disabled={isSubmitting}
                     onClick={() => setSelectedFundId(fund.id)}
-                    className={`w-full p-3.5 rounded-2xl border text-left flex items-center justify-between transition active:scale-98 ${
+                    className={`w-full min-h-[58px] p-3.5 rounded-card border text-left flex items-center justify-between gap-3 transition-all duration-press ease-press active:scale-[0.98] disabled:opacity-45 ${
                       isSelected
-                        ? 'border-purple-700 bg-purple-50/70 ring-2 ring-purple-600/30'
-                        : 'border-slate-200 hover:bg-slate-50'
+                        ? 'border-brand-600 bg-brand-50/75 ring-2 ring-brand-500/20'
+                        : 'bg-surface-card border-card shadow-card hover:bg-slate-50'
                     }`}
                   >
-                    <div className="flex items-center space-x-3">
-                      <div className={`p-2.5 rounded-xl ${isBank ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div
+                        className={`w-10 h-10 rounded-field flex items-center justify-center shrink-0 ${
+                          isBank
+                            ? 'bg-sky-50 text-sky-700 border border-sky-200/80'
+                            : 'bg-brand-50 text-brand-700 border border-brand-200/80'
+                        }`}
+                      >
                         {isBank ? <Building2 className="w-5 h-5" /> : <Wallet className="w-5 h-5" />}
                       </div>
-                      <div>
-                        <span className="block font-bold text-sm text-slate-900">
+                      <div className="min-w-0">
+                        <span className="block font-semibold text-subhead text-slate-900 truncate">
                           {isBank ? t('pos.bank_transfer') : t('pos.cash_drawer')} ({fund.name})
                         </span>
-                        <span className="text-xs text-slate-500 capitalize">{fund.fund_type}</span>
+                        <span className="text-footnote text-slate-500 capitalize">
+                          {fund.fund_type}
+                        </span>
                       </div>
                     </div>
-                    {isSelected && <Check className="w-5 h-5 text-purple-700" />}
+                    {isSelected && <Check className="w-5 h-5 text-brand-700 shrink-0" />}
                   </button>
                 );
               })}
             </div>
           )}
         </div>
-
-        {/* Proceed Action Button */}
-        <div className="pt-2">
-          <Button
-            variant="primary"
-            size="lg"
-            fullWidth
-            isLoading={isSubmitting}
-            disabled={!selectedFundId || isSubmitting}
-            onClick={handleProceed}
-            className="py-3.5 bg-purple-700 hover:bg-purple-800 text-white font-bold rounded-2xl shadow-lg text-sm"
-          >
-            <span>
-              {selectedFund?.fund_type === 'bank'
-                ? t('pos.generate_vietqr')
-                : t('pos.complete_cash_payment')}
-            </span>
-            <ArrowRight className="w-4 h-4 ml-1.5" />
-          </Button>
-        </div>
       </div>
-    </div>
+    </ModalShell>
   );
 }

@@ -2,16 +2,13 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  X,
   RefreshCw,
   Clock,
   AlertTriangle,
   CheckCircle2,
   Trash2,
-  Wifi,
   WifiOff,
   AlertCircle,
-  Play,
   RotateCw,
 } from 'lucide-react';
 import {
@@ -25,9 +22,10 @@ import {
 } from '@/lib/offline/orders';
 import { syncOfflineOrders } from '@/lib/offline/sync';
 import { formatCurrency, SettingsMap } from '@/lib/utils';
+import { useTranslation } from '@/lib/i18n/LanguageContext';
 import { useToast } from '@/context/ToastContext';
 import { useConfirm } from '@/context/ConfirmContext';
-import { Button, IconButton } from '@/components/ui';
+import { Badge, Button, ModalShell, SegmentedControl } from '@/components/ui';
 import { cn } from '@/lib/cn';
 
 interface OfflineQueueModalProps {
@@ -43,6 +41,7 @@ export default function OfflineQueueModal({
   settings,
   onSyncCompleted,
 }: OfflineQueueModalProps) {
+  const { t } = useTranslation();
   const toast = useToast();
   const { confirm } = useConfirm();
   const [orders, setOrders] = useState<OfflineOrder[]>([]);
@@ -83,13 +82,13 @@ export default function OfflineQueueModal({
 
   const handleSyncAll = async () => {
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
-      toast.warning('Thiết bị đang ngoại tuyến. Vui lòng kết nối Internet để đồng bộ.');
+      toast.warning(t('pos.queue_offline_sync_warn'));
       return;
     }
 
     setIsSyncing(true);
     try {
-      const res = await syncOfflineOrders({
+      await syncOfflineOrders({
         force: true,
         onSuccessToast: (count) => {
           toast.syncSuccess(count);
@@ -104,7 +103,7 @@ export default function OfflineQueueModal({
         onSyncCompleted();
       }
     } catch (e: any) {
-      toast.error('Lỗi trong quá trình đồng bộ: ' + (e.message || 'Unknown'));
+      toast.error(t('pos.queue_sync_error', { message: e.message || 'Unknown' }));
     } finally {
       setIsSyncing(false);
     }
@@ -112,7 +111,7 @@ export default function OfflineQueueModal({
 
   const handleRetryOrder = async (order: OfflineOrder) => {
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
-      toast.warning('Thiết bị đang ngoại tuyến.');
+      toast.warning(t('pos.queue_offline_short_warn'));
       return;
     }
 
@@ -125,20 +124,23 @@ export default function OfflineQueueModal({
 
   const handleDeleteOrder = async (order: OfflineOrder) => {
     const ok = await confirm({
-      title: 'Hủy đơn hàng ngoại tuyến',
-      message: `Bạn có chắc chắn muốn hủy đơn hàng ${order.display_snapshot.order_code} (${formatCurrency(order.display_snapshot.final_total, settings)})? Dữ liệu đơn này sẽ bị xóa khỏi bộ nhớ thiết bị.`,
+      title: t('pos.queue_cancel_confirm_title'),
+      message: t('pos.queue_cancel_confirm_msg', {
+        code: order.display_snapshot.order_code,
+        amount: formatCurrency(order.display_snapshot.final_total, settings),
+      }),
       type: 'danger',
-      confirmText: 'Hủy đơn',
-      cancelText: 'Giữ lại',
+      confirmText: t('pos.cancel_order_btn'),
+      cancelText: t('pos.queue_keep_btn'),
     });
 
     if (ok) {
       try {
         await deleteOfflineOrder(order.offline_order_id);
-        toast.info(`Đã hủy đơn ${order.display_snapshot.order_code}`);
+        toast.info(t('pos.queue_cancelled_toast', { code: order.display_snapshot.order_code }));
         await loadQueueData();
-      } catch (e) {
-        toast.error('Không thể xóa đơn hàng');
+      } catch {
+        toast.error(t('pos.queue_delete_error'));
       }
     }
   };
@@ -154,163 +156,152 @@ export default function OfflineQueueModal({
     switch (status) {
       case 'synced':
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-purple-100 text-purple-800 border border-purple-300">
-            <CheckCircle2 className="w-3.5 h-3.5" />
-            Đã đồng bộ {serverCode ? `(#${serverCode})` : ''}
-          </span>
+          <Badge variant="brand" size="sm" className="gap-1">
+            <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+            <span>
+              {t('pos.queue_status_synced')} {serverCode ? `(#${serverCode})` : ''}
+            </span>
+          </Badge>
         );
       case 'syncing':
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-100 text-blue-800 border border-blue-300 animate-pulse">
-            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-            Đang gửi lên server...
-          </span>
+          <Badge variant="info" size="sm" className="gap-1 animate-pulse">
+            <RefreshCw className="w-3.5 h-3.5 animate-spin shrink-0" />
+            <span>{t('pos.queue_status_syncing')}</span>
+          </Badge>
         );
       case 'requires_review':
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-100 text-rose-800 border border-rose-300 animate-pulse">
-            <AlertTriangle className="w-3.5 h-3.5" />
-            Cần xem xét (Xung đột)
-          </span>
+          <Badge variant="danger" size="sm" className="gap-1">
+            <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+            <span>{t('pos.queue_status_review')}</span>
+          </Badge>
         );
       case 'failed':
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
-            <AlertCircle className="w-3.5 h-3.5" />
-            Chờ thử lại
-          </span>
+          <Badge variant="warning" size="sm" className="gap-1">
+            <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+            <span>{t('pos.queue_status_failed')}</span>
+          </Badge>
         );
       case 'pending':
       default:
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-700 border border-slate-300">
-            <Clock className="w-3.5 h-3.5" />
-            Chờ đồng bộ
-          </span>
+          <Badge variant="neutral" size="sm" className="gap-1">
+            <Clock className="w-3.5 h-3.5 shrink-0" />
+            <span>{t('pos.queue_status_pending')}</span>
+          </Badge>
         );
     }
   };
 
+  const pendingTotal = stats.pending + stats.syncing + stats.failed;
+
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fade-in">
-      <div className="bg-white rounded-t-3xl sm:rounded-2xl max-w-2xl w-full p-4 sm:p-6 shadow-2xl space-y-4 max-h-[92dvh] sm:max-h-[90dvh] flex flex-col hardware-accelerated pb-safe">
-        {/* Mobile Drag Indicator */}
-        <div className="flex justify-center sm:hidden pt-0.5 pb-1 shrink-0">
-          <div className="w-12 h-1.5 bg-slate-300 rounded-full" />
+    <ModalShell
+      isOpen={isOpen}
+      onClose={onClose}
+      size="lg"
+      icon={<WifiOff className="w-5 h-5 text-amber-700" />}
+      title={t('pos.queue_modal_title')}
+      description={t('pos.queue_modal_desc')}
+      headerActions={
+        <Button
+          variant="primary"
+          size="sm"
+          onClick={handleSyncAll}
+          isLoading={isSyncing}
+          disabled={isSyncing || orders.length === 0}
+          leftIcon={<RotateCw className={cn('w-3.5 h-3.5', isSyncing && 'animate-spin')} />}
+        >
+          {isSyncing ? t('pos.syncing') : t('pos.sync_now')}
+        </Button>
+      }
+      footer={
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-footnote text-slate-600 font-medium font-num">
+            {t('pos.queue_pending_footer', { count: stats.pending + stats.requiresReview })}
+          </span>
+          <Button variant="secondary" size="sm" onClick={onClose}>
+            {t('common.close')}
+          </Button>
         </div>
-
-        {/* Header */}
-        <div className="flex items-center justify-between pb-3 border-b border-slate-100 shrink-0">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-700 font-bold">
-              ⚡
-            </div>
-            <div>
-              <h2 className="text-sm sm:text-base font-bold text-slate-800">Hàng Đợi Đơn Ngoại Tuyến</h2>
-              <p className="text-caption text-slate-500">Tự động đồng bộ tuần tự (FIFO) khi có mạng</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={handleSyncAll}
-              isLoading={isSyncing}
-              disabled={isSyncing || orders.length === 0}
-              leftIcon={<RotateCw className={cn("w-3.5 h-3.5", isSyncing && "animate-spin")} />}
-              className="bg-purple-600 hover:bg-purple-700 font-bold"
-            >
-              <span>{isSyncing ? 'Đang đồng bộ...' : 'Đồng bộ ngay'}</span>
-            </Button>
-            <IconButton
-              variant="ghost"
-              size="sm"
-              onClick={onClose}
-              aria-label="Đóng"
-            >
-              <X className="w-5 h-5" />
-            </IconButton>
-          </div>
-        </div>
-
-        {/* Tab Filters */}
-        <div className="flex gap-1.5 bg-slate-100 p-1 rounded-xl shrink-0 text-xs font-bold">
-          <button
-            type="button"
-            onClick={() => setActiveTab('all')}
-            className={`flex-1 py-1.5 rounded-lg transition ${
-              activeTab === 'all' ? 'bg-white text-slate-800 shadow-2xs' : 'text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            Tất cả ({stats.total})
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('pending')}
-            className={`flex-1 py-1.5 rounded-lg transition ${
-              activeTab === 'pending' ? 'bg-white text-amber-800 shadow-2xs' : 'text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            Chờ đồng bộ ({stats.pending + stats.syncing + stats.failed})
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('review')}
-            className={`flex-1 py-1.5 rounded-lg transition ${
-              activeTab === 'review' ? 'bg-white text-rose-700 shadow-2xs' : 'text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            Xung đột ({stats.requiresReview})
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('synced')}
-            className={`flex-1 py-1.5 rounded-lg transition ${
-              activeTab === 'synced' ? 'bg-white text-purple-700 shadow-2xs' : 'text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            Đã xong ({stats.synced})
-          </button>
+      }
+    >
+      <div className="space-y-4">
+        {/* Segmented Control Tab Filters (0px blur, capsule geometry) */}
+        <div className="overflow-x-auto no-scrollbar">
+          <SegmentedControl
+            fullWidth
+            size="sm"
+            aria-label={t('pos.queue_modal_title')}
+            value={activeTab}
+            onChange={(val) => setActiveTab(val as typeof activeTab)}
+            options={[
+              {
+                value: 'all',
+                label: t('pos.queue_tab_all'),
+                badge: <span className="font-num text-caption opacity-80">({stats.total})</span>,
+              },
+              {
+                value: 'pending',
+                label: t('pos.queue_tab_pending'),
+                badge: <span className="font-num text-caption opacity-80">({pendingTotal})</span>,
+              },
+              {
+                value: 'review',
+                label: t('pos.queue_tab_review'),
+                badge: <span className="font-num text-caption opacity-80">({stats.requiresReview})</span>,
+              },
+              {
+                value: 'synced',
+                label: t('pos.queue_tab_synced'),
+                badge: <span className="font-num text-caption opacity-80">({stats.synced})</span>,
+              },
+            ]}
+          />
         </div>
 
         {/* Orders List Container */}
-        <div className="flex-1 overflow-y-auto space-y-3 pr-1 min-h-[220px]">
+        <div className="space-y-3 min-h-[220px]">
           {loading ? (
-            <div className="flex flex-col items-center justify-center p-8 text-slate-400 text-xs">
-              <RefreshCw className="w-6 h-6 animate-spin mb-2" />
-              <span>Đang tải danh sách hàng đợi...</span>
+            <div className="flex flex-col items-center justify-center p-10 text-slate-500 text-footnote">
+              <RefreshCw className="w-6 h-6 animate-spin text-brand-600 mb-2" />
+              <span>{t('pos.queue_loading')}</span>
             </div>
           ) : filteredOrders.length === 0 ? (
-            <div className="flex flex-col items-center justify-center p-8 text-center bg-slate-50 rounded-2xl border border-slate-200/80 my-4">
-              <CheckCircle2 className="w-8 h-8 text-purple-500 mb-2" />
-              <p className="text-xs font-bold text-slate-700">Hàng đợi trống</p>
-              <p className="text-[11px] text-slate-400 mt-0.5">Không có đơn hàng nào cần xử lý trong mục này.</p>
+            <div className="flex flex-col items-center justify-center p-8 text-center bg-surface-card rounded-card border border-card shadow-card my-2">
+              <CheckCircle2 className="w-9 h-9 text-brand-500 mb-2" />
+              <p className="text-subhead font-semibold text-slate-800">{t('pos.queue_empty_title')}</p>
+              <p className="text-footnote text-slate-500 mt-0.5">{t('pos.queue_empty_desc')}</p>
             </div>
           ) : (
             filteredOrders.map((order) => (
               <div
                 key={order.offline_order_id}
-                className="bg-white p-3 sm:p-4 rounded-xl border border-slate-200/90 shadow-2xs hover:border-slate-300 transition space-y-2.5"
+                className="bg-surface-card p-3.5 sm:p-4 rounded-card border border-card shadow-card space-y-2.5"
               >
                 {/* Order Row Top */}
                 <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono font-bold text-xs text-slate-900">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-num font-bold text-subhead text-slate-900">
                         #{order.display_snapshot.order_code}
                       </span>
                       {getStatusBadge(order.status, order.server_order_code)}
                     </div>
-                    <p className="text-[11px] text-slate-400 mt-0.5">
-                      Tạo lúc: {new Date(order.queued_at).toLocaleTimeString('vi-VN')} · Thu ngân:{' '}
-                      {order.display_snapshot.cashier_name}
+                    <p className="text-caption text-slate-500 mt-1">
+                      {t('pos.queue_created_meta', {
+                        time: new Date(order.queued_at).toLocaleTimeString('vi-VN'),
+                        cashier: order.display_snapshot.cashier_name,
+                      })}
                     </p>
                   </div>
-                  <div className="text-right">
-                    <span className="text-sm font-extrabold text-purple-700">
+                  <div className="text-right shrink-0">
+                    <span className="text-headline font-bold text-brand-700 font-num block">
                       {formatCurrency(order.display_snapshot.final_total, settings)}
                     </span>
-                    <p className="text-caption text-slate-400 uppercase">
+                    <p className="text-caption text-slate-500 capitalize">
                       {order.display_snapshot.payment_method}
                     </p>
                   </div>
@@ -318,72 +309,67 @@ export default function OfflineQueueModal({
 
                 {/* Conflict / Error Message Alert */}
                 {order.last_error && (
-                  <div className="bg-rose-50 border border-rose-200 rounded-lg p-2 text-caption text-rose-800 flex items-start gap-1.5">
-                    <AlertTriangle className="w-3.5 h-3.5 text-rose-600 shrink-0 mt-0.5" />
+                  <div className="bg-rose-50 border border-rose-200/80 rounded-field p-2.5 text-caption text-rose-800 flex items-start gap-2">
+                    <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
                     <div>
-                      <span className="font-bold">Lỗi đồng bộ ({order.error_code || 'ERROR'}): </span>
+                      <span className="font-semibold">
+                        {t('pos.queue_error_prefix', { code: order.error_code || 'ERROR' })}
+                      </span>
                       <span>{order.last_error}</span>
                     </div>
                   </div>
                 )}
 
                 {/* Items preview */}
-                <div className="bg-slate-50 rounded-lg p-2 text-caption text-slate-600 space-y-1 border border-slate-100">
+                <div className="bg-surface-grouped rounded-field p-2.5 text-footnote text-slate-700 space-y-1 border border-hairline">
                   {(order.display_snapshot.items || []).map((itm: any, idx: number) => (
-                    <div key={idx} className="flex justify-between">
-                      <span className="truncate max-w-[260px]">
-                        {itm.quantity}x {itm.product?.name || 'Món'} (
-                        {itm.selectedVariant?.variant_name || 'Size'})
+                    <div key={idx} className="flex justify-between gap-2">
+                      <span className="truncate">
+                        <span className="font-num font-medium">{itm.quantity}x</span>{' '}
+                        {itm.product?.name || t('pos.item')} (
+                        {itm.selectedVariant?.variant_name || t('pos.default_variant')})
                       </span>
-                      <span className="font-semibold">{formatCurrency(itm.lineTotal, settings)}</span>
+                      <span className="font-semibold font-num shrink-0">
+                        {formatCurrency(itm.lineTotal, settings)}
+                      </span>
                     </div>
                   ))}
                   {order.display_snapshot.note && (
-                    <div className="text-caption text-slate-500 italic pt-0.5 border-t border-slate-200">
-                      Ghi chú: {order.display_snapshot.note}
+                    <div className="text-caption text-slate-500 italic pt-1 border-t border-hairline">
+                      {t('pos.note', { note: order.display_snapshot.note })}
                     </div>
                   )}
                 </div>
 
                 {/* Actions per card */}
-                <div className="flex items-center justify-end gap-2 pt-1">
+                <div className="flex items-center justify-end gap-2 pt-0.5">
                   {order.status !== 'synced' && (
-                    <button
-                      type="button"
+                    <Button
+                      variant="secondary"
+                      size="sm"
                       onClick={() => handleRetryOrder(order)}
-                      className="px-2.5 py-1 rounded-lg text-caption font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition flex items-center gap-1 cursor-pointer"
+                      leftIcon={<RotateCw className="w-3.5 h-3.5" />}
                     >
-                      <RotateCw className="w-3 h-3" />
-                      <span>Thử lại</span>
-                    </button>
+                      {t('pos.retry_btn')}
+                    </Button>
                   )}
-                  <button
-                    type="button"
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={() => handleDeleteOrder(order)}
-                    className="px-2.5 py-1 rounded-lg text-caption font-bold bg-rose-50 hover:bg-rose-100 text-rose-700 transition flex items-center gap-1 cursor-pointer"
+                    leftIcon={<Trash2 className="w-3.5 h-3.5" />}
+                    className="text-rose-700 hover:bg-rose-50 border-rose-200/70"
                   >
-                    <Trash2 className="w-3 h-3" />
-                    <span>{order.status === 'synced' ? 'Xóa khỏi danh sách' : 'Hủy đơn'}</span>
-                  </button>
+                    {order.status === 'synced'
+                      ? t('pos.remove_from_list')
+                      : t('pos.cancel_order_btn')}
+                  </Button>
                 </div>
               </div>
             ))
           )}
         </div>
-
-        {/* Footer */}
-        <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 shrink-0">
-          <span>{stats.pending + stats.requiresReview} đơn chưa hoàn tất</span>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={onClose}
-            className="px-4 font-bold"
-          >
-            Đóng
-          </Button>
-        </div>
       </div>
-    </div>
+    </ModalShell>
   );
 }
