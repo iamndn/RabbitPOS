@@ -67,7 +67,8 @@ export default function ModernSelect({
 
   // Localized defaults
   const placeholderText = placeholder ?? t('common.select_placeholder') ?? 'Chọn...';
-  const searchPlaceholderText = searchPlaceholder ?? t('common.search_placeholder') ?? 'Tìm kiếm...';
+  const searchPlaceholderText =
+    searchPlaceholder ?? t('common.search_placeholder') ?? 'Tìm kiếm...';
   const noResultsText = t('common.no_results') ?? 'Không tìm thấy kết quả';
   const clearText = t('common.clear_selection') ?? 'Xóa lựa chọn';
   const selectTitleText = title || placeholderText;
@@ -121,7 +122,12 @@ export default function ModernSelect({
     if (disabled) return;
 
     if (!isOpen) {
-      if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Enter' || e.key === ' ') {
+      if (
+        e.key === 'ArrowDown' ||
+        e.key === 'ArrowUp' ||
+        e.key === 'Enter' ||
+        e.key === ' '
+      ) {
         e.preventDefault();
         setIsOpen(true);
       }
@@ -175,7 +181,6 @@ export default function ModernSelect({
         break;
 
       default:
-        // Type-ahead behavior if not actively searching in input
         if (e.key.length === 1 && !searchable) {
           typeaheadBuffer.current += e.key.toLowerCase();
           if (typeaheadTimeout.current) clearTimeout(typeaheadTimeout.current);
@@ -184,7 +189,8 @@ export default function ModernSelect({
           }, 600);
 
           const matchIdx = filteredOptions.findIndex(
-            (opt) => !opt.disabled && opt.label.toLowerCase().startsWith(typeaheadBuffer.current)
+            (opt) =>
+              !opt.disabled && opt.label.toLowerCase().startsWith(typeaheadBuffer.current)
           );
           if (matchIdx >= 0) setFocusedIndex(matchIdx);
         }
@@ -196,22 +202,22 @@ export default function ModernSelect({
     switch (color) {
       case 'purple':
       case 'indigo':
-        return 'bg-brand-50 text-brand-700 border-brand-200';
+        return 'bg-brand-50 text-brand-700 border-brand-200/80';
       case 'amber':
-        return 'bg-amber-50 text-amber-700 border-amber-200';
+        return 'bg-amber-50 text-amber-800 border-amber-200/80';
       case 'rose':
-        return 'bg-rose-50 text-rose-700 border-rose-200';
+        return 'bg-rose-50 text-rose-700 border-rose-200/80';
       case 'blue':
-        return 'bg-sky-50 text-sky-700 border-sky-200';
+        return 'bg-sky-50 text-sky-700 border-sky-200/80';
       default:
-        return 'bg-slate-100 text-slate-700 border-slate-200';
+        return 'bg-slate-100 text-slate-700 border-slate-200/80';
     }
   };
 
   const sizeClasses = {
-    sm: 'h-8 px-2.5 text-xs rounded-lg',
-    md: 'h-11 md:h-9 px-3 text-base md:text-sm rounded-xl',
-    lg: 'h-12 md:h-11 px-4 text-base md:text-sm rounded-xl',
+    sm: 'h-8 px-2.5 text-xs rounded-sm-tahoe',
+    md: 'h-11 md:h-9 px-3.5 text-base md:text-sm rounded-field',
+    lg: 'h-12 md:h-11 px-4 text-base md:text-sm rounded-field',
   };
 
   const listboxId = id ? `${id}-listbox` : 'modern-select-listbox';
@@ -221,7 +227,7 @@ export default function ModernSelect({
       ref={containerRef}
       className={cn('relative w-full font-sans', disabled && 'opacity-60 cursor-not-allowed')}
     >
-      {/* Trigger Button */}
+      {/* Opaque Trigger Control (0px blur, Pre-Flight Item 5: 0px resting input shadow) */}
       <button
         ref={triggerButtonRef}
         id={id}
@@ -235,9 +241,9 @@ export default function ModernSelect({
         aria-controls={listboxId}
         aria-label={selectedOption ? selectedOption.label : placeholderText}
         className={cn(
-          'w-full bg-white border border-slate-200/90 flex items-center justify-between text-left font-medium text-slate-800 transition-colors shadow-xs',
-          'hover:border-slate-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30 focus-visible:border-brand-600',
-          isOpen && 'ring-2 ring-brand-500/20 border-brand-600',
+          'w-full bg-surface-card border border-slate-300/80 flex items-center justify-between text-left font-medium text-slate-900 transition-colors',
+          'hover:border-slate-400/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/35 focus-visible:border-brand-600',
+          isOpen && 'ring-2 ring-brand-500/25 border-brand-600',
           sizeClasses[size],
           className
         )}
@@ -247,11 +253,13 @@ export default function ModernSelect({
           {selectedOption ? (
             <div className="flex items-center gap-1.5 truncate min-w-0">
               {selectedOption.icon && <span className="shrink-0">{selectedOption.icon}</span>}
-              <span className="truncate font-semibold text-slate-900">{selectedOption.label}</span>
+              <span className="truncate font-semibold text-slate-900">
+                {selectedOption.label}
+              </span>
               {selectedOption.badge && (
                 <span
                   className={cn(
-                    'text-[10px] font-bold px-1.5 py-0.2 rounded border shrink-0',
+                    'text-caption px-2 py-0.5 rounded-full border shrink-0',
                     getBadgeStyle(selectedOption.badgeColor)
                   )}
                 >
@@ -273,7 +281,7 @@ export default function ModernSelect({
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') handleClear(e as any);
               }}
-              className="p-1 hover:bg-slate-100 rounded-md text-slate-400 hover:text-slate-600 transition-colors"
+              className="p-1 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-600 transition-colors"
               title={clearText}
               aria-label={clearText}
             >
@@ -282,7 +290,7 @@ export default function ModernSelect({
           )}
           <ChevronDown
             className={cn(
-              'w-4 h-4 text-slate-400 transition-transform duration-200',
+              'w-4 h-4 text-slate-400 transition-transform duration-snappy ease-spring-snappy',
               isOpen && 'rotate-180 text-brand-600'
             )}
           />
@@ -295,30 +303,32 @@ export default function ModernSelect({
         onClose={() => setIsOpen(false)}
         triggerRef={triggerButtonRef}
         title={selectTitleText}
+        detent="large"
         align={align === 'right' ? 'end' : 'start'}
         width="w-full min-w-[240px] max-w-[calc(100vw-1.5rem)]"
-        sheetClassName="max-h-[70dvh]"
+        sheetClassName="max-h-[72dvh]"
         popoverClassName={cn('w-full min-w-[220px] max-w-[calc(100vw-1.5rem)]', dropdownClassName)}
       >
         <div className="flex flex-col h-full -m-2 sm:m-0" onKeyDown={handleKeyDown}>
-          {/* Search Box */}
+          {/* Capsule Search Box (Opaque sticky header inside glass sheet — 0 extra blur) */}
           {searchable && (
-            <div className="p-2 sm:p-1.5 border-b border-slate-100 bg-slate-50/80 sticky top-0 z-10 shrink-0">
+            <div className="p-2 sm:p-1.5 border-b border-hairline bg-surface-card/95 sticky top-0 z-content-sticky shrink-0">
               <div className="relative">
-                <Search className="w-4 h-4 md:w-3.5 md:h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                <Search className="w-4 h-4 md:w-3.5 md:h-3.5 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                 <input
                   ref={searchInputRef}
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder={searchPlaceholderText}
-                  className="w-full pl-9 pr-8 h-10 md:h-8 bg-white border border-slate-200 rounded-lg text-base md:text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-600 transition"
+                  className="w-full pl-9 pr-8 h-10 md:h-8 bg-surface-card border border-slate-300/80 rounded-full text-base md:text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/35 focus:border-brand-600 transition-colors"
                 />
                 {searchQuery && (
                   <button
                     type="button"
                     onClick={() => setSearchQuery('')}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600"
+                    aria-label={clearText}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 rounded-full text-slate-400 hover:text-slate-600"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
@@ -335,7 +345,7 @@ export default function ModernSelect({
             className="flex-1 overflow-y-auto p-1.5 space-y-1 custom-scrollbar min-h-0"
           >
             {filteredOptions.length === 0 ? (
-              <div className="py-6 text-center text-xs md:text-sm text-slate-400 font-medium">
+              <div className="py-6 text-center text-footnote md:text-subhead text-slate-500 font-medium">
                 {noResultsText}
               </div>
             ) : (
@@ -352,15 +362,14 @@ export default function ModernSelect({
                     aria-selected={isSelected}
                     onClick={() => !option.disabled && handleSelect(option.value)}
                     className={cn(
-                      'w-full text-left flex items-center justify-between transition-colors rounded-xl font-sans',
-                      // Touch target >= 48px on mobile, compact on desktop
+                      'w-full text-left flex items-center justify-between transition-colors rounded-field font-sans',
                       'min-h-[48px] md:min-h-[38px] px-3.5 py-2.5 md:px-3 md:py-2 text-sm md:text-xs',
-                      option.disabled && 'opacity-40 cursor-not-allowed bg-slate-50',
+                      option.disabled && 'opacity-40 cursor-not-allowed bg-slate-50/70',
                       isSelected
-                        ? 'bg-brand-50 text-brand-900 font-bold border border-brand-200'
+                        ? 'bg-brand-glass-pill text-brand-800 font-semibold border border-brand-200/80'
                         : isFocused
-                        ? 'bg-slate-100 text-slate-900'
-                        : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
+                          ? 'bg-slate-900/[0.06] text-slate-900'
+                          : 'text-slate-700 hover:bg-slate-900/[0.05] hover:text-slate-900'
                     )}
                   >
                     <div className="flex items-center gap-2.5 pr-2 min-w-0 flex-1">
@@ -370,7 +379,7 @@ export default function ModernSelect({
                           <span
                             className={cn(
                               'leading-snug break-words',
-                              isSelected ? 'font-bold text-brand-700' : 'font-medium text-slate-900'
+                              isSelected ? 'font-semibold text-brand-700' : 'font-medium text-slate-900'
                             )}
                           >
                             {option.label}
@@ -378,7 +387,7 @@ export default function ModernSelect({
                           {option.badge && (
                             <span
                               className={cn(
-                                'text-[10px] font-bold px-1.5 py-0.2 rounded border shrink-0',
+                                'text-caption px-2 py-0.5 rounded-full border shrink-0',
                                 getBadgeStyle(option.badgeColor)
                               )}
                             >
@@ -387,7 +396,7 @@ export default function ModernSelect({
                           )}
                         </div>
                         {option.subLabel && (
-                          <span className="text-caption text-slate-400 block mt-0.5">
+                          <span className="text-footnote text-slate-500 block mt-0.5">
                             {option.subLabel}
                           </span>
                         )}

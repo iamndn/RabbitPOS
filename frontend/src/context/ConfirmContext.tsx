@@ -29,7 +29,13 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
   const showAlert = useCallback(
     (title: string, message?: string, type: ConfirmType = 'info'): Promise<void> => {
       const toastType =
-        type === 'danger' ? 'error' : type === 'warning' ? 'warning' : type === 'success' ? 'success' : 'info';
+        type === 'danger'
+          ? 'error'
+          : type === 'warning'
+            ? 'warning'
+            : type === 'success'
+              ? 'success'
+              : 'info';
       toast.showToast(toastType, message || title, {
         title: message ? title : undefined,
       });
@@ -41,16 +47,18 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
   const handleConfirm = useCallback(() => {
     setIsOpen(false);
     if (resolverRef.current) {
-      resolverRef.current(true);
+      const resolve = resolverRef.current;
       resolverRef.current = null;
+      resolve(true);
     }
   }, []);
 
   const handleCancel = useCallback(() => {
     setIsOpen(false);
     if (resolverRef.current) {
-      resolverRef.current(false);
+      const resolve = resolverRef.current;
       resolverRef.current = null;
+      resolve(false);
     }
   }, []);
 

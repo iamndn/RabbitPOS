@@ -448,32 +448,32 @@ export default function ModernDateRangePicker({
   );
 
   return (
-    <div className={`relative inline-block text-xs max-w-full w-full sm:w-auto ${className}`} ref={containerRef}>
+    <div className={`relative inline-block text-xs max-w-full w-full sm:w-auto font-sans ${className}`} ref={containerRef}>
       {/* Container: Justified on Mobile, Inline Flex on Desktop */}
       <div className="flex items-center gap-1.5 sm:gap-2 w-full justify-between sm:justify-start">
         {/* ========================================================================= */}
-        {/* 1. DATE NAVIGATOR CONTROL: [ < ] [ Display Date ] [ > ]                   */}
+        {/* 1. OPAQUE CAPSULE DATE NAVIGATOR CONTROL: [ < ] [ Display Date ] [ > ]    */}
         {/* ========================================================================= */}
-        <div className="flex items-center bg-white border border-slate-200/90 rounded-2xl shadow-2xs hover:border-slate-300 transition-all p-1 flex-1 min-w-0 sm:flex-initial">
+        <div className="flex items-center bg-surface-card border border-card rounded-full shadow-card hover:border-slate-300/80 transition-colors p-1 flex-1 min-w-0 sm:flex-initial">
           {/* Previous Arrow */}
           <button
             type="button"
             onClick={() => handleNavigate('prev')}
             title={locale === 'vi' ? 'Lùi thời gian' : 'Previous period'}
             aria-label="Previous period"
-            className="p-1.5 sm:p-2 rounded-xl text-slate-500 hover:text-brand-700 hover:bg-brand-50 active:scale-90 transition-all shrink-0 cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center"
+            className="p-1.5 sm:p-2 rounded-full text-slate-500 hover:text-brand-700 hover:bg-brand-50 active:scale-95 transition-all shrink-0 cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40"
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
 
-          {/* Center Date Text (Click to open picker) */}
+          {/* Center Date Text (Click to open picker — tabular-nums) */}
           <button
             type="button"
             onClick={() => setIsPickerOpen(!isPickerOpen)}
-            className="flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 text-slate-800 font-bold hover:text-brand-700 transition flex-1 min-w-0 truncate cursor-pointer select-none min-h-[36px]"
+            className="flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 text-slate-800 font-semibold hover:text-brand-700 transition-colors flex-1 min-w-0 truncate cursor-pointer select-none min-h-[36px] rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40"
           >
             <Calendar className="w-3.5 h-3.5 text-brand-600 shrink-0 hidden xs:inline-block" />
-            <span className="truncate text-xs tracking-tight">
+            <span className="truncate text-footnote font-semibold font-num tracking-tight">
               {displayTitle}
             </span>
           </button>
@@ -484,27 +484,27 @@ export default function ModernDateRangePicker({
             onClick={() => handleNavigate('next')}
             title={locale === 'vi' ? 'Tiến thời gian' : 'Next period'}
             aria-label="Next period"
-            className="p-1.5 sm:p-2 rounded-xl text-slate-500 hover:text-brand-700 hover:bg-brand-50 active:scale-90 transition-all shrink-0 cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center"
+            className="p-1.5 sm:p-2 rounded-full text-slate-500 hover:text-brand-700 hover:bg-brand-50 active:scale-95 transition-all shrink-0 cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40"
           >
             <ChevronRight className="w-4 h-4" />
           </button>
         </div>
 
         {/* ========================================================================= */}
-        {/* 2. MODE SELECTOR TRIGGER BUTTON                                            */}
+        {/* 2. OPAQUE CAPSULE MODE SELECTOR TRIGGER BUTTON                            */}
         {/* ========================================================================= */}
         <button
           type="button"
           onClick={() => setIsPickerOpen(true)}
-          className="flex items-center gap-1.5 bg-white hover:bg-slate-50 text-slate-700 font-bold px-2.5 sm:px-3 py-2 rounded-2xl border border-slate-200/90 shadow-2xs transition hover:border-brand-300 focus:outline-none focus:ring-2 focus:ring-brand-500/20 active:scale-95 cursor-pointer shrink-0 min-h-[40px]"
+          className="flex items-center gap-1.5 bg-surface-card hover:bg-slate-50 text-slate-700 font-semibold px-3 sm:px-3.5 py-2 rounded-full border border-card shadow-card transition-all hover:border-brand-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 active:scale-[0.98] cursor-pointer shrink-0 min-h-[44px] sm:min-h-[40px]"
           title={locale === 'vi' ? 'Thay đổi chế độ lọc thời gian' : 'Change filter mode'}
         >
-          <span className="shrink-0">{currentModeInfo.icon}</span>
-          <span className="text-xs font-black text-slate-800">
+          <span className="shrink-0 text-brand-600">{currentModeInfo.icon}</span>
+          <span className="text-footnote font-semibold text-slate-800">
             {locale === 'vi' ? currentModeInfo.labelVi : currentModeInfo.labelEn}
           </span>
           <ChevronDown
-            className={`w-3 h-3 text-slate-400 shrink-0 transition-transform duration-200 ${
+            className={`w-3.5 h-3.5 text-slate-400 shrink-0 transition-transform duration-200 ${
               isPickerOpen ? 'rotate-180 text-brand-600' : ''
             }`}
           />
@@ -512,21 +512,22 @@ export default function ModernDateRangePicker({
       </div>
 
       {/* ========================================================================= */}
-      {/* 3. UNIFIED RESPONSIVESHEET MODAL (Merged mobile sheet + desktop popover)  */}
+      {/* 3. UNIFIED RESPONSIVESHEET (glass-thick sheet < md / popover >= md)       */}
       {/* ========================================================================= */}
       <ResponsiveSheet
         isOpen={isPickerOpen}
         onClose={() => setIsPickerOpen(false)}
         triggerRef={containerRef}
         align={align === 'left' ? 'start' : 'end'}
+        detent="large"
         width="w-96"
         title={
           <div className="flex items-center gap-2">
-            <span className="p-1 rounded-lg bg-brand-50 text-brand-700">
+            <span className="p-1.5 rounded-sm-tahoe bg-brand-50 text-brand-700 border border-brand-200/70">
               <CalendarRange className="w-4 h-4" />
             </span>
-            <span className="text-xs font-bold text-slate-900">
-              {locale === 'vi' ? 'Bộ lọc thời gian' : 'Time Filter'}
+            <span className="text-subhead font-semibold text-slate-900">
+              {locale === 'vi' ? 'Bộ lọc thời gian' : 'Time filter'}
             </span>
           </div>
         }
@@ -553,10 +554,10 @@ export default function ModernDateRangePicker({
                     onChange({ period: 'today', from: todayStr, to: todayStr });
                     setIsPickerOpen(false);
                   }}
-                  className={`min-h-[44px] py-2.5 px-3 rounded-xl font-bold text-xs border text-center transition cursor-pointer flex items-center justify-center gap-1.5 active:scale-95 ${
+                  className={`min-h-[44px] py-2.5 px-3 rounded-full font-semibold text-footnote border text-center transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-[0.98] ${
                     currentRange.from === todayStr
-                      ? 'bg-brand-600 text-white border-brand-700 font-black shadow-2xs'
-                      : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
+                      ? 'bg-brand-600 text-white border-brand-700 shadow-glass-sm'
+                      : 'bg-surface-card hover:bg-slate-50 text-slate-700 border-slate-200/90'
                   }`}
                 >
                   <span>{locale === 'vi' ? 'Hôm nay' : 'Today'}</span>
@@ -567,19 +568,19 @@ export default function ModernDateRangePicker({
                     onChange({ period: 'yesterday', from: yesterdayStr, to: yesterdayStr });
                     setIsPickerOpen(false);
                   }}
-                  className={`min-h-[44px] py-2.5 px-3 rounded-xl font-bold text-xs border text-center transition cursor-pointer flex items-center justify-center gap-1.5 active:scale-95 ${
+                  className={`min-h-[44px] py-2.5 px-3 rounded-full font-semibold text-footnote border text-center transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-[0.98] ${
                     currentRange.from === yesterdayStr
-                      ? 'bg-brand-600 text-white border-brand-700 font-black shadow-2xs'
-                      : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
+                      ? 'bg-brand-600 text-white border-brand-700 shadow-glass-sm'
+                      : 'bg-surface-card hover:bg-slate-50 text-slate-700 border-slate-200/90'
                   }`}
                 >
                   <span>{locale === 'vi' ? 'Hôm qua' : 'Yesterday'}</span>
                 </button>
               </div>
 
-              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200/80">
-                <label className="block text-[10px] font-extrabold text-slate-600 uppercase mb-1.5">
-                  {locale === 'vi' ? 'Chọn ngày cụ thể' : 'Pick a Date'}
+              <div className="bg-surface-grouped/80 p-3 rounded-card border border-hairline">
+                <label className="block text-footnote font-semibold text-slate-700 mb-1.5">
+                  {locale === 'vi' ? 'Chọn ngày cụ thể' : 'Pick a specific date'}
                 </label>
                 <input
                   type="date"
@@ -593,7 +594,7 @@ export default function ModernDateRangePicker({
                     onChange({ period: newPeriod, from: val, to: val });
                     setIsPickerOpen(false);
                   }}
-                  className="w-full h-11 px-3 text-base sm:text-xs font-bold border border-slate-200 rounded-xl bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-600 shadow-2xs cursor-pointer"
+                  className="w-full h-11 px-3.5 text-base sm:text-xs font-semibold font-num border border-slate-300/80 rounded-field bg-surface-card text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/35 focus:border-brand-600 cursor-pointer"
                 />
               </div>
             </div>
@@ -605,22 +606,22 @@ export default function ModernDateRangePicker({
           {currentMode === 'month' && (
             <div className="space-y-3">
               {/* Year Header Navigator in Month Mode */}
-              <div className="flex items-center justify-between bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200/80">
+              <div className="flex items-center justify-between bg-surface-grouped/80 px-2.5 py-1.5 rounded-full border border-hairline">
                 <button
                   type="button"
                   onClick={() => setMonthPickerYear((y) => y - 1)}
-                  className="p-2 rounded-lg hover:bg-white hover:text-brand-700 text-slate-600 transition cursor-pointer min-h-[40px] min-w-[40px] flex items-center justify-center active:scale-90"
+                  className="p-2 rounded-full hover:bg-surface-card hover:text-brand-700 text-slate-600 transition-colors cursor-pointer min-h-[40px] min-w-[40px] flex items-center justify-center active:scale-95"
                   aria-label="Previous Year"
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
-                <span className="font-extrabold text-xs text-slate-800">
+                <span className="font-semibold font-num text-subhead text-slate-900">
                   {locale === 'vi' ? `Năm ${monthPickerYear}` : `Year ${monthPickerYear}`}
                 </span>
                 <button
                   type="button"
                   onClick={() => setMonthPickerYear((y) => y + 1)}
-                  className="p-2 rounded-lg hover:bg-white hover:text-brand-700 text-slate-600 transition cursor-pointer min-h-[40px] min-w-[40px] flex items-center justify-center active:scale-90"
+                  className="p-2 rounded-full hover:bg-surface-card hover:text-brand-700 text-slate-600 transition-colors cursor-pointer min-h-[40px] min-w-[40px] flex items-center justify-center active:scale-95"
                   aria-label="Next Year"
                 >
                   <ChevronRight className="w-4 h-4" />
@@ -650,12 +651,12 @@ export default function ModernDateRangePicker({
                         });
                         setIsPickerOpen(false);
                       }}
-                      className={`min-h-[44px] py-2.5 px-2 rounded-xl text-center font-bold text-xs transition cursor-pointer relative active:scale-95 flex items-center justify-center ${
+                      className={`min-h-[44px] py-2.5 px-2 rounded-field text-center font-semibold font-num text-footnote transition-all cursor-pointer relative active:scale-[0.98] flex items-center justify-center ${
                         isSelected
-                          ? 'bg-brand-600 text-white shadow-2xs font-black'
+                          ? 'bg-brand-600 text-white shadow-glass-sm'
                           : isCurrentMonth
                           ? 'bg-brand-50 hover:bg-brand-100 text-brand-700 border border-brand-200'
-                          : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-100'
+                          : 'bg-surface-card hover:bg-slate-50 text-slate-700 border border-card'
                       }`}
                     >
                       <span>{locale === 'vi' ? `Tháng ${m}` : `M${m}`}</span>
@@ -695,17 +696,17 @@ export default function ModernDateRangePicker({
                         });
                         setIsPickerOpen(false);
                       }}
-                      className={`min-h-[48px] py-3 px-2 rounded-xl text-center font-bold text-xs transition cursor-pointer relative active:scale-95 flex flex-col items-center justify-center ${
+                      className={`min-h-[52px] py-2.5 px-2 rounded-field text-center transition-all cursor-pointer relative active:scale-[0.98] flex flex-col items-center justify-center ${
                         isSelected
-                          ? 'bg-brand-600 text-white shadow-2xs font-black'
+                          ? 'bg-brand-600 text-white shadow-glass-sm'
                           : isThisYear
                           ? 'bg-brand-50 hover:bg-brand-100 text-brand-800 border border-brand-200'
-                          : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-100'
+                          : 'bg-surface-card hover:bg-slate-50 text-slate-700 border border-card'
                       }`}
                     >
-                      <div className="text-sm font-black">{y}</div>
+                      <div className="text-subhead font-bold font-num">{y}</div>
                       {isThisYear && (
-                        <div className={`text-[9px] font-bold ${isSelected ? 'text-brand-100' : 'text-brand-600'}`}>
+                        <div className={`text-caption ${isSelected ? 'text-brand-100' : 'text-brand-600'}`}>
                           {locale === 'vi' ? 'Năm nay' : 'This year'}
                         </div>
                       )}
@@ -721,7 +722,7 @@ export default function ModernDateRangePicker({
           {/* =================================================================== */}
           {currentMode === 'custom' && (
             <div className="space-y-3">
-              {/* Presets as Scrollable Chip Row */}
+              {/* Presets as Scrollable Capsule Chip Row */}
               <div className="flex items-center gap-1.5 overflow-x-auto pb-1.5 custom-scrollbar -mx-1 px-1">
                 {customPresets.map((preset, idx) => {
                   const r = preset.getRange();
@@ -736,10 +737,10 @@ export default function ModernDateRangePicker({
                         onChange({ period: 'custom', from: r.from, to: r.to });
                         setIsPickerOpen(false);
                       }}
-                      className={`h-9 px-3.5 rounded-full font-bold text-xs whitespace-nowrap shrink-0 transition active:scale-95 flex items-center gap-1.5 cursor-pointer ${
+                      className={`h-9 px-3.5 rounded-full font-semibold text-footnote whitespace-nowrap shrink-0 transition-all active:scale-[0.98] flex items-center gap-1.5 cursor-pointer ${
                         isSelected
-                          ? 'bg-brand-600 text-white shadow-2xs border border-brand-700'
-                          : 'bg-slate-100 hover:bg-slate-200/80 text-slate-700 border border-slate-200/70'
+                          ? 'bg-brand-600 text-white shadow-glass-sm border border-brand-700'
+                          : 'bg-surface-card hover:bg-slate-50 text-slate-700 border border-card'
                       }`}
                     >
                       {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
@@ -750,30 +751,30 @@ export default function ModernDateRangePicker({
               </div>
 
               {/* Custom Range Inputs */}
-              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200/80 space-y-3">
+              <div className="bg-surface-grouped/80 p-3 rounded-card border border-hairline space-y-3">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   <div className="min-w-0">
-                    <label className="text-[10px] font-extrabold text-slate-600 uppercase flex items-center gap-1 mb-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-brand-500 inline-block"></span>
-                      {locale === 'vi' ? 'Từ ngày' : 'From Date'}
+                    <label className="text-footnote font-semibold text-slate-700 flex items-center gap-1.5 mb-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-brand-600 inline-block" />
+                      {locale === 'vi' ? 'Từ ngày' : 'From date'}
                     </label>
                     <input
                       type="date"
                       value={tempFrom}
                       onChange={(e) => setTempFrom(e.target.value)}
-                      className="w-full min-w-0 h-11 px-3 text-base sm:text-xs font-bold border border-slate-200 rounded-xl bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-600 shadow-2xs cursor-pointer"
+                      className="w-full min-w-0 h-11 px-3.5 text-base sm:text-xs font-semibold font-num border border-slate-300/80 rounded-field bg-surface-card text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/35 focus:border-brand-600 cursor-pointer"
                     />
                   </div>
                   <div className="min-w-0">
-                    <label className="text-[10px] font-extrabold text-slate-600 uppercase flex items-center gap-1 mb-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-brand-500 inline-block"></span>
-                      {locale === 'vi' ? 'Đến ngày' : 'To Date'}
+                    <label className="text-footnote font-semibold text-slate-700 flex items-center gap-1.5 mb-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-brand-600 inline-block" />
+                      {locale === 'vi' ? 'Đến ngày' : 'To date'}
                     </label>
                     <input
                       type="date"
                       value={tempTo}
                       onChange={(e) => setTempTo(e.target.value)}
-                      className="w-full min-w-0 h-11 px-3 text-base sm:text-xs font-bold border border-slate-200 rounded-xl bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-600 shadow-2xs cursor-pointer"
+                      className="w-full min-w-0 h-11 px-3.5 text-base sm:text-xs font-semibold font-num border border-slate-300/80 rounded-field bg-surface-card text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/35 focus:border-brand-600 cursor-pointer"
                     />
                   </div>
                 </div>
@@ -784,9 +785,9 @@ export default function ModernDateRangePicker({
                     onChange({ period: 'custom', from: tempFrom, to: tempTo });
                     setIsPickerOpen(false);
                   }}
-                  className="w-full h-11 bg-brand-600 hover:bg-brand-700 active:scale-[0.98] text-white font-black py-2.5 px-3 rounded-xl shadow-xs transition flex items-center justify-center gap-2 text-xs cursor-pointer"
+                  className="w-full h-11 bg-brand-600 hover:bg-brand-700 active:scale-[0.98] text-white font-semibold py-2.5 px-4 rounded-full shadow-glass-sm transition-all flex items-center justify-center gap-2 text-subhead cursor-pointer"
                 >
-                  <span>{locale === 'vi' ? 'Áp dụng khoảng ngày' : 'Apply Range'}</span>
+                  <span>{locale === 'vi' ? 'Áp dụng khoảng ngày' : 'Apply range'}</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
               </div>

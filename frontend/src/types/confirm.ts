@@ -12,6 +12,12 @@ export interface ConfirmOptions {
   autoFocusButton?: 'confirm' | 'cancel';
   /** If isAlert is true, only show the Confirm/OK button */
   isAlert?: boolean;
+  /**
+   * Optional async action executed while keeping the dialog open with a synchronous
+   * pending lock (`Override Q5`). If it throws or returns `false`, the pending lock
+   * releases without resolving `true`, preventing double execution of money mutations.
+   */
+  onConfirmAsync?: () => Promise<void | boolean>;
 }
 
 export interface ConfirmContextType {
