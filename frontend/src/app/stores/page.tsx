@@ -27,6 +27,8 @@ import {
   PieChart,
 } from 'lucide-react';
 import AppShell from '@/components/AppShell';
+import ModernSelect from '@/components/common/ModernSelect';
+import { FilterBar, Chip } from '@/components/ui';
 import { fetchApi, getImageUrl } from '@/lib/api';
 import { getAuthUser, isOwnerRole } from '@/lib/auth';
 import { useStore } from '@/lib/StoreContext';
@@ -572,58 +574,40 @@ export default function StoresPage() {
                 {filteredStores.length}
               </span>
             </h2>
+          </div>
 
-            <div className="flex flex-wrap items-center gap-2">
-              {/* Search */}
-              <div className="relative min-w-[200px]">
-                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Tìm tên, mã, địa chỉ..."
-                  className="w-full pl-8.5 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-500/20"
+          <FilterBar
+            searchValue={searchQuery}
+            onSearchChange={setSearchQuery}
+            searchPlaceholder="Tìm tên, mã, địa chỉ..."
+            activeFiltersCount={statusFilter !== 'all' ? 1 : 0}
+            sheetTitle="Bộ Lọc Cửa Hàng"
+            onReset={() => setStatusFilter('all')}
+            filters={
+              <div className="w-full md:w-48">
+                <label className="text-caption font-bold text-slate-500 uppercase block mb-1 md:hidden">
+                  Trạng thái
+                </label>
+                <ModernSelect
+                  value={statusFilter}
+                  onChange={(val) => setStatusFilter(val as any)}
+                  options={[
+                    { value: 'all', label: `Tất cả (${stores.length})` },
+                    { value: 'active', label: `Hoạt động (${activeCount})` },
+                    { value: 'inactive', label: `Tạm dừng (${stores.length - activeCount})` },
+                  ]}
+                  size="sm"
                 />
               </div>
-
-              {/* Status filter */}
-              <div className="inline-flex p-0.5 rounded-xl bg-slate-100 border border-slate-200 text-xs font-bold">
-                <button
-                  type="button"
-                  onClick={() => setStatusFilter('all')}
-                  className={`px-2.5 py-1 rounded-lg transition ${
-                    statusFilter === 'all'
-                      ? 'bg-white text-slate-900 shadow-xs'
-                      : 'text-slate-500 hover:text-slate-900'
-                  }`}
-                >
-                  Tất cả
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setStatusFilter('active')}
-                  className={`px-2.5 py-1 rounded-lg transition ${
-                    statusFilter === 'active'
-                      ? 'bg-white text-purple-800 shadow-xs'
-                      : 'text-slate-500 hover:text-slate-900'
-                  }`}
-                >
-                  Hoạt động
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setStatusFilter('inactive')}
-                  className={`px-2.5 py-1 rounded-lg transition ${
-                    statusFilter === 'inactive'
-                      ? 'bg-white text-amber-800 shadow-xs'
-                      : 'text-slate-500 hover:text-slate-900'
-                  }`}
-                >
-                  Tạm dừng
-                </button>
-              </div>
-            </div>
-          </div>
+            }
+            chipsSlot={
+              statusFilter !== 'all' ? (
+                <Chip variant="brand" onRemove={() => setStatusFilter('all')}>
+                  Trạng thái: {statusFilter === 'active' ? 'Hoạt động' : 'Tạm dừng'}
+                </Chip>
+              ) : undefined
+            }
+          />
 
           {/* Stores Grid Cards */}
           {loading ? (
