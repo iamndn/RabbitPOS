@@ -27,6 +27,8 @@ import { syncOfflineOrders } from '@/lib/offline/sync';
 import { formatCurrency, SettingsMap } from '@/lib/utils';
 import { useToast } from '@/context/ToastContext';
 import { useConfirm } from '@/context/ConfirmContext';
+import { Button, IconButton } from '@/components/ui';
+import { cn } from '@/lib/cn';
 
 interface OfflineQueueModalProps {
   isOpen: boolean;
@@ -190,8 +192,13 @@ export default function OfflineQueueModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-2.5 sm:p-4 animate-fade-in">
-      <div className="bg-white rounded-2xl max-w-2xl w-full p-4 sm:p-6 shadow-2xl space-y-4 max-h-[90dvh] flex flex-col hardware-accelerated">
+    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fade-in">
+      <div className="bg-white rounded-t-3xl sm:rounded-2xl max-w-2xl w-full p-4 sm:p-6 shadow-2xl space-y-4 max-h-[92dvh] sm:max-h-[90dvh] flex flex-col hardware-accelerated pb-safe">
+        {/* Mobile Drag Indicator */}
+        <div className="flex justify-center sm:hidden pt-0.5 pb-1 shrink-0">
+          <div className="w-12 h-1.5 bg-slate-300 rounded-full" />
+        </div>
+
         {/* Header */}
         <div className="flex items-center justify-between pb-3 border-b border-slate-100 shrink-0">
           <div className="flex items-center gap-2">
@@ -200,26 +207,29 @@ export default function OfflineQueueModal({
             </div>
             <div>
               <h2 className="text-sm sm:text-base font-bold text-slate-800">Hàng Đợi Đơn Ngoại Tuyến</h2>
-              <p className="text-[11px] text-slate-500">Tự động đồng bộ tuần tự (FIFO) khi có mạng</p>
+              <p className="text-caption text-slate-500">Tự động đồng bộ tuần tự (FIFO) khi có mạng</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <button
-              type="button"
+            <Button
+              variant="primary"
+              size="sm"
               onClick={handleSyncAll}
+              isLoading={isSyncing}
               disabled={isSyncing || orders.length === 0}
-              className="px-3 py-1.5 rounded-xl text-xs font-bold bg-purple-600 hover:bg-purple-700 text-white disabled:opacity-50 transition flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
+              leftIcon={<RotateCw className={cn("w-3.5 h-3.5", isSyncing && "animate-spin")} />}
+              className="bg-purple-600 hover:bg-purple-700 font-bold"
             >
-              <RotateCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
               <span>{isSyncing ? 'Đang đồng bộ...' : 'Đồng bộ ngay'}</span>
-            </button>
-            <button
-              type="button"
+            </Button>
+            <IconButton
+              variant="ghost"
+              size="sm"
               onClick={onClose}
-              className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition cursor-pointer"
+              aria-label="Đóng"
             >
               <X className="w-5 h-5" />
-            </button>
+            </IconButton>
           </div>
         </div>
 
@@ -300,7 +310,7 @@ export default function OfflineQueueModal({
                     <span className="text-sm font-extrabold text-purple-700">
                       {formatCurrency(order.display_snapshot.final_total, settings)}
                     </span>
-                    <p className="text-[10px] text-slate-400 uppercase">
+                    <p className="text-caption text-slate-400 uppercase">
                       {order.display_snapshot.payment_method}
                     </p>
                   </div>
@@ -308,7 +318,7 @@ export default function OfflineQueueModal({
 
                 {/* Conflict / Error Message Alert */}
                 {order.last_error && (
-                  <div className="bg-rose-50 border border-rose-200 rounded-lg p-2 text-[11px] text-rose-800 flex items-start gap-1.5">
+                  <div className="bg-rose-50 border border-rose-200 rounded-lg p-2 text-caption text-rose-800 flex items-start gap-1.5">
                     <AlertTriangle className="w-3.5 h-3.5 text-rose-600 shrink-0 mt-0.5" />
                     <div>
                       <span className="font-bold">Lỗi đồng bộ ({order.error_code || 'ERROR'}): </span>
@@ -318,7 +328,7 @@ export default function OfflineQueueModal({
                 )}
 
                 {/* Items preview */}
-                <div className="bg-slate-50 rounded-lg p-2 text-[11px] text-slate-600 space-y-1 border border-slate-100">
+                <div className="bg-slate-50 rounded-lg p-2 text-caption text-slate-600 space-y-1 border border-slate-100">
                   {(order.display_snapshot.items || []).map((itm: any, idx: number) => (
                     <div key={idx} className="flex justify-between">
                       <span className="truncate max-w-[260px]">
@@ -329,7 +339,7 @@ export default function OfflineQueueModal({
                     </div>
                   ))}
                   {order.display_snapshot.note && (
-                    <div className="text-[10px] text-slate-500 italic pt-0.5 border-t border-slate-200">
+                    <div className="text-caption text-slate-500 italic pt-0.5 border-t border-slate-200">
                       Ghi chú: {order.display_snapshot.note}
                     </div>
                   )}
@@ -341,7 +351,7 @@ export default function OfflineQueueModal({
                     <button
                       type="button"
                       onClick={() => handleRetryOrder(order)}
-                      className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition flex items-center gap-1 cursor-pointer"
+                      className="px-2.5 py-1 rounded-lg text-caption font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition flex items-center gap-1 cursor-pointer"
                     >
                       <RotateCw className="w-3 h-3" />
                       <span>Thử lại</span>
@@ -350,7 +360,7 @@ export default function OfflineQueueModal({
                   <button
                     type="button"
                     onClick={() => handleDeleteOrder(order)}
-                    className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-rose-50 hover:bg-rose-100 text-rose-700 transition flex items-center gap-1 cursor-pointer"
+                    className="px-2.5 py-1 rounded-lg text-caption font-bold bg-rose-50 hover:bg-rose-100 text-rose-700 transition flex items-center gap-1 cursor-pointer"
                   >
                     <Trash2 className="w-3 h-3" />
                     <span>{order.status === 'synced' ? 'Xóa khỏi danh sách' : 'Hủy đơn'}</span>
@@ -364,13 +374,14 @@ export default function OfflineQueueModal({
         {/* Footer */}
         <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 shrink-0">
           <span>{stats.pending + stats.requiresReview} đơn chưa hoàn tất</span>
-          <button
-            type="button"
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={onClose}
-            className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition cursor-pointer"
+            className="px-4 font-bold"
           >
             Đóng
-          </button>
+          </Button>
         </div>
       </div>
     </div>

@@ -26,6 +26,7 @@ import {
   WifiOff,
 } from 'lucide-react';
 import AppShell from '@/components/AppShell';
+import { Button, IconButton } from '@/components/ui';
 import type { CartItem, Product, ProductVariant } from '@/components/pos/VariantSelectorModal';
 import CartDrawer from '@/components/pos/CartDrawer';
 import type { CompletedOrderData } from '@/components/pos/ReceiptModal';
@@ -122,8 +123,8 @@ export type ProductSortOption = 'default' | 'name-asc' | 'name-desc' | 'category
 
 const SORT_OPTIONS: { id: ProductSortOption; label: string; icon: React.ReactNode; desc: string }[] = [
   { id: 'default', label: 'Mặc định', icon: <RefreshCw className="w-3.5 h-3.5 text-slate-500" />, desc: 'Thứ tự ban đầu' },
-  { id: 'name-asc', label: 'Tên: A → Z', icon: <ArrowUpAZ className="w-3.5 h-3.5 text-indigo-500" />, desc: 'Bảng chữ cái từ A đến Z' },
-  { id: 'name-desc', label: 'Tên: Z → A', icon: <ArrowDownAZ className="w-3.5 h-3.5 text-indigo-500" />, desc: 'Bảng chữ cái từ Z đến A' },
+  { id: 'name-asc', label: 'Tên: A → Z', icon: <ArrowUpAZ className="w-3.5 h-3.5 text-purple-600" />, desc: 'Bảng chữ cái từ A đến Z' },
+  { id: 'name-desc', label: 'Tên: Z → A', icon: <ArrowDownAZ className="w-3.5 h-3.5 text-purple-600" />, desc: 'Bảng chữ cái từ Z đến A' },
   { id: 'category', label: 'Theo Danh mục', icon: <FolderTree className="w-3.5 h-3.5 text-purple-500" />, desc: 'Nhóm theo danh mục món' },
   { id: 'tag', label: 'Theo Nhãn', icon: <Tag className="w-3.5 h-3.5 text-amber-500" />, desc: 'Nhóm theo nhãn sản phẩm' },
   { id: 'price-asc', label: 'Giá: Thấp → Cao', icon: <TrendingUp className="w-3.5 h-3.5 text-teal-500" />, desc: 'Từ giá rẻ nhất' },
@@ -160,7 +161,7 @@ const CategorySidebar = React.memo(function CategorySidebar({
         }`}
       >
         <span className="truncate leading-snug">{allLabel}</span>
-        <span className={`shrink-0 text-[9px] sm:text-[10px] min-w-[1.2rem] sm:min-w-[1.3rem] text-center px-1 py-0.5 rounded-full font-bold ${
+        <span className={`shrink-0 text-caption min-w-[1.2rem] sm:min-w-[1.3rem] text-center px-1.5 py-0.5 rounded-full font-bold ${
           activeCategoryId === null ? 'bg-purple-600 text-white' : 'bg-slate-100 text-slate-500'
         }`}>
           {totalProductsCount}
@@ -184,7 +185,7 @@ const CategorySidebar = React.memo(function CategorySidebar({
             }`}
           >
             <span className="flex-1 truncate leading-snug">{cat.name}</span>
-            <span className={`shrink-0 text-[9px] sm:text-[10px] min-w-[1.2rem] sm:min-w-[1.3rem] text-center px-1 py-0.5 rounded-full font-bold ${
+            <span className={`shrink-0 text-caption min-w-[1.2rem] sm:min-w-[1.3rem] text-center px-1.5 py-0.5 rounded-full font-bold ${
               isSelected ? 'bg-purple-600 text-white' : 'bg-slate-100 text-slate-500'
             }`}>
               {catCount}
@@ -268,7 +269,7 @@ const ProductCard = React.memo(function ProductCard({
 
           {/* Size / Variant Badge */}
           {variantsCount > 1 && (
-            <span className="absolute top-1.5 left-1.5 bg-slate-900/80 backdrop-blur-xs text-white text-[9px] font-bold px-1.5 py-0.5 rounded-md shadow-xs pointer-events-none">
+            <span className="absolute top-1.5 left-1.5 bg-slate-900/80 backdrop-blur-xs text-white text-caption text-[11px] font-bold px-1.5 py-0.5 rounded-md shadow-xs pointer-events-none">
               {variantsCount} size
             </span>
           )}
@@ -293,7 +294,7 @@ const ProductCard = React.memo(function ProductCard({
         {/* Tag Badge */}
         {tagStyle && (
           <div className="mb-1">
-            <span className={`text-[9px] uppercase font-extrabold px-1.5 py-0.5 rounded-md border inline-flex items-center gap-0.5 max-w-full truncate ${tagStyle.badgeClasses}`}>
+            <span className={`text-caption text-[11px] uppercase font-extrabold px-1.5 py-0.5 rounded-md border inline-flex items-center gap-0.5 max-w-full truncate ${tagStyle.badgeClasses}`}>
               <span>{tagStyle.icon}</span>
               <span className="truncate">{tagStyle.name}</span>
             </span>
@@ -309,7 +310,7 @@ const ProductCard = React.memo(function ProductCard({
       <div className="mt-2 pt-1.5 border-t border-slate-100 flex items-center justify-between gap-1 min-w-0">
         <div className="flex items-baseline gap-1 min-w-0">
           {variantsCount > 1 && (
-            <span className="text-[10px] text-slate-400 font-semibold shrink-0">
+            <span className="text-caption text-slate-400 font-semibold shrink-0">
               {t('pos.from_price') || 'Từ'}
             </span>
           )}
@@ -322,11 +323,11 @@ const ProductCard = React.memo(function ProductCard({
         </div>
 
         {isSuspended ? (
-          <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded-md shrink-0">
+          <span className="text-caption font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded-md shrink-0">
             ⛔ {t('products.suspended') || 'Tạm ngưng'}
           </span>
         ) : isComingSoon ? (
-          <span className="text-[10px] font-bold text-sky-600 bg-sky-50 px-1.5 py-0.5 rounded-md shrink-0">
+          <span className="text-caption font-bold text-sky-600 bg-sky-50 px-1.5 py-0.5 rounded-md shrink-0">
             ⏳ {t('products.coming_soon') || 'Sắp có'}
           </span>
         ) : null}
@@ -1221,7 +1222,7 @@ export default function PosPage() {
               title="Xem danh sách đơn hàng ngoại tuyến"
             >
               <span>⚡ Hàng đợi</span>
-              <span className="bg-amber-200 text-amber-900 text-[10px] px-1.5 py-0.2 rounded-full font-black">
+              <span className="bg-amber-200 text-amber-900 text-caption px-1.5 py-0.5 rounded-full font-black">
                 {queueStats.pending + queueStats.requiresReview}
               </span>
             </button>
@@ -1246,7 +1247,7 @@ export default function PosPage() {
                 <X className="w-3.5 h-3.5" />
               </button>
             ) : (
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-md pointer-events-none">
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-caption font-bold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-md pointer-events-none">
                 {sortedAndFilteredProducts.length} món
               </span>
             )}
@@ -1275,9 +1276,9 @@ export default function PosPage() {
           <div className="flex flex-wrap items-center gap-1.5 text-xs -mt-1">
             <span className="text-slate-400 font-semibold text-[11px]">Đang áp dụng:</span>
             {activeTag !== null && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-lg font-bold">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-purple-50 text-purple-700 border border-purple-200 rounded-lg font-bold">
                 <span>Nhãn: {allAvailableTags.find((t) => t.id === activeTag)?.name || activeTag}</span>
-                <button type="button" onClick={() => setActiveTag(null)} className="hover:text-indigo-950 cursor-pointer"><X className="w-3 h-3" /></button>
+                <button type="button" onClick={() => setActiveTag(null)} className="hover:text-purple-950 cursor-pointer"><X className="w-3 h-3" /></button>
               </span>
             )}
             {sortBy !== 'default' && (
@@ -1304,13 +1305,14 @@ export default function PosPage() {
                     <p className="text-xs text-slate-400">Chọn danh mục, nhãn và thứ tự sắp xếp món</p>
                   </div>
                 </div>
-                <button
-                  type="button"
+                <IconButton
+                  variant="ghost"
+                  size="sm"
                   onClick={() => setIsFilterModalOpen(false)}
-                  className="p-1.5 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 transition cursor-pointer"
+                  aria-label="Đóng"
                 >
                   <X className="w-5 h-5" />
-                </button>
+                </IconButton>
               </div>
 
               {/* Modal Scrollable Content */}
@@ -1330,7 +1332,7 @@ export default function PosPage() {
                           onClick={() => setSortBy(opt.id)}
                           className={`px-3 py-2.5 rounded-xl font-bold transition flex items-center justify-between gap-1.5 cursor-pointer shadow-2xs text-left ${
                             isSelected
-                              ? 'bg-indigo-600 text-white shadow-sm font-black ring-2 ring-indigo-400/30'
+                              ? 'bg-purple-700 text-white shadow-sm font-black ring-2 ring-purple-500/30'
                               : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
                           }`}
                         >
@@ -1365,7 +1367,7 @@ export default function PosPage() {
                         }`}
                       >
                         <span>{t('pos.all_items')}</span>
-                        <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                        <span className={`text-caption px-1.5 py-0.5 rounded-full font-bold ${
                           activeCategoryId === null ? 'bg-purple-700 text-white' : 'bg-slate-100 text-slate-600'
                         }`}>
                           {safeProducts.filter((p) => p.is_active !== false).length}
@@ -1386,7 +1388,7 @@ export default function PosPage() {
                             }`}
                           >
                             <span>{cat.name}</span>
-                            <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                            <span className={`text-caption px-1.5 py-0.5 rounded-full font-bold ${
                               isSelected ? 'bg-purple-700 text-white' : 'bg-slate-100 text-slate-600'
                             }`}>
                               {count}
@@ -1414,7 +1416,7 @@ export default function PosPage() {
                       }`}
                     >
                       <span>{t('common.all')}</span>
-                      <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                      <span className={`text-caption px-1.5 py-0.5 rounded-full font-bold ${
                         activeTag === null ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-600'
                       }`}>
                         {safeProducts.filter((p) => p.is_active !== false && (activeCategoryId === null || p.category_id === activeCategoryId)).length}
@@ -1438,7 +1440,7 @@ export default function PosPage() {
                         >
                           <span>{tg.icon}</span>
                           <span>{tg.name}</span>
-                          <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                          <span className={`text-caption px-1.5 py-0.5 rounded-full font-bold ${
                             isSelected ? 'bg-purple-600 text-white' : 'bg-slate-100 text-slate-600'
                           }`}>
                             {count}
@@ -1452,24 +1454,26 @@ export default function PosPage() {
 
               {/* Modal Footer */}
               <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:justify-between border-t border-slate-100 pt-3">
-                <button
-                  type="button"
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={() => {
                     setActiveCategoryId(null);
                     setActiveTag(null);
                     setSortBy('default');
                   }}
-                  className="text-xs font-bold text-slate-500 hover:text-rose-600 transition cursor-pointer px-3 py-2.5 rounded-xl border border-slate-200 sm:border-transparent text-center justify-center flex items-center"
+                  className="text-xs font-bold text-slate-500 hover:text-rose-600"
                 >
                   Đặt lại bộ lọc
-                </button>
-                <button
-                  type="button"
+                </Button>
+                <Button
+                  variant="primary"
+                  size="md"
                   onClick={() => setIsFilterModalOpen(false)}
-                  className="bg-purple-700 hover:bg-purple-800 text-white text-xs font-extrabold px-5 py-2.5 rounded-xl shadow-xs transition active:scale-95 cursor-pointer text-center justify-center flex items-center"
+                  className="bg-purple-700 hover:bg-purple-800 text-white text-xs font-extrabold"
                 >
                   Áp dụng ({sortedAndFilteredProducts.length})
-                </button>
+                </Button>
               </div>
             </div>
           </div>
@@ -1488,7 +1492,7 @@ export default function PosPage() {
             >
               {/* Sidebar Header */}
               <div className="px-1.5 sm:px-2 pb-1.5 sm:pb-2 mb-1 border-b border-slate-100">
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Danh mục</span>
+                <span className="text-caption font-black text-slate-400 uppercase tracking-wider">Danh mục</span>
               </div>
               <CategorySidebar
                 categories={safeCategories}
@@ -1559,19 +1563,19 @@ export default function PosPage() {
               <div className="relative bg-purple-700 p-2 sm:p-2.5 rounded-xl text-white shadow-sm shrink-0">
                 <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5" />
                 {totalItemCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[10px] font-extrabold w-4 h-4 rounded-full flex items-center justify-center animate-pulse">
+                  <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-caption font-extrabold w-4 h-4 rounded-full flex items-center justify-center animate-pulse">
                     {totalItemCount}
                   </span>
                 )}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-[10px] sm:text-[11px] text-slate-400 font-medium truncate">
+                <p className="text-caption text-slate-400 font-medium truncate">
                   {t('pos.cart_total')} ({t('pos.items_count', { count: totalItemCount })})
                 </p>
                 <div className="flex items-center gap-1.5 flex-wrap">
                   <p className="text-sm sm:text-base font-bold text-white truncate">{formatCurrency(cartTotal, settings)}</p>
                   {discountAmount + promotionDiscount + platformFeeDiscount > 0 && (
-                    <span className="text-[9px] sm:text-[10px] bg-purple-500/20 text-purple-300 font-bold px-1 py-0.5 rounded truncate">
+                    <span className="text-caption bg-purple-500/20 text-purple-300 font-bold px-1.5 py-0.5 rounded truncate">
                       -{formatCurrency(discountAmount + promotionDiscount + platformFeeDiscount, settings)}
                     </span>
                   )}
@@ -1580,20 +1584,24 @@ export default function PosPage() {
             </div>
 
             <div className="flex items-center space-x-1.5 sm:space-x-2 shrink-0">
-              <button
+              <Button
+                variant="secondary"
+                size="sm"
                 onClick={() => setIsCartDrawerOpen(true)}
                 disabled={cartItems.length === 0}
-                className="bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-white text-[11px] sm:text-xs font-bold px-2.5 sm:px-3.5 py-2 sm:py-2.5 rounded-xl border border-slate-700 transition active:scale-95 whitespace-nowrap"
+                className="bg-slate-800 hover:bg-slate-700 text-white border-slate-700 whitespace-nowrap text-xs font-bold"
               >
                 {t('pos.view_cart')}
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
                 onClick={() => setIsCheckoutModalOpen(true)}
                 disabled={cartItems.length === 0}
-                className="bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white text-[11px] sm:text-xs font-bold px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl shadow-lg transition active:scale-95 whitespace-nowrap"
+                className="bg-purple-600 hover:bg-purple-700 text-white shadow-lg whitespace-nowrap text-xs font-bold"
               >
                 {t('pos.checkout_now')}
-              </button>
+              </Button>
             </div>
           </div>
         )}

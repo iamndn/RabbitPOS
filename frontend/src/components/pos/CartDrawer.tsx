@@ -37,6 +37,7 @@ import { formatCurrency, SettingsMap } from '@/lib/utils';
 import HorizontalScroller from '@/components/common/HorizontalScroller';
 import GiftItemSelectorModal from './GiftItemSelectorModal';
 import SalesChannelModal from '@/components/common/SalesChannelModal';
+import { Button, IconButton } from '@/components/ui';
 import {
   SalesChannel,
   DEFAULT_SALES_CHANNELS,
@@ -54,7 +55,7 @@ export interface SalesChannelOption {
 
 export const SALES_CHANNELS: SalesChannelOption[] = [
   { id: 'dine_in', label: 'Tại quán', icon: '🏠', colorClass: 'text-purple-700', activeClass: 'bg-purple-700 text-white shadow-xs' },
-  { id: 'takeaway', label: 'Mang về', icon: '🛍️', colorClass: 'text-indigo-700', activeClass: 'bg-indigo-600 text-white shadow-xs' },
+  { id: 'takeaway', label: 'Mang về', icon: '🛍️', colorClass: 'text-purple-700', activeClass: 'bg-purple-600 text-white shadow-xs' },
   { id: 'shopeefood', label: 'ShopeeFood', icon: '🧡', colorClass: 'text-orange-700', activeClass: 'bg-orange-600 text-white shadow-xs' },
   { id: 'grabfood', label: 'GrabFood', icon: '💚', colorClass: 'text-emerald-700', activeClass: 'bg-emerald-600 text-white shadow-xs' },
   { id: 'befood', label: 'BeFood', icon: '💛', colorClass: 'text-amber-700', activeClass: 'bg-amber-500 text-white shadow-xs' },
@@ -399,12 +400,14 @@ export default function CartDrawer({
               {t('pos.items_count', { count: totalItemCount })}
             </span>
           </div>
-          <button
+          <IconButton
+            variant="ghost"
+            size="sm"
             onClick={onClose}
-            className="p-1.5 rounded-xl hover:bg-slate-200 text-slate-500 hover:text-slate-700 transition cursor-pointer"
+            aria-label={t('common.close') || 'Đóng'}
           >
             <X className="w-5 h-5" />
-          </button>
+          </IconButton>
         </div>
 
         {/* 1. SALES CHANNEL SEGMENTED BAR */}
@@ -429,7 +432,7 @@ export default function CartDrawer({
                   <span className="text-[11px] font-extrabold tracking-tight">{ch.name}</span>
                   {presetPct > 0 && (
                     <span
-                      className={`text-[10px] font-black px-1.5 py-0.5 rounded-md leading-none ${
+                      className={`text-caption text-[11px] font-black px-1.5 py-0.5 rounded-md leading-none ${
                         isSelected
                           ? 'bg-black/20 text-white'
                           : 'bg-amber-100 text-amber-900 border border-amber-200'
@@ -458,7 +461,7 @@ export default function CartDrawer({
             <div className="mt-2 p-2 rounded-xl bg-white/95 border border-amber-200/80 shadow-2xs space-y-1.5 animate-in fade-in duration-150">
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                  <span className="text-[10px] uppercase font-black tracking-wider text-amber-900 bg-amber-100/90 border border-amber-200 px-1.5 py-0.5 rounded-md shrink-0">
+                  <span className="text-caption text-[11px] uppercase font-black tracking-wider text-amber-900 bg-amber-100/90 border border-amber-200 px-1.5 py-0.5 rounded-md shrink-0">
                     Chiết khấu sàn
                   </span>
                   {platformFeeDiscount > 0 ? (
@@ -494,7 +497,7 @@ export default function CartDrawer({
                         );
                         setIsEditingCommission(true);
                       }}
-                      className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-[10px] font-extrabold cursor-pointer transition active:scale-95 whitespace-nowrap"
+                      className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 text-caption font-extrabold cursor-pointer transition active:scale-95 whitespace-nowrap"
                     >
                       <span>Sửa %</span>
                     </button>
@@ -523,13 +526,13 @@ export default function CartDrawer({
                       placeholder="% hoặc đ"
                       value={customCommissionInput}
                       onChange={(e) => setCustomCommissionInput(e.target.value)}
-                      className="w-full px-2 py-1 text-xs font-bold border border-indigo-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+                      className="w-full px-2 py-1 text-xs font-bold border border-purple-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-purple-500/30"
                       autoFocus
                     />
                     <button
                       type="button"
                       onClick={handleCustomCommissionApply}
-                      className="px-2.5 py-1 rounded-lg bg-indigo-600 text-white text-[11px] font-extrabold hover:bg-indigo-700 active:scale-95 shrink-0"
+                      className="px-2.5 py-1 rounded-lg bg-purple-600 text-white text-caption font-extrabold hover:bg-purple-700 active:scale-95 shrink-0"
                     >
                       Lưu
                     </button>
@@ -545,7 +548,7 @@ export default function CartDrawer({
                           onPlatformFeeDiscountChange(Math.round((subtotal * quickPct) / 100));
                           setIsEditingCommission(false);
                         }}
-                        className="px-1.5 py-0.5 rounded-md bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 border border-slate-200 text-[10px] font-bold text-slate-700 active:scale-95"
+                        className="px-1.5 py-0.5 rounded-md bg-slate-100 hover:bg-purple-50 hover:text-purple-700 border border-slate-200 text-caption font-bold text-slate-700 active:scale-95"
                       >
                         {quickPct}%
                       </button>
@@ -573,7 +576,7 @@ export default function CartDrawer({
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0 pr-2">
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-amber-200 text-amber-900 border border-amber-300 shrink-0 flex items-center gap-1 shadow-2xs">
+                          <span className="text-caption text-[11px] font-extrabold px-2 py-0.5 rounded-full bg-amber-200 text-amber-900 border border-amber-300 shrink-0 flex items-center gap-1 shadow-2xs">
                             <Gift className="w-3 h-3 text-amber-700" />
                             <span>Món quà tặng</span>
                           </span>
@@ -585,7 +588,7 @@ export default function CartDrawer({
                           {item.selectedVariant.variant_name !== 'Default' ? item.selectedVariant.variant_name : 'Mặc định'}
                         </p>
                         {item.giftPromotionName && (
-                          <p className="text-[10px] text-amber-800 font-bold bg-amber-100/90 px-2 py-0.5 rounded-md mt-1 inline-block border border-amber-200">
+                          <p className="text-caption text-[11px] text-amber-800 font-bold bg-amber-100/90 px-2 py-0.5 rounded-md mt-1 inline-block border border-amber-200">
                             🎁 CTKM: {item.giftPromotionName}
                           </p>
                         )}
@@ -595,7 +598,7 @@ export default function CartDrawer({
                           0đ (Miễn phí)
                         </div>
                         {item.originalUnitPrice && item.originalUnitPrice > 0 && (
-                          <div className="text-[10px] text-slate-400 line-through">
+                          <div className="text-caption text-slate-400 line-through">
                             {formatCurrency(item.originalUnitPrice, settings)}
                           </div>
                         )}
@@ -649,7 +652,7 @@ export default function CartDrawer({
                           {item.selectedToppings.map((top) => (
                             <span
                               key={top.id}
-                              className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.2 rounded font-medium"
+                              className="text-caption bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-medium"
                             >
                               +{top.name}
                             </span>
@@ -677,7 +680,7 @@ export default function CartDrawer({
                           <button
                             type="button"
                             onClick={() => handleSaveUnitPrice(item.id)}
-                            className="p-1 bg-purple-700 text-white rounded-md text-[10px]"
+                            className="p-1 bg-purple-700 text-white rounded-md text-caption font-bold"
                           >
                             <Check className="w-3 h-3" />
                           </button>
@@ -686,7 +689,7 @@ export default function CartDrawer({
                         <button
                           type="button"
                           onClick={() => handleStartEditPrice(item)}
-                          className="text-[10px] text-slate-400 hover:text-purple-700 inline-flex items-center gap-0.5 transition cursor-pointer"
+                          className="text-caption text-slate-400 hover:text-purple-700 inline-flex items-center gap-0.5 transition cursor-pointer"
                         >
                           <span>{formatCurrency(item.unitPrice, settings)}</span>
                           <Edit2 className="w-2.5 h-2.5" />
@@ -836,13 +839,13 @@ export default function CartDrawer({
                 type="button"
                 onClick={() => setActiveTab(activeTab === 'surcharge' ? 'none' : 'surcharge')}
                 className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer whitespace-nowrap active:scale-95 ${surcharge > 0
-                  ? 'bg-violet-50 text-violet-900 border border-violet-300 ring-1 ring-violet-200'
+                  ? 'bg-purple-50 text-purple-900 border border-purple-300 ring-1 ring-purple-200'
                   : activeTab === 'surcharge'
                     ? 'bg-slate-800 text-white'
                     : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200/60'
                   }`}
               >
-                <Plus className="w-3.5 h-3.5 text-violet-600" />
+                <Plus className="w-3.5 h-3.5 text-purple-600" />
                 <span>{surcharge > 0 ? `Phụ thu: +${formatCurrency(surcharge, settings)}` : 'Phụ thu'}</span>
                 {surcharge > 0 && (
                   <span
@@ -863,13 +866,13 @@ export default function CartDrawer({
                   type="button"
                   onClick={() => setActiveTab(activeTab === 'time' ? 'none' : 'time')}
                   className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer whitespace-nowrap active:scale-95 ${orderCreatedAt
-                    ? 'bg-indigo-50 text-indigo-900 border border-indigo-300 ring-1 ring-indigo-200'
+                    ? 'bg-purple-50 text-purple-900 border border-purple-300 ring-1 ring-purple-200'
                     : activeTab === 'time'
                       ? 'bg-slate-800 text-white'
                       : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200/60'
                     }`}
                 >
-                  <Clock className="w-3.5 h-3.5 text-indigo-600" />
+                  <Clock className="w-3.5 h-3.5 text-purple-600" />
                   <span>{orderCreatedAt ? '🕒 Quá khứ' : 'Giờ tạo'}</span>
                   {orderCreatedAt && (
                     <span
@@ -894,7 +897,7 @@ export default function CartDrawer({
                   <button
                     type="button"
                     onClick={() => setActiveTab('none')}
-                    className="text-[10px] text-slate-400 hover:text-slate-600"
+                    className="text-caption font-bold text-slate-400 hover:text-slate-600"
                   >
                     Đóng [✕]
                   </button>
@@ -913,7 +916,7 @@ export default function CartDrawer({
                       key={preset}
                       type="button"
                       onClick={() => handleToggleFastNote(preset)}
-                      className="px-2 py-1 rounded-lg text-[10px] font-bold bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 active:scale-95 cursor-pointer"
+                      className="px-2 py-1 rounded-lg text-caption font-bold bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 active:scale-95 cursor-pointer"
                     >
                       {preset}
                     </button>
@@ -929,7 +932,7 @@ export default function CartDrawer({
                   <button
                     type="button"
                     onClick={() => setActiveTab('none')}
-                    className="text-[10px] text-purple-600 hover:text-purple-900"
+                    className="text-caption font-bold text-purple-600 hover:text-purple-900"
                   >
                     Đóng [✕]
                   </button>
@@ -945,7 +948,7 @@ export default function CartDrawer({
                       >
                         <div className="min-w-0">
                           <p className="font-bold text-slate-900 text-xs truncate">{promo.name}</p>
-                          <p className="text-[10px] text-purple-700 font-semibold">
+                          <p className="text-caption text-purple-700 font-semibold">
                             {promo.promo_type === 'discount_percent'
                               ? `Giảm -${promo.discount_value}%`
                               : promo.promo_type === 'discount_amount'
@@ -977,14 +980,14 @@ export default function CartDrawer({
                   <button
                     type="button"
                     onClick={() => setActiveTab('none')}
-                    className="text-[10px] text-amber-700 hover:text-amber-900"
+                    className="text-caption font-bold text-amber-700 hover:text-amber-900"
                   >
                     Đóng [✕]
                   </button>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="text-[10px] font-bold text-slate-600 block mb-0.5">Giảm giá thủ công (đ)</label>
+                    <label className="text-caption font-bold text-slate-600 block mb-0.5">Giảm giá thủ công (đ)</label>
                     <input
                       type="number"
                       step="1000"
@@ -995,7 +998,7 @@ export default function CartDrawer({
                     />
                   </div>
                   <div>
-                    <label className="text-[10px] font-bold text-slate-600 block mb-0.5">Chiết khấu sàn (đ)</label>
+                    <label className="text-caption font-bold text-slate-600 block mb-0.5">Chiết khấu sàn (đ)</label>
                     <input
                       type="number"
                       step="1000"
@@ -1006,7 +1009,7 @@ export default function CartDrawer({
                     />
                   </div>
                   <div className="col-span-2">
-                    <label className="text-[10px] font-bold text-slate-600 block mb-0.5">Phí giao hàng / Ship (đ)</label>
+                    <label className="text-caption font-bold text-slate-600 block mb-0.5">Phí giao hàng / Ship (đ)</label>
                     <input
                       type="number"
                       step="1000"
@@ -1021,13 +1024,13 @@ export default function CartDrawer({
             )}
 
             {activeTab === 'surcharge' && (
-              <div className="p-2.5 rounded-2xl bg-violet-50/60 border border-violet-200 space-y-2 animate-in fade-in slide-in-from-top-1 text-xs">
+              <div className="p-2.5 rounded-2xl bg-purple-50/60 border border-purple-200 space-y-2 animate-in fade-in slide-in-from-top-1 text-xs">
                 <div className="flex items-center justify-between">
-                  <span className="font-bold text-violet-950">Phụ thu (Lễ tết, Đêm muộn)</span>
+                  <span className="font-bold text-purple-950">Phụ thu (Lễ tết, Đêm muộn)</span>
                   <button
                     type="button"
                     onClick={() => setActiveTab('none')}
-                    className="text-[10px] text-violet-700 hover:text-violet-900"
+                    className="text-caption font-bold text-purple-700 hover:text-purple-900"
                   >
                     Đóng [✕]
                   </button>
@@ -1044,13 +1047,13 @@ export default function CartDrawer({
             )}
 
             {activeTab === 'time' && onOrderCreatedAtChange && (
-              <div className="p-2.5 rounded-2xl bg-indigo-50/60 border border-indigo-200 space-y-2 animate-in fade-in slide-in-from-top-1 text-xs">
+              <div className="p-2.5 rounded-2xl bg-purple-50/60 border border-purple-200 space-y-2 animate-in fade-in slide-in-from-top-1 text-xs">
                 <div className="flex items-center justify-between">
-                  <span className="font-bold text-indigo-950">Chọn thời gian tạo đơn quá khứ</span>
+                  <span className="font-bold text-purple-950">Chọn thời gian tạo đơn quá khứ</span>
                   <button
                     type="button"
                     onClick={() => setActiveTab('none')}
-                    className="text-[10px] text-indigo-700 hover:text-indigo-900"
+                    className="text-caption font-bold text-purple-700 hover:text-purple-900"
                   >
                     Đóng [✕]
                   </button>
@@ -1135,43 +1138,44 @@ export default function CartDrawer({
             {/* 4. SIDE-BY-SIDE 1-TAP CHECKOUT ACTION BUTTONS (Requirement 4) */}
             <div className="grid grid-cols-2 gap-2 pt-1">
               {/* 1-Tap Cash Button (Emerald Green) */}
-              <button
-                type="button"
+              <Button
+                variant="primary"
+                size="lg"
                 onClick={onOneTapCash || onProceedCheckout}
                 disabled={isSubmitting || safeCartItems.length === 0}
-                className="bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-extrabold py-3 px-2 rounded-2xl shadow-md hover:shadow-lg transition flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 text-xs sm:text-sm disabled:opacity-50 cursor-pointer"
+                isLoading={isSubmitting}
+                className="bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white shadow-md text-xs sm:text-sm font-extrabold py-3 h-auto rounded-xl"
+                leftIcon={!isSubmitting ? <Banknote className="w-4 h-4 shrink-0 text-emerald-100" /> : undefined}
               >
-                {isSubmitting ? (
-                  <RefreshCw className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Banknote className="w-4 h-4 shrink-0 text-emerald-100" />
-                )}
                 <span className="truncate">{t('pos.fast_cash_1tap') || '💵 Tiền Mặt (1-Chạm)'}</span>
-              </button>
+              </Button>
 
               {/* 1-Tap VietQR Button (Blue/Indigo) */}
-              <button
-                type="button"
+              <Button
+                variant="primary"
+                size="lg"
                 onClick={onOneTapVietQR || onProceedCheckout}
                 disabled={isSubmitting || safeCartItems.length === 0}
-                className="bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-extrabold py-3 px-2 rounded-2xl shadow-md hover:shadow-lg transition flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 text-xs sm:text-sm disabled:opacity-50 cursor-pointer"
+                className="bg-blue-600 hover:bg-blue-700 active:scale-95 text-white shadow-md text-xs sm:text-sm font-extrabold py-3 h-auto rounded-xl"
+                leftIcon={<QrCode className="w-4 h-4 shrink-0 text-blue-100" />}
               >
-                <QrCode className="w-4 h-4 shrink-0 text-blue-100" />
                 <span className="truncate">{t('pos.fast_vietqr_1tap') || '📲 QR Nhanh'}</span>
-              </button>
+              </Button>
             </div>
 
             {/* Secondary Button: Calculate Change / Other Fund */}
             {onOpenCheckoutModal && (
-              <button
-                type="button"
+              <Button
+                variant="secondary"
+                size="sm"
+                fullWidth
                 onClick={onOpenCheckoutModal}
                 disabled={isSubmitting || safeCartItems.length === 0}
-                className="w-full py-2 px-3 border border-slate-200 hover:bg-slate-100 text-slate-600 hover:text-slate-900 font-bold rounded-xl text-xs transition flex items-center justify-center gap-1.5 active:scale-98 cursor-pointer disabled:opacity-50"
+                leftIcon={<Calculator className="w-3.5 h-3.5 text-slate-500" />}
+                className="text-xs font-bold text-slate-600 hover:text-slate-900 rounded-xl"
               >
-                <Calculator className="w-3.5 h-3.5 text-slate-500" />
                 <span>{t('pos.calc_change_other_fund') || '🧮 Tính tiền thừa / Quỹ khác'}</span>
-              </button>
+              </Button>
             )}
           </div>
         )}

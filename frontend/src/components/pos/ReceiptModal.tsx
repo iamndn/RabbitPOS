@@ -6,6 +6,7 @@ import { CartItem } from './VariantSelectorModal';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
 import { fetchApi, getImageUrl } from '@/lib/api';
 import { formatCurrency, SettingsMap } from '@/lib/utils';
+import { Button, IconButton } from '@/components/ui';
 import { useStore } from '@/lib/StoreContext';
 import { getChannelBadge, parseSalesChannels } from '@/types/sales_channel';
 
@@ -102,12 +103,14 @@ export default function ReceiptModal({ isOpen, onClose, order, settings: initial
               </span>
             </div>
           </div>
-          <button
+          <IconButton
+            variant="ghost"
+            size="sm"
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition active:scale-95"
+            aria-label={t('common.close') || 'Đóng'}
           >
             <X className="w-5 h-5" />
-          </button>
+          </IconButton>
         </div>
 
         {/* PRINTABLE THERMAL RECEIPT (Targeted by CSS print) */}
@@ -296,7 +299,7 @@ export default function ReceiptModal({ isOpen, onClose, order, settings: initial
             <p className="font-bold text-slate-800">{t('pos.thank_you_title')}</p>
             <p className="italic">{t('pos.thank_you_sub')}</p>
             {order.is_offline_provisional && (
-              <p className="text-[9px] text-amber-800 font-bold pt-1 border-t border-dashed border-amber-200 mt-2">
+              <p className="text-caption text-[11px] text-amber-800 font-bold pt-1 border-t border-dashed border-amber-200 mt-2">
                 * Đơn hàng tạo ngoại tuyến và sẽ tự động đồng bộ khi có Internet.
               </p>
             )}
@@ -305,19 +308,23 @@ export default function ReceiptModal({ isOpen, onClose, order, settings: initial
 
         {/* Bottom Actions (Hidden during print) */}
         <div className="flex space-x-2 pt-2 print:hidden">
-          <button
+          <Button
+            variant="primary"
+            size="md"
             onClick={handlePrint}
-            className="flex-1 bg-purple-700 hover:bg-purple-800 text-white font-bold py-3 px-4 rounded-xl shadow-md transition flex items-center justify-center space-x-2 text-xs active:scale-95"
+            leftIcon={<Printer className="w-4 h-4" />}
+            className="flex-1 bg-purple-700 hover:bg-purple-800 text-white font-bold"
           >
-            <Printer className="w-4 h-4" />
             <span>{t('pos.print_receipt')}</span>
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="secondary"
+            size="md"
             onClick={onClose}
-            className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-3 px-4 rounded-xl text-xs transition active:scale-95"
+            className="px-5 font-semibold"
           >
             {t('common.close')}
-          </button>
+          </Button>
         </div>
       </div>
 

@@ -5,6 +5,7 @@ import { X, Minus, Plus, Check } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
 import { fetchApi, getImageUrl } from '@/lib/api';
 import { formatCurrency, SettingsMap } from '@/lib/utils';
+import { Button, IconButton } from '@/components/ui';
 
 export interface ProductVariant {
   id: number;
@@ -191,9 +192,14 @@ export default function VariantSelectorModal({ product, onClose, onAddToCart, se
               <p className="text-xs text-slate-500 line-clamp-1">{product.description || t('pos.select_variant')}</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 active:scale-95 transition-transform">
+          <IconButton
+            variant="ghost"
+            size="sm"
+            onClick={onClose}
+            aria-label={t('common.close') || 'Đóng'}
+          >
             <X className="w-5 h-5" />
-          </button>
+          </IconButton>
         </div>
 
         {/* 1. Size / Variant Selection */}
@@ -203,7 +209,7 @@ export default function VariantSelectorModal({ product, onClose, onAddToCart, se
               {safeVariants.length === 1 ? t('pos.variant_single') : t('pos.select_variant')}
             </label>
             {safeVariants.length === 1 && (
-              <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+              <span className="text-caption font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
                 1 size mặc định
               </span>
             )}
@@ -246,7 +252,7 @@ export default function VariantSelectorModal({ product, onClose, onAddToCart, se
                 }`}
               >
                 <span className="text-xs font-bold leading-tight">{lvl.label}</span>
-                <span className={`text-[9px] leading-tight ${sugarLevel === lvl.value ? 'text-emerald-100' : 'text-slate-400'}`}>
+                <span className={`text-caption text-[11px] leading-tight ${sugarLevel === lvl.value ? 'text-emerald-100' : 'text-slate-400'}`}>
                   {lvl.sub}
                 </span>
               </button>
@@ -270,7 +276,7 @@ export default function VariantSelectorModal({ product, onClose, onAddToCart, se
                 }`}
               >
                 <span className="text-xs font-bold leading-tight">{lvl.label}</span>
-                <span className={`text-[9px] leading-tight ${iceLevel === lvl.value ? 'text-sky-100' : 'text-slate-400'}`}>
+                <span className={`text-caption text-[11px] leading-tight ${iceLevel === lvl.value ? 'text-sky-100' : 'text-slate-400'}`}>
                   {lvl.sub}
                 </span>
               </button>
@@ -309,7 +315,7 @@ export default function VariantSelectorModal({ product, onClose, onAddToCart, se
                       </div>
                       <span>{topping.name}</span>
                       {isGlobal && (
-                        <span className="text-[9px] bg-slate-100 text-slate-500 px-1 rounded">toàn cầu</span>
+                        <span className="text-caption text-[11px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-medium">toàn cầu</span>
                       )}
                     </div>
                     <span className="text-emerald-700 font-bold">+{formatCurrency(topping.price, settings)}</span>
@@ -320,31 +326,39 @@ export default function VariantSelectorModal({ product, onClose, onAddToCart, se
           )}
         </div>
 
-        {/* Quantity Stepper & Submit Button */}
-        <div className="pt-3 border-t border-slate-100 flex items-center space-x-3">
-          <div className="flex items-center space-x-2 border border-slate-200 rounded-xl p-1 bg-slate-50">
-            <button
+        {/* Quantity Stepper & Submit Button — Sticky Bottom on Mobile */}
+        <div className="sticky bottom-0 bg-white/95 backdrop-blur-xs border-t border-slate-100 pt-3 pb-1 -mx-4 sm:-mx-5 px-4 sm:px-5 flex items-center space-x-3 mt-4">
+          <div className="flex items-center space-x-1 sm:space-x-2 border border-slate-200 rounded-xl p-1 bg-slate-50">
+            <IconButton
+              variant="ghost"
+              size="sm"
               onClick={() => setQuantity(Math.max(1, quantity - 1))}
-              className="w-9 h-9 rounded-lg bg-white shadow-xs flex items-center justify-center text-slate-700 hover:bg-slate-100 font-bold active:scale-90 transition-transform"
+              aria-label="Giảm số lượng"
+              className="w-9 h-9 bg-white shadow-xs"
             >
               <Minus className="w-4 h-4" />
-            </button>
-            <span className="font-bold text-slate-900 text-sm px-2 min-w-[20px] text-center">{quantity}</span>
-            <button
+            </IconButton>
+            <span className="font-bold text-slate-900 text-sm px-2 min-w-[20px] text-center tabular-nums">{quantity}</span>
+            <IconButton
+              variant="ghost"
+              size="sm"
               onClick={() => setQuantity(quantity + 1)}
-              className="w-9 h-9 rounded-lg bg-white shadow-xs flex items-center justify-center text-slate-700 hover:bg-slate-100 font-bold active:scale-90 transition-transform"
+              aria-label="Tăng số lượng"
+              className="w-9 h-9 bg-white shadow-xs"
             >
               <Plus className="w-4 h-4" />
-            </button>
+            </IconButton>
           </div>
 
-          <button
+          <Button
+            variant="primary"
+            size="lg"
             onClick={handleAdd}
-            className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 px-4 rounded-xl shadow-md transition flex items-center justify-between text-sm active:scale-95 cursor-pointer"
+            className="flex-1 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold flex items-center justify-between"
           >
             <span>{t('pos.add_to_order')}</span>
-            <span>{formatCurrency(lineTotal, settings)}</span>
-          </button>
+            <span className="tabular-nums">{formatCurrency(lineTotal, settings)}</span>
+          </Button>
         </div>
       </div>
     </div>

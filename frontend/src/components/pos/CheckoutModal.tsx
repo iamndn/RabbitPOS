@@ -3,6 +3,7 @@ import { X, Wallet, Building2, Check, ArrowRight, RefreshCw } from 'lucide-react
 import { fetchApi } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
 import { formatCurrency, SettingsMap } from '@/lib/utils';
+import { Button, IconButton } from '@/components/ui';
 
 export interface Fund {
   id: number;
@@ -83,9 +84,15 @@ export default function CheckoutModal({
             <h2 className="font-bold text-lg text-slate-900">{t('pos.select_payment_method')}</h2>
             <p className="text-xs text-slate-500">{t('pos.choose_target_fund')}</p>
           </div>
-          <button onClick={onClose} disabled={isSubmitting} className="p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 disabled:opacity-50 active:scale-95 transition-transform">
+          <IconButton
+            variant="ghost"
+            size="sm"
+            onClick={onClose}
+            disabled={isSubmitting}
+            aria-label={t('common.close') || 'Đóng'}
+          >
             <X className="w-5 h-5" />
-          </button>
+          </IconButton>
         </div>
 
         {/* Total Amount Display */}
@@ -140,27 +147,22 @@ export default function CheckoutModal({
 
         {/* Proceed Action Button */}
         <div className="pt-2">
-          <button
-            onClick={handleProceed}
+          <Button
+            variant="primary"
+            size="lg"
+            fullWidth
+            isLoading={isSubmitting}
             disabled={!selectedFundId || isSubmitting}
-            className="w-full bg-purple-700 hover:bg-purple-800 disabled:bg-slate-300 text-white font-bold py-3.5 px-4 rounded-2xl shadow-lg transition flex items-center justify-center space-x-2 text-sm active:scale-95"
+            onClick={handleProceed}
+            className="py-3.5 bg-purple-700 hover:bg-purple-800 text-white font-bold rounded-2xl shadow-lg text-sm"
           >
-            {isSubmitting ? (
-              <>
-                <RefreshCw className="w-4 h-4 animate-spin" />
-                <span>{t('pos.processing')}</span>
-              </>
-            ) : (
-              <>
-                <span>
-                  {selectedFund?.fund_type === 'bank'
-                    ? t('pos.generate_vietqr')
-                    : t('pos.complete_cash_payment')}
-                </span>
-                <ArrowRight className="w-4 h-4" />
-              </>
-            )}
-          </button>
+            <span>
+              {selectedFund?.fund_type === 'bank'
+                ? t('pos.generate_vietqr')
+                : t('pos.complete_cash_payment')}
+            </span>
+            <ArrowRight className="w-4 h-4 ml-1.5" />
+          </Button>
         </div>
       </div>
     </div>

@@ -3,6 +3,7 @@ import { X, CheckCircle2, QrCode, RefreshCw, Copy, Building2 } from 'lucide-reac
 import { fetchApi } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
 import { formatCurrency, SettingsMap } from '@/lib/utils';
+import { Button, IconButton } from '@/components/ui';
 
 interface VietQRData {
   order_code: string;
@@ -70,11 +71,11 @@ export default function VietQRModal({ totalAmount, onClose, onConfirmOrder, sett
 
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-          <div className="flex items-center space-x-2 text-indigo-700 font-bold text-sm">
-            <QrCode className="w-5 h-5 text-indigo-600" />
+          <div className="flex items-center space-x-2 text-brand-700 font-bold text-sm">
+            <QrCode className="w-5 h-5 text-brand-600" />
             <span>{t('pos.scan_vietqr_to_pay')}</span>
             {salesChannel && salesChannel !== 'dine_in' && (
-              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+              <span className={`px-2 py-0.5 rounded-full text-caption font-bold border ${
                 salesChannel === 'shopeefood'
                   ? 'bg-orange-50 text-orange-700 border-orange-200'
                   : salesChannel === 'grabfood'
@@ -93,9 +94,15 @@ export default function VietQRModal({ totalAmount, onClose, onConfirmOrder, sett
               </span>
             )}
           </div>
-          <button onClick={onClose} disabled={isSubmitting} className="p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 disabled:opacity-50 active:scale-95 transition-transform">
+          <IconButton
+            variant="ghost"
+            size="sm"
+            onClick={onClose}
+            disabled={isSubmitting}
+            aria-label={t('common.close') || 'Đóng'}
+          >
             <X className="w-5 h-5" />
-          </button>
+          </IconButton>
         </div>
 
         {/* QR Code Container */}
@@ -136,7 +143,7 @@ export default function VietQRModal({ totalAmount, onClose, onConfirmOrder, sett
                 onClick={copyAccount}
                 className="font-mono font-bold text-purple-700 flex items-center gap-1 hover:underline active:scale-95 transition-transform"
               >
-                {qrData.account_no} {copied ? <span className="text-[10px] text-purple-600 font-bold">{t('pos.copied')}</span> : <Copy className="w-3 h-3" />}
+                {qrData.account_no} {copied ? <span className="text-caption font-bold text-purple-600">{t('pos.copied')}</span> : <Copy className="w-3 h-3" />}
               </button>
             </div>
             <div className="flex items-center justify-between">
@@ -151,23 +158,17 @@ export default function VietQRModal({ totalAmount, onClose, onConfirmOrder, sett
         )}
 
         {/* Action Button */}
-        <button
+        <Button
+          variant="primary"
+          size="lg"
+          fullWidth
+          isLoading={isSubmitting}
           onClick={handleConfirm}
-          disabled={isSubmitting}
-          className="w-full bg-purple-700 hover:bg-purple-800 disabled:bg-slate-300 text-white font-bold py-3.5 px-4 rounded-2xl shadow-lg transition flex items-center justify-center space-x-2 text-sm active:scale-95"
+          leftIcon={<CheckCircle2 className="w-5 h-5" />}
+          className="py-3.5 bg-purple-700 hover:bg-purple-800 text-white font-bold rounded-2xl shadow-lg text-sm"
         >
-          {isSubmitting ? (
-            <>
-              <RefreshCw className="w-5 h-5 animate-spin" />
-              <span>{t('pos.processing')}</span>
-            </>
-          ) : (
-            <>
-              <CheckCircle2 className="w-5 h-5" />
-              <span>{t('pos.confirm_payment_received')}</span>
-            </>
-          )}
-        </button>
+          <span>{t('pos.confirm_payment_received')}</span>
+        </Button>
       </div>
     </div>
   );

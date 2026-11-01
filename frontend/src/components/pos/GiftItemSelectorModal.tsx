@@ -5,6 +5,7 @@ import { X, Gift, Search, Sparkles, Check, Coffee } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
 import { getImageUrl } from '@/lib/api';
 import { formatCurrency, SettingsMap } from '@/lib/utils';
+import { IconButton } from '@/components/ui';
 import { Promotion } from '@/types/promotion';
 import { Product, ProductVariant } from './VariantSelectorModal';
 
@@ -103,8 +104,13 @@ export default function GiftItemSelectorModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-60 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-200">
-      <div className="bg-white w-full max-w-2xl max-h-[90vh] rounded-3xl shadow-2xl flex flex-col overflow-hidden border border-slate-200 animate-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-60 bg-slate-900/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
+      <div className="bg-white w-full max-w-2xl max-h-[92dvh] sm:max-h-[85vh] rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden border border-slate-200 animate-in slide-in-from-bottom sm:zoom-in-95 duration-200 pb-safe">
+        {/* Mobile Drag Indicator */}
+        <div className="flex justify-center sm:hidden pt-0.5 pb-1 shrink-0">
+          <div className="w-12 h-1.5 bg-slate-300 rounded-full" />
+        </div>
+
         {/* Header */}
         <div className="px-5 py-4 border-b border-slate-200/80 bg-gradient-to-r from-amber-500/10 via-orange-500/5 to-purple-500/10 flex items-center justify-between">
           <div className="flex items-center gap-3 min-w-0">
@@ -116,7 +122,7 @@ export default function GiftItemSelectorModal({
                 <h3 className="font-extrabold text-slate-900 text-base leading-tight truncate">
                   {t('promotions.select_gift_modal_title') || 'Chọn món quà tặng'}
                 </h3>
-                <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 border border-purple-200 shrink-0">
+                <span className="text-caption font-extrabold px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 border border-purple-200 shrink-0">
                   0đ Miễn phí
                 </span>
               </div>
@@ -127,13 +133,14 @@ export default function GiftItemSelectorModal({
             </div>
           </div>
 
-          <button
-            type="button"
+          <IconButton
+            variant="ghost"
+            size="sm"
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition active:scale-95 cursor-pointer"
+            aria-label="Đóng"
           >
             <X className="w-5 h-5" />
-          </button>
+          </IconButton>
         </div>
 
         {/* Search & Categories Bar */}
@@ -244,7 +251,7 @@ export default function GiftItemSelectorModal({
                         ) : (
                           <Coffee className="w-5 h-5 text-slate-400" />
                         )}
-                        <span className="absolute bottom-0 right-0 bg-amber-500 text-[9px] font-black text-white px-1 rounded-tl-md">
+                        <span className="absolute bottom-0 right-0 bg-amber-500 text-caption font-black text-white px-1 rounded-tl-md">
                           0đ
                         </span>
                       </div>
