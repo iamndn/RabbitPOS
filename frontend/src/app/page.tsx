@@ -1,37 +1,33 @@
 'use client';
 
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import {
   ShoppingBag,
   Coffee,
   RefreshCw,
-  CheckCircle2,
-  AlertCircle,
   Plus,
   Search,
   Check,
   Tag,
   X,
-  Sparkles,
   SlidersHorizontal,
-  Filter,
   ArrowUpAZ,
   ArrowDownAZ,
   FolderTree,
   TrendingUp,
   TrendingDown,
-  ArrowUpDown,
-  Wifi,
   WifiOff,
+  Clock,
 } from 'lucide-react';
 import AppShell from '@/components/AppShell';
-import { Button, IconButton } from '@/components/ui';
+import { Button, Chip, EmptyState, ResponsiveSheet } from '@/components/ui';
 import type { CartItem, Product, ProductVariant } from '@/components/pos/VariantSelectorModal';
 import CartDrawer from '@/components/pos/CartDrawer';
 import type { CompletedOrderData } from '@/components/pos/ReceiptModal';
 import { Promotion } from '@/types/promotion';
-import { fetchApi, ApiResponse, getImageUrl } from '@/lib/api';
+import { fetchApi, getImageUrl } from '@/lib/api';
+import { getAuthUser, isMasterRole, isOwnerRole } from '@/lib/auth';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
 import { useConfirm } from '@/context/ConfirmContext';
 import { useToast } from '@/context/ToastContext';
@@ -44,7 +40,6 @@ import {
   clearCartFromOfflineCache,
   getDeviceId,
   Category,
-  Topping,
 } from '@/lib/offline/catalog';
 import {
   enqueueOfflineOrder,
@@ -121,17 +116,17 @@ const OfflineQueueModal = dynamic(() => import('@/components/pos/OfflineQueueMod
 
 export type ProductSortOption = 'default' | 'name-asc' | 'name-desc' | 'category' | 'tag' | 'price-asc' | 'price-desc';
 
-const SORT_OPTIONS: { id: ProductSortOption; label: string; icon: React.ReactNode; desc: string }[] = [
-  { id: 'default', label: 'Mặc định', icon: <RefreshCw className="w-3.5 h-3.5 text-slate-500" />, desc: 'Thứ tự ban đầu' },
-  { id: 'name-asc', label: 'Tên: A → Z', icon: <ArrowUpAZ className="w-3.5 h-3.5 text-purple-600" />, desc: 'Bảng chữ cái từ A đến Z' },
-  { id: 'name-desc', label: 'Tên: Z → A', icon: <ArrowDownAZ className="w-3.5 h-3.5 text-purple-600" />, desc: 'Bảng chữ cái từ Z đến A' },
-  { id: 'category', label: 'Theo Danh mục', icon: <FolderTree className="w-3.5 h-3.5 text-purple-500" />, desc: 'Nhóm theo danh mục món' },
-  { id: 'tag', label: 'Theo Nhãn', icon: <Tag className="w-3.5 h-3.5 text-amber-500" />, desc: 'Nhóm theo nhãn sản phẩm' },
-  { id: 'price-asc', label: 'Giá: Thấp → Cao', icon: <TrendingUp className="w-3.5 h-3.5 text-teal-500" />, desc: 'Từ giá rẻ nhất' },
-  { id: 'price-desc', label: 'Giá: Cao → Thấp', icon: <TrendingDown className="w-3.5 h-3.5 text-rose-500" />, desc: 'Từ giá cao nhất' },
+const SORT_OPTION_CONFIGS: { id: ProductSortOption; labelKey: string; icon: React.ReactNode }[] = [
+  { id: 'default', labelKey: 'pos.sort_default', icon: <RefreshCw className="w-3.5 h-3.5" /> },
+  { id: 'name-asc', labelKey: 'pos.sort_name_asc', icon: <ArrowUpAZ className="w-3.5 h-3.5" /> },
+  { id: 'name-desc', labelKey: 'pos.sort_name_desc', icon: <ArrowDownAZ className="w-3.5 h-3.5" /> },
+  { id: 'category', labelKey: 'pos.sort_category', icon: <FolderTree className="w-3.5 h-3.5" /> },
+  { id: 'tag', labelKey: 'pos.sort_tag', icon: <Tag className="w-3.5 h-3.5" /> },
+  { id: 'price-asc', labelKey: 'pos.sort_price_asc', icon: <TrendingUp className="w-3.5 h-3.5" /> },
+  { id: 'price-desc', labelKey: 'pos.sort_price_desc', icon: <TrendingDown className="w-3.5 h-3.5" /> },
 ];
 
-// ── MEMOIZED CATEGORY SIDEBAR (vertical sticky column) ───────────────────────
+// ── MEMOIZED CATEGORY SIDEBAR (Opaque card surface, 0px backdrop-filter) ─────
 interface CategorySidebarProps {
   categories: Category[];
   activeCategoryId: number | null;
@@ -150,26 +145,28 @@ const CategorySidebar = React.memo(function CategorySidebar({
   allLabel,
 }: CategorySidebarProps) {
   return (
-    <div className="flex flex-col gap-1 overflow-y-auto overscroll-contain pr-0.5 sm:pr-1 custom-scrollbar">
-      {/* Tất cả */}
+    <div className="flex flex-col gap-1 overflow-y-auto overscroll-contain pr-0.5 custom-scrollbar">
+      {/* All Items */}
       <button
+        type="button"
         onClick={() => onSelectCategory(null)}
-        className={`w-full px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-xl text-[11px] sm:text-xs font-bold text-left flex items-center justify-between gap-1.5 transition active:scale-[0.97] cursor-pointer ${
+        className={`w-full min-h-[42px] md:min-h-[38px] px-2.5 sm:px-3 py-2 rounded-field text-caption sm:text-footnote font-semibold text-left flex items-center justify-between gap-1.5 transition duration-press ease-press active:scale-[0.97] cursor-pointer ${
           activeCategoryId === null
-            ? 'bg-purple-700 text-white shadow-sm ring-2 ring-purple-500/30'
-            : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200/80'
+            ? 'bg-brand-600 text-white shadow-card'
+            : 'bg-surface-card text-slate-700 hover:bg-slate-900/[0.04] border border-transparent'
         }`}
       >
         <span className="truncate leading-snug">{allLabel}</span>
-        <span className={`shrink-0 text-caption min-w-[1.2rem] sm:min-w-[1.3rem] text-center px-1.5 py-0.5 rounded-full font-bold ${
-          activeCategoryId === null ? 'bg-purple-600 text-white' : 'bg-slate-100 text-slate-500'
-        }`}>
+        <span
+          className={`shrink-0 text-caption font-num min-w-[1.35rem] text-center px-1.5 py-0.5 rounded-full font-semibold ${
+            activeCategoryId === null ? 'bg-white/20 text-white' : 'bg-surface-grouped text-slate-600'
+          }`}
+        >
           {totalProductsCount}
         </span>
       </button>
 
-      {/* Divider */}
-      {categories.length > 0 && <div className="border-t border-slate-100 my-0.5" />}
+      {categories.length > 0 && <div className="border-t border-hairline my-0.5" />}
 
       {categories.map((cat) => {
         const catCount = products.filter((p) => p.is_active !== false && p.category_id === cat.id).length;
@@ -177,17 +174,20 @@ const CategorySidebar = React.memo(function CategorySidebar({
         return (
           <button
             key={cat.id}
+            type="button"
             onClick={() => onSelectCategory(cat.id)}
-            className={`w-full px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-xl text-[11px] sm:text-xs font-bold text-left flex items-center justify-between gap-1.5 transition active:scale-[0.97] cursor-pointer ${
+            className={`w-full min-h-[42px] md:min-h-[38px] px-2.5 sm:px-3 py-2 rounded-field text-caption sm:text-footnote font-semibold text-left flex items-center justify-between gap-1.5 transition duration-press ease-press active:scale-[0.97] cursor-pointer ${
               isSelected
-                ? 'bg-purple-700 text-white shadow-sm ring-2 ring-purple-500/30'
-                : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200/80'
+                ? 'bg-brand-600 text-white shadow-card'
+                : 'bg-surface-card text-slate-700 hover:bg-slate-900/[0.04] border border-transparent'
             }`}
           >
             <span className="flex-1 truncate leading-snug">{cat.name}</span>
-            <span className={`shrink-0 text-caption min-w-[1.2rem] sm:min-w-[1.3rem] text-center px-1.5 py-0.5 rounded-full font-bold ${
-              isSelected ? 'bg-purple-600 text-white' : 'bg-slate-100 text-slate-500'
-            }`}>
+            <span
+              className={`shrink-0 text-caption font-num min-w-[1.35rem] text-center px-1.5 py-0.5 rounded-full font-semibold ${
+                isSelected ? 'bg-white/20 text-white' : 'bg-surface-grouped text-slate-600'
+              }`}
+            >
               {catCount}
             </span>
           </button>
@@ -197,7 +197,7 @@ const CategorySidebar = React.memo(function CategorySidebar({
   );
 });
 
-// ── MEMOIZED PRODUCT CARD ────────────────────────────────────────────────────
+// ── MEMOIZED PRODUCT CARD (100% Opaque Layer A, 0px backdrop-filter) ─────────
 interface ProductCardProps {
   product: Product;
   settings: SettingsMap | null;
@@ -249,32 +249,33 @@ const ProductCard = React.memo(function ProductCard({
   return (
     <div
       onClick={handleClick}
-      className={`bg-white p-2 sm:p-2.5 rounded-2xl border border-slate-200/90 shadow-2xs hover:shadow-md hover:border-purple-400 transition-all active:scale-[0.98] flex flex-col justify-between cursor-pointer group hardware-accelerated min-w-0 w-full relative select-none ${
-        isSuspended ? 'opacity-70 bg-slate-50/70' : ''
+      className={`bg-surface-card p-2 sm:p-2.5 rounded-card border border-card shadow-card hover:shadow-glass-sm hover:border-brand-300 transition duration-press ease-press active:scale-[0.98] flex flex-col justify-between cursor-pointer group min-w-0 w-full relative select-none ${
+        isSuspended ? 'opacity-70 bg-surface-grouped/60' : ''
       }`}
     >
       <div className="min-w-0">
-        <div className="w-full aspect-square bg-slate-100 rounded-xl mb-1.5 flex items-center justify-center text-slate-400 overflow-hidden relative">
+        {/* Concentric inner thumbnail: R_outer (16px) - Padding (8px) = 8px (rounded-sm-tahoe) */}
+        <div className="w-full aspect-square bg-surface-grouped rounded-sm-tahoe mb-1.5 flex items-center justify-center text-slate-400 overflow-hidden relative">
           {imageUrl ? (
             <img
               src={imageUrl}
               alt={product.name}
               loading="lazy"
               decoding="async"
-              className="w-full h-full object-cover group-hover:scale-105 transition duration-200"
+              className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-snappy ease-spring-snappy"
             />
           ) : (
             <Coffee className="w-7 h-7 sm:w-8 sm:h-8 opacity-40 text-slate-400" />
           )}
 
-          {/* Size / Variant Badge */}
+          {/* Opaque Size / Variant Pill (0px backdrop-filter — preserves GPU scroll budget) */}
           {variantsCount > 1 && (
-            <span className="absolute top-1.5 left-1.5 bg-slate-900/80 backdrop-blur-xs text-white text-caption text-[11px] font-bold px-1.5 py-0.5 rounded-md shadow-xs pointer-events-none">
-              {variantsCount} size
+            <span className="absolute top-1.5 left-1.5 bg-slate-900/90 text-white text-caption font-semibold font-num px-2 py-0.5 rounded-full pointer-events-none">
+              {t('pos.sizes_badge', { count: variantsCount })}
             </span>
           )}
 
-          {/* Plus (+) Button Overlay at Bottom-Right of Image */}
+          {/* Quick-Add (+) Capsule Button Overlay */}
           {!isSuspended && !isComingSoon && (
             <button
               type="button"
@@ -282,11 +283,11 @@ const ProductCard = React.memo(function ProductCard({
                 e.stopPropagation();
                 onQuickAdd(product);
               }}
-              className="absolute bottom-1.5 right-1.5 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-emerald-600 hover:bg-emerald-700 active:scale-90 text-white flex items-center justify-center shadow-md border-2 border-white transition-all cursor-pointer z-10 hover:shadow-lg"
-              title="Thêm thẳng vào giỏ hàng"
-              aria-label={`Thêm ${product.name} vào giỏ hàng`}
+              className="absolute bottom-1.5 right-1.5 w-8 h-8 rounded-full bg-brand-600 hover:bg-brand-700 active:scale-90 text-white flex items-center justify-center shadow-card border-2 border-white transition duration-press ease-press cursor-pointer z-10"
+              title={t('pos.quick_add_title')}
+              aria-label={t('pos.quick_add_aria', { name: product.name })}
             >
-              <Plus className="w-4 h-4 sm:w-4.5 sm:h-4.5 stroke-[2.5]" />
+              <Plus className="w-4 h-4 stroke-[2.5]" />
             </button>
           )}
         </div>
@@ -294,28 +295,30 @@ const ProductCard = React.memo(function ProductCard({
         {/* Tag Badge */}
         {tagStyle && (
           <div className="mb-1">
-            <span className={`text-caption text-[11px] uppercase font-extrabold px-1.5 py-0.5 rounded-md border inline-flex items-center gap-0.5 max-w-full truncate ${tagStyle.badgeClasses}`}>
+            <span
+              className={`text-caption font-semibold px-2 py-0.5 rounded-full border inline-flex items-center gap-1 max-w-full truncate ${tagStyle.badgeClasses}`}
+            >
               <span>{tagStyle.icon}</span>
               <span className="truncate">{tagStyle.name}</span>
             </span>
           </div>
         )}
 
-        <h3 className="font-bold text-slate-900 text-xs leading-snug group-hover:text-emerald-700 transition line-clamp-2 break-words">
+        <h3 className="font-semibold text-slate-900 text-footnote sm:text-subhead leading-snug group-hover:text-brand-700 transition-colors line-clamp-2 break-words">
           {product.name}
         </h3>
       </div>
 
-      {/* Bottom section: Price & Status */}
-      <div className="mt-2 pt-1.5 border-t border-slate-100 flex items-center justify-between gap-1 min-w-0">
+      {/* Bottom section: Tabular Price & Status */}
+      <div className="mt-2 pt-1.5 border-t border-hairline flex items-center justify-between gap-1 min-w-0">
         <div className="flex items-baseline gap-1 min-w-0">
           {variantsCount > 1 && (
-            <span className="text-caption text-slate-400 font-semibold shrink-0">
-              {t('pos.from_price') || 'Từ'}
+            <span className="text-caption text-slate-500 font-medium shrink-0">
+              {t('pos.from_price')}
             </span>
           )}
           <span
-            className="font-black text-purple-700 text-xs sm:text-sm tracking-tight truncate leading-tight"
+            className="font-bold font-num tabular-nums text-brand-700 text-subhead sm:text-headline tracking-tight truncate leading-snug"
             title={formatCurrency(startingPrice, settings)}
           >
             {formatCurrency(startingPrice, settings)}
@@ -323,12 +326,12 @@ const ProductCard = React.memo(function ProductCard({
         </div>
 
         {isSuspended ? (
-          <span className="text-caption font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded-md shrink-0">
-            ⛔ {t('products.suspended') || 'Tạm ngưng'}
+          <span className="text-caption font-semibold text-slate-600 bg-surface-grouped px-2 py-0.5 rounded-full shrink-0">
+            {t('products.suspended')}
           </span>
         ) : isComingSoon ? (
-          <span className="text-caption font-bold text-sky-600 bg-sky-50 px-1.5 py-0.5 rounded-md shrink-0">
-            ⏳ {t('products.coming_soon') || 'Sắp có'}
+          <span className="text-caption font-semibold text-sky-700 bg-sky-50 border border-sky-200/80 px-2 py-0.5 rounded-full shrink-0">
+            {t('products.coming_soon')}
           </span>
         ) : null}
       </div>
@@ -341,9 +344,15 @@ export default function PosPage() {
   const { showAlert } = useConfirm();
   const toast = useToast();
   const network = useNetworkStatus();
-  const { activeStore } = useStore();
+  const { activeStore, isSuperAdmin, storeRole } = useStore();
   const currentStoreId = activeStore?.id ?? getActiveStoreId() ?? 1;
   const cartStorageKey = `rabbitpos_active_cart_${currentStoreId}`;
+  const filterTriggerRef = useRef<HTMLButtonElement>(null);
+
+  const canManageStore = useMemo(() => {
+    const u = typeof window !== 'undefined' ? getAuthUser() : null;
+    return isMasterRole(u?.role) || isSuperAdmin || isOwnerRole(u?.role) || storeRole === 'store_admin';
+  }, [isSuperAdmin, storeRole]);
 
   // Instant 0ms warm cache initialization (eliminates layout flash on tab switch)
   const hasWarmCache = Boolean(
@@ -1188,353 +1197,375 @@ export default function PosPage() {
   );
 
   const orderBtnLabel = useMemo(() => t('pos.order_button') || 'Gọi món', [t]);
+  const totalActiveProductsCount = useMemo(
+    () => safeProducts.filter((p) => p.is_active !== false).length,
+    [safeProducts]
+  );
+
+  const activeSortLabel = useMemo(() => {
+    const found = SORT_OPTION_CONFIGS.find((s) => s.id === sortBy);
+    return found ? t(found.labelKey) : '';
+  }, [sortBy, t]);
 
   return (
     <AppShell>
-      <div className="flex flex-col gap-3 sm:gap-4 w-full max-w-7xl 2xl:max-w-[1800px] 3xl:max-w-[2400px] 4k:max-w-[3200px] mx-auto overflow-x-hidden">
-        {/* ── POS Search Bar (full-width, above 3-col panel) ── */}
+      <div className="flex flex-col gap-3 sm:gap-3.5 w-full max-w-7xl 2xl:max-w-[1800px] 3xl:max-w-[2400px] 4k:max-w-[3200px] mx-auto">
+        {/* ── POS Compact Top Toolbar (All controls share h-11 md:h-9 capsule geometry; 16px mobile search input) ── */}
         <div className="flex items-center gap-2 w-full">
-          {/* Network Status Badge */}
+          {/* Network Sync Status Pill */}
           {network.isOnline ? (
-            <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-2 rounded-xl text-[11px] font-semibold bg-purple-50 text-purple-700 border border-purple-200/80 shadow-2xs shrink-0">
-              <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse"></span>
-              {lastSyncedAt
-                ? `Đồng bộ: ${new Date(lastSyncedAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}`
-                : 'Trực tuyến'}
+            <span className="hidden lg:inline-flex items-center gap-1.5 h-9 px-3 rounded-full text-caption font-semibold bg-surface-card text-slate-700 border border-card shadow-card shrink-0 select-none">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+              <span>
+                {lastSyncedAt
+                  ? t('pos.synced_at', {
+                      time: new Date(lastSyncedAt).toLocaleTimeString('vi-VN', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      }),
+                    })
+                  : t('pos.online_status')}
+              </span>
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-2 rounded-xl text-[11px] font-bold bg-amber-100 text-amber-900 border border-amber-300/80 shadow-2xs shrink-0 animate-pulse">
-              <WifiOff className="w-3.5 h-3.5 text-amber-700" />
-              Ngoại tuyến {lastSyncedAt && `(${new Date(lastSyncedAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })})`}
+            <span className="inline-flex items-center gap-1.5 h-11 md:h-9 px-3 rounded-full text-caption font-semibold bg-amber-50 text-amber-900 border border-amber-300/80 shrink-0 select-none">
+              <WifiOff className="w-3.5 h-3.5 text-amber-700 shrink-0" />
+              <span className="hidden sm:inline">
+                {t('pos.offline_status')}
+                {lastSyncedAt
+                  ? ` (${new Date(lastSyncedAt).toLocaleTimeString('vi-VN', {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })})`
+                  : ''}
+              </span>
             </span>
           )}
 
-          {/* Offline Queue Badge Button */}
+          {/* Offline Queue Capsule Button */}
           {queueStats.total > 0 && (
             <button
               type="button"
               onClick={() => setIsQueueModalOpen(true)}
-              className={`px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer shadow-2xs ${
+              className={`h-11 md:h-9 px-3.5 rounded-full text-footnote font-semibold transition duration-press ease-press active:scale-[0.97] inline-flex items-center gap-1.5 shrink-0 cursor-pointer shadow-card ${
                 queueStats.requiresReview > 0
-                  ? 'bg-rose-100 text-rose-800 border border-rose-300 animate-pulse'
-                  : 'bg-amber-100 text-amber-900 border border-amber-300'
+                  ? 'bg-rose-50 text-rose-800 border border-rose-300'
+                  : 'bg-amber-50 text-amber-900 border border-amber-300'
               }`}
-              title="Xem danh sách đơn hàng ngoại tuyến"
+              title={t('pos.offline_queue_title_attr')}
             >
-              <span>⚡ Hàng đợi</span>
-              <span className="bg-amber-200 text-amber-900 text-caption px-1.5 py-0.5 rounded-full font-black">
+              <Clock className="w-3.5 h-3.5 shrink-0" />
+              <span className="hidden sm:inline">{t('pos.offline_queue_btn')}</span>
+              <span className="bg-amber-200/80 text-amber-950 text-caption font-num px-1.5 py-0.5 rounded-full font-bold">
                 {queueStats.pending + queueStats.requiresReview}
               </span>
             </button>
           )}
 
+          {/* Capsule Search Input (16px text-base on mobile prevents iOS Safari zoom; matches h-11 md:h-9 filter button) */}
           <div className="relative flex-1 min-w-0">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               type="text"
-              placeholder={t('pos.search_placeholder') || 'Tìm món nhanh theo tên, mô tả...'}
+              placeholder={t('pos.search_placeholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="app-input pl-9 pr-24 py-2.5 text-xs placeholder:text-xs"
+              className="w-full h-11 md:h-9 pl-10 pr-20 bg-surface-card border border-slate-300/80 rounded-full text-base md:text-sm text-slate-900 placeholder:text-slate-400 placeholder:text-sm md:placeholder:text-xs shadow-card focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/35 focus-visible:border-brand-600 transition-colors"
             />
             {searchQuery ? (
               <button
                 type="button"
                 onClick={() => setSearchQuery('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition cursor-pointer"
-                title="Xóa tìm kiếm"
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 w-8 h-8 md:w-7 md:h-7 inline-flex items-center justify-center text-slate-400 hover:text-slate-700 rounded-full hover:bg-slate-100 transition-colors cursor-pointer"
+                title={t('pos.clear_search')}
+                aria-label={t('pos.clear_search')}
               >
                 <X className="w-3.5 h-3.5" />
               </button>
             ) : (
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-caption font-bold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-md pointer-events-none">
-                {sortedAndFilteredProducts.length} món
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-caption font-semibold font-num text-slate-500 bg-surface-grouped px-2 py-0.5 rounded-full pointer-events-none">
+                {t('pos.items_badge', { count: sortedAndFilteredProducts.length })}
               </span>
             )}
           </div>
 
-          {/* Bộ lọc & Sắp xếp */}
+          {/* Sort & Filter Capsule Trigger (Exact matching h-11 md:h-9 height) */}
           <button
+            ref={filterTriggerRef}
             type="button"
             onClick={() => setIsFilterModalOpen(true)}
-            className={`px-3.5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer shadow-2xs ${
+            aria-expanded={isFilterModalOpen}
+            className={`h-11 md:h-9 min-w-[44px] md:min-w-[36px] px-3.5 rounded-full text-footnote font-semibold transition duration-press ease-press active:scale-[0.97] inline-flex items-center justify-center gap-1.5 shrink-0 cursor-pointer ${
               activeTag !== null || sortBy !== 'default'
-                ? 'bg-purple-800 text-white shadow-sm ring-2 ring-purple-600/30 font-extrabold'
-                : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+                ? 'bg-brand-600 text-white shadow-glass-sm'
+                : 'bg-surface-card text-slate-700 hover:bg-slate-50 border border-slate-300/80 shadow-card'
             }`}
           >
-            <SlidersHorizontal className="w-4 h-4" />
-            <span className="hidden sm:inline">Sắp xếp</span>
+            <SlidersHorizontal className="w-4 h-4 shrink-0" />
+            <span className="hidden sm:inline">{t('pos.sort_btn')}</span>
             {(activeTag !== null || sortBy !== 'default') && (
-              <span className="w-2 h-2 rounded-full bg-purple-400 animate-pulse" />
+              <span className="w-2 h-2 rounded-full bg-white/90 shrink-0" />
             )}
           </button>
         </div>
 
-        {/* ── Active sort/tag chip row (compact) ── */}
+        {/* ── Active Sort / Tag Capsule Chips Row ── */}
         {(activeTag !== null || sortBy !== 'default') && (
-          <div className="flex flex-wrap items-center gap-1.5 text-xs -mt-1">
-            <span className="text-slate-400 font-semibold text-[11px]">Đang áp dụng:</span>
+          <div className="flex flex-wrap items-center gap-1.5 -mt-1">
+            <span className="text-caption font-semibold text-slate-500">
+              {t('pos.active_filters_prefix')}
+            </span>
             {activeTag !== null && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-purple-50 text-purple-700 border border-purple-200 rounded-lg font-bold">
-                <span>Nhãn: {allAvailableTags.find((t) => t.id === activeTag)?.name || activeTag}</span>
-                <button type="button" onClick={() => setActiveTag(null)} className="hover:text-purple-950 cursor-pointer"><X className="w-3 h-3" /></button>
-              </span>
+              <Chip
+                size="sm"
+                active
+                onRemove={() => setActiveTag(null)}
+              >
+                {t('pos.tag_prefix', {
+                  name: allAvailableTags.find((tg) => tg.id === activeTag)?.name || activeTag,
+                })}
+              </Chip>
             )}
             {sortBy !== 'default' && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-purple-50 text-purple-700 border border-purple-200 rounded-lg font-bold">
-                <span>{SORT_OPTIONS.find((s) => s.id === sortBy)?.label}</span>
-                <button type="button" onClick={() => setSortBy('default')} className="hover:text-purple-950 cursor-pointer"><X className="w-3 h-3" /></button>
-              </span>
+              <Chip
+                size="sm"
+                active
+                onRemove={() => setSortBy('default')}
+              >
+                {activeSortLabel}
+              </Chip>
             )}
           </div>
         )}
 
-        {/* Popup Filter Modal */}
-        {isFilterModalOpen && (
-          <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-150">
-            <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-xl w-full p-4 sm:p-6 shadow-2xl space-y-4 max-h-[92dvh] sm:max-h-[85vh] flex flex-col animate-in slide-in-from-bottom-6 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200 pb-safe sm:pb-6 border border-slate-100">
-              {/* Modal Header */}
-              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                <div className="flex items-center gap-2">
-                  <div className="p-2 bg-purple-50 text-purple-700 rounded-xl">
-                    <Filter className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="font-extrabold text-base text-slate-900">Bộ Lọc & Sắp Xếp Thực Đơn</h3>
-                    <p className="text-xs text-slate-400">Chọn danh mục, nhãn và thứ tự sắp xếp món</p>
-                  </div>
-                </div>
-                <IconButton
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setIsFilterModalOpen(false)}
-                  aria-label="Đóng"
-                >
-                  <X className="w-5 h-5" />
-                </IconButton>
+        {/* ── Sort & Filter ResponsiveSheet (M08: glass-thick z-75 mobile sheet / z-70 desktop popover) ── */}
+        <ResponsiveSheet
+          isOpen={isFilterModalOpen}
+          onClose={() => setIsFilterModalOpen(false)}
+          triggerRef={filterTriggerRef}
+          exclusiveId="pos-sort-filter"
+          align="end"
+          width="w-[26rem]"
+          detent="large"
+          title={
+            <div className="flex items-center gap-2">
+              <SlidersHorizontal className="w-4 h-4 text-brand-700 shrink-0" />
+              <span className="text-headline font-semibold text-slate-900">
+                {t('pos.filter_sheet_title')}
+              </span>
+            </div>
+          }
+          description={t('pos.filter_sheet_desc')}
+          footer={
+            <div className="flex items-center justify-between gap-2 w-full">
+              <Button
+                variant="ghost"
+                size="md"
+                onClick={() => {
+                  setActiveCategoryId(null);
+                  setActiveTag(null);
+                  setSortBy('default');
+                }}
+              >
+                {t('common.reset_filters')}
+              </Button>
+              <Button
+                variant="primary"
+                size="md"
+                onClick={() => setIsFilterModalOpen(false)}
+              >
+                {t('pos.apply_count', { count: sortedAndFilteredProducts.length })}
+              </Button>
+            </div>
+          }
+        >
+          <div className="space-y-5 py-1">
+            {/* Section 1: Sort Order */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between px-0.5">
+                <span className="text-subhead font-semibold text-slate-700">
+                  {t('pos.sort_section_label')}
+                </span>
+                <span className="text-caption font-num text-slate-500">
+                  {SORT_OPTION_CONFIGS.length}
+                </span>
               </div>
-
-              {/* Modal Scrollable Content */}
-              <div className="flex-1 overflow-y-auto space-y-4 pr-1 text-xs">
-                {/* Section 1: Sắp Xếp Thực Đơn */}
-                <div>
-                  <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-2">
-                    ↕️ Sắp Xếp Thực Đơn ({SORT_OPTIONS.length})
-                  </label>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    {SORT_OPTIONS.map((opt) => {
-                      const isSelected = sortBy === opt.id;
-                      return (
-                        <button
-                          key={opt.id}
-                          type="button"
-                          onClick={() => setSortBy(opt.id)}
-                          className={`px-3 py-2.5 rounded-xl font-bold transition flex items-center justify-between gap-1.5 cursor-pointer shadow-2xs text-left ${
-                            isSelected
-                              ? 'bg-purple-700 text-white shadow-sm font-black ring-2 ring-purple-500/30'
-                              : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
-                          }`}
-                        >
-                          <div className="flex items-center gap-1.5 min-w-0">
-                            <span className="shrink-0">{opt.icon}</span>
-                            <span className="truncate">{opt.label}</span>
-                          </div>
-                          {isSelected && <Check className="w-3.5 h-3.5 text-white shrink-0" />}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Divider + Section 2: Danh Mục — chỉ hiện trên mobile (desktop dùng sidebar) */}
-                <div className="sm:hidden">
-                  <hr className="border-slate-100" />
-
-                  {/* Section 2: Danh Mục (Wrap) */}
-                  <div className="mt-4">
-                    <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-2">
-                      📂 Danh Mục Món ({safeCategories.length})
-                    </label>
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setActiveCategoryId(null)}
-                        className={`px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs ${
-                          activeCategoryId === null
-                            ? 'bg-purple-800 text-white shadow-sm font-black ring-2 ring-purple-600/30'
-                            : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
-                        }`}
-                      >
-                        <span>{t('pos.all_items')}</span>
-                        <span className={`text-caption px-1.5 py-0.5 rounded-full font-bold ${
-                          activeCategoryId === null ? 'bg-purple-700 text-white' : 'bg-slate-100 text-slate-600'
-                        }`}>
-                          {safeProducts.filter((p) => p.is_active !== false).length}
-                        </span>
-                      </button>
-                      {safeCategories.map((cat) => {
-                        const count = safeProducts.filter((p) => p.is_active !== false && p.category_id === cat.id).length;
-                        const isSelected = activeCategoryId === cat.id;
-                        return (
-                          <button
-                            key={cat.id}
-                            type="button"
-                            onClick={() => setActiveCategoryId(isSelected ? null : cat.id)}
-                            className={`px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs ${
-                              isSelected
-                                ? 'bg-purple-800 text-white shadow-sm font-black ring-2 ring-purple-600/30'
-                                : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
-                            }`}
-                          >
-                            <span>{cat.name}</span>
-                            <span className={`text-caption px-1.5 py-0.5 rounded-full font-bold ${
-                              isSelected ? 'bg-purple-700 text-white' : 'bg-slate-100 text-slate-600'
-                            }`}>
-                              {count}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Section 3: Nhãn Sản Phẩm (Wrap) */}
-                <div>
-                  <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-2">
-                    🏷️ Nhãn Sản Phẩm ({allAvailableTags.length})
-                  </label>
-                  <div className="flex flex-wrap gap-2">
+              <div className="grid grid-cols-2 gap-2">
+                {SORT_OPTION_CONFIGS.map((opt) => {
+                  const isSelected = sortBy === opt.id;
+                  return (
                     <button
+                      key={opt.id}
                       type="button"
-                      onClick={() => setActiveTag(null)}
-                      className={`px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs ${
-                        activeTag === null
-                          ? 'bg-slate-900 text-white font-extrabold shadow-sm ring-1 ring-slate-700'
-                          : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+                      onClick={() => setSortBy(opt.id)}
+                      className={`min-h-[44px] md:min-h-[38px] px-3 py-2 rounded-field text-footnote font-semibold transition duration-press ease-press active:scale-[0.98] flex items-center justify-between gap-2 cursor-pointer text-left border ${
+                        isSelected
+                          ? 'bg-brand-600 text-white border-brand-600 shadow-card'
+                          : 'bg-surface-card text-slate-700 hover:bg-slate-50 border-card shadow-card'
                       }`}
                     >
-                      <span>{t('common.all')}</span>
-                      <span className={`text-caption px-1.5 py-0.5 rounded-full font-bold ${
-                        activeTag === null ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-600'
-                      }`}>
-                        {safeProducts.filter((p) => p.is_active !== false && (activeCategoryId === null || p.category_id === activeCategoryId)).length}
+                      <span className="inline-flex items-center gap-1.5 min-w-0">
+                        <span className={isSelected ? 'text-white shrink-0' : 'text-brand-600 shrink-0'}>
+                          {opt.icon}
+                        </span>
+                        <span className="truncate">{t(opt.labelKey)}</span>
                       </span>
+                      {isSelected && <Check className="w-3.5 h-3.5 text-white shrink-0" />}
                     </button>
-                    {allAvailableTags.map((tg) => {
-                      const count = safeProducts.filter(
-                        (p) => p.is_active !== false && p.tag === tg.id && (activeCategoryId === null || p.category_id === activeCategoryId)
-                      ).length;
-                      const isSelected = activeTag === tg.id;
-                      return (
-                        <button
-                          key={tg.id}
-                          type="button"
-                          onClick={() => setActiveTag(isSelected ? null : tg.id)}
-                          className={`px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs ${
-                            isSelected
-                              ? 'bg-purple-700 text-white font-extrabold shadow-sm ring-2 ring-purple-500/30'
-                              : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
-                          }`}
-                        >
-                          <span>{tg.icon}</span>
-                          <span>{tg.name}</span>
-                          <span className={`text-caption px-1.5 py-0.5 rounded-full font-bold ${
-                            isSelected ? 'bg-purple-600 text-white' : 'bg-slate-100 text-slate-600'
-                          }`}>
-                            {count}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
+                  );
+                })}
               </div>
+            </div>
 
-              {/* Modal Footer */}
-              <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:justify-between border-t border-slate-100 pt-3">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setActiveCategoryId(null);
-                    setActiveTag(null);
-                    setSortBy('default');
-                  }}
-                  className="text-xs font-bold text-slate-500 hover:text-rose-600"
+            {/* Section 2: Menu Categories (Mobile quick-pick) */}
+            <div className="md:hidden space-y-2 pt-3 border-t border-hairline">
+              <div className="flex items-center justify-between px-0.5">
+                <span className="text-subhead font-semibold text-slate-700">
+                  {t('pos.category_section_label')}
+                </span>
+                <span className="text-caption font-num text-slate-500">
+                  {safeCategories.length}
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Chip
+                  active={activeCategoryId === null}
+                  count={totalActiveProductsCount}
+                  onClick={() => setActiveCategoryId(null)}
                 >
-                  Đặt lại bộ lọc
-                </Button>
-                <Button
-                  variant="primary"
-                  size="md"
-                  onClick={() => setIsFilterModalOpen(false)}
-                  className="bg-purple-700 hover:bg-purple-800 text-white text-xs font-extrabold"
+                  {t('pos.all_items')}
+                </Chip>
+                {safeCategories.map((cat) => {
+                  const count = safeProducts.filter(
+                    (p) => p.is_active !== false && p.category_id === cat.id
+                  ).length;
+                  const isSelected = activeCategoryId === cat.id;
+                  return (
+                    <Chip
+                      key={cat.id}
+                      active={isSelected}
+                      count={count}
+                      onClick={() => setActiveCategoryId(isSelected ? null : cat.id)}
+                    >
+                      {cat.name}
+                    </Chip>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Section 3: Product Tags */}
+            <div className="space-y-2 pt-3 border-t border-hairline">
+              <div className="flex items-center justify-between px-0.5">
+                <span className="text-subhead font-semibold text-slate-700">
+                  {t('pos.tag_section_label')}
+                </span>
+                <span className="text-caption font-num text-slate-500">
+                  {allAvailableTags.length}
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Chip
+                  active={activeTag === null}
+                  count={
+                    safeProducts.filter(
+                      (p) =>
+                        p.is_active !== false &&
+                        (activeCategoryId === null || p.category_id === activeCategoryId)
+                    ).length
+                  }
+                  onClick={() => setActiveTag(null)}
                 >
-                  Áp dụng ({sortedAndFilteredProducts.length})
-                </Button>
+                  {t('common.all')}
+                </Chip>
+                {allAvailableTags.map((tg) => {
+                  const count = safeProducts.filter(
+                    (p) =>
+                      p.is_active !== false &&
+                      p.tag === tg.id &&
+                      (activeCategoryId === null || p.category_id === activeCategoryId)
+                  ).length;
+                  const isSelected = activeTag === tg.id;
+                  return (
+                    <Chip
+                      key={tg.id}
+                      active={isSelected}
+                      count={count}
+                      leftIcon={<span>{tg.icon}</span>}
+                      onClick={() => setActiveTag(isSelected ? null : tg.id)}
+                    >
+                      {tg.name}
+                    </Chip>
+                  );
+                })}
               </div>
             </div>
           </div>
-        )}
+        </ResponsiveSheet>
 
-        {/* ── 3-Column POS Layout: [Sidebar] | [Product Grid 2 cols] — tất cả màn hình ── */}
-        <div className={`flex gap-2 sm:gap-4 items-start ${
-          cartItems.length > 0 ? 'pb-36 md:pb-20' : 'pb-20 md:pb-4'
-        }`}>
-
-          {/* ── Column 1: Category Sidebar — hiện trên mọi màn hình ── */}
-          <div className="w-[34%] sm:w-[24%] lg:w-[20%] xl:w-[18%] 2xl:w-[15%] 3xl:w-[13%] shrink-0">
+        {/* ── POS Workspace Columns: [Opaque Category Rail] | [Opaque Product Grid] ── */}
+        <div
+          className={`flex gap-2.5 sm:gap-4 items-start ${
+            cartItems.length > 0
+              ? canManageStore
+                ? 'pb-36 md:pb-24'
+                : 'pb-24 md:pb-24'
+              : canManageStore
+                ? 'pb-12 md:pb-4'
+                : 'pb-4'
+          }`}
+        >
+          {/* Column 1: Sticky Opaque Category Rail (0px backdrop-filter) */}
+          <div className="w-[33%] sm:w-[24%] lg:w-[20%] xl:w-[18%] 2xl:w-[15%] 3xl:w-[13%] shrink-0">
             <div
-              className="sticky top-2 sm:top-4 bg-white border border-slate-200/80 rounded-xl sm:rounded-2xl p-1.5 sm:p-2 shadow-sm"
+              className="sticky top-2 sm:top-3 bg-surface-card border border-card rounded-card p-1.5 sm:p-2 shadow-card"
               style={{ maxHeight: 'calc(100dvh - 9rem)', overflowY: 'auto' }}
             >
-              {/* Sidebar Header */}
-              <div className="px-1.5 sm:px-2 pb-1.5 sm:pb-2 mb-1 border-b border-slate-100">
-                <span className="text-caption font-black text-slate-400 uppercase tracking-wider">Danh mục</span>
+              <div className="px-2 pb-1.5 mb-1 border-b border-hairline">
+                <span className="text-caption font-semibold text-slate-500">
+                  {t('pos.categories_heading')}
+                </span>
               </div>
               <CategorySidebar
                 categories={safeCategories}
                 activeCategoryId={activeCategoryId}
-                totalProductsCount={safeProducts.filter((p) => p.is_active !== false).length}
+                totalProductsCount={totalActiveProductsCount}
                 products={safeProducts}
-                onSelectCategory={setActiveCategoryId}
-                allLabel={t('pos.all_items') || 'Tất cả'}
+                onSelectCategory={handleSelectCategory}
+                allLabel={t('pos.all_items')}
               />
             </div>
           </div>
 
-          {/* ── Columns 2 & 3: Product Grid (Responsive) ── */}
+          {/* Column 2: Opaque Product Grid (0px backdrop-filter across all cards) */}
           <div className="flex-1 min-w-0">
             {loading ? (
               <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 3xl:grid-cols-6 4k:grid-cols-8 gap-2 sm:gap-3 2xl:gap-4">
                 {[...Array(8)].map((_, i) => (
-                  <div key={i} className="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm animate-pulse space-y-2">
-                    <div className="w-full aspect-square bg-slate-200 rounded-xl" />
-                    <div className="h-3 bg-slate-200 rounded w-3/4" />
-                    <div className="h-3 bg-slate-200 rounded w-1/2" />
+                  <div
+                    key={i}
+                    className="bg-surface-card p-2.5 rounded-card border border-card shadow-card animate-pulse space-y-2"
+                  >
+                    <div className="w-full aspect-square bg-surface-grouped rounded-sm-tahoe" />
+                    <div className="h-3 bg-surface-grouped rounded-full w-3/4" />
+                    <div className="h-3 bg-surface-grouped rounded-full w-1/2" />
                   </div>
                 ))}
               </div>
             ) : sortedAndFilteredProducts.length === 0 ? (
-              <div className="bg-white p-8 sm:p-12 rounded-2xl border border-slate-200 text-center text-slate-500 text-xs shadow-2xs">
-                {!network.isOnline && safeProducts.length === 0 ? (
-                  <>
-                    <WifiOff className="w-10 h-10 text-amber-500 mx-auto mb-2.5" />
-                    <p className="font-bold text-slate-700 text-sm">Chưa có dữ liệu thực đơn ngoại tuyến</p>
-                    <p className="text-[11px] text-slate-400 mt-1 max-w-xs mx-auto">
-                      Thiết bị đang ngoại tuyến và chưa có bản lưu menu. Vui lòng kết nối Internet lần đầu để tải danh sách món.
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <Coffee className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                    <p className="font-semibold text-slate-600">{t('pos.no_drinks')}</p>
-                    <p className="text-[11px] text-slate-400 mt-1">Thử chọn danh mục khác hoặc xóa bộ lọc tìm kiếm.</p>
-                  </>
-                )}
-              </div>
+              !network.isOnline && safeProducts.length === 0 ? (
+                <EmptyState
+                  icon={<WifiOff className="w-7 h-7 text-amber-600" />}
+                  title={t('pos.offline_empty_title')}
+                  description={t('pos.offline_empty_desc')}
+                />
+              ) : (
+                <EmptyState
+                  icon={<Coffee className="w-7 h-7 text-slate-400" />}
+                  title={t('pos.no_drinks')}
+                  description={t('pos.no_drinks_hint')}
+                />
+              )
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 3xl:grid-cols-6 4k:grid-cols-8 gap-2 sm:gap-3 2xl:gap-4">
                 {sortedAndFilteredProducts.map((product) => (
@@ -1553,52 +1584,64 @@ export default function PosPage() {
           </div>
         </div>
 
-        {/* Mobile & Bottom Sticky Quick Cart Bar - Only visible when cart has items */}
+        {/* ── Solid Tinted POS Quick-Cart Bar (Amendment A2 & A3: #2E1065, 0px blur, z-cart-bar: 35) ──
+            - <768px admin/SuperAdmin: sits 10px above the 56px Floating Bottom Tab Bar
+            - <768px staff (no Tab Bar): sits in primary thumb zone at bottom 12px / safe-area
+            - >=768px: centers inside the POS content pane offset by --shell-sidebar-w */}
         {cartItems.length > 0 && (
-          <div className="fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom))] md:bottom-4 left-2.5 right-2.5 sm:left-4 sm:right-4 max-w-7xl 2xl:max-w-[1800px] 3xl:max-w-[2400px] 4k:max-w-[3200px] mx-auto z-30 bg-slate-900/95 backdrop-blur-md text-white p-2.5 sm:p-3 rounded-2xl shadow-2xl border border-slate-800 flex items-center justify-between hardware-accelerated animate-fade-in">
-            <div
+          <div
+            className={`fixed left-3 right-3 md:left-[calc(var(--shell-sidebar-w,0px)+1.5rem)] md:right-6 max-w-4xl mx-auto z-cart-bar surface-cart-bar text-white p-1.5 sm:p-2 rounded-full flex items-center justify-between gap-2 select-none ${
+              canManageStore
+                ? 'bottom-[calc(3.5rem+max(0.5rem,env(safe-area-inset-bottom,0px))+0.625rem)] md:bottom-5'
+                : 'bottom-[max(0.75rem,env(safe-area-inset-bottom,0px))] md:bottom-5'
+            }`}
+          >
+            <button
+              type="button"
               onClick={() => setIsCartDrawerOpen(true)}
-              className="flex items-center space-x-2 sm:space-x-3 cursor-pointer group active:scale-95 transition-transform min-w-0 flex-1 mr-2"
+              className="min-h-[44px] md:min-h-[40px] flex items-center gap-2.5 sm:gap-3 cursor-pointer active:scale-[0.98] transition duration-press ease-press min-w-0 flex-1 pl-1 pr-2 rounded-full text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
             >
-              <div className="relative bg-purple-700 p-2 sm:p-2.5 rounded-xl text-white shadow-sm shrink-0">
-                <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5" />
+              <div className="relative w-10 h-10 md:w-9 md:h-9 bg-brand-600 rounded-full text-white flex items-center justify-center shrink-0">
+                <ShoppingBag className="w-4 h-4 sm:w-[18px] sm:h-[18px]" />
                 {totalItemCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-caption font-extrabold w-4 h-4 rounded-full flex items-center justify-center animate-pulse">
+                  <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-caption font-bold font-num min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center border border-brand-950">
                     {totalItemCount}
                   </span>
                 )}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-caption text-slate-400 font-medium truncate">
+                <p className="text-caption text-brand-200 font-medium truncate leading-tight">
                   {t('pos.cart_total')} ({t('pos.items_count', { count: totalItemCount })})
                 </p>
                 <div className="flex items-center gap-1.5 flex-wrap">
-                  <p className="text-sm sm:text-base font-bold text-white truncate">{formatCurrency(cartTotal, settings)}</p>
+                  <span className="text-subhead sm:text-headline font-bold font-num tabular-nums text-white truncate leading-snug">
+                    {formatCurrency(cartTotal, settings)}
+                  </span>
                   {discountAmount + promotionDiscount + platformFeeDiscount > 0 && (
-                    <span className="text-caption bg-purple-500/20 text-purple-300 font-bold px-1.5 py-0.5 rounded truncate">
+                    <span className="text-caption font-num bg-white/15 text-brand-100 font-semibold px-2 py-0.5 rounded-full truncate">
                       -{formatCurrency(discountAmount + promotionDiscount + platformFeeDiscount, settings)}
                     </span>
                   )}
                 </div>
               </div>
-            </div>
+            </button>
 
-            <div className="flex items-center space-x-1.5 sm:space-x-2 shrink-0">
+            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 pr-0.5">
               <Button
                 variant="secondary"
-                size="sm"
+                size="md"
                 onClick={() => setIsCartDrawerOpen(true)}
                 disabled={cartItems.length === 0}
-                className="bg-slate-800 hover:bg-slate-700 text-white border-slate-700 whitespace-nowrap text-xs font-bold"
+                className="bg-white/12 hover:bg-white/20 text-white border-white/20 whitespace-nowrap"
               >
                 {t('pos.view_cart')}
               </Button>
               <Button
                 variant="primary"
-                size="sm"
+                size="md"
                 onClick={() => setIsCheckoutModalOpen(true)}
                 disabled={cartItems.length === 0}
-                className="bg-purple-600 hover:bg-purple-700 text-white shadow-lg whitespace-nowrap text-xs font-bold"
+                className="bg-white hover:bg-brand-50 text-brand-950 border-transparent font-semibold whitespace-nowrap shadow-glass-sm"
               >
                 {t('pos.checkout_now')}
               </Button>
