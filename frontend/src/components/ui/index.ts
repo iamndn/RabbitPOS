@@ -4,5 +4,7 @@ export * from './Chip';
 export * from './SegmentedControl';
 export * from './Badge';
 export * from './Card';
+export * from './Switch';
+export * from './Divider';
 export * from './ResponsiveSheet';
 export * from './FilterBar';

@@ -3,7 +3,7 @@
 import React from 'react';
 import { cn } from '@/lib/cn';
 
-export type BadgeVariant = 'brand' | 'success' | 'warning' | 'danger' | 'neutral';
+export type BadgeVariant = 'brand' | 'success' | 'warning' | 'danger' | 'info' | 'neutral';
 export type BadgeSize = 'sm' | 'md';
 
 export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
@@ -12,32 +12,38 @@ export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
   dot?: boolean;
 }
 
+// Strictly opaque soft tint fills (0px backdrop-filter, >= 4.5:1 text contrast)
 const badgeVariantStyles: Record<BadgeVariant, { container: string; dot: string }> = {
   brand: {
-    container: 'bg-brand-50 text-brand-700 border-brand-200/90',
+    container: 'bg-brand-50 text-brand-700 border-brand-200/80',
     dot: 'bg-brand-600',
   },
   success: {
-    container: 'bg-emerald-50 text-emerald-700 border-emerald-200/90',
+    container: 'bg-emerald-50 text-emerald-700 border-emerald-200/80',
     dot: 'bg-emerald-500',
   },
   warning: {
-    container: 'bg-amber-50 text-amber-700 border-amber-200/90',
+    container: 'bg-amber-50 text-amber-800 border-amber-200/80',
     dot: 'bg-amber-500',
   },
   danger: {
-    container: 'bg-rose-50 text-rose-700 border-rose-200/90',
+    container: 'bg-rose-50 text-rose-700 border-rose-200/80',
     dot: 'bg-rose-500',
   },
+  info: {
+    container: 'bg-sky-50 text-sky-700 border-sky-200/80',
+    dot: 'bg-sky-500',
+  },
   neutral: {
-    container: 'bg-slate-100 text-slate-700 border-slate-200/90',
+    container: 'bg-slate-100 text-slate-700 border-slate-200/80',
     dot: 'bg-slate-500',
   },
 };
 
+// 11px (text-caption) hard floor, capsule pill geometry
 const badgeSizeStyles: Record<BadgeSize, string> = {
-  sm: 'text-caption py-0.5 px-2 rounded-lg gap-1.5 leading-tight font-medium',
-  md: 'text-xs py-1 px-2.5 rounded-lg gap-2 leading-normal font-semibold',
+  sm: 'text-caption py-0.5 px-2.5 rounded-full gap-1.5 font-semibold',
+  md: 'text-footnote py-1 px-3 rounded-full gap-1.5 font-semibold',
 };
 
 export const Badge: React.FC<BadgeProps> = ({
