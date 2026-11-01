@@ -413,6 +413,17 @@ button, a, input, select, textarea, [role="button"] {
   .app-textarea {
     @apply w-full min-h-[88px] px-3.5 py-2.5 text-base md:text-sm bg-surface-card border border-slate-300/80 rounded-field text-slate-900 placeholder:text-slate-400 placeholder:text-sm md:placeholder:text-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/35 focus-visible:border-brand-600 focus:border-brand-600 transition-colors;
   }
+
+  /* Desktop-only compact form modifier (Gate G1 Owner Decision: >= md pointer only; < md stays 44px + 16px) */
+  .app-input-compact {
+    @apply w-full h-11 md:h-8 px-3.5 md:px-2.5 py-2 md:py-1 text-base md:text-xs bg-surface-card border border-slate-300/80 rounded-field md:rounded-sm-tahoe text-slate-900 placeholder:text-slate-400 placeholder:text-sm md:placeholder:text-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/35 focus-visible:border-brand-600 focus:border-brand-600 transition-colors;
+  }
+  .app-select-compact {
+    @apply w-full h-11 md:h-8 px-3.5 md:px-2.5 py-2 md:py-1 text-base md:text-xs bg-surface-card border border-slate-300/80 rounded-field md:rounded-sm-tahoe text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/35 focus-visible:border-brand-600 focus:border-brand-600 transition-colors;
+  }
+  .app-label-compact {
+    @apply text-subhead md:text-footnote font-medium text-slate-700 md:text-slate-600 mb-1.5 md:mb-1 block;
+  }
 }
 
 /* GPU Hardware Acceleration for Smooth 60fps Animations */
@@ -424,11 +435,12 @@ button, a, input, select, textarea, [role="button"] {
 }
 
 @layer utilities {
-  /* Tabular numbers utility (Override Q1): Inter Variable with OpenType tnum on every platform */
+  /* Tabular numbers utility (Override Q1 + Gate G1 Locked Decision Q8 Option A):
+     SF Pro tabular figures on Apple platforms + Inter Variable tabular figures fallback on non-Apple */
   .tabular-nums,
   .tabular-num,
   .font-num {
-    font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, system-ui, sans-serif !important;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", var(--font-inter), system-ui, "Segoe UI", Roboto, sans-serif !important;
     font-variant-numeric: tabular-nums !important;
     font-feature-settings: 'tnum' 1 !important;
   }

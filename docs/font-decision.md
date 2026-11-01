@@ -1,10 +1,10 @@
 # Quyết Định Font Chữ Chính Thức (Font Decision Gate) — RabbitPOS
 
 > [!IMPORTANT]
-> **CẬP NHẬT THEO TAHOE ("LIQUID GLASS") REDESIGN — OWNER OVERRIDE Q1 (`2026-11-02`, Phase T1)**:
+> **CẬP NHẬT THEO TAHOE ("LIQUID GLASS") REDESIGN — OWNER OVERRIDE Q1 (`2026-11-02`, Phase T1) & GATE G1 LOCKED DECISION Q8 (`2026-11-02`, Phase T3)**:
 > - **Quyết định mới có hiệu lực (Supersedes Pairing C Nunito):**
 >   1. **Giao diện, Tiêu đề, Nhãn nút & Nội dung (`--font-sans` / `--font-display`):** Sử dụng **System Font Stack** (`-apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display"`) để hiển thị native **San Francisco (`SF Pro`)** trên thiết bị Apple (iOS / iPadOS / macOS, `0` byte tải mạng), kết hợp **self-hosted Inter Variable** (`latin` + `vietnamese` subsets) làm fallback đồng nhất trên các nền tảng không phải Apple (Android / Windows / Linux). **Loại bỏ hoàn toàn `Nunito`.**
->   2. **Số tiền, KPI, Bảng kê & Ngày giờ (`.font-num` / `.tabular-nums`):** Sử dụng **Inter Variable** với `font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1` trên mọi nền tảng *(Lưu ý: Câu hỏi mở `Q8` về việc ưu tiên `SF Pro tabular-nums` trên thiết bị Apple để tránh trộn 2 họ font trên cùng một dòng sẽ được Owner chốt trực quan trên iPhone tại Gate G1 — xem `docs/ui-tahoe/06-open-questions.md`)*.
+>   2. **Số tiền, KPI, Bảng kê & Ngày giờ (`.font-num` / `.tabular-nums` / `fontFamily.num` — Gate G1 Locked Decision `Q8 = Option A`):** Sử dụng **System Font Stack (`SF Pro`) với `font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1` trên thiết bị Apple**, và tự động fallback sang **Inter Variable (`tabular-nums`, `"tnum" 1`) trên các thiết bị không phải Apple** (`-apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", var(--font-inter), system-ui, "Segoe UI", Roboto, sans-serif`). Quyết định này đảm bảo trên cùng một dòng dữ liệu không bao giờ trộn 2 họ font khác nhau, giữ thẳng hàng tuyệt đối các cột số tiền `0–9` trên mọi nền tảng, và tiết kiệm `58,508` bytes tải font trên iPhone / iPad / Mac.
 >   3. **Dung lượng file WOFF2 đo đạc thực tế còn giữ lại (`ls -l` — `[VERIFIED]`):**
 >      - `inter-latin-wght-normal.woff2`: **`48,256` bytes** (`47.12 KiB`)
 >      - `inter-vietnamese-wght-normal.woff2`: **`10,252` bytes** (`10.01 KiB`)
