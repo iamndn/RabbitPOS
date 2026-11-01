@@ -265,7 +265,7 @@ export default function GiftItemSelectorModal({
                           {variant.variant_name !== 'Default' ? variant.variant_name : 'Mặc định'}
                         </div>
                         <div className="flex items-center gap-1.5 mt-0.5">
-                          <span className="text-[10px] text-slate-400 line-through">
+                          <span className="text-caption text-slate-400 line-through font-semibold">
                             {formatCurrency(variant.retail_price, settings)}
                           </span>
                           <span className="text-[11px] font-black text-purple-600">
