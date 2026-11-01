@@ -7,7 +7,7 @@ import { Store as StoreIcon, ChevronDown, Check, Search, PlusCircle, Settings, C
 import { useStore } from '@/lib/StoreContext';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
 import { getImageUrl } from '@/lib/api';
-import { useExclusivePopover } from '@/components/common/useExclusivePopover';
+import { ResponsiveSheet } from '@/components/ui';
 import { Store } from '@/types/store';
 
 function getStoreInitials(name?: string): string {
@@ -35,9 +35,9 @@ export default function StoreSwitcher() {
   const { t } = useTranslation();
   const router = useRouter();
 
-  const [isOpen, setIsOpen] = useExclusivePopover('store-switcher');
+  const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const triggerButtonRef = useRef<HTMLButtonElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const canSwitch = isSuperAdmin || storesList.length > 1;
@@ -54,23 +54,10 @@ export default function StoreSwitcher() {
     );
   }, [storesList, searchQuery]);
 
-  // Handle outside click to close
-  useEffect(() => {
-    const handleOutsideClick = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-    if (isOpen) {
-      document.addEventListener('mousedown', handleOutsideClick);
-    }
-    return () => document.removeEventListener('mousedown', handleOutsideClick);
-  }, [isOpen]);
-
   // Focus search input when open
   useEffect(() => {
-    if (isOpen && searchInputRef.current && window.innerWidth >= 768) {
-      setTimeout(() => searchInputRef.current?.focus(), 50);
+    if (isOpen && searchInputRef.current) {
+      setTimeout(() => searchInputRef.current?.focus(), 100);
     }
     if (!isOpen) {
       setSearchQuery('');
@@ -118,12 +105,13 @@ export default function StoreSwitcher() {
   }
 
   return (
-    <div className="relative shrink-0" ref={dropdownRef}>
+    <div className="relative shrink-0">
       {/* Trigger Button */}
       <button
+        ref={triggerButtonRef}
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center space-x-2 bg-purple-800/90 hover:bg-purple-800 border border-purple-700/60 py-1.5 px-2.5 sm:px-3 rounded-xl transition cursor-pointer text-left focus:outline-none focus:ring-2 focus:ring-white/40 active:scale-95 text-white"
+        className="flex items-center space-x-2 bg-brand-800/90 hover:bg-brand-800 border border-brand-700/60 py-1.5 px-2.5 sm:px-3 rounded-xl transition cursor-pointer text-left focus:outline-none focus:ring-2 focus:ring-white/40 active:scale-95 text-white"
         aria-expanded={isOpen}
         title={t('storeSwitcher.switch_store') || 'Chuyển cửa hàng'}
       >
@@ -137,7 +125,7 @@ export default function StoreSwitcher() {
             }}
           />
         ) : (
-          <div className="w-5 h-5 rounded-md bg-purple-700 text-purple-100 font-black text-[10px] flex items-center justify-center shrink-0 border border-purple-600/50">
+          <div className="w-5 h-5 rounded-md bg-brand-700 text-brand-100 font-black text-[10px] flex items-center justify-center shrink-0 border border-brand-600/50">
             {initials}
           </div>
         )}
@@ -146,156 +134,143 @@ export default function StoreSwitcher() {
           <span className="font-bold text-xs leading-none truncate text-white">
             {activeStore?.name || 'RabbitPOS'}
           </span>
-          <span className="text-[9px] text-purple-200/90 uppercase font-semibold leading-tight mt-0.5 truncate">
+          <span className="text-[9px] text-brand-200/90 uppercase font-semibold leading-tight mt-0.5 truncate">
             {activeStore?.code || badge.label}
           </span>
         </div>
 
         <ChevronDown
-          className={`w-3.5 h-3.5 text-purple-200 transition-transform duration-200 ${
+          className={`w-3.5 h-3.5 text-brand-200 transition-transform duration-200 ${
             isOpen ? 'rotate-180' : ''
           }`}
         />
       </button>
 
-      {/* Dropdown Menu Modal */}
-      {isOpen && (
-        <>
-          {/* Mobile backdrop for easy dismissal */}
-          <div
-            className="fixed inset-0 z-[85] bg-slate-900/40 backdrop-blur-sm md:hidden animate-fadeIn"
-            onClick={() => setIsOpen(false)}
-          />
-
-          <div className="fixed inset-x-0 bottom-0 z-[90] md:z-[80] md:inset-x-auto md:bottom-auto md:absolute md:left-0 md:top-full md:mt-2 w-full md:w-80 md:max-w-[calc(100vw-1.5rem)] max-h-[85dvh] md:max-h-[75vh] overflow-y-auto bg-white rounded-t-3xl md:rounded-2xl shadow-2xl ring-1 ring-black/5 border border-slate-200/90 py-2 pb-safe md:pb-2 text-slate-800 animate-slideUp md:animate-scaleIn">
-            <div className="flex justify-center pt-1 pb-2 md:hidden">
-              <div className="w-10 h-1 bg-slate-300 rounded-full" />
+      {/* Modern ResponsiveSheet Modal / Popover */}
+      <ResponsiveSheet
+        isOpen={isOpen}
+        onClose={() => setIsOpen(false)}
+        triggerRef={triggerButtonRef}
+        exclusiveId="store-switcher"
+        align="start"
+        width="w-80"
+        title={
+          <div className="flex items-center space-x-2">
+            <StoreIcon className="w-4 h-4 text-brand-700" />
+            <span className="text-xs font-bold text-slate-900">
+              {t('storeSwitcher.select_store') || 'Chọn cửa hàng'}
+            </span>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-brand-50 text-brand-700 border border-brand-200">
+              {storesList.length}
+            </span>
+          </div>
+        }
+        footer={
+          isSuperAdmin ? (
+            <Link
+              href="/stores"
+              onClick={() => setIsOpen(false)}
+              className="w-full flex items-center justify-center space-x-2 px-3 py-2 text-xs font-bold text-brand-700 hover:bg-brand-50 rounded-xl transition cursor-pointer active:scale-95"
+            >
+              <PlusCircle className="w-3.5 h-3.5 text-brand-600" />
+              <span>{t('storeSwitcher.manage_stores') || 'Quản lý cửa hàng'}</span>
+            </Link>
+          ) : undefined
+        }
+      >
+        {/* Search Bar (if > 3 stores or search term exists) */}
+        {storesList.length > 3 && (
+          <div className="mb-2">
+            <div className="relative">
+              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+              <input
+                ref={searchInputRef}
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder={t('storeSwitcher.search_store') || 'Tìm kiếm cửa hàng...'}
+                className="w-full pl-8 pr-3 py-2 md:py-1.5 text-base md:text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-600 transition"
+              />
             </div>
-            {/* Header: Title & Count */}
-            <div className="px-4 py-2 border-b border-slate-100 flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <StoreIcon className="w-4 h-4 text-purple-700" />
-                <span className="text-xs font-bold text-slate-900">
-                  {t('storeSwitcher.select_store') || 'Chọn cửa hàng'}
-                </span>
-              </div>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200">
-                {storesList.length} {storesList.length === 1 ? 'store' : 'stores'}
-              </span>
+          </div>
+        )}
+
+        {/* Stores List */}
+        <div className="space-y-1">
+          {filteredStores.length === 0 ? (
+            <div className="py-6 text-center text-xs text-slate-400 font-medium">
+              {t('storeSwitcher.no_stores_found') || 'Không tìm thấy cửa hàng'}
             </div>
+          ) : (
+            filteredStores.map((store) => {
+              const isCurrent = store.id === activeStore?.id;
+              const itemBadge = getBusinessBadge(store.business_type, t);
+              const itemInitials = getStoreInitials(store.name);
 
-            {/* Search Bar (if > 3 stores or search term exists) */}
-            {storesList.length > 3 && (
-              <div className="px-3 py-2 border-b border-slate-100">
-                <div className="relative">
-                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
-                  <input
-                    ref={searchInputRef}
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder={t('storeSwitcher.search_store') || 'Tìm kiếm cửa hàng...'}
-                    className="w-full pl-8 pr-3 py-2 md:py-1.5 text-base md:text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-600 transition"
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* Stores List */}
-            <div className="max-h-[50dvh] md:max-h-64 overflow-y-auto py-1 px-1.5 space-y-0.5">
-              {filteredStores.length === 0 ? (
-                <div className="py-6 text-center text-xs text-slate-400 font-medium">
-                  {t('storeSwitcher.no_stores_found') || 'Không tìm thấy cửa hàng'}
-                </div>
-              ) : (
-                filteredStores.map((store) => {
-                  const isCurrent = store.id === activeStore?.id;
-                  const itemBadge = getBusinessBadge(store.business_type, t);
-                  const itemInitials = getStoreInitials(store.name);
-
-                  return (
-                    <button
-                      key={store.id}
-                      type="button"
-                      onClick={() => handleSelectStore(store)}
-                      className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-left transition cursor-pointer active:scale-[0.98] ${
+              return (
+                <button
+                  key={store.id}
+                  type="button"
+                  onClick={() => handleSelectStore(store)}
+                  className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-left transition cursor-pointer active:scale-[0.98] ${
+                    isCurrent
+                      ? 'bg-brand-50 text-brand-950 font-semibold border border-brand-200 shadow-2xs'
+                      : 'hover:bg-slate-50 text-slate-700'
+                  }`}
+                >
+                  {/* Store Avatar */}
+                  {store.logo_url ? (
+                    <img
+                      src={getImageUrl(store.logo_url) || store.logo_url}
+                      alt={store.name}
+                      className="w-8 h-8 rounded-lg object-contain bg-slate-100 border border-slate-200 shrink-0"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
+                    />
+                  ) : (
+                    <div
+                      className={`w-8 h-8 rounded-lg font-black text-xs flex items-center justify-center shrink-0 border ${
                         isCurrent
-                          ? 'bg-purple-50/90 text-purple-950 font-semibold border border-purple-200/80 shadow-xs'
-                          : 'hover:bg-purple-50/70 text-slate-700'
+                          ? 'bg-brand-600 text-white border-brand-700 shadow-2xs'
+                          : 'bg-slate-100 text-slate-600 border-slate-200'
                       }`}
                     >
-                      {/* Store Avatar */}
-                      {store.logo_url ? (
-                        <img
-                          src={getImageUrl(store.logo_url) || store.logo_url}
-                          alt={store.name}
-                          className="w-8 h-8 rounded-lg object-contain bg-slate-100 border border-slate-200 shrink-0"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).style.display = 'none';
-                          }}
-                        />
-                      ) : (
-                        <div
-                          className={`w-8 h-8 rounded-lg font-black text-xs flex items-center justify-center shrink-0 border ${
-                            isCurrent
-                              ? 'bg-purple-600 text-white border-purple-700 shadow-sm'
-                              : 'bg-slate-100 text-slate-600 border-slate-200'
-                          }`}
-                        >
-                          {itemInitials}
-                        </div>
+                      {itemInitials}
+                    </div>
+                  )}
+
+                  {/* Store Name & Meta */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center space-x-1.5">
+                      <span className="text-xs font-bold truncate text-slate-900">
+                        {store.name}
+                      </span>
+                      {!store.is_active && (
+                        <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-amber-50 text-amber-700 border border-amber-200">
+                          Tạm dừng
+                        </span>
                       )}
+                    </div>
+                    <div className="flex items-center space-x-1.5 text-[10px] text-slate-400 mt-0.5 truncate">
+                      <span className="font-mono text-slate-500 font-semibold">{store.code}</span>
+                      <span>•</span>
+                      <span className="truncate">{store.address || itemBadge.label}</span>
+                    </div>
+                  </div>
 
-                      {/* Store Name & Meta */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center space-x-1.5">
-                          <span className="text-xs font-bold truncate text-slate-900">
-                            {store.name}
-                          </span>
-                          {!store.is_active && (
-                            <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-amber-50 text-amber-700 border border-amber-200">
-                              Tạm dừng
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex items-center space-x-1.5 text-[10px] text-slate-400 mt-0.5 truncate">
-                          <span className="font-mono text-slate-500 font-semibold">{store.code}</span>
-                          <span>•</span>
-                          <span className="truncate">{store.address || itemBadge.label}</span>
-                        </div>
-                      </div>
-
-                      {/* Active Checkmark */}
-                      {isCurrent && (
-                        <div className="shrink-0 w-5 h-5 rounded-full bg-purple-600 text-white flex items-center justify-center shadow-xs">
-                          <Check className="w-3 h-3 stroke-[3]" />
-                        </div>
-                      )}
-                    </button>
-                  );
-                })
-              )}
-            </div>
-
-            {/* Super Admin Quick Link: Manage Stores */}
-            {isSuperAdmin && (
-              <>
-                <div className="border-t border-slate-100 my-1" />
-                <div className="px-1.5 py-0.5">
-                  <Link
-                    href="/stores"
-                    onClick={() => setIsOpen(false)}
-                    className="w-full flex items-center justify-center space-x-2 px-3 py-2 text-xs font-bold text-purple-700 hover:bg-purple-50 rounded-xl transition cursor-pointer active:scale-95"
-                  >
-                    <PlusCircle className="w-3.5 h-3.5 text-purple-600" />
-                    <span>{t('storeSwitcher.manage_stores') || 'Quản lý cửa hàng'}</span>
-                  </Link>
-                </div>
-              </>
-            )}
-          </div>
-        </>
-      )}
+                  {/* Active Checkmark */}
+                  {isCurrent && (
+                    <div className="shrink-0 w-5 h-5 rounded-full bg-brand-600 text-white flex items-center justify-center shadow-2xs">
+                      <Check className="w-3 h-3 stroke-[3]" />
+                    </div>
+                  )}
+                </button>
+              );
+            })
+          )}
+        </div>
+      </ResponsiveSheet>
     </div>
   );
 }
