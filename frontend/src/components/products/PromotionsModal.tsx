@@ -28,6 +28,7 @@ import { useTranslation } from '@/lib/i18n/LanguageContext';
 import { useConfirm } from '@/context/ConfirmContext';
 import { formatCurrency, SettingsMap } from '@/lib/utils';
 import ModernSelect from '@/components/common/ModernSelect';
+import { FilterBar, Chip } from '@/components/ui';
 import { Promotion, PromoType, PromoScope } from '@/types/promotion';
 
 export type { Promotion, PromoType, PromoScope };
@@ -68,6 +69,16 @@ export default function PromotionsModal({ isOpen, onClose, settings: initialSett
   // Filters
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
+
+  const promoTypeOptions = React.useMemo(
+    () => [
+      { value: 'all', label: t('promotions.filter_all_types') || 'Tất cả loại KM' },
+      { value: 'discount_amount', label: t('promotions.type_discount_amount') || 'Giảm tiền (đ)' },
+      { value: 'discount_percent', label: t('promotions.type_discount_percent') || 'Giảm phần trăm (%)' },
+      { value: 'gift_item', label: t('promotions.type_gift_item') || 'Tặng món quà' },
+    ],
+    [t]
+  );
 
   // Form Sub-Modal State
   const [isFormOpen, setIsFormOpen] = useState<boolean>(false);
@@ -425,30 +436,34 @@ export default function PromotionsModal({ isOpen, onClose, settings: initialSett
         </div>
 
         {/* Search & Filter Toolbar */}
-        <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center justify-between">
-          <div className="relative flex-1 min-w-0">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder={t('promotions.search_placeholder') || 'Tìm khuyến mãi theo tên...'}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="app-input pl-9 pr-4"
-            />
-          </div>
-          <div className="w-full sm:w-52 shrink-0">
-            <ModernSelect
-              value={typeFilter}
-              onChange={(val) => setTypeFilter(String(val))}
-              options={[
-                { value: 'all', label: t('promotions.filter_all_types') || 'Tất cả loại KM' },
-                { value: 'discount_amount', label: t('promotions.type_discount_amount') || 'Giảm tiền (đ)' },
-                { value: 'discount_percent', label: t('promotions.type_discount_percent') || 'Giảm phần trăm (%)' },
-                { value: 'gift_item', label: t('promotions.type_gift_item') || 'Tặng món quà' },
-              ]}
-            />
-          </div>
-        </div>
+        <FilterBar
+          searchValue={searchQuery}
+          onSearchChange={setSearchQuery}
+          searchPlaceholder={t('promotions.search_placeholder') || 'Tìm khuyến mãi theo tên...'}
+          activeFiltersCount={typeFilter !== 'all' ? 1 : 0}
+          sheetTitle={t('promotions.filter_title') || 'Bộ Lọc Khuyến Mãi'}
+          onReset={() => setTypeFilter('all')}
+          filters={
+            <div className="w-full md:w-52">
+              <label className="text-caption font-bold text-slate-500 uppercase block mb-1 md:hidden">
+                Loại khuyến mãi
+              </label>
+              <ModernSelect
+                value={typeFilter}
+                onChange={(val) => setTypeFilter(String(val))}
+                options={promoTypeOptions}
+                size="sm"
+              />
+            </div>
+          }
+          chipsSlot={
+            typeFilter !== 'all' ? (
+              <Chip variant="brand" onRemove={() => setTypeFilter('all')}>
+                {promoTypeOptions.find((o) => o.value === typeFilter)?.label || typeFilter}
+              </Chip>
+            ) : undefined
+          }
+        />
 
         {/* Promotions List */}
         {loading ? (

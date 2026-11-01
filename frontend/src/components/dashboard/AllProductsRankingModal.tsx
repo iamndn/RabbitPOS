@@ -23,6 +23,7 @@ import { formatCurrency, SettingsMap } from '@/lib/utils';
 import { exportToCsv } from '@/lib/exportCsv';
 import { exportProductsRankingToExcel } from '@/lib/exportExcel';
 import ModernSelect from '@/components/common/ModernSelect';
+import { FilterBar, Chip } from '@/components/ui';
 
 export interface ProductRankingItem {
   product_id: number;
@@ -80,7 +81,7 @@ export default function AllProductsRankingModal({
   const [totalPages, setTotalPages] = useState<number>(1);
   const [totalItems, setTotalItems] = useState<number>(0);
 
-  const [isFilterModalOpen, setIsFilterModalOpen] = useState<boolean>(false);
+
 
   useEffect(() => {
     if (isOpen) {
@@ -180,47 +181,61 @@ export default function AllProductsRankingModal({
         </div>
 
         {/* Search Bar & Filter Controls */}
-        <div className="space-y-2 bg-slate-50 p-3 rounded-2xl border border-slate-200/80">
-          <div className="flex items-center gap-2 w-full">
-            {/* Search Input */}
-            <div className="relative flex-1 min-w-0">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-              <input
-                type="text"
-                placeholder={t('dashboard.search_product_placeholder')}
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-9 pr-8 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
-              />
-              {search && (
-                <button
-                  type="button"
-                  onClick={() => setSearch('')}
-                  className="absolute right-2.5 top-2.5 p-0.5 text-slate-400 hover:text-slate-600 rounded transition cursor-pointer"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              )}
+        <FilterBar
+          searchValue={search}
+          onSearchChange={setSearch}
+          searchPlaceholder={t('dashboard.search_product_placeholder')}
+          activeFiltersCount={(selectedCategoryId ? 1 : 0) + (sortBy !== 'revenue' ? 1 : 0)}
+          sheetTitle="Bộ Lọc Bảng Xếp Hạng"
+          onReset={() => {
+            setSortBy('revenue');
+            setSelectedCategoryId('');
+            setPage(1);
+          }}
+          filters={
+            <div className="flex flex-col md:flex-row md:items-center gap-2.5 w-full md:w-auto">
+              <div className="w-full md:w-44">
+                <label className="text-caption font-bold text-slate-500 uppercase block mb-1 md:hidden">
+                  Sắp xếp theo
+                </label>
+                <ModernSelect
+                  value={sortBy}
+                  onChange={(val) => {
+                    setSortBy(val as any);
+                    setPage(1);
+                  }}
+                  options={[
+                    { value: 'revenue', label: 'Doanh thu' },
+                    { value: 'profit', label: 'Lợi nhuận' },
+                    { value: 'quantity', label: 'Số lượng' },
+                    { value: 'margin', label: 'Tỷ suất LN %' },
+                  ]}
+                  size="sm"
+                />
+              </div>
+              <div className="w-full md:w-48">
+                <label className="text-caption font-bold text-slate-500 uppercase block mb-1 md:hidden">
+                  Danh mục
+                </label>
+                <ModernSelect
+                  value={selectedCategoryId}
+                  onChange={(val) => {
+                    setSelectedCategoryId(val);
+                    setPage(1);
+                  }}
+                  options={[
+                    { value: '', label: 'Tất cả danh mục' },
+                    ...categories.map((c) => ({
+                      value: String(c.id),
+                      label: c.name,
+                    })),
+                  ]}
+                  size="sm"
+                />
+              </div>
             </div>
-
-            {/* Filter Button */}
-            <button
-              type="button"
-              onClick={() => setIsFilterModalOpen(true)}
-              className={`px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer shadow-2xs ${
-                selectedCategoryId || sortBy !== 'revenue'
-                  ? 'bg-indigo-600 text-white shadow-sm ring-2 ring-indigo-500/30 font-extrabold'
-                  : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
-              }`}
-            >
-              <Filter className="w-3.5 h-3.5" />
-              <span>Bộ lọc</span>
-              {(selectedCategoryId || sortBy !== 'revenue') && (
-                <span className="w-1.5 h-1.5 rounded-full bg-indigo-300 animate-pulse" />
-              )}
-            </button>
-
-            {/* Export Excel Button */}
+          }
+          actionsSlot={
             <button
               type="button"
               onClick={handleExportExcel}
@@ -231,209 +246,31 @@ export default function AllProductsRankingModal({
               {exportingExcel ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <FileSpreadsheet className="w-3.5 h-3.5 text-purple-600" />}
               <span className="hidden sm:inline">Xuất Excel</span>
             </button>
-          </div>
-
-          {/* Active Filter Chips */}
-          {(selectedCategoryId || sortBy !== 'revenue') && (
-            <div className="flex flex-wrap items-center gap-1.5 text-xs pt-1">
-              <span className="text-slate-400 font-semibold text-[11px]">Đang lọc:</span>
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-indigo-50 text-indigo-800 border border-indigo-200 rounded-lg font-bold text-[11px]">
-                <span>
-                  Sắp xếp:{' '}
-                  {sortBy === 'revenue'
-                    ? 'Doanh thu'
-                    : sortBy === 'profit'
-                    ? 'Lợi nhuận'
-                    : sortBy === 'quantity'
-                    ? 'Số lượng'
-                    : 'Tỷ suất LN %'}
-                </span>
+          }
+          chipsSlot={
+            (selectedCategoryId || sortBy !== 'revenue') ? (
+              <>
                 {sortBy !== 'revenue' && (
-                  <button type="button" onClick={() => setSortBy('revenue')} className="hover:text-indigo-950">
-                    <X className="w-3 h-3" />
-                  </button>
+                  <Chip
+                    variant="brand"
+                    onRemove={() => { setSortBy('revenue'); setPage(1); }}
+                  >
+                    Sắp xếp: {sortBy === 'profit' ? 'Lợi nhuận' : sortBy === 'quantity' ? 'Số lượng' : 'Tỷ suất LN %'}
+                  </Chip>
                 )}
-              </span>
-              {selectedCategoryId && (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-slate-100 text-slate-800 border border-slate-200 rounded-lg font-bold text-[11px]">
-                  <span>
-                    Danh mục:{' '}
-                    {categories.find((c) => String(c.id) === selectedCategoryId)?.name || selectedCategoryId}
-                  </span>
-                  <button type="button" onClick={() => setSelectedCategoryId('')} className="hover:text-slate-950">
-                    <X className="w-3 h-3" />
-                  </button>
-                </span>
-              )}
-              <button
-                type="button"
-                onClick={() => {
-                  setSortBy('revenue');
-                  setSelectedCategoryId('');
-                }}
-                className="text-rose-600 hover:text-rose-700 font-bold text-[11px] ml-1 underline cursor-pointer"
-              >
-                Đặt lại
-              </button>
-            </div>
-          )}
-        </div>
+                {selectedCategoryId && (
+                  <Chip
+                    variant="default"
+                    onRemove={() => { setSelectedCategoryId(''); setPage(1); }}
+                  >
+                    Danh mục: {categories.find((c) => String(c.id) === selectedCategoryId)?.name || selectedCategoryId}
+                  </Chip>
+                )}
+              </>
+            ) : undefined
+          }
+        />
 
-        {/* Popup Filter Modal (For Ranking) */}
-        {isFilterModalOpen && (
-          <div className="fixed inset-0 z-60 bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-150">
-            <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-lg w-full p-4 sm:p-6 shadow-2xl space-y-4 max-h-[92dvh] sm:max-h-[85vh] flex flex-col animate-in slide-in-from-bottom-6 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200 pb-safe sm:pb-6 border border-slate-100">
-              {/* Mobile Grab Handle */}
-              <div className="flex justify-center pt-1 pb-1 sm:hidden">
-                <div className="w-10 h-1 bg-slate-300 rounded-full" />
-              </div>
-
-              {/* Modal Header */}
-              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                <div className="flex items-center gap-2">
-                  <div className="p-2 bg-purple-50 text-purple-700 rounded-xl">
-                    <Filter className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="font-extrabold text-base text-slate-900">Bộ Lọc Xếp Hạng Món</h3>
-                    <p className="text-xs text-slate-400">Chọn tiêu chí sắp xếp và danh mục món</p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setIsFilterModalOpen(false)}
-                  className="p-1.5 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 transition cursor-pointer"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              {/* Content */}
-              <div className="flex-1 overflow-y-auto space-y-4 pr-1 text-xs custom-scrollbar">
-                {/* Section 1: Sắp xếp theo */}
-                <div>
-                  <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-2">
-                    📊 Sắp Xếp Theo
-                  </label>
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setSortBy('revenue')}
-                      className={`px-3.5 py-2 rounded-xl font-bold transition whitespace-nowrap cursor-pointer shadow-2xs active:scale-95 ${
-                        sortBy === 'revenue'
-                          ? 'bg-purple-800 text-white shadow-sm ring-2 ring-purple-500/30 font-black'
-                          : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
-                      }`}
-                    >
-                      💰 {t('dashboard.sort_revenue') || 'Doanh thu'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setSortBy('profit')}
-                      className={`px-3.5 py-2 rounded-xl font-bold transition whitespace-nowrap cursor-pointer shadow-2xs active:scale-95 ${
-                        sortBy === 'profit'
-                          ? 'bg-purple-800 text-white shadow-sm ring-2 ring-purple-500/30 font-black'
-                          : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
-                      }`}
-                    >
-                      📈 {t('dashboard.sort_profit') || 'Lợi nhuận'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setSortBy('quantity')}
-                      className={`px-3.5 py-2 rounded-xl font-bold transition whitespace-nowrap cursor-pointer shadow-2xs active:scale-95 ${
-                        sortBy === 'quantity'
-                          ? 'bg-purple-800 text-white shadow-sm ring-2 ring-purple-500/30 font-black'
-                          : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
-                      }`}
-                    >
-                      📦 {t('dashboard.sort_quantity') || 'Số lượng bán'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setSortBy('margin')}
-                      className={`px-3.5 py-2 rounded-xl font-bold transition whitespace-nowrap cursor-pointer shadow-2xs active:scale-95 ${
-                        sortBy === 'margin'
-                          ? 'bg-purple-800 text-white shadow-sm ring-2 ring-purple-500/30 font-black'
-                          : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
-                      }`}
-                    >
-                      🎯 {t('dashboard.sort_margin') || 'Tỷ suất lợi nhuận (%)'}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Divider */}
-                <hr className="border-slate-100" />
-
-                {/* Section 2: Danh mục */}
-                <div>
-                  <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-2">
-                    📂 Danh Mục Sản Phẩm
-                  </label>
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedCategoryId('');
-                        setPage(1);
-                      }}
-                      className={`px-3.5 py-2 rounded-xl font-bold transition whitespace-nowrap cursor-pointer shadow-2xs active:scale-95 ${
-                        !selectedCategoryId
-                          ? 'bg-purple-800 text-white shadow-sm font-black ring-2 ring-purple-500/30'
-                          : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
-                      }`}
-                    >
-                      <span>{t('dashboard.all_categories') || 'Tất cả danh mục'}</span>
-                    </button>
-                    {categories.map((c) => {
-                      const isSelected = selectedCategoryId === String(c.id);
-                      return (
-                        <button
-                          key={c.id}
-                          type="button"
-                          onClick={() => {
-                            setSelectedCategoryId(isSelected ? '' : String(c.id));
-                            setPage(1);
-                          }}
-                          className={`px-3.5 py-2 rounded-xl font-bold transition whitespace-nowrap cursor-pointer shadow-2xs active:scale-95 ${
-                            isSelected
-                              ? 'bg-purple-800 text-white shadow-sm font-black ring-2 ring-purple-500/30'
-                              : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
-                          }`}
-                        >
-                          <span>{c.name}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-
-              {/* Modal Footer */}
-              <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:justify-between border-t border-slate-100 pt-3">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSortBy('revenue');
-                    setSelectedCategoryId('');
-                    setPage(1);
-                  }}
-                  className="text-xs font-bold text-slate-500 hover:text-rose-600 transition cursor-pointer px-3 py-2.5 rounded-xl border border-slate-200 sm:border-transparent text-center justify-center flex items-center"
-                >
-                  Đặt lại
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIsFilterModalOpen(false)}
-                  className="bg-purple-800 hover:bg-purple-900 text-white text-xs font-extrabold px-5 py-2.5 rounded-xl shadow-xs transition active:scale-95 cursor-pointer text-center justify-center flex items-center"
-                >
-                  Áp dụng ({totalItems})
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Table & Mobile Cards Content */}
         <div className="flex-1 overflow-y-auto border border-slate-200 rounded-2xl shadow-sm">

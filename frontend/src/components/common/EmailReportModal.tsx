@@ -22,6 +22,7 @@ import { useTranslation } from '@/lib/i18n/LanguageContext';
 import { SettingsMap, formatCurrency } from '@/lib/utils';
 import { getLocalDateStr } from '@/components/common/ModernDateRangePicker';
 import { RevenueAnalyticsResponse, ProfitAnalyticsResponse } from '@/types/analytics';
+import { FilterPill } from '@/components/ui';
 
 interface EmailReportModalProps {
   isOpen: boolean;
@@ -256,20 +257,19 @@ export default function EmailReportModal({
                 <span>Ngày chốt báo cáo</span>
               </label>
               <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => setQuickDate('today')}
-                  className="px-2 py-0.5 text-[11px] font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition cursor-pointer"
-                >
-                  Hôm nay
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setQuickDate('yesterday')}
-                  className="px-2 py-0.5 text-[11px] font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition cursor-pointer"
-                >
-                  Hôm qua
-                </button>
+                <FilterPill
+                  label="Hôm nay"
+                  active={emailDate === new Date().toISOString().slice(0, 10)}
+                  onOpen={() => setQuickDate('today')}
+                />
+                <FilterPill
+                  label="Hôm qua"
+                  active={
+                    emailDate ===
+                    new Date(Date.now() - 86400000).toISOString().slice(0, 10)
+                  }
+                  onOpen={() => setQuickDate('yesterday')}
+                />
               </div>
             </div>
             <input

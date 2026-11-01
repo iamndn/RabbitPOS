@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { DatePeriod, getLocalDateStr } from '@/components/common/ModernDateRangePicker';
 import ModernSelect, { ModernSelectOption } from '@/components/common/ModernSelect';
+import { FilterBar, Chip } from '@/components/ui';
 import { fetchApi } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
 import { exportToCsv } from '@/lib/exportCsv';
@@ -224,28 +225,38 @@ export default function ProductSalesPerformanceSection({
         </div>
 
         {/* Filter Toolbar */}
-        <div className="flex flex-wrap gap-2.5 sm:gap-3 items-center p-3.5 sm:p-5 border-b border-slate-100 bg-slate-50/50">
-          <div className="relative flex-1 min-w-[130px] sm:max-w-xs">
-            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-            <input
-              type="text"
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              placeholder={t('product_perf.search_placeholder')}
-              className="w-full pl-8 pr-3 py-2 text-xs font-medium border border-slate-200 rounded-xl bg-white text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 transition"
-            />
-          </div>
-          <div className="w-full sm:w-auto flex-1 min-w-[130px] sm:max-w-xs">
-            <ModernSelect
-              options={categories}
-              value={categoryFilter}
-              onChange={setCategoryFilter}
-              placeholder={t('product_perf.all_categories')}
-              clearable
-              size="sm"
-              leadingIcon={<Tag className="w-3.5 h-3.5" />}
-            />
-          </div>
+        <div className="p-3.5 sm:p-5 border-b border-slate-100 bg-slate-50/50">
+          <FilterBar
+            searchValue={searchInput}
+            onSearchChange={setSearchInput}
+            searchPlaceholder={t('product_perf.search_placeholder')}
+            activeFiltersCount={categoryFilter ? 1 : 0}
+            sheetTitle={t('product_perf.filter_title') || 'Bộ Lọc Hiệu Suất Món'}
+            onReset={() => setCategoryFilter(null)}
+            filters={
+              <div className="w-full md:w-56">
+                <label className="text-caption font-bold text-slate-500 uppercase block mb-1 md:hidden">
+                  Danh mục
+                </label>
+                <ModernSelect
+                  options={categories}
+                  value={categoryFilter}
+                  onChange={setCategoryFilter}
+                  placeholder={t('product_perf.all_categories')}
+                  clearable
+                  size="sm"
+                  leadingIcon={<Tag className="w-3.5 h-3.5" />}
+                />
+              </div>
+            }
+            chipsSlot={
+              categoryFilter ? (
+                <Chip variant="brand" onRemove={() => setCategoryFilter(null)}>
+                  {categories.find((c) => c.value === categoryFilter)?.label || String(categoryFilter)}
+                </Chip>
+              ) : undefined
+            }
+          />
         </div>
 
         {/* KPI Banner — 4 cards */}
