@@ -25,6 +25,7 @@ import { getSavedStoreBrand, setActiveStoreId } from '@/lib/store';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
 import ModernSelect from '@/components/common/ModernSelect';
 import LanguageToggle from '@/components/LanguageToggle';
+import { ModalShell } from '@/components/ui/ModalShell';
 
 interface LoginData {
   token: string;
@@ -209,10 +210,10 @@ export default function LoginPage() {
       </div>
 
       {/* Main Card */}
-      <div className="w-full max-w-md sm:max-w-lg bg-white rounded-3xl p-5 sm:p-8 shadow-2xl space-y-5 animate-in zoom-in-95 duration-200 border border-slate-100 my-6">
+      <div className="w-full max-w-md sm:max-w-lg surface-card rounded-panel p-5 sm:p-8 shadow-card space-y-5 border-card my-6">
         {/* Brand Header */}
         <div className="text-center space-y-1.5">
-          <div className="inline-flex p-3 bg-purple-50 text-purple-600 rounded-2xl border border-purple-100 shadow-xs items-center justify-center">
+          <div className="inline-flex p-3 bg-purple-50 text-purple-600 rounded-2xl border border-purple-100 shadow-card items-center justify-center">
             {storeLogo ? (
               <img
                 src={getImageUrl(storeLogo) || storeLogo}
@@ -237,16 +238,16 @@ export default function LoginPage() {
         </div>
 
         {/* Mode Switcher Tabs */}
-        <div className="flex bg-slate-100 p-1 rounded-2xl border border-slate-200/80">
+        <div className="flex bg-slate-100/90 p-1 rounded-full border border-border-hairline">
           <button
             type="button"
             onClick={() => {
               setMode('login');
               setError(null);
             }}
-            className={`flex-1 py-2 sm:py-2.5 text-xs font-bold rounded-xl transition cursor-pointer active:scale-95 flex items-center justify-center space-x-1.5 ${
+            className={`flex-1 py-2 sm:py-2.5 text-xs font-bold rounded-full transition cursor-pointer active:scale-95 flex items-center justify-center space-x-1.5 ${
               mode === 'login'
-                ? 'bg-white text-slate-900 shadow-xs'
+                ? 'bg-white text-slate-900 shadow-card font-extrabold'
                 : 'text-slate-500 hover:text-slate-900'
             }`}
           >
@@ -259,9 +260,9 @@ export default function LoginPage() {
               setMode('register');
               setError(null);
             }}
-            className={`flex-1 py-2 sm:py-2.5 text-xs font-bold rounded-xl transition cursor-pointer active:scale-95 flex items-center justify-center space-x-1.5 ${
+            className={`flex-1 py-2 sm:py-2.5 text-xs font-bold rounded-full transition cursor-pointer active:scale-95 flex items-center justify-center space-x-1.5 ${
               mode === 'register'
-                ? 'bg-purple-700 text-white shadow-xs'
+                ? 'bg-brand-purple text-white shadow-card font-extrabold'
                 : 'text-slate-500 hover:text-slate-900'
             }`}
           >
@@ -272,7 +273,7 @@ export default function LoginPage() {
 
         {/* Error Alert */}
         {error && (
-          <div className="bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold p-3.5 rounded-2xl flex items-start space-x-2.5 animate-in fade-in">
+          <div className="bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold p-3.5 rounded-2xl flex items-start space-x-2.5">
             <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
             <span className="leading-relaxed">{error}</span>
           </div>
@@ -326,7 +327,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-purple-700 hover:bg-purple-800 disabled:bg-slate-300 text-white font-bold py-3.5 px-4 rounded-xl shadow-lg shadow-purple-700/20 transition flex items-center justify-center space-x-2 text-sm cursor-pointer active:scale-95"
+              className="w-full bg-brand-purple hover:bg-purple-800 disabled:bg-slate-300 text-white font-bold py-3.5 px-4 rounded-full shadow-card transition flex items-center justify-center space-x-2 text-sm cursor-pointer active:scale-95"
             >
               {loading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <LogIn className="w-4 h-4" />}
               <span>{t('login.sign_in')}</span>
@@ -532,7 +533,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-purple-700 hover:bg-purple-800 disabled:bg-slate-300 text-white font-bold py-3.5 px-4 rounded-xl shadow-lg shadow-purple-700/20 transition flex items-center justify-center space-x-2 text-sm cursor-pointer active:scale-95 mt-4"
+              className="w-full bg-brand-purple hover:bg-purple-800 disabled:bg-slate-300 text-white font-bold py-3.5 px-4 rounded-full shadow-card transition flex items-center justify-center space-x-2 text-sm cursor-pointer active:scale-95 mt-4"
             >
               {loading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
               <span>Đăng Ký & Tạo Cửa Hàng</span>
@@ -556,94 +557,90 @@ export default function LoginPage() {
 
       {/* ── Password Setup Modal ─────────────────────────────────────── */}
       {showSetupModal && setupData && (
-        <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-150">
-          <div className="w-full max-w-md bg-white rounded-t-3xl sm:rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 animate-in slide-in-from-bottom-6 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200 pb-safe sm:pb-8 border border-slate-100">
-            {/* Header */}
-            <div className="text-center space-y-2">
-              <div className="inline-flex p-3 bg-amber-50 text-amber-600 rounded-2xl border border-amber-100 shadow-sm">
-                <KeyRound className="w-8 h-8" />
-              </div>
-              <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">
-                {t('login.setup_password_title')}
-              </h2>
-              <p className="text-xs text-slate-500 font-medium leading-relaxed">
-                {t('login.setup_password_subtitle')}
-              </p>
-              <span className="inline-block bg-indigo-100 text-indigo-800 text-xs font-bold px-3 py-1 rounded-full">
-                {setupData.username}
+        <ModalShell
+          isOpen={showSetupModal && !!setupData}
+          onClose={() => setShowSetupModal(false)}
+          preventClose={setupLoading}
+          size="md"
+          icon={<KeyRound className="w-5 h-5 text-amber-600" />}
+          title={t('login.setup_password_title')}
+          description={
+            <span className="block mt-0.5">
+              <span>{t('login.setup_password_subtitle')}</span>
+              <span className="inline-block bg-purple-100 text-brand-purple text-caption font-bold px-2.5 py-0.5 rounded-full ml-1">
+                @{setupData.username}
               </span>
+            </span>
+          }
+        >
+          {setupSuccess ? (
+            <div className="flex flex-col items-center space-y-3 py-4">
+              <CheckCircle2 className="w-10 h-10 text-brand-purple" />
+              <p className="text-sm font-bold text-brand-purple">{t('login.setup_success')}</p>
             </div>
+          ) : (
+            <div className="space-y-4">
+              {/* Setup Error */}
+              {setupError && (
+                <div className="bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold p-3.5 rounded-2xl flex items-center space-x-2">
+                  <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                  <span>{setupError}</span>
+                </div>
+              )}
 
-            {/* Success state */}
-            {setupSuccess ? (
-              <div className="flex flex-col items-center space-y-3 py-4">
-                <CheckCircle2 className="w-10 h-10 text-purple-500" />
-                <p className="text-sm font-bold text-purple-700">{t('login.setup_success')}</p>
-              </div>
-            ) : (
-              <>
-                {/* Setup Error */}
-                {setupError && (
-                  <div className="bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold p-3.5 rounded-2xl flex items-center space-x-2">
-                    <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
-                    <span>{setupError}</span>
+              {/* Setup Form */}
+              <form onSubmit={handleSetupPassword} className="space-y-4">
+                <div>
+                  <label className="text-xs font-bold text-slate-700 mb-1 block uppercase tracking-wider">
+                    {t('login.new_password')}
+                  </label>
+                  <div className="relative">
+                    <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+                    <input
+                      id="setup-new-password"
+                      type="password"
+                      required
+                      minLength={6}
+                      placeholder={t('login.new_password_placeholder')}
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      className="w-full pl-10 pr-4 py-3 text-sm border border-slate-200 rounded-full focus:outline-none focus:ring-2 focus:ring-amber-500 bg-slate-50 focus:bg-white"
+                    />
                   </div>
-                )}
+                </div>
 
-                {/* Setup Form */}
-                <form onSubmit={handleSetupPassword} className="space-y-4">
-                  <div>
-                    <label className="text-xs font-bold text-slate-700 mb-1 block uppercase tracking-wider">
-                      {t('login.new_password')}
-                    </label>
-                    <div className="relative">
-                      <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
-                      <input
-                        id="setup-new-password"
-                        type="password"
-                        required
-                        minLength={6}
-                        placeholder={t('login.new_password_placeholder')}
-                        value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
-                        className="w-full pl-10 pr-4 py-3 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 bg-slate-50 focus:bg-white"
-                      />
-                    </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-700 mb-1 block uppercase tracking-wider">
+                    {t('login.confirm_password')}
+                  </label>
+                  <div className="relative">
+                    <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+                    <input
+                      id="setup-confirm-password"
+                      type="password"
+                      required
+                      minLength={6}
+                      placeholder={t('login.confirm_password_placeholder')}
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      className="w-full pl-10 pr-4 py-3 text-sm border border-slate-200 rounded-full focus:outline-none focus:ring-2 focus:ring-amber-500 bg-slate-50 focus:bg-white"
+                    />
                   </div>
+                </div>
 
-                  <div>
-                    <label className="text-xs font-bold text-slate-700 mb-1 block uppercase tracking-wider">
-                      {t('login.confirm_password')}
-                    </label>
-                    <div className="relative">
-                      <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
-                      <input
-                        id="setup-confirm-password"
-                        type="password"
-                        required
-                        minLength={6}
-                        placeholder={t('login.confirm_password_placeholder')}
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        className="w-full pl-10 pr-4 py-3 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 bg-slate-50 focus:bg-white"
-                      />
-                    </div>
-                  </div>
-
-                  <button
-                    id="setup-submit-btn"
-                    type="submit"
-                    disabled={setupLoading}
-                    className="w-full bg-amber-500 hover:bg-amber-600 disabled:bg-slate-300 text-white font-bold py-3.5 px-4 rounded-xl shadow-lg transition flex items-center justify-center space-x-2 text-sm cursor-pointer active:scale-95"
-                  >
-                    {setupLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <KeyRound className="w-4 h-4" />}
-                    <span>{t('login.setup_submit')}</span>
-                  </button>
-                </form>
-              </>
-            )}
-          </div>
-        </div>
+                <button
+                  id="setup-submit-btn"
+                  type="submit"
+                  disabled={setupLoading}
+                  className="w-full bg-amber-500 hover:bg-amber-600 disabled:bg-slate-300 text-white font-bold py-3.5 px-4 rounded-full shadow-card transition flex items-center justify-center space-x-2 text-sm cursor-pointer active:scale-95"
+                >
+                  {setupLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <KeyRound className="w-4 h-4" />}
+                  <span>{t('login.setup_submit')}</span>
+                </button>
+              </form>
+            </div>
+          )}
+        </ModalShell>
       )}
     </div>
   );
