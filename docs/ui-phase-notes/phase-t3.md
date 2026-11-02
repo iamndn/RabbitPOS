@@ -27,3 +27,4 @@
 - **Blur budget `<= 2` on POS**: Top Bar (`1`) + Tab Bar or Sidebar (`1` on `admin`, `0` on `staff`) = `1–2` passes; Product Grid (`0`) + Solid `#2E1065` Cart Bar (`0`) = `0` extra passes; opening any sheet/modal sets `html[data-overlay-open="true"]`, demoting shell bars to `#FFFFFF` (`0px` blur).
 - **Fixed iOS zoom & mismatched toolbar heights**: Removed `text-xs` mobile override on POS search input (`app/page.tsx:1238`) so all toolbar controls share `h-11 md:h-9 rounded-full` and `16px` mobile input text.
 - **Eliminated dead Tailwind v4 utilities**: Removed all `shadow-2xs`, `shadow-xs`, `backdrop-blur-xs`, `animate-in`, and `< 11px` UI micro-text (preserving only the 12 justified 80mm thermal paper lines in `ReceiptModal`).
+

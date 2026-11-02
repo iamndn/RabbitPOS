@@ -18,3 +18,4 @@ export default function UiGalleryPage() {
 
   return <UiGalleryClient />;
 }
+
