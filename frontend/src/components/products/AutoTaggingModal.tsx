@@ -137,7 +137,7 @@ export default function AutoTaggingModal({
     setLoading(true);
     try {
       // 1. Load saved config
-      const cfgRes = await fetchApi<AutoTaggingConfig>('/products/auto-tagging/config');
+      const cfgRes = await fetchApi<AutoTaggingConfig>('/products/auto-tag/config');
       if (cfgRes.status === 'success' && cfgRes.data) {
         setConfig(cfgRes.data);
         setInputBuffers({
@@ -150,7 +150,7 @@ export default function AutoTaggingModal({
       }
 
       // 2. Run simulation evaluation with active/saved config
-      const evalRes = await fetchApi<AutoTaggingResult>('/products/auto-tagging/evaluate', {
+      const evalRes = await fetchApi<AutoTaggingResult>('/products/auto-tag/preview', {
         method: 'POST',
         body: JSON.stringify(cfgRes.data || config),
       });
@@ -169,7 +169,7 @@ export default function AutoTaggingModal({
   const handleRunEvaluation = async () => {
     setEvaluating(true);
     try {
-      const evalRes = await fetchApi<AutoTaggingResult>('/products/auto-tagging/evaluate', {
+      const evalRes = await fetchApi<AutoTaggingResult>('/products/auto-tag/preview', {
         method: 'POST',
         body: JSON.stringify(config),
       });
@@ -189,8 +189,8 @@ export default function AutoTaggingModal({
   const handleSaveConfig = async () => {
     setSavingConfig(true);
     try {
-      const res = await fetchApi('/products/auto-tagging/config', {
-        method: 'POST',
+      const res = await fetchApi('/products/auto-tag/config', {
+        method: 'PUT',
         body: JSON.stringify(config),
       });
       if (res.status === 'success') {
@@ -205,22 +205,25 @@ export default function AutoTaggingModal({
     }
   };
 
-  const handleToggleLock = async (productId: number, currentLocked: boolean) => {
+  const handleToggleLock = async (productID: number, currentLocked: boolean) => {
     try {
-      const newLocked = !currentLocked;
-      const res = await fetchApi(`/products/${productId}/tag-lock`, {
-        method: 'PUT',
-        body: JSON.stringify({ tag_locked: newLocked }),
+      const nextLocked = !currentLocked;
+      const res = await fetchApi('/products/auto-tag/toggle-lock', {
+        method: 'POST',
+        body: JSON.stringify({
+          product_id: productID,
+          locked: nextLocked,
+        }),
       });
       if (res.status === 'success') {
         setEvaluations((prev) =>
           prev.map((e) =>
-            e.product_id === productId
+            e.product_id === productID
               ? {
                   ...e,
-                  tag_locked: newLocked,
-                  will_change: newLocked ? false : e.suggested_tag !== e.current_tag,
-                  reason: newLocked ? 'Đã khóa thủ công' : e.reason,
+                  tag_locked: nextLocked,
+                  will_change: nextLocked ? false : e.suggested_tag !== e.current_tag,
+                  reason: nextLocked ? 'Đã khóa thủ công' : e.reason,
                 }
               : e
           )
@@ -250,12 +253,12 @@ export default function AutoTaggingModal({
 
     setApplying(true);
     try {
-      const res = await fetchApi<{ updated_count: number }>('/products/auto-tagging/apply', {
+      const res = await fetchApi<AutoTaggingResult>('/products/auto-tag/apply', {
         method: 'POST',
         body: JSON.stringify(config),
       });
       if (res.status === 'success') {
-        showAlert('Thành công', `Đã cập nhật thành công ${res.data?.updated_count || 0} sản phẩm!`, 'info');
+        showAlert('Thành công', `Đã cập nhật thành công ${res.data?.changed_products_count || 0} sản phẩm!`, 'info');
         if (onTagsUpdated) onTagsUpdated();
         onClose();
       } else {

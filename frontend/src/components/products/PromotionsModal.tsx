@@ -680,7 +680,8 @@ export default function PromotionsModal({ isOpen, onClose, settings: initialSett
                     value={formValue ? (formType === 'discount_percent' ? formValue : formValue.toLocaleString('vi-VN')) : ''}
                     onChange={(e) => {
                       const raw = e.target.value.replace(/\D/g, '');
-                      setFormValue(raw === '' ? 0 : parseInt(raw, 10));
+                      const num = raw === '' ? 0 : parseInt(raw, 10);
+                      setFormValue(formType === 'discount_percent' ? Math.min(100, num) : num);
                     }}
                     className="app-input font-num font-bold"
                   />

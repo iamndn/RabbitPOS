@@ -157,10 +157,14 @@ export default function ToppingManagerModal({
       );
       setLocalToppings(updatedList);
 
-      const res = await fetchApi(`/toppings/${tp.id}`, {
+      const res = await fetchApi<Topping>(`/toppings/${tp.id}`, {
         method: 'PUT',
         body: JSON.stringify({
-          ...tp,
+          name: tp.name,
+          price: Number(tp.price),
+          cogs: Number(tp.cogs) || 0,
+          category_ids: (tp.category_ids && tp.category_ids.length > 0) ? tp.category_ids : (tp.category_id ? [tp.category_id] : []),
+          category_id: tp.category_id,
           is_active: updatedStatus,
         }),
       });

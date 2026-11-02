@@ -102,7 +102,7 @@ export default function TransactionCategoryModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name.trim()) {
-      setErrorMessage(t('tx_cat.err_name_required') || 'Tên danh mục không được để trống');
+      setErrorMessage(t('tx_cat.name_required') || 'Tên danh mục không được để trống');
       return;
     }
     if (submittingRef.current) return;
@@ -146,8 +146,8 @@ export default function TransactionCategoryModal({
 
   const handleSetDefault = async (cat: TransactionCategory) => {
     try {
-      const res = await fetchApi<TransactionCategory>(`/transaction-categories/${cat.id}/default`, {
-        method: 'PATCH',
+      const res = await fetchApi<TransactionCategory>(`/transaction-categories/${cat.id}/set-default`, {
+        method: 'POST',
       });
       if (res.status === 'success') {
         onCategoriesUpdated();
@@ -191,15 +191,11 @@ export default function TransactionCategoryModal({
     setDraggedIndex(null);
     setDragOverIndex(null);
 
-    const reorderPayload = updated.map((c, idx) => ({
-      id: c.id,
-      display_order: idx + 1,
-    }));
-
     try {
+      const orderedIds = updated.map((c) => c.id);
       await fetchApi('/transaction-categories/reorder', {
         method: 'PUT',
-        body: JSON.stringify({ items: reorderPayload }),
+        body: JSON.stringify({ ordered_ids: orderedIds }),
       });
       onCategoriesUpdated();
     } catch {
