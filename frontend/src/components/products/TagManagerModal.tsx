@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Tag, Plus, Edit2, Trash2, X, Check, Sparkles, RefreshCw, AlertCircle, GripVertical } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
 import { useConfirm } from '@/context/ConfirmContext';
+import { ModalShell } from '@/components/ui/ModalShell';
 
 export interface CustomTag {
   id: string;
@@ -16,7 +17,7 @@ export interface CustomTag {
 export const DEFAULT_SYSTEM_TAGS: CustomTag[] = [
   { id: 'best_seller', name: 'Bán chạy', color: 'rose', icon: '🔥', is_system: true },
   { id: 'featured', name: 'Nổi bật', color: 'amber', icon: '⭐', is_system: true },
-  { id: 'signature', name: 'Signature quán', color: 'indigo', icon: '👑', is_system: true },
+  { id: 'signature', name: 'Signature quán', color: 'purple', icon: '👑', is_system: true },
   { id: 'suspended', name: 'Tạm ngưng', color: 'slate', icon: '⛔', is_system: true },
 ];
 
@@ -122,36 +123,19 @@ export default function TagManagerModal({
       handleDragEnd();
       return;
     }
-    const reordered = [...tags];
-    const [moved] = reordered.splice(draggedTagIndex, 1);
-    reordered.splice(targetIndex, 0, moved);
-    setTags(reordered);
+
+    const updated = [...tags];
+    const [moved] = updated.splice(draggedTagIndex, 1);
+    updated.splice(targetIndex, 0, moved);
+
+    setTags(updated);
     handleDragEnd();
-    try {
-      await onSaveTags(reordered);
-    } catch (err) {
-      console.error('Failed to save reordered tags', err);
-    }
-  };
 
-  const handleResetToDefaults = async () => {
-    const isConfirmed = await confirm({
-      title: 'Khôi phục nhãn mặc định',
-      message: 'Bạn có chắc chắn muốn đặt lại danh sách nhãn về các nhãn mặc định hệ thống?',
-      type: 'warning',
-      confirmText: 'Khôi phục',
-      cancelText: 'Hủy',
-    });
-    if (!isConfirmed) return;
-
-    const defaultList = [...DEFAULT_SYSTEM_TAGS];
     setSaving(true);
     try {
-      await onSaveTags(defaultList);
-      setTags(defaultList);
-      resetForm();
+      await onSaveTags(updated);
     } catch (err: any) {
-      showAlert('Lỗi', 'Không thể khôi phục: ' + err.message, 'danger');
+      showAlert('Lỗi', 'Không thể lưu thứ tự nhãn: ' + err.message, 'danger');
     } finally {
       setSaving(false);
     }
@@ -170,58 +154,80 @@ export default function TagManagerModal({
     setEditingTag(tag);
     setTagName(tag.name);
     setTagId(tag.id);
-    setTagColor(tag.color);
-    setTagIcon(tag.icon);
+    setTagColor(tag.color || 'purple');
+    setTagIcon(tag.icon || '🏷️');
     setErrorMsg('');
   };
 
   const handleSaveForm = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!tagName.trim()) {
+    const cleanName = tagName.trim();
+    const cleanId = tagId.trim().toLowerCase().replace(/[^a-z0-9_]/g, '_');
+
+    if (!cleanName) {
       setErrorMsg('Vui lòng nhập tên nhãn');
       return;
     }
-
-    const generatedId =
-      editingTag?.id ||
-      tagId.trim().toLowerCase().replace(/[^a-z0-9_]/g, '_') ||
-      'tag_' + Date.now();
-
-    // Check duplicate code
-    const isDuplicate = tags.some((t) => t.id === generatedId && t.id !== editingTag?.id);
-    const isSystemDuplicate = DEFAULT_SYSTEM_TAGS.some((t) => t.id === generatedId && t.id !== editingTag?.id);
-    if (isDuplicate || isSystemDuplicate) {
-      setErrorMsg('Mã nhãn đã tồn tại, vui lòng chọn mã khác');
+    if (!cleanId) {
+      setErrorMsg('Mã nhãn không hợp lệ');
       return;
     }
 
-    let updatedList: CustomTag[];
-    if (editingTag) {
-      updatedList = tags.map((t) =>
-        t.id === editingTag.id
-          ? { ...t, name: tagName.trim(), color: tagColor, icon: tagIcon }
-          : t
-      );
-    } else {
-      updatedList = [
-        ...tags,
-        {
-          id: generatedId,
-          name: tagName.trim(),
-          color: tagColor,
-          icon: tagIcon,
-          is_system: false,
-        },
-      ];
+    if (!editingTag && tags.some((t) => t.id === cleanId)) {
+      setErrorMsg(`Mã nhãn "${cleanId}" đã tồn tại! Vui lòng chọn mã khác.`);
+      return;
     }
 
     setSaving(true);
+    setErrorMsg('');
+
     try {
+      let updatedList: CustomTag[];
+      if (editingTag) {
+        updatedList = tags.map((t) =>
+          t.id === editingTag.id
+            ? { ...t, name: cleanName, color: tagColor, icon: tagIcon }
+            : t
+        );
+      } else {
+        const newTag: CustomTag = {
+          id: cleanId,
+          name: cleanName,
+          color: tagColor,
+          icon: tagIcon,
+        };
+        updatedList = [...tags, newTag];
+      }
+
       await onSaveTags(updatedList);
       setTags(updatedList);
       resetForm();
     } catch (err: any) {
-      setErrorMsg(err.message || 'Lỗi khi lưu danh sách nhãn');
+      setErrorMsg(err.message || 'Lỗi khi lưu nhãn');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleResetToDefaults = async () => {
+    const isConfirmed = await confirm({
+      title: 'Khôi phục nhãn mặc định',
+      message: 'Hành động này sẽ khôi phục danh sách nhãn về các nhãn hệ thống chuẩn. Các nhãn tự tạo vẫn được giữ.',
+      type: 'warning',
+      confirmText: 'Khôi phục',
+      cancelText: 'Hủy',
+    });
+    if (!isConfirmed) return;
+
+    setSaving(true);
+    try {
+      const customOnly = tags.filter((t) => !DEFAULT_SYSTEM_TAGS.some((dt) => dt.id === t.id));
+      const resetList = [...DEFAULT_SYSTEM_TAGS, ...customOnly];
+      await onSaveTags(resetList);
+      setTags(resetList);
+      resetForm();
+    } catch (err: any) {
+      showAlert('Lỗi', 'Không thể khôi phục: ' + err.message, 'danger');
     } finally {
       setSaving(false);
     }
@@ -253,333 +259,319 @@ export default function TagManagerModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-150">
-      <div className="bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl w-full max-w-2xl max-h-[92dvh] sm:max-h-[90vh] flex flex-col overflow-hidden border border-slate-100 animate-in zoom-in-95 duration-150 pb-safe">
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-100 shrink-0 bg-slate-50/50">
-          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 pr-2">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold shadow-2xs shrink-0">
-              <Tag className="w-4 h-4 sm:w-5 sm:h-5" />
-            </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <h3 className="font-extrabold text-slate-900 text-sm sm:text-base truncate">Quản Lý Nhãn (Tags)</h3>
-                <span className="bg-indigo-100 text-indigo-700 text-[11px] px-2 py-0.2 rounded-full font-black">
-                  {DEFAULT_SYSTEM_TAGS.length + tags.length}
-                </span>
-              </div>
-              <p className="text-[11px] sm:text-xs text-slate-500 truncate">
-                Tạo và tùy biến các huy hiệu gắn lên món ăn
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-1.5 shrink-0">
-            {onOpenAutoTagging && (
-              <button
-                type="button"
-                onClick={onOpenAutoTagging}
-                className="bg-gradient-to-r from-amber-500/15 via-indigo-500/15 to-amber-500/15 hover:from-amber-500/25 hover:to-indigo-500/25 text-indigo-950 text-xs font-black px-2.5 sm:px-3.5 py-2 rounded-xl border border-indigo-200/90 flex items-center gap-1 transition cursor-pointer shadow-2xs"
-                title="Tự động phân hạng & gán nhãn Best Seller, Món mới, Lợi nhuận cao"
-              >
-                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                <span className="hidden sm:inline">⚡ Tự Động Gán Nhãn</span>
-                <span className="sm:hidden">⚡ Auto-Tag</span>
-              </button>
-            )}
-            <button
-              onClick={onClose}
-              className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition cursor-pointer"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
+    <ModalShell
+      isOpen={isOpen}
+      onClose={onClose}
+      size="lg"
+      preventClose={saving}
+      icon={<Tag className="w-5 h-5 text-brand-purple" />}
+      title={
+        <div className="flex items-center gap-2">
+          <span>Quản Lý Nhãn (Tags)</span>
+          <span className="bg-purple-100 text-purple-700 text-caption px-2 py-0.5 rounded-full font-num font-black">
+            {DEFAULT_SYSTEM_TAGS.length + tags.length}
+          </span>
         </div>
-
-        {/* Content Body */}
-        <div className="p-4 sm:p-6 overflow-y-auto space-y-4 sm:space-y-5 flex-1">
-          {/* Auto-tagging Quick Feature Banner */}
-          {onOpenAutoTagging && (
-            <div className="bg-gradient-to-r from-amber-50 via-indigo-50/60 to-purple-50 p-3 sm:p-3.5 rounded-2xl border border-indigo-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 sm:gap-3 shadow-2xs">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center font-black shrink-0 shadow-xs text-xs">
-                  ⚡
-                </div>
-                <div className="min-w-0">
-                  <div className="text-xs font-bold text-slate-900 truncate">
-                    Bộ Động Cơ Tự Động Gán Nhãn (Auto-Tag)
-                  </div>
-                  <div className="text-[10px] sm:text-[11px] text-slate-500 truncate">
-                    Tự động tính Best Seller, Món mới, Biên lợi nhuận cao
-                  </div>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={onOpenAutoTagging}
-                className="w-full sm:w-auto px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white text-xs font-bold rounded-xl transition cursor-pointer shrink-0 shadow-2xs text-center justify-center flex items-center"
-              >
-                Cấu hình &amp; Chạy
-              </button>
-            </div>
-          )}
-
-          {/* Tag Editor Form */}
-          <form onSubmit={handleSaveForm} className="bg-slate-50/80 p-3.5 sm:p-5 rounded-2xl border border-slate-200/80 space-y-3.5 sm:space-y-4">
-            <div className="flex items-center justify-between">
-              <h4 className="text-xs font-black uppercase text-slate-700 flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
-                <span>{editingTag ? `Sửa nhãn: ${editingTag.name}` : 'Thêm nhãn sản phẩm mới'}</span>
-              </h4>
-              {editingTag && (
-                <button
-                  type="button"
-                  onClick={resetForm}
-                  className="text-xs font-bold text-rose-600 hover:text-rose-700 underline cursor-pointer"
-                >
-                  Hủy sửa
-                </button>
-              )}
-            </div>
-
-            {errorMsg && (
-              <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0" />
-                <span>{errorMsg}</span>
-              </div>
-            )}
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">
-                  Tên nhãn hiển thị <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Vd: Signature quán, Món chay, Hot..."
-                  value={tagName}
-                  onChange={(e) => {
-                    setTagName(e.target.value);
-                    if (!editingTag) {
-                      setTagId(
-                        e.target.value
-                          .toLowerCase()
-                          .normalize('NFD')
-                          .replace(/[\u0300-\u036f]/g, '')
-                          .replace(/[^a-z0-9]/g, '_')
-                      );
-                    }
-                  }}
-                  className="w-full text-xs font-semibold px-3 py-2.5 border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">Mã nhãn (Slug)</label>
-                <input
-                  type="text"
-                  placeholder="vd: mon_dac_biet, best_seller..."
-                  value={tagId}
-                  disabled={!!editingTag}
-                  onChange={(e) => setTagId(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '_'))}
-                  className="w-full text-xs font-semibold px-3 py-2.5 border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-slate-100 disabled:text-slate-400 font-mono"
-                />
-              </div>
-            </div>
-
-            {/* Icon Picker */}
-            <div>
-              <label className="text-xs font-bold text-slate-700 block mb-1.5">Chọn Biểu tượng (Icon)</label>
-              <div className="flex flex-wrap gap-1.5 p-2 bg-white rounded-xl border border-slate-200">
-                {TAG_ICONS.map((ic) => (
-                  <button
-                    key={ic}
-                    type="button"
-                    onClick={() => setTagIcon(ic)}
-                    className={`w-8 h-8 rounded-lg text-sm flex items-center justify-center transition cursor-pointer ${
-                      tagIcon === ic ? 'bg-indigo-600 text-white shadow-sm scale-110' : 'hover:bg-slate-100'
-                    }`}
-                  >
-                    {ic}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Color Palette Picker */}
-            <div>
-              <label className="text-xs font-bold text-slate-700 block mb-1.5">Chọn Màu sắc Badge</label>
-              <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
-                {TAG_COLORS.map((col) => {
-                  const isSelected = tagColor === col.id;
-                  return (
-                    <button
-                      key={col.id}
-                      type="button"
-                      onClick={() => setTagColor(col.id)}
-                      className={`p-2 rounded-xl border text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
-                        isSelected
-                          ? `${col.bg} ${col.text} ${col.border} ring-2 ring-indigo-500 shadow-xs font-black`
-                          : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-                      }`}
-                    >
-                      <span className={`w-3 h-3 rounded-full ${col.preview} shrink-0`}></span>
-                      <span className="truncate">{col.name.split(' ')[0]}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Live Preview & Submit Action */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-3 sm:p-3.5 bg-white rounded-2xl border border-slate-200/80 shadow-2xs">
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="text-xs font-semibold text-slate-400 shrink-0">Xem trước:</span>
-                <span
-                  className={`text-xs uppercase font-extrabold px-2.5 py-1 rounded-lg border inline-flex items-center gap-1.5 truncate ${
-                    TAG_COLORS.find((c) => c.id === tagColor)?.bg
-                  } ${TAG_COLORS.find((c) => c.id === tagColor)?.text} ${
-                    TAG_COLORS.find((c) => c.id === tagColor)?.border
-                  }`}
-                >
-                  <span>{tagIcon}</span>
-                  <span className="truncate">{tagName.trim() || 'Tên nhãn mẫu'}</span>
-                </span>
-              </div>
-
-              <div className="flex items-center gap-2 w-full sm:w-auto">
-                {editingTag && (
-                  <button
-                    type="button"
-                    onClick={resetForm}
-                    className="flex-1 sm:flex-initial px-4 py-2 text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition cursor-pointer text-center justify-center flex items-center"
-                  >
-                    Hủy
-                  </button>
-                )}
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="flex-1 sm:flex-initial bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-60"
-                >
-                  {saving ? (
-                    <>
-                      <RefreshCw className="w-3.5 h-3.5 animate-spin" /> <span>Đang lưu...</span>
-                    </>
-                  ) : editingTag ? (
-                    <>
-                      <Check className="w-3.5 h-3.5" /> <span>Lưu cập nhật</span>
-                    </>
-                  ) : (
-                    <>
-                      <Plus className="w-3.5 h-3.5" /> <span>Thêm nhãn này</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-          </form>
-
-          {/* Tags List */}
-          <div>
-            <div className="flex items-center justify-between mb-2.5">
-              <h4 className="text-xs font-black uppercase text-slate-700 flex items-center gap-1.5">
-                <Tag className="w-3.5 h-3.5 text-indigo-600" />
-                <span>Danh sách nhãn ({tags.length} nhãn)</span>
-              </h4>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={handleResetToDefaults}
-                  className="text-[11px] font-bold text-slate-500 hover:text-indigo-600 transition flex items-center gap-1 cursor-pointer bg-slate-100 hover:bg-slate-200 px-2 py-1 rounded-lg"
-                  title="Khôi phục về danh sách nhãn mặc định"
-                >
-                  <RefreshCw className="w-3 h-3" />
-                  <span>Khôi phục mặc định</span>
-                </button>
-              </div>
-            </div>
-
-            <p className="text-[11px] text-slate-400 mb-2">
-              💡 Kéo thả biểu tượng <span className="font-mono font-bold">⋮⋮</span> để sắp xếp thứ tự hiển thị của tất cả các nhãn (kể cả nhãn mặc định)
-            </p>
-
-            {/* Unified Drag-and-Drop Tags List */}
-            {tags.length === 0 ? (
-              <div className="p-5 sm:p-6 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-slate-400 text-xs font-semibold">
-                Chưa có nhãn nào. Hãy nhấn &quot;Khôi phục mặc định&quot; hoặc thêm nhãn mới từ biểu mẫu phía trên!
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {tags.map((ct, idx) => {
-                  const style = getTagBadgeStyle(ct.id, tags);
-                  const count = productCountsByTag[ct.id] || 0;
-                  const isDragging = draggedTagIndex === idx;
-                  const isDragOver = dragOverTagIndex === idx && draggedTagIndex !== idx;
-
-                  return (
-                    <div
-                      key={ct.id}
-                      draggable
-                      onDragStart={(e) => handleDragStart(e, idx)}
-                      onDragOver={(e) => handleDragOver(e, idx)}
-                      onDragEnd={handleDragEnd}
-                      onDrop={(e) => handleDropTag(e, idx)}
-                      className={`p-2.5 sm:p-3 bg-white rounded-2xl border shadow-2xs flex items-center justify-between gap-2 group transition cursor-move select-none ${
-                        isDragging
-                          ? 'opacity-40 scale-95 border-dashed border-indigo-400 bg-indigo-50/30'
-                          : isDragOver
-                          ? 'border-indigo-500 ring-2 ring-indigo-500/20 bg-indigo-50/20'
-                          : 'border-slate-200 hover:border-indigo-200'
-                      }`}
-                    >
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        <GripVertical className="w-4 h-4 text-slate-300 group-hover:text-slate-500 shrink-0 cursor-grab active:cursor-grabbing" />
-                        <span className={`text-xs font-bold px-2 py-0.5 rounded-lg border shrink-0 ${style.badgeClasses}`}>
-                          {ct.icon} {ct.name}
-                        </span>
-                        <span className="text-[10px] text-slate-400 font-mono font-medium truncate">({ct.id})</span>
-                      </div>
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <span className="text-[10px] font-bold text-slate-500 bg-slate-50 border border-slate-200 px-2 py-0.5 rounded-md">
-                          {count} món
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => handleStartEdit(ct)}
-                          className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition cursor-pointer"
-                          title="Sửa nhãn"
-                        >
-                          <Edit2 className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteTag(ct)}
-                          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"
-                          title="Xóa nhãn"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div className="p-3.5 sm:p-5 border-t border-slate-100 flex justify-end shrink-0 bg-slate-50/50">
+      }
+      description="Tạo và tùy biến các huy hiệu gắn lên món ăn"
+      headerActions={
+        onOpenAutoTagging ? (
+          <button
+            type="button"
+            onClick={onOpenAutoTagging}
+            className="bg-purple-50 hover:bg-purple-100 text-purple-900 text-caption font-bold px-3 py-1.5 rounded-full border border-purple-200 flex items-center gap-1.5 transition cursor-pointer shadow-sm"
+            title="Tự động phân hạng & gán nhãn Best Seller, Món mới, Lợi nhuận cao"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+            <span className="hidden sm:inline">Tự Động Gán Nhãn</span>
+            <span className="sm:hidden">Auto-Tag</span>
+          </button>
+        ) : null
+      }
+      footer={
+        <div className="flex justify-end w-full">
           <button
             type="button"
             onClick={onClose}
-            className="w-full sm:w-auto px-5 py-2.5 bg-slate-900 hover:bg-slate-800 active:scale-95 text-white font-bold text-xs rounded-xl shadow-sm transition cursor-pointer text-center justify-center flex items-center"
+            className="w-full sm:w-auto px-5 py-2.5 bg-slate-900 hover:bg-slate-800 active:scale-95 text-white font-bold text-xs rounded-full shadow-sm transition cursor-pointer text-center justify-center flex items-center"
           >
             Đóng trình quản lý
           </button>
         </div>
+      }
+    >
+      <div className="space-y-4 sm:space-y-5">
+        {/* Auto-tagging Quick Feature Banner */}
+        {onOpenAutoTagging && (
+          <div className="bg-purple-50/60 p-3 sm:p-3.5 rounded-2xl border border-purple-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 sm:gap-3 shadow-sm">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-amber-500 text-white flex items-center justify-center font-black shrink-0 shadow-sm text-xs">
+                ⚡
+              </div>
+              <div className="min-w-0">
+                <div className="text-xs font-bold text-slate-900 truncate">
+                  Bộ Động Cơ Tự Động Gán Nhãn (Auto-Tag)
+                </div>
+                <div className="text-caption text-slate-500 truncate">
+                  Tự động tính Best Seller, Món mới, Biên lợi nhuận cao
+                </div>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={onOpenAutoTagging}
+              className="w-full sm:w-auto px-4 py-1.5 bg-brand-purple hover:bg-purple-700 active:scale-95 text-white text-xs font-bold rounded-full transition cursor-pointer shrink-0 shadow-sm text-center justify-center flex items-center"
+            >
+              Cấu hình &amp; Chạy
+            </button>
+          </div>
+        )}
+
+        {/* Tag Editor Form */}
+        <form onSubmit={handleSaveForm} className="bg-slate-50/80 p-3.5 sm:p-5 rounded-2xl border border-slate-200/80 space-y-3.5 sm:space-y-4">
+          <div className="flex items-center justify-between">
+            <h4 className="text-xs font-black uppercase text-slate-700 flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-brand-purple" />
+              <span>{editingTag ? `Sửa nhãn: ${editingTag.name}` : 'Thêm nhãn sản phẩm mới'}</span>
+            </h4>
+            {editingTag && (
+              <button
+                type="button"
+                onClick={resetForm}
+                className="text-xs font-bold text-rose-600 hover:text-rose-700 underline cursor-pointer"
+              >
+                Hủy sửa
+              </button>
+            )}
+          </div>
+
+          {errorMsg && (
+            <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>{errorMsg}</span>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-bold text-slate-700 block mb-1">
+                Tên nhãn hiển thị <span className="text-rose-500">*</span>
+              </label>
+              <input
+                type="text"
+                required
+                placeholder="Vd: Signature quán, Món chay, Hot..."
+                value={tagName}
+                onChange={(e) => {
+                  setTagName(e.target.value);
+                  if (!editingTag) {
+                    setTagId(
+                      e.target.value
+                        .toLowerCase()
+                        .normalize('NFD')
+                        .replace(/[\u0300-\u036f]/g, '')
+                        .replace(/[^a-z0-9]/g, '_')
+                    );
+                  }
+                }}
+                className="w-full text-xs font-semibold px-3 py-2.5 border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-sm"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs font-bold text-slate-700 block mb-1">Mã nhãn (Slug)</label>
+              <input
+                type="text"
+                placeholder="vd: mon_dac_biet, best_seller..."
+                value={tagId}
+                disabled={!!editingTag}
+                onChange={(e) => setTagId(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '_'))}
+                className="w-full text-xs font-semibold px-3 py-2.5 border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-slate-100 disabled:text-slate-400 font-mono shadow-sm"
+              />
+            </div>
+          </div>
+
+          {/* Icon Picker */}
+          <div>
+            <label className="text-xs font-bold text-slate-700 block mb-1.5">Chọn Biểu tượng (Icon)</label>
+            <div className="flex flex-wrap gap-1.5 p-2 bg-white rounded-xl border border-slate-200 shadow-sm">
+              {TAG_ICONS.map((ic) => (
+                <button
+                  key={ic}
+                  type="button"
+                  onClick={() => setTagIcon(ic)}
+                  className={`w-8 h-8 rounded-lg text-sm flex items-center justify-center transition cursor-pointer ${
+                    tagIcon === ic ? 'bg-brand-purple text-white shadow-sm scale-110' : 'hover:bg-slate-100'
+                  }`}
+                >
+                  {ic}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Color Palette Picker */}
+          <div>
+            <label className="text-xs font-bold text-slate-700 block mb-1.5">Chọn Màu sắc Badge</label>
+            <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+              {TAG_COLORS.map((col) => {
+                const isSelected = tagColor === col.id;
+                return (
+                  <button
+                    key={col.id}
+                    type="button"
+                    onClick={() => setTagColor(col.id)}
+                    className={`p-2 rounded-xl border text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
+                      isSelected
+                        ? `${col.bg} ${col.text} ${col.border} ring-2 ring-purple-500 shadow-sm font-black`
+                        : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                    }`}
+                  >
+                    <span className={`w-3 h-3 rounded-full ${col.preview} shrink-0`}></span>
+                    <span className="truncate">{col.name.split(' ')[0]}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Live Preview & Submit Action */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-3 sm:p-3.5 bg-white rounded-2xl border border-slate-200/80 shadow-sm">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="text-xs font-semibold text-slate-400 shrink-0">Xem trước:</span>
+              <span
+                className={`text-xs uppercase font-extrabold px-2.5 py-1 rounded-lg border inline-flex items-center gap-1.5 truncate ${
+                  TAG_COLORS.find((c) => c.id === tagColor)?.bg
+                } ${TAG_COLORS.find((c) => c.id === tagColor)?.text} ${
+                  TAG_COLORS.find((c) => c.id === tagColor)?.border
+                }`}
+              >
+                <span>{tagIcon}</span>
+                <span className="truncate">{tagName.trim() || 'Tên nhãn mẫu'}</span>
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              {editingTag && (
+                <button
+                  type="button"
+                  onClick={resetForm}
+                  className="flex-1 sm:flex-initial px-4 py-2 text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-full transition cursor-pointer text-center justify-center flex items-center"
+                >
+                  Hủy
+                </button>
+              )}
+              <button
+                type="submit"
+                disabled={saving}
+                className="flex-1 sm:flex-initial bg-brand-purple hover:bg-purple-700 active:scale-95 text-white font-bold text-xs px-5 py-2 rounded-full shadow-sm transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-60"
+              >
+                {saving ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" /> <span>Đang lưu...</span>
+                  </>
+                ) : editingTag ? (
+                  <>
+                    <Check className="w-3.5 h-3.5" /> <span>Lưu cập nhật</span>
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-3.5 h-3.5" /> <span>Thêm nhãn này</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </form>
+
+        {/* Tags List */}
+        <div>
+          <div className="flex items-center justify-between mb-2.5">
+            <h4 className="text-xs font-black uppercase text-slate-700 flex items-center gap-1.5">
+              <Tag className="w-3.5 h-3.5 text-brand-purple" />
+              <span>Danh sách nhãn ({tags.length} nhãn)</span>
+            </h4>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleResetToDefaults}
+                className="text-caption font-bold text-slate-500 hover:text-purple-700 transition flex items-center gap-1 cursor-pointer bg-slate-100 hover:bg-slate-200 px-2.5 py-1 rounded-full"
+                title="Khôi phục về danh sách nhãn mặc định"
+              >
+                <RefreshCw className="w-3 h-3" />
+                <span>Khôi phục mặc định</span>
+              </button>
+            </div>
+          </div>
+
+          <p className="text-caption text-slate-400 mb-2">
+            💡 Kéo thả biểu tượng <span className="font-mono font-bold">⋮⋮</span> để sắp xếp thứ tự hiển thị của tất cả các nhãn (kể cả nhãn mặc định)
+          </p>
+
+          {/* Unified Drag-and-Drop Tags List */}
+          {tags.length === 0 ? (
+            <div className="p-5 sm:p-6 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-slate-400 text-xs font-semibold">
+              Chưa có nhãn nào. Hãy nhấn &quot;Khôi phục mặc định&quot; hoặc thêm nhãn mới từ biểu mẫu phía trên!
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {tags.map((ct, idx) => {
+                const style = getTagBadgeStyle(ct.id, tags);
+                const count = productCountsByTag[ct.id] || 0;
+                const isDragging = draggedTagIndex === idx;
+                const isDragOver = dragOverTagIndex === idx && draggedTagIndex !== idx;
+
+                return (
+                  <div
+                    key={ct.id}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, idx)}
+                    onDragOver={(e) => handleDragOver(e, idx)}
+                    onDragEnd={handleDragEnd}
+                    onDrop={(e) => handleDropTag(e, idx)}
+                    className={`p-2.5 sm:p-3 bg-white rounded-2xl border shadow-sm flex items-center justify-between gap-2 group transition cursor-move select-none ${
+                      isDragging
+                        ? 'opacity-40 scale-95 border-dashed border-purple-400 bg-purple-50/30'
+                        : isDragOver
+                        ? 'border-purple-500 ring-2 ring-purple-500/20 bg-purple-50/20'
+                        : 'border-slate-200 hover:border-purple-200'
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <GripVertical className="w-4 h-4 text-slate-300 group-hover:text-slate-500 shrink-0 cursor-grab active:cursor-grabbing" />
+                      <span className={`text-xs font-bold px-2 py-0.5 rounded-lg border shrink-0 ${style.badgeClasses}`}>
+                        {ct.icon} {ct.name}
+                      </span>
+                      <span className="text-caption text-slate-400 font-mono font-medium truncate">({ct.id})</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <span className="text-caption font-num font-bold text-slate-500 bg-slate-50 border border-slate-200 px-2 py-0.5 rounded-md">
+                        {count} món
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleStartEdit(ct)}
+                        className="p-1.5 text-slate-400 hover:text-purple-700 hover:bg-purple-50 rounded-full transition cursor-pointer"
+                        title="Sửa nhãn"
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteTag(ct)}
+                        className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-full transition cursor-pointer"
+                        title="Xóa nhãn"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+    </ModalShell>
   );
 }

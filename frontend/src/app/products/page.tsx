@@ -28,7 +28,7 @@ import {
   Filter,
 } from 'lucide-react';
 import AppShell from '@/components/AppShell';
-import { FilterBar, Chip } from '@/components/ui';
+import { FilterBar, Chip, ModalShell } from '@/components/ui';
 import { fetchApi, getImageUrl, uploadImage } from '@/lib/api';
 import { getActiveStoreId } from '@/lib/store';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
@@ -576,10 +576,10 @@ export default function ProductsPage() {
     <AppShell>
       <div className="space-y-4 sm:space-y-6 w-full max-w-7xl 2xl:max-w-[1800px] 3xl:max-w-[2400px] 4k:max-w-[3200px] mx-auto overflow-x-hidden">
         {/* Page Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 surface-card p-4 sm:p-6 rounded-2xl border-card shadow-card">
           <div>
             <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-              <Package className="w-6 h-6 text-indigo-600" />
+              <Package className="w-6 h-6 text-brand-purple" />
               {t('products.title')}
             </h1>
             <p className="text-xs text-slate-500 mt-1">
@@ -589,36 +589,36 @@ export default function ProductsPage() {
           <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 w-full sm:w-auto">
             <button
               onClick={() => setIsTagModalOpen(true)}
-              className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold px-3.5 py-2.5 rounded-xl border border-indigo-200 flex items-center justify-center gap-1.5 transition cursor-pointer shadow-2xs w-full sm:w-auto"
+              className="bg-purple-50 hover:bg-purple-100 text-purple-700 text-xs font-bold px-3.5 py-2.5 rounded-full border border-purple-200 flex items-center justify-center gap-1.5 transition cursor-pointer shadow-sm w-full sm:w-auto"
             >
-              <Tag className="w-4 h-4 text-indigo-600 shrink-0" />
+              <Tag className="w-4 h-4 text-purple-600 shrink-0" />
               <span className="truncate">Nhãn / Tags</span>
-              <span className="tabular-nums text-[10px] px-1.5 py-0.5 rounded-full bg-white/70 font-black">{allAvailableTags.length}</span>
+              <span className="tabular-nums font-num text-caption px-2 py-0.5 rounded-full bg-white/70 font-black">{allAvailableTags.length}</span>
             </button>
             <button
               onClick={() => setIsCategoryManagerOpen(true)}
-              className="bg-purple-50 hover:bg-purple-100 text-purple-700 text-xs font-bold px-3.5 py-2.5 rounded-xl border border-purple-200 flex items-center justify-center gap-1.5 transition cursor-pointer shadow-2xs w-full sm:w-auto"
+              className="bg-purple-50 hover:bg-purple-100 text-purple-700 text-xs font-bold px-3.5 py-2.5 rounded-full border border-purple-200 flex items-center justify-center gap-1.5 transition cursor-pointer shadow-sm w-full sm:w-auto"
             >
               <FolderOpen className="w-4 h-4 text-purple-600 shrink-0" />
               <span className="truncate">{`Danh mục (${safeCategories.length})`}</span>
             </button>
             <button
               onClick={() => setIsToppingManagerOpen(true)}
-              className="bg-violet-50 hover:bg-violet-100 text-violet-700 text-xs font-bold px-3.5 py-2.5 rounded-xl border border-violet-200 flex items-center justify-center gap-1.5 transition cursor-pointer shadow-2xs w-full sm:w-auto"
+              className="bg-purple-50 hover:bg-purple-100 text-purple-700 text-xs font-bold px-3.5 py-2.5 rounded-full border border-purple-200 flex items-center justify-center gap-1.5 transition cursor-pointer shadow-sm w-full sm:w-auto"
             >
-              <Layers className="w-4 h-4 text-violet-600 shrink-0" />
+              <Layers className="w-4 h-4 text-purple-600 shrink-0" />
               <span className="truncate">{`Topping (${safeToppings.length})`}</span>
             </button>
             <button
               onClick={() => setIsPromotionsModalOpen(true)}
-              className="bg-amber-50 hover:bg-amber-100 text-amber-800 text-xs font-bold px-3.5 py-2.5 rounded-xl border border-amber-200 flex items-center justify-center gap-1.5 transition cursor-pointer shadow-2xs w-full sm:w-auto"
+              className="bg-amber-50 hover:bg-amber-100 text-amber-800 text-xs font-bold px-3.5 py-2.5 rounded-full border border-amber-200 flex items-center justify-center gap-1.5 transition cursor-pointer shadow-sm w-full sm:w-auto"
             >
               <Gift className="w-4 h-4 text-amber-600 shrink-0" />
               <span className="truncate">Khuyến mãi</span>
             </button>
             <button
               onClick={openCreateModal}
-              className="col-span-2 sm:col-span-1 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white text-xs font-bold px-4 py-2.5 rounded-xl flex items-center justify-center gap-1.5 shadow-sm transition cursor-pointer w-full sm:w-auto"
+              className="col-span-2 sm:col-span-1 bg-brand-purple hover:bg-purple-700 active:scale-95 text-white text-xs font-bold px-5 py-2.5 rounded-full flex items-center justify-center gap-1.5 shadow-sm transition cursor-pointer w-full sm:w-auto"
             >
               <Plus className="w-4 h-4 shrink-0" /> <span className="truncate">{t('products.add_product')}</span>
             </button>
@@ -706,7 +706,7 @@ export default function ProductsPage() {
         />
 
         {/* Products Table & Mobile Cards */}
-        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+        <div className="surface-card border-card rounded-2xl shadow-card overflow-hidden">
           {/* 1. Desktop Table (md and up) */}
           <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-left text-xs">
@@ -773,12 +773,12 @@ export default function ProductsPage() {
                                 <span className={product.is_active === false ? 'line-through text-slate-500' : ''}>{product.name}</span>
                                 <QuickTagPicker currentTag={product.tag} locked={product.tag_locked} tags={allAvailableTags} customTags={customTags} onSelect={(id) => handleQuickTag(product, id)} />
                                 {product.tag_locked && (!product.tag || product.tag === 'none') && (
-                                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 inline-flex items-center gap-1 border border-slate-200" title="Khóa không gắn nhãn">
+                                  <span className="text-caption font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 inline-flex items-center gap-1 border border-slate-200" title="Khóa không gắn nhãn">
                                     <Lock className="w-2.5 h-2.5 text-amber-500" /> Khóa
                                   </span>
                                 )}
                               </div>
-                              <span className="text-slate-400 text-[11px] truncate max-w-xs block">
+                              <span className="text-slate-400 text-caption truncate max-w-xs block">
                                 {product.description || t('products.no_description')}
                               </span>
                             </div>
@@ -790,23 +790,23 @@ export default function ProductsPage() {
                         <td className="py-3 px-4">
                           <div className="flex flex-wrap gap-1">
                             {variants.map((v) => (
-                              <span key={v.id || v.variant_name} className="bg-slate-100 text-slate-700 text-[11px] px-2 py-0.5 rounded border border-slate-200">
-                                {v.variant_name}: <strong className="text-indigo-600">{formatCurrency(v.retail_price, settings)}</strong>
+                              <span key={v.id || v.variant_name} className="bg-slate-100 text-slate-700 text-caption px-2 py-0.5 rounded border border-slate-200 font-num">
+                                {v.variant_name}: <strong className="text-purple-700">{formatCurrency(v.retail_price, settings)}</strong>
                               </span>
                             ))}
                           </div>
                         </td>
                         <td className="py-3 px-4">
-                          <div className="text-slate-900 font-semibold">
+                          <div className="text-slate-900 font-semibold font-num">
                             {formatCurrency(minRetail, settings)}{maxRetail > minRetail ? ` – ${formatCurrency(maxRetail, settings)}` : ''}
                           </div>
-                          <div className="text-slate-400 text-[11px]">
+                          <div className="text-slate-400 text-caption font-num">
                             {t('products.avg_cogs', { amount: formatCurrency(avgCogs, settings) })}
                           </div>
                         </td>
                         <td className="py-3 px-4 font-bold">
                           <span
-                            className={`px-2 py-0.5 rounded-full text-xs ${
+                            className={`px-2 py-0.5 rounded-full text-caption font-num font-bold ${
                               margin >= 60
                                 ? 'bg-purple-50 text-purple-600 border border-purple-200'
                                 : margin >= 40
@@ -821,7 +821,7 @@ export default function ProductsPage() {
                           <button
                             type="button"
                             onClick={() => handleToggleProductStatus(product)}
-                            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold transition cursor-pointer ${
+                            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-caption font-bold transition cursor-pointer ${
                               product.is_active !== false
                                 ? 'bg-purple-50 text-purple-700 border border-purple-200'
                                 : 'bg-slate-100 text-slate-500 border border-slate-200'
@@ -836,14 +836,14 @@ export default function ProductsPage() {
                           <div className="flex items-center justify-end space-x-1">
                             <button
                               onClick={() => openEditModal(product)}
-                              className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition"
+                              className="p-1.5 text-slate-400 hover:text-purple-700 hover:bg-purple-50 rounded-full transition cursor-pointer"
                               title={t('common.edit')}
                             >
                               <Edit2 className="w-4 h-4" />
                             </button>
                             <button
                               onClick={() => handleDeleteProduct(product.id)}
-                              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
+                              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-full transition cursor-pointer"
                               title={t('common.delete')}
                             >
                               <Trash2 className="w-4 h-4" />
@@ -906,7 +906,7 @@ export default function ProductsPage() {
                             </span>
                             <QuickTagPicker currentTag={product.tag} locked={product.tag_locked} tags={allAvailableTags} customTags={customTags} onSelect={(id) => handleQuickTag(product, id)} />
                             {product.tag_locked && (!product.tag || product.tag === 'none') && (
-                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 inline-flex items-center gap-1 border border-slate-200">
+                              <span className="text-caption font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 inline-flex items-center gap-1 border border-slate-200">
                                 <Lock className="w-2.5 h-2.5 text-amber-500" />
                               </span>
                             )}
@@ -921,13 +921,13 @@ export default function ProductsPage() {
                     <div className="flex flex-wrap items-center justify-between gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-xs">
                       <div className="flex flex-wrap gap-1.5">
                         {variants.map((v) => (
-                          <span key={v.id || v.variant_name} className="bg-white px-2 py-0.5 rounded-lg border border-slate-200 text-slate-700 font-medium">
-                            {v.variant_name}: <strong className="text-indigo-600">{formatCurrency(v.retail_price, settings)}</strong>
+                          <span key={v.id || v.variant_name} className="bg-white px-2 py-0.5 rounded-lg border border-slate-200 text-slate-700 font-medium font-num text-caption">
+                            {v.variant_name}: <strong className="text-purple-700">{formatCurrency(v.retail_price, settings)}</strong>
                           </span>
                         ))}
                       </div>
                       <span
-                        className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${
+                        className={`px-2 py-0.5 rounded-full text-caption font-num font-bold ${
                           margin >= 60
                             ? 'bg-purple-50 text-purple-600 border border-purple-200'
                             : margin >= 40
@@ -942,13 +942,13 @@ export default function ProductsPage() {
                     <div className="flex items-center justify-end space-x-2 pt-1 border-t border-slate-50">
                       <button
                         onClick={() => openEditModal(product)}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition cursor-pointer"
+                        className="min-h-[44px] inline-flex items-center gap-1 px-4 py-2.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-full transition cursor-pointer"
                       >
                         <Edit2 className="w-3.5 h-3.5" /> {t('common.edit')}
                       </button>
                       <button
                         onClick={() => handleDeleteProduct(product.id)}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-xl transition cursor-pointer"
+                        className="min-h-[44px] inline-flex items-center gap-1 px-4 py-2.5 text-xs font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-full transition cursor-pointer"
                       >
                         <Trash2 className="w-3.5 h-3.5" /> {t('common.delete')}
                       </button>
@@ -963,226 +963,217 @@ export default function ProductsPage() {
 
       {/* Product Form Modal */}
       {isProductModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto animate-in fade-in duration-150">
-          <div className="bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl border border-slate-100 w-full max-w-2xl my-0 sm:my-8 overflow-hidden max-h-[92dvh] sm:max-h-[90vh] flex flex-col animate-in slide-in-from-bottom-6 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200 pb-safe sm:pb-0">
-            <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-100 shrink-0">
-              <h3 className="text-sm sm:text-base font-bold text-slate-900 truncate">
-                {editingProduct ? t('products.edit_product') : t('products.create_product')}
-              </h3>
+        <ModalShell
+          isOpen={isProductModalOpen}
+          onClose={() => setIsProductModalOpen(false)}
+          size="lg"
+          preventClose={uploadingProductImg}
+          title={editingProduct ? t('products.edit_product') : t('products.create_product')}
+        >
+          <form onSubmit={handleSaveProduct} className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="app-label">{t('products.product_name')} *</label>
+                <input
+                  type="text"
+                  required
+                  value={formName}
+                  onChange={(e) => setFormName(e.target.value)}
+                  placeholder={t('products.product_name_placeholder')}
+                  className="app-input md:app-input-compact"
+                />
+              </div>
+
+              <div>
+                <label className="app-label">{t('products.category')} *</label>
+                <ModernSelect
+                  value={formCategoryId}
+                  onChange={(val) => setFormCategoryId(Number(val))}
+                  options={categories.map((c) => ({ value: c.id, label: c.name }))}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="app-label">{t('products.description')}</label>
+              <textarea
+                rows={2}
+                value={formDescription}
+                onChange={(e) => setFormDescription(e.target.value)}
+                placeholder={t('products.description_placeholder')}
+                className="app-textarea"
+              />
+            </div>
+
+            {/* Image Upload Row */}
+            <div>
+              <label className="app-label block mb-1.5">{t('products.image')}</label>
+              <div className="flex items-center gap-3">
+                <div className="w-14 h-14 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center overflow-hidden shrink-0 relative">
+                  {getImageUrl(formImageUrl) ? (
+                    <img src={getImageUrl(formImageUrl)!} alt={t('products.image_preview')} className="w-full h-full object-cover" />
+                  ) : (
+                    <ImageIcon className="w-6 h-6 text-slate-400" />
+                  )}
+                  {uploadingProductImg && (
+                    <div className="absolute inset-0 bg-slate-900/40 flex items-center justify-center">
+                      <Loader2 className="w-5 h-5 text-white animate-spin" />
+                    </div>
+                  )}
+                </div>
+                <div className="flex-1 space-y-1.5">
+                  <label className="cursor-pointer bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-3 py-1.5 rounded-full border border-slate-200 inline-flex items-center gap-1.5 transition">
+                    <Upload className="w-3.5 h-3.5" /> {t('products.upload_image')}
+                    <input type="file" accept="image/*" onChange={handleProductFileChange} className="hidden" />
+                  </label>
+                  <input
+                    type="text"
+                    value={formImageUrl}
+                    onChange={(e) => setFormImageUrl(e.target.value)}
+                    placeholder={t('products.image_url_placeholder')}
+                    className="app-input md:app-input-compact"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="font-semibold text-slate-700 text-xs">{t('products.badge') || 'Huy hiệu / Nhãn sản phẩm'}</label>
+                <button
+                  type="button"
+                  onClick={() => setIsTagModalOpen(true)}
+                  className="text-caption font-bold text-purple-700 hover:text-purple-900 flex items-center gap-1 cursor-pointer"
+                >
+                  <Sparkles className="w-3 h-3" /> Quản lý nhãn món
+                </button>
+              </div>
+              <ModernSelect
+                value={formTag}
+                onChange={(val) => setFormTag(String(val))}
+                options={[
+                  { value: 'none', label: t('products.badge_none') || 'Không gắn nhãn' },
+                  ...allAvailableTags.map((tg) => ({
+                    value: tg.id,
+                    label: `${tg.icon} ${tg.name}`,
+                    badge: `${tg.icon} ${tg.name}`,
+                    badgeColor: (tg.color || 'purple') as any,
+                  })),
+                ]}
+              />
+            </div>
+
+            {/* Active for POS Toggle Switch */}
+            <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 flex items-center justify-between">
+              <div>
+                <label className="font-bold text-slate-800 text-xs block">{t('products.active_for_pos')}</label>
+                <span className="text-caption text-slate-500">{t('products.toggle_status_hint')}</span>
+              </div>
               <button
                 type="button"
-                onClick={() => setIsProductModalOpen(false)}
-                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition cursor-pointer shrink-0"
+                role="switch"
+                aria-checked={formIsActive}
+                onClick={() => setFormIsActive(!formIsActive)}
+                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-purple-500 ${
+                  formIsActive ? 'bg-brand-purple' : 'bg-slate-300'
+                }`}
               >
-                <X className="w-5 h-5" />
+                <span
+                  aria-hidden="true"
+                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                    formIsActive ? 'translate-x-5' : 'translate-x-0'
+                  }`}
+                />
               </button>
             </div>
 
-            <form onSubmit={handleSaveProduct} className="p-5 space-y-4 max-h-[75vh] overflow-y-auto">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="app-label">{t('products.product_name')} *</label>
-                  <input
-                    type="text"
-                    required
-                    value={formName}
-                    onChange={(e) => setFormName(e.target.value)}
-                    placeholder={t('products.product_name_placeholder')}
-                    className="app-input"
-                  />
-                </div>
-
-                <div>
-                  <label className="app-label">{t('products.category')} *</label>
-                  <ModernSelect
-                    value={formCategoryId}
-                    onChange={(val) => setFormCategoryId(Number(val))}
-                    options={categories.map((c) => ({ value: c.id, label: c.name }))}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="app-label">{t('products.description')}</label>
-                <textarea
-                  rows={2}
-                  value={formDescription}
-                  onChange={(e) => setFormDescription(e.target.value)}
-                  placeholder={t('products.description_placeholder')}
-                  className="app-textarea"
-                />
-              </div>
-
-              {/* Image Upload Row */}
-              <div>
-                <label className="app-label block mb-1.5">{t('products.image')}</label>
-                <div className="flex items-center gap-3">
-                  <div className="w-14 h-14 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center overflow-hidden shrink-0 relative">
-                    {getImageUrl(formImageUrl) ? (
-                      <img src={getImageUrl(formImageUrl)!} alt={t('products.image_preview')} className="w-full h-full object-cover" />
-                    ) : (
-                      <ImageIcon className="w-6 h-6 text-slate-400" />
-                    )}
-                    {uploadingProductImg && (
-                      <div className="absolute inset-0 bg-slate-900/40 flex items-center justify-center">
-                        <Loader2 className="w-5 h-5 text-white animate-spin" />
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex-1 space-y-1.5">
-                    <label className="cursor-pointer bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-3 py-1.5 rounded-xl border border-slate-200 inline-flex items-center gap-1.5 transition">
-                      <Upload className="w-3.5 h-3.5" /> {t('products.upload_image')}
-                      <input type="file" accept="image/*" onChange={handleProductFileChange} className="hidden" />
-                    </label>
-                    <input
-                      type="text"
-                      value={formImageUrl}
-                      onChange={(e) => setFormImageUrl(e.target.value)}
-                      placeholder={t('products.image_url_placeholder')}
-                      className="app-input"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="font-semibold text-slate-700">{t('products.badge') || 'Huy hiệu / Nhãn sản phẩm'}</label>
-                  <button
-                    type="button"
-                    onClick={() => setIsTagModalOpen(true)}
-                    className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 cursor-pointer"
-                  >
-                    <Sparkles className="w-3 h-3" /> Quản lý nhãn món
-                  </button>
-                </div>
-                <ModernSelect
-                  value={formTag}
-                  onChange={(val) => setFormTag(String(val))}
-                  options={[
-                    { value: 'none', label: t('products.badge_none') || 'Không gắn nhãn' },
-                    ...allAvailableTags.map((tg) => ({
-                      value: tg.id,
-                      label: `${tg.icon} ${tg.name}`,
-                      badge: `${tg.icon} ${tg.name}`,
-                      badgeColor: (tg.color || 'purple') as any,
-                    })),
-                  ]}
-                />
-              </div>
-
-              {/* Active for POS Toggle Switch */}
-              <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 flex items-center justify-between">
-                <div>
-                  <label className="font-bold text-slate-800 text-xs block">{t('products.active_for_pos')}</label>
-                  <span className="text-[11px] text-slate-500">{t('products.toggle_status_hint')}</span>
-                </div>
+            {/* Variants Section */}
+            <div className="space-y-2 border-t border-slate-100 pt-3">
+              <div className="flex items-center justify-between">
+                <label className="font-bold text-slate-800 text-xs">{t('products.variants_pricing_label')}</label>
                 <button
                   type="button"
-                  role="switch"
-                  aria-checked={formIsActive}
-                  onClick={() => setFormIsActive(!formIsActive)}
-                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-                    formIsActive ? 'bg-purple-500' : 'bg-slate-300'
-                  }`}
+                  onClick={handleAddVariantRow}
+                  className="text-purple-700 font-semibold text-xs hover:underline flex items-center gap-1"
                 >
-                  <span
-                    aria-hidden="true"
-                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
-                      formIsActive ? 'translate-x-5' : 'translate-x-0'
-                    }`}
-                  />
+                  <Plus className="w-3.5 h-3.5" /> {t('products.add_variant')}
                 </button>
               </div>
 
-              {/* Variants Section */}
-              <div className="space-y-2 border-t border-slate-100 pt-3">
-                <div className="flex items-center justify-between">
-                  <label className="font-bold text-slate-800">{t('products.variants_pricing_label')}</label>
-                  <button
-                    type="button"
-                    onClick={handleAddVariantRow}
-                    className="text-indigo-600 font-semibold text-xs hover:underline flex items-center gap-1"
-                  >
-                    <Plus className="w-3.5 h-3.5" /> {t('products.add_variant')}
-                  </button>
-                </div>
+              <div className="space-y-2">
+                {formVariants.map((v, idx) => {
+                  const vMargin =
+                    v.retail_price > 0
+                      ? ((v.retail_price - v.cogs_price) / v.retail_price) * 100
+                      : 0;
 
-                <div className="space-y-2">
-                  {formVariants.map((v, idx) => {
-                    const vMargin =
-                      v.retail_price > 0
-                        ? ((v.retail_price - v.cogs_price) / v.retail_price) * 100
-                        : 0;
-
-                    return (
-                      <div key={idx} className="flex flex-col sm:flex-row items-center gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                  return (
+                    <div key={idx} className="flex flex-col sm:flex-row items-center gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                      <input
+                        type="text"
+                        placeholder={t('products.variant_name_label')}
+                        value={v.variant_name}
+                        onChange={(e) => handleVariantChange(idx, 'variant_name', e.target.value)}
+                        className="flex-1 app-input md:app-input-compact"
+                        required
+                      />
+                      <div className="flex items-center gap-2 w-full sm:w-auto">
                         <input
                           type="text"
-                          placeholder={t('products.variant_name_label')}
-                          value={v.variant_name}
-                          onChange={(e) => handleVariantChange(idx, 'variant_name', e.target.value)}
-                          className="flex-1 app-input"
-                          required
+                          inputMode="numeric"
+                          placeholder={t('products.retail_price_label')}
+                          value={v.retail_price ? v.retail_price.toLocaleString('vi-VN') : ''}
+                          onChange={(e) => {
+                            const raw = e.target.value.replace(/\D/g, '');
+                            handleVariantChange(idx, 'retail_price', raw === '' ? 0 : parseInt(raw, 10));
+                          }}
+                          className="w-28 app-input md:app-input-compact font-num font-semibold"
                         />
-                        <div className="flex items-center gap-2 w-full sm:w-auto">
-                          <input
-                            type="text"
-                            inputMode="numeric"
-                            placeholder={t('products.retail_price_label')}
-                            value={v.retail_price ? v.retail_price.toLocaleString('vi-VN') : ''}
-                            onChange={(e) => {
-                              const raw = e.target.value.replace(/\D/g, '');
-                              handleVariantChange(idx, 'retail_price', raw === '' ? 0 : parseInt(raw, 10));
-                            }}
-                            className="w-28 app-input font-semibold"
-                          />
-                          <input
-                            type="text"
-                            inputMode="numeric"
-                            placeholder={t('products.cogs_price_label')}
-                            value={v.cogs_price ? v.cogs_price.toLocaleString('vi-VN') : ''}
-                            onChange={(e) => {
-                              const raw = e.target.value.replace(/\D/g, '');
-                              handleVariantChange(idx, 'cogs_price', raw === '' ? 0 : parseInt(raw, 10));
-                            }}
-                            className="w-28 app-input font-semibold"
-                          />
-                          <span className="text-[10px] font-bold text-purple-600 w-12 text-right">
-                            {vMargin.toFixed(0)}%
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveVariantRow(idx)}
-                            className="p-1 text-slate-400 hover:text-rose-500"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                        </div>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          placeholder={t('products.cogs_price_label')}
+                          value={v.cogs_price ? v.cogs_price.toLocaleString('vi-VN') : ''}
+                          onChange={(e) => {
+                            const raw = e.target.value.replace(/\D/g, '');
+                            handleVariantChange(idx, 'cogs_price', raw === '' ? 0 : parseInt(raw, 10));
+                          }}
+                          className="w-28 app-input md:app-input-compact font-num font-semibold"
+                        />
+                        <span className="text-caption font-num font-bold text-purple-600 w-12 text-right">
+                          {vMargin.toFixed(0)}%
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveVariantRow(idx)}
+                          className="p-1 text-slate-400 hover:text-rose-500 rounded-full"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
                       </div>
-                    );
-                  })}
-                </div>
+                    </div>
+                  );
+                })}
               </div>
+            </div>
 
-              <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end sm:space-x-2 pt-4 border-t border-slate-100 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setIsProductModalOpen(false)}
-                  className="w-full sm:w-auto px-4 py-2.5 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition cursor-pointer text-center justify-center flex items-center"
-                >
-                  {t('common.cancel')}
-                </button>
-                <button
-                  type="submit"
-                  className="w-full sm:w-auto px-5 py-2.5 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-sm transition cursor-pointer text-center justify-center flex items-center"
-                >
-                  {t('products.save_product_btn')}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+            <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end sm:space-x-2 pt-4 border-t border-slate-100 shrink-0">
+              <button
+                type="button"
+                onClick={() => setIsProductModalOpen(false)}
+                className="w-full sm:w-auto px-4 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-full transition cursor-pointer text-center justify-center flex items-center"
+              >
+                {t('common.cancel')}
+              </button>
+              <button
+                type="submit"
+                className="w-full sm:w-auto px-5 py-2 text-xs font-bold text-white bg-brand-purple hover:bg-purple-700 rounded-full shadow-sm transition cursor-pointer text-center justify-center flex items-center"
+              >
+                {t('products.save_product_btn')}
+              </button>
+            </div>
+          </form>
+        </ModalShell>
       )}
 
       {/* Category Manager Modal */}

@@ -19,6 +19,7 @@ import { useTranslation } from '@/lib/i18n/LanguageContext';
 import { useConfirm } from '@/context/ConfirmContext';
 import { Topping, Category } from '@/types/product';
 import ModernSelect from '@/components/common/ModernSelect';
+import { ModalShell } from '@/components/ui/ModalShell';
 
 interface ToppingManagerModalProps {
   isOpen: boolean;
@@ -149,35 +150,38 @@ export default function ToppingManagerModal({
   };
 
   const handleToggleStatus = async (tp: Topping) => {
-    const newStatus = !tp.is_active;
+    const updatedStatus = !tp.is_active;
     try {
-      const res = await fetchApi<Topping>(`/toppings/${tp.id}`, {
+      const updatedList = localToppings.map((t) =>
+        t.id === tp.id ? { ...t, is_active: updatedStatus } : t
+      );
+      setLocalToppings(updatedList);
+
+      const res = await fetchApi(`/toppings/${tp.id}`, {
         method: 'PUT',
         body: JSON.stringify({
-          name: tp.name,
-          price: Number(tp.price),
-          cogs: Number(tp.cogs) || 0,
-          category_ids: (tp.category_ids && tp.category_ids.length > 0) ? tp.category_ids : (tp.category_id ? [tp.category_id] : []),
-          category_id: tp.category_id,
-          is_active: newStatus,
+          ...tp,
+          is_active: updatedStatus,
         }),
       });
       if (res.status === 'success') {
         onToppingsUpdated();
       } else {
-        showAlert('Lỗi', res.message || 'Cập nhật trạng thái thất bại', 'danger');
+        showAlert('Lỗi', res.message || 'Không thể đổi trạng thái', 'danger');
+        setLocalToppings(localToppings);
       }
     } catch (err: any) {
-      showAlert('Lỗi', err.message || 'Lỗi kết nối khi cập nhật', 'danger');
+      showAlert('Lỗi', err.message || 'Lỗi kết nối', 'danger');
+      setLocalToppings(localToppings);
     }
   };
 
   const handleDelete = async (tp: Topping) => {
     const isConfirmed = await confirm({
-      title: 'Xác nhận xóa Topping',
-      message: `Bạn có chắc chắn muốn xóa topping "${tp.name}"? Topping này sẽ không còn xuất hiện trong menu chọn món.`,
+      title: 'Xác nhận xóa topping',
+      message: `Bạn có chắc chắn muốn xóa topping "${tp.name}"? Thao tác này không thể hoàn tác.`,
       type: 'danger',
-      confirmText: 'Xóa Topping',
+      confirmText: 'Xóa topping',
       cancelText: 'Hủy',
     });
     if (!isConfirmed) return;
@@ -193,12 +197,12 @@ export default function ToppingManagerModal({
         showAlert('Lỗi', res.message || 'Xóa topping thất bại', 'danger');
       }
     } catch (err: any) {
-      showAlert('Lỗi', err.message || 'Lỗi kết nối khi xóa', 'danger');
+      showAlert('Lỗi', err.message || 'Lỗi kết nối khi xóa topping', 'danger');
     }
   };
 
   const formatPrice = (val: number) => {
-    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val);
+    return (val || 0).toLocaleString('vi-VN') + ' đ';
   };
 
   const handleDragStart = (e: React.DragEvent, index: number) => {
@@ -232,8 +236,7 @@ export default function ToppingManagerModal({
     currentFiltered.splice(targetIndex, 0, moved);
 
     let newFullList: Topping[];
-    const isFiltered = searchQuery.trim() !== '' || selectedCatFilter !== 'all';
-    if (isFiltered) {
+    if (searchQuery.trim() || selectedCatFilter !== 'all') {
       const movedId = moved.id;
       const targetId = filteredToppings[targetIndex]?.id;
       const full = [...localToppings];
@@ -280,618 +283,604 @@ export default function ToppingManagerModal({
   });
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-150">
-      <div className="bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl w-full max-w-3xl max-h-[92dvh] sm:max-h-[90vh] flex flex-col overflow-hidden border border-slate-100 animate-in zoom-in-95 duration-150 pb-safe">
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-100 shrink-0 bg-slate-50/50">
-          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 pr-2">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold shadow-2xs shrink-0">
-              <Layers className="w-4 h-4 sm:w-5 sm:h-5" />
-            </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <h3 className="font-extrabold text-slate-900 text-sm sm:text-base truncate">Quản Lý Topping &amp; Món Thêm</h3>
-                <span className="bg-emerald-100 text-emerald-700 text-[11px] px-2 py-0.2 rounded-full font-black">
-                  {toppings.length}
-                </span>
-              </div>
-              <p className="text-[11px] sm:text-xs text-slate-500 truncate">
-                Các món topping kèm theo (Trân châu, Thạch, Pudding...)
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition cursor-pointer shrink-0"
-          >
-            <X className="w-5 h-5" />
-          </button>
+    <ModalShell
+      isOpen={isOpen}
+      onClose={onClose}
+      size="xl"
+      preventClose={saving}
+      icon={<Layers className="w-5 h-5 text-emerald-600" />}
+      title={
+        <div className="flex items-center gap-2">
+          <span>Quản Lý Topping &amp; Món Thêm</span>
+          <span className="bg-emerald-100 text-emerald-700 text-caption px-2 py-0.5 rounded-full font-num font-black">
+            {toppings.length}
+          </span>
         </div>
-
-        {/* Content Body */}
-        <div className="p-4 sm:p-6 overflow-y-auto space-y-4 sm:space-y-5 flex-1">
-          {/* Action Row: Search + Category Filter + Add Button */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 sm:gap-3">
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 flex-1">
-              <div className="relative flex-1">
-                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="text"
-                  placeholder="Tìm tên topping..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="app-input pl-9 pr-8 py-2 text-xs"
-                />
-                {searchQuery && (
-                  <button
-                    type="button"
-                    onClick={() => setSearchQuery('')}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                )}
-              </div>
-
-              <div className="w-full sm:w-48 shrink-0">
-                <ModernSelect
-                  value={selectedCatFilter}
-                  onChange={(val) => setSelectedCatFilter(val as string)}
-                  options={[
-                    { value: 'all', label: 'Tất cả nhóm' },
-                    { value: 'global', label: 'Toàn cục (Dùng chung)' },
-                    ...categories.map((c) => ({ value: String(c.id), label: c.name })),
-                  ]}
-                />
-              </div>
-            </div>
-
-            {!showForm && (
-              <button
-                type="button"
-                onClick={handleStartCreate}
-                className="flex items-center justify-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer shrink-0 w-full sm:w-auto"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Thêm Topping</span>
-              </button>
-            )}
-          </div>
-
-          {/* Form Card (Create or Edit) */}
-          {showForm && (
-            <form
-              onSubmit={handleSaveForm}
-              className="bg-emerald-50/40 p-3.5 sm:p-5 rounded-2xl border border-emerald-200/80 space-y-3.5 sm:space-y-4 animate-fade-in"
-            >
-              <div className="flex items-center justify-between">
-                <h4 className="text-xs font-black uppercase text-emerald-800 flex items-center gap-1.5">
-                  <Layers className="w-4 h-4 text-emerald-600" />
-                  <span>{editingTopping ? `Sửa topping: ${editingTopping.name}` : 'Thêm topping mới'}</span>
-                </h4>
-                <button
-                  type="button"
-                  onClick={resetForm}
-                  className="text-xs font-bold text-rose-600 hover:text-rose-700 underline cursor-pointer"
-                >
-                  Đóng form
-                </button>
-              </div>
-
-              {errorMsg && (
-                <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 shrink-0" />
-                  <span>{errorMsg}</span>
-                </div>
-              )}
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3">
-                <div className="sm:col-span-3">
-                  <label className="text-xs font-bold text-slate-700 block mb-1">
-                    Tên topping <span className="text-rose-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="VD: Trân châu đường đen, Thạch đào, Kem phô mai..."
-                    value={toppingName}
-                    onChange={(e) => setToppingName(e.target.value)}
-                    className="w-full text-xs font-bold px-3 py-2 bg-white text-slate-900 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-2xs"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">
-                    Giá bán (VNĐ)
-                  </label>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    value={toppingPrice ? toppingPrice.toLocaleString('vi-VN') : ''}
-                    onChange={(e) => {
-                      const raw = e.target.value.replace(/\D/g, '');
-                      setToppingPrice(raw === '' ? 0 : parseInt(raw, 10));
-                    }}
-                    placeholder="VD: 5000, 10000..."
-                    className="w-full text-xs font-bold px-3 py-2 bg-white text-slate-900 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-2xs"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">
-                    Giá vốn (COGS)
-                  </label>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    value={toppingCogs ? toppingCogs.toLocaleString('vi-VN') : ''}
-                    onChange={(e) => {
-                      const raw = e.target.value.replace(/\D/g, '');
-                      setToppingCogs(raw === '' ? 0 : parseInt(raw, 10));
-                    }}
-                    placeholder="VD: 2000..."
-                    className="w-full text-xs font-bold px-3 py-2 bg-white text-slate-900 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-2xs"
-                  />
-                </div>
-
-                <div className="sm:col-span-3 space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                      <FolderOpen className="w-3.5 h-3.5 text-slate-400" />
-                      <span>Áp dụng cho danh mục ({toppingCategoryIds.length === 0 ? 'Toàn cục / Mọi món' : `${toppingCategoryIds.length} danh mục`})</span>
-                    </label>
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => setToppingCategoryIds([])}
-                        className={`text-[11px] font-bold px-2 py-0.5 rounded-lg transition cursor-pointer ${
-                          toppingCategoryIds.length === 0
-                            ? 'bg-emerald-600 text-white shadow-2xs'
-                            : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
-                        }`}
-                      >
-                        🌐 Tất cả (Toàn cục)
-                      </button>
-                      {toppingCategoryIds.length > 0 && (
-                        <button
-                          type="button"
-                          onClick={() => setToppingCategoryIds([])}
-                          className="text-[11px] text-rose-600 hover:underline cursor-pointer"
-                        >
-                          Bỏ chọn
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="p-2.5 bg-white border border-slate-200 rounded-xl max-h-36 overflow-y-auto space-y-1 shadow-2xs">
-                    <div className="flex flex-wrap gap-1.5">
-                      {categories.map((cat) => {
-                        const isChecked = toppingCategoryIds.includes(cat.id);
-                        return (
-                          <button
-                            key={cat.id}
-                            type="button"
-                            onClick={() => {
-                              if (isChecked) {
-                                setToppingCategoryIds(toppingCategoryIds.filter((id) => id !== cat.id));
-                              } else {
-                                setToppingCategoryIds([...toppingCategoryIds, cat.id]);
-                              }
-                            }}
-                            className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer ${
-                              isChecked
-                                ? 'bg-emerald-600 text-white shadow-2xs font-bold'
-                                : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200'
-                            }`}
-                          >
-                            <span className={`w-3.5 h-3.5 rounded flex items-center justify-center text-[9px] font-black ${
-                              isChecked ? 'bg-white text-emerald-700' : 'border border-slate-300 bg-white'
-                            }`}>
-                              {isChecked ? '✓' : ''}
-                            </span>
-                            <span>{cat.name}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                  <p className="text-[11px] text-slate-500">
-                    {toppingCategoryIds.length === 0 ? (
-                      <span className="text-emerald-700 font-medium">
-                        ✓ Topping sẽ xuất hiện ở tất cả các món đồ uống thuộc mọi danh mục.
-                      </span>
-                    ) : (
-                      <span>
-                        Chỉ xuất hiện khi gọi các món thuộc: <strong className="text-slate-800">{categories.filter(c => toppingCategoryIds.includes(c.id)).map(c => c.name).join(', ')}</strong>.
-                      </span>
-                    )}
-                  </p>
-                </div>
-              </div>
-
-              {/* Status Switch */}
-              <div className="flex items-center justify-between p-3 bg-white rounded-xl border border-emerald-200/80 shadow-2xs">
-                <div>
-                  <span className="text-xs font-bold text-slate-800 block">Trạng thái bán</span>
-                  <span className="text-[11px] text-slate-500">
-                    {toppingIsActive ? '🟢 Đang BẬT (sẵn sàng phục vụ)' : '⚪ TẮT (tạm hết)'}
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={toppingIsActive}
-                  onClick={() => setToppingIsActive(!toppingIsActive)}
-                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-emerald-500 ${
-                    toppingIsActive ? 'bg-emerald-600' : 'bg-slate-300'
-                  }`}
-                >
-                  <span
-                    aria-hidden="true"
-                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
-                      toppingIsActive ? 'translate-x-5' : 'translate-x-0'
-                    }`}
-                  />
-                </button>
-              </div>
-
-              {/* Form Buttons (Balanced on mobile) */}
-              <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:justify-end pt-2 border-t border-emerald-200/60">
-                <button
-                  type="button"
-                  onClick={resetForm}
-                  className="px-3.5 py-2 text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition cursor-pointer text-center justify-center flex items-center"
-                >
-                  Hủy
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-xs transition cursor-pointer disabled:opacity-50 text-center justify-center flex items-center"
-                >
-                  {saving ? 'Đang lưu...' : editingTopping ? 'Lưu Thay Đổi' : 'Tạo Topping'}
-                </button>
-              </div>
-            </form>
-          )}
-
-          {/* Toppings Table / List Container */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <h4 className="text-xs font-black uppercase text-slate-500 tracking-wider">
-                Danh sách topping ({filteredToppings.length})
-              </h4>
-              <span className="text-[10px] text-slate-400 font-medium">
-                💡 Kéo thả biểu tượng ⋮⋮ để đổi thứ tự
-              </span>
-            </div>
-
-            {filteredToppings.length === 0 ? (
-              <div className="text-center py-10 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
-                <Layers className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                <p className="text-xs text-slate-500 font-semibold">
-                  {searchQuery ? 'Không tìm thấy topping phù hợp' : 'Chưa có topping nào'}
-                </p>
-              </div>
-            ) : (
-              <>
-                {/* 1. Mobile Cards View (sm:hidden) */}
-                <div className="block sm:hidden space-y-2.5">
-                  {filteredToppings.map((tp, idx) => {
-                    const tpCatIds = (tp.category_ids && tp.category_ids.length > 0)
-                      ? tp.category_ids
-                      : (tp.category_id ? [tp.category_id] : []);
-                    const linkedCats = categories.filter((c) => tpCatIds.includes(c.id));
-                    const isEditing = editingTopping?.id === tp.id;
-                    const isDragging = draggedIndex === idx;
-                    const isDragOver = dragOverIndex === idx && draggedIndex !== idx;
-
-                    return (
-                      <div
-                        key={tp.id}
-                        draggable
-                        onDragStart={(e) => handleDragStart(e, idx)}
-                        onDragOver={(e) => handleDragOver(e, idx)}
-                        onDragEnd={handleDragEnd}
-                        onDrop={(e) => handleDrop(e, idx)}
-                        className={`p-3 rounded-2xl border transition-all space-y-2.5 cursor-move select-none ${
-                          isDragging
-                            ? 'opacity-40 scale-95 border-dashed border-emerald-400 bg-emerald-50/40'
-                            : isDragOver
-                            ? 'border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-50/20'
-                            : isEditing
-                            ? 'bg-emerald-50 border-emerald-300 ring-2 ring-emerald-500/20'
-                            : 'bg-white border-slate-200 shadow-2xs'
-                        }`}
-                      >
-                        {/* Top: Name + Active Toggle */}
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-2 min-w-0">
-                            <GripVertical className="w-4 h-4 text-slate-300 group-hover:text-slate-500 shrink-0 cursor-grab active:cursor-grabbing" />
-                            <span
-                              className={`w-2.5 h-2.5 rounded-full shrink-0 ${
-                                tp.is_active ? 'bg-purple-500 ring-2 ring-purple-100' : 'bg-slate-300'
-                              }`}
-                            />
-                            <span className={`font-bold text-xs truncate ${tp.is_active ? 'text-slate-900' : 'text-slate-400 line-through'}`}>
-                              {tp.name}
-                            </span>
-                          </div>
-
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleToggleStatus(tp);
-                            }}
-                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold transition cursor-pointer shrink-0 ${
-                              tp.is_active
-                                ? 'bg-purple-50 text-purple-700 border border-purple-200 shadow-2xs'
-                                : 'bg-slate-100 text-slate-500 border border-slate-200'
-                            }`}
-                          >
-                            <span>{tp.is_active ? '● Đang bán' : '○ Tạm hết'}</span>
-                          </button>
-                        </div>
-
-                        {/* Mid Info: Prices + Scope */}
-                        <div className="flex items-center justify-between bg-slate-50 p-2 rounded-xl text-xs">
-                          <div className="flex items-center gap-2">
-                            <span className="font-black text-emerald-700 text-xs">
-                              {formatPrice(tp.price)}
-                            </span>
-                            <span className="text-[10px] text-slate-400">
-                              (Vốn: {formatPrice(tp.cogs || 0)})
-                            </span>
-                            {Number(tp.price) > 0 && (
-                              <span
-                                className={`text-[10px] font-bold ${
-                                  (Number(tp.price) - (tp.cogs || 0)) / Number(tp.price) >= 0.5 ? 'text-emerald-600' : 'text-amber-600'
-                                }`}
-                                title="Biên lợi nhuận"
-                              >
-                                {Math.round(((Number(tp.price) - (tp.cogs || 0)) / Number(tp.price)) * 100)}%
-                              </span>
-                            )}
-                          </div>
-
-                          <div>
-                            {linkedCats.length === 0 ? (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
-                                🌐 Toàn cục
-                              </span>
-                            ) : linkedCats.length === 1 ? (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold bg-white text-slate-700 border border-slate-200">
-                                <FolderOpen className="w-3 h-3 text-emerald-600" />
-                                {linkedCats[0].name}
-                              </span>
-                            ) : (
-                              <div className="flex flex-wrap gap-1">
-                                {linkedCats.map((c) => (
-                                  <span
-                                    key={c.id}
-                                    className="inline-flex items-center text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200"
-                                  >
-                                    {c.name}
-                                  </span>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Bottom Actions */}
-                        <div className="flex items-center justify-end gap-2 pt-1 border-t border-slate-100">
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleStartEdit(tp);
-                            }}
-                            className="px-3 py-1 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition flex items-center gap-1 cursor-pointer"
-                          >
-                            <Edit2 className="w-3.5 h-3.5" />
-                            <span>Sửa</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDelete(tp);
-                            }}
-                            className="px-3 py-1 text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg transition flex items-center gap-1 cursor-pointer"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                            <span>Xóa</span>
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* 2. Desktop Table View (hidden sm:block) */}
-                <div className="hidden sm:block border border-slate-200 rounded-2xl overflow-hidden shadow-2xs bg-white">
-                  <table className="w-full text-left text-xs text-slate-700">
-                    <thead className="bg-slate-50 text-[11px] font-black text-slate-700 uppercase tracking-wider border-b border-slate-200">
-                      <tr>
-                        <th className="w-8 px-2 py-3"></th>
-                        <th className="px-3 py-3">Tên Topping</th>
-                        <th className="px-3 py-3 text-right">Giá Bán</th>
-                        <th className="px-3 py-3 text-right">Giá Vốn</th>
-                        <th className="px-3 py-3 text-right">Margin %</th>
-                        <th className="px-3 py-3 text-center">Nhóm Áp Dụng</th>
-                        <th className="px-3 py-3 text-center">Trạng Thái</th>
-                        <th className="px-3.5 py-3 text-right">Thao Tác</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 bg-white">
-                      {filteredToppings.map((tp, idx) => {
-                        const tpCatIds = (tp.category_ids && tp.category_ids.length > 0)
-                      ? tp.category_ids
-                      : (tp.category_id ? [tp.category_id] : []);
-                    const linkedCats = categories.filter((c) => tpCatIds.includes(c.id));
-                        const isEditing = editingTopping?.id === tp.id;
-                        const isDragging = draggedIndex === idx;
-                        const isDragOver = dragOverIndex === idx && draggedIndex !== idx;
-
-                        return (
-                          <tr
-                            key={tp.id}
-                            draggable
-                            onDragStart={(e) => handleDragStart(e, idx)}
-                            onDragOver={(e) => handleDragOver(e, idx)}
-                            onDragEnd={handleDragEnd}
-                            onDrop={(e) => handleDrop(e, idx)}
-                            className={`hover:bg-slate-50 transition cursor-move select-none ${
-                              isDragging
-                                ? 'opacity-40 bg-emerald-50/50'
-                                : isDragOver
-                                ? 'bg-emerald-50/40 ring-2 ring-emerald-500/20'
-                                : isEditing
-                                ? 'bg-emerald-50/70'
-                                : ''
-                            }`}
-                          >
-                            <td className="px-2 py-3 text-center">
-                              <GripVertical className="w-4 h-4 text-slate-300 hover:text-slate-500 mx-auto cursor-grab active:cursor-grabbing" />
-                            </td>
-                            <td className="px-3 py-3 font-bold text-slate-900">
-                              <div className="flex items-center gap-2">
-                                <span
-                                  className={`w-2 h-2 rounded-full shrink-0 ${
-                                    tp.is_active ? 'bg-purple-500 ring-2 ring-purple-100' : 'bg-slate-300'
-                                  }`}
-                                />
-                                <span className={tp.is_active ? 'text-slate-900' : 'text-slate-400 line-through'}>
-                                  {tp.name}
-                                </span>
-                              </div>
-                            </td>
-
-                            <td className="px-3 py-3 text-right font-black text-emerald-700">
-                              {formatPrice(tp.price)}
-                            </td>
-
-                            <td className="px-3 py-3 text-right font-medium text-slate-500">
-                              {formatPrice(tp.cogs || 0)}
-                            </td>
-
-                            <td className="px-3 py-3 text-right font-bold text-xs">
-                              {Number(tp.price) > 0 ? (
-                                <span
-                                  className={
-                                    (Number(tp.price) - (tp.cogs || 0)) / Number(tp.price) >= 0.5
-                                      ? 'text-emerald-600'
-                                      : 'text-amber-600'
-                                  }
-                                >
-                                  {Math.round(((Number(tp.price) - (tp.cogs || 0)) / Number(tp.price)) * 100)}%
-                                </span>
-                              ) : (
-                                <span className="text-slate-400">—</span>
-                              )}
-                            </td>
-
-                            <td className="px-3 py-3 text-center">
-                              {linkedCats.length === 0 ? (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
-                                  🌐 Toàn cục (Mọi món)
-                                </span>
-                              ) : linkedCats.length === 1 ? (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
-                                  <FolderOpen className="w-3 h-3 text-emerald-600" />
-                                  {linkedCats[0].name}
-                                </span>
-                              ) : (
-                                <div className="flex flex-wrap justify-center gap-1 max-w-[220px] mx-auto">
-                                  {linkedCats.map((cat) => (
-                                    <span
-                                      key={cat.id}
-                                      className="inline-flex items-center text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200"
-                                    >
-                                      {cat.name}
-                                    </span>
-                                  ))}
-                                </div>
-                              )}
-                            </td>
-
-                            <td className="px-3 py-3 text-center">
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleToggleStatus(tp);
-                                }}
-                                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-extrabold transition cursor-pointer ${
-                                  tp.is_active
-                                    ? 'bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200 shadow-2xs'
-                                    : 'bg-slate-100 text-slate-500 hover:bg-slate-200 border border-slate-200'
-                                }`}
-                                title={tp.is_active ? 'Bấm để Tắt' : 'Bấm để Bật'}
-                              >
-                                <span
-                                  className={`w-1.5 h-1.5 rounded-full ${
-                                    tp.is_active ? 'bg-purple-500' : 'bg-slate-400'
-                                  }`}
-                                />
-                                <span>{tp.is_active ? 'Đang bán' : 'Tạm hết'}</span>
-                              </button>
-                            </td>
-
-                            <td className="px-3.5 py-3 text-right">
-                              <div className="flex items-center justify-end gap-1">
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleStartEdit(tp);
-                                  }}
-                                  className="p-1.5 rounded-xl text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 transition cursor-pointer"
-                                  title="Sửa topping"
-                                >
-                                  <Edit2 className="w-3.5 h-3.5" />
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDelete(tp);
-                                  }}
-                                  className="p-1.5 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
-                                  title="Xóa topping"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div className="p-3.5 sm:px-5 sm:py-3.5 border-t border-slate-100 bg-slate-50 flex flex-col sm:flex-row items-center justify-between gap-2.5 shrink-0">
+      }
+      description="Các món topping kèm theo (Trân châu, Thạch, Pudding...)"
+      footer={
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-2.5 w-full">
           <span className="text-xs text-slate-500 text-center sm:text-left">
-            Tổng cộng: <strong>{toppings.length}</strong> loại topping
+            Tổng cộng: <strong className="font-num font-bold text-slate-800">{toppings.length}</strong> loại topping
           </span>
           <button
             type="button"
             onClick={onClose}
-            className="w-full sm:w-auto px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-200 bg-white border border-slate-200 rounded-xl transition cursor-pointer text-center justify-center flex items-center"
+            className="w-full sm:w-auto px-5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 active:scale-95 bg-white border border-slate-200 rounded-full transition cursor-pointer text-center justify-center flex items-center shadow-sm"
           >
             Đóng
           </button>
         </div>
+      }
+    >
+      <div className="space-y-4 sm:space-y-5">
+        {/* Action Row: Search + Category Filter + Add Button */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 sm:gap-3">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 flex-1">
+            <div className="relative flex-1">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Tìm tên topping..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-8 py-2 text-xs bg-white text-slate-900 placeholder:text-slate-400 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-sm"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+
+            <div className="w-full sm:w-48 shrink-0">
+              <ModernSelect
+                value={selectedCatFilter}
+                onChange={(val) => setSelectedCatFilter(val as string)}
+                options={[
+                  { value: 'all', label: 'Tất cả nhóm' },
+                  { value: 'global', label: 'Toàn cục (Dùng chung)' },
+                  ...categories.map((c) => ({ value: String(c.id), label: c.name })),
+                ]}
+              />
+            </div>
+          </div>
+
+          {!showForm && (
+            <button
+              type="button"
+              onClick={handleStartCreate}
+              className="flex items-center justify-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-bold rounded-full shadow-sm transition cursor-pointer shrink-0 w-full sm:w-auto"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Thêm Topping</span>
+            </button>
+          )}
+        </div>
+
+        {/* Form Card (Create or Edit) */}
+        {showForm && (
+          <form
+            onSubmit={handleSaveForm}
+            className="bg-emerald-50/40 p-3.5 sm:p-5 rounded-2xl border border-emerald-200/80 space-y-3.5 sm:space-y-4"
+          >
+            <div className="flex items-center justify-between">
+              <h4 className="text-xs font-black uppercase text-emerald-800 flex items-center gap-1.5">
+                <Layers className="w-4 h-4 text-emerald-600" />
+                <span>{editingTopping ? `Sửa topping: ${editingTopping.name}` : 'Thêm topping mới'}</span>
+              </h4>
+              <button
+                type="button"
+                onClick={resetForm}
+                className="text-xs font-bold text-rose-600 hover:text-rose-700 underline cursor-pointer"
+              >
+                Đóng form
+              </button>
+            </div>
+
+            {errorMsg && (
+              <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{errorMsg}</span>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3">
+              <div className="sm:col-span-3">
+                <label className="text-xs font-bold text-slate-700 block mb-1">
+                  Tên topping <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="VD: Trân châu đường đen, Thạch đào, Kem phô mai..."
+                  value={toppingName}
+                  onChange={(e) => setToppingName(e.target.value)}
+                  className="w-full text-xs font-bold px-3 py-2 bg-white text-slate-900 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-sm"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">
+                  Giá bán (VNĐ)
+                </label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={toppingPrice ? toppingPrice.toLocaleString('vi-VN') : ''}
+                  onChange={(e) => {
+                    const raw = e.target.value.replace(/\D/g, '');
+                    setToppingPrice(raw === '' ? 0 : parseInt(raw, 10));
+                  }}
+                  placeholder="VD: 5000, 10000..."
+                  className="w-full text-xs font-num font-bold px-3 py-2 bg-white text-slate-900 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-sm"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">
+                  Giá vốn (COGS)
+                </label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={toppingCogs ? toppingCogs.toLocaleString('vi-VN') : ''}
+                  onChange={(e) => {
+                    const raw = e.target.value.replace(/\D/g, '');
+                    setToppingCogs(raw === '' ? 0 : parseInt(raw, 10));
+                  }}
+                  placeholder="VD: 2000..."
+                  className="w-full text-xs font-num font-bold px-3 py-2 bg-white text-slate-900 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-sm"
+                />
+              </div>
+
+              <div className="sm:col-span-3 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                    <FolderOpen className="w-3.5 h-3.5 text-slate-400" />
+                    <span>Áp dụng cho danh mục ({toppingCategoryIds.length === 0 ? 'Toàn cục / Mọi món' : `${toppingCategoryIds.length} danh mục`})</span>
+                  </label>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setToppingCategoryIds([])}
+                      className={`text-caption font-bold px-2.5 py-1 rounded-full transition cursor-pointer ${
+                        toppingCategoryIds.length === 0
+                          ? 'bg-emerald-600 text-white shadow-sm'
+                          : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                      }`}
+                    >
+                      🌐 Tất cả (Toàn cục)
+                    </button>
+                    {toppingCategoryIds.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setToppingCategoryIds([])}
+                        className="text-caption text-rose-600 hover:underline cursor-pointer"
+                      >
+                        Bỏ chọn
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="p-2.5 bg-white border border-slate-200 rounded-xl max-h-36 overflow-y-auto space-y-1 shadow-sm">
+                  <div className="flex flex-wrap gap-1.5">
+                    {categories.map((cat) => {
+                      const isChecked = toppingCategoryIds.includes(cat.id);
+                      return (
+                        <button
+                          key={cat.id}
+                          type="button"
+                          onClick={() => {
+                            if (isChecked) {
+                              setToppingCategoryIds(toppingCategoryIds.filter((id) => id !== cat.id));
+                            } else {
+                              setToppingCategoryIds([...toppingCategoryIds, cat.id]);
+                            }
+                          }}
+                          className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer ${
+                            isChecked
+                              ? 'bg-emerald-600 text-white shadow-sm font-bold'
+                              : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200'
+                          }`}
+                        >
+                          <span className={`w-3.5 h-3.5 rounded flex items-center justify-center text-caption font-black ${
+                            isChecked ? 'bg-white text-emerald-700' : 'border border-slate-300 bg-white'
+                          }`}>
+                            {isChecked ? '✓' : ''}
+                          </span>
+                          <span>{cat.name}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+                <p className="text-caption text-slate-500">
+                  {toppingCategoryIds.length === 0 ? (
+                    <span className="text-emerald-700 font-medium">
+                      ✓ Topping sẽ xuất hiện ở tất cả các món đồ uống thuộc mọi danh mục.
+                    </span>
+                  ) : (
+                    <span>
+                      Chỉ xuất hiện khi gọi các món thuộc: <strong className="text-slate-800">{categories.filter(c => toppingCategoryIds.includes(c.id)).map(c => c.name).join(', ')}</strong>.
+                    </span>
+                  )}
+                </p>
+              </div>
+            </div>
+
+            {/* Status Switch */}
+            <div className="flex items-center justify-between p-3 bg-white rounded-xl border border-emerald-200/80 shadow-sm">
+              <div>
+                <span className="text-xs font-bold text-slate-800 block">Trạng thái bán</span>
+                <span className="text-caption text-slate-500">
+                  {toppingIsActive ? '🟢 Đang BẬT (sẵn sàng phục vụ)' : '⚪ TẮT (tạm hết)'}
+                </span>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={toppingIsActive}
+                onClick={() => setToppingIsActive(!toppingIsActive)}
+                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-emerald-500 ${
+                  toppingIsActive ? 'bg-emerald-600' : 'bg-slate-300'
+                }`}
+              >
+                <span
+                  aria-hidden="true"
+                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                    toppingIsActive ? 'translate-x-5' : 'translate-x-0'
+                  }`}
+                />
+              </button>
+            </div>
+
+            {/* Form Buttons */}
+            <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:justify-end pt-2 border-t border-emerald-200/60">
+              <button
+                type="button"
+                onClick={resetForm}
+                className="px-4 py-2 text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-full transition cursor-pointer text-center justify-center flex items-center"
+              >
+                Hủy
+              </button>
+              <button
+                type="submit"
+                disabled={saving}
+                className="px-5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-full shadow-sm transition cursor-pointer disabled:opacity-50 text-center justify-center flex items-center"
+              >
+                {saving ? 'Đang lưu...' : editingTopping ? 'Lưu Thay Đổi' : 'Tạo Topping'}
+              </button>
+            </div>
+          </form>
+        )}
+
+        {/* Toppings Table / List Container */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <h4 className="text-xs font-black uppercase text-slate-500 tracking-wider">
+              Danh sách topping ({filteredToppings.length})
+            </h4>
+            <span className="text-caption text-slate-400 font-medium">
+              💡 Kéo thả biểu tượng ⋮⋮ để đổi thứ tự
+            </span>
+          </div>
+
+          {filteredToppings.length === 0 ? (
+            <div className="text-center py-10 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+              <Layers className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+              <p className="text-xs text-slate-500 font-semibold">
+                {searchQuery ? 'Không tìm thấy topping phù hợp' : 'Chưa có topping nào'}
+              </p>
+            </div>
+          ) : (
+            <>
+              {/* 1. Mobile Cards View (sm:hidden) */}
+              <div className="block sm:hidden space-y-2.5">
+                {filteredToppings.map((tp, idx) => {
+                  const tpCatIds = (tp.category_ids && tp.category_ids.length > 0)
+                    ? tp.category_ids
+                    : (tp.category_id ? [tp.category_id] : []);
+                  const linkedCats = categories.filter((c) => tpCatIds.includes(c.id));
+                  const isEditing = editingTopping?.id === tp.id;
+                  const isDragging = draggedIndex === idx;
+                  const isDragOver = dragOverIndex === idx && draggedIndex !== idx;
+
+                  return (
+                    <div
+                      key={tp.id}
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, idx)}
+                      onDragOver={(e) => handleDragOver(e, idx)}
+                      onDragEnd={handleDragEnd}
+                      onDrop={(e) => handleDrop(e, idx)}
+                      className={`p-3 rounded-2xl border transition-all space-y-2.5 cursor-move select-none ${
+                        isDragging
+                          ? 'opacity-40 scale-95 border-dashed border-emerald-400 bg-emerald-50/40'
+                          : isDragOver
+                          ? 'border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-50/20'
+                          : isEditing
+                          ? 'bg-emerald-50 border-emerald-300 ring-2 ring-emerald-500/20'
+                          : 'bg-white border-slate-200 shadow-sm'
+                      }`}
+                    >
+                      {/* Top: Name + Active Toggle */}
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <GripVertical className="w-4 h-4 text-slate-300 group-hover:text-slate-500 shrink-0 cursor-grab active:cursor-grabbing" />
+                          <span
+                            className={`w-2.5 h-2.5 rounded-full shrink-0 ${
+                              tp.is_active ? 'bg-purple-500 ring-2 ring-purple-100' : 'bg-slate-300'
+                            }`}
+                          />
+                          <span className={`font-bold text-xs truncate ${tp.is_active ? 'text-slate-900' : 'text-slate-400 line-through'}`}>
+                            {tp.name}
+                          </span>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleToggleStatus(tp);
+                          }}
+                          className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-caption font-extrabold transition cursor-pointer shrink-0 ${
+                            tp.is_active
+                              ? 'bg-purple-50 text-purple-700 border border-purple-200 shadow-sm'
+                              : 'bg-slate-100 text-slate-500 border border-slate-200'
+                          }`}
+                        >
+                          <span>{tp.is_active ? '● Đang bán' : '○ Tạm hết'}</span>
+                        </button>
+                      </div>
+
+                      {/* Mid Info: Prices + Scope */}
+                      <div className="flex items-center justify-between bg-slate-50 p-2 rounded-xl text-xs">
+                        <div className="flex items-center gap-2">
+                          <span className="font-black font-num text-emerald-700 text-xs">
+                            {formatPrice(tp.price)}
+                          </span>
+                          <span className="text-caption font-num text-slate-400">
+                            (Vốn: {formatPrice(tp.cogs || 0)})
+                          </span>
+                          {Number(tp.price) > 0 && (
+                            <span
+                              className={`text-caption font-num font-bold ${
+                                (Number(tp.price) - (tp.cogs || 0)) / Number(tp.price) >= 0.5 ? 'text-emerald-600' : 'text-amber-600'
+                              }`}
+                              title="Biên lợi nhuận"
+                            >
+                              {Math.round(((Number(tp.price) - (tp.cogs || 0)) / Number(tp.price)) * 100)}%
+                            </span>
+                          )}
+                        </div>
+
+                        <div>
+                          {linkedCats.length === 0 ? (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-caption font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                              🌐 Toàn cục
+                            </span>
+                          ) : linkedCats.length === 1 ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-caption font-bold bg-white text-slate-700 border border-slate-200">
+                              <FolderOpen className="w-3 h-3 text-emerald-600" />
+                              {linkedCats[0].name}
+                            </span>
+                          ) : (
+                            <div className="flex flex-wrap gap-1">
+                              {linkedCats.map((c) => (
+                                <span
+                                  key={c.id}
+                                  className="inline-flex items-center text-caption font-bold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200"
+                                >
+                                  {c.name}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Bottom Actions */}
+                      <div className="flex items-center justify-end gap-2 pt-1 border-t border-slate-100">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleStartEdit(tp);
+                          }}
+                          className="px-3 py-1 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-full transition flex items-center gap-1 cursor-pointer"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                          <span>Sửa</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDelete(tp);
+                          }}
+                          className="px-3 py-1 text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-full transition flex items-center gap-1 cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span>Xóa</span>
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* 2. Desktop Table View (hidden sm:block) */}
+              <div className="hidden sm:block border border-slate-200 rounded-2xl overflow-hidden shadow-sm bg-white">
+                <table className="w-full text-left text-xs text-slate-700">
+                  <thead className="bg-slate-50 text-caption font-black text-slate-700 uppercase tracking-wider border-b border-slate-200">
+                    <tr>
+                      <th className="w-8 px-2 py-3"></th>
+                      <th className="px-3 py-3">Tên Topping</th>
+                      <th className="px-3 py-3 text-right">Giá Bán</th>
+                      <th className="px-3 py-3 text-right">Giá Vốn</th>
+                      <th className="px-3 py-3 text-right">Margin %</th>
+                      <th className="px-3 py-3 text-center">Nhóm Áp Dụng</th>
+                      <th className="px-3 py-3 text-center">Trạng Thái</th>
+                      <th className="px-3.5 py-3 text-right">Thao Tác</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 bg-white">
+                    {filteredToppings.map((tp, idx) => {
+                      const tpCatIds = (tp.category_ids && tp.category_ids.length > 0)
+                    ? tp.category_ids
+                    : (tp.category_id ? [tp.category_id] : []);
+                  const linkedCats = categories.filter((c) => tpCatIds.includes(c.id));
+                      const isEditing = editingTopping?.id === tp.id;
+                      const isDragging = draggedIndex === idx;
+                      const isDragOver = dragOverIndex === idx && draggedIndex !== idx;
+
+                      return (
+                        <tr
+                          key={tp.id}
+                          draggable
+                          onDragStart={(e) => handleDragStart(e, idx)}
+                          onDragOver={(e) => handleDragOver(e, idx)}
+                          onDragEnd={handleDragEnd}
+                          onDrop={(e) => handleDrop(e, idx)}
+                          className={`hover:bg-slate-50 transition cursor-move select-none ${
+                            isDragging
+                              ? 'opacity-40 bg-emerald-50/50'
+                              : isDragOver
+                              ? 'bg-emerald-50/40 ring-2 ring-emerald-500/20'
+                              : isEditing
+                              ? 'bg-emerald-50/70'
+                              : ''
+                          }`}
+                        >
+                          <td className="px-2 py-3 text-center">
+                            <GripVertical className="w-4 h-4 text-slate-300 hover:text-slate-500 mx-auto cursor-grab active:cursor-grabbing" />
+                          </td>
+                          <td className="px-3 py-3 font-bold text-slate-900">
+                            <div className="flex items-center gap-2">
+                              <span
+                                className={`w-2 h-2 rounded-full shrink-0 ${
+                                  tp.is_active ? 'bg-purple-500 ring-2 ring-purple-100' : 'bg-slate-300'
+                                }`}
+                              />
+                              <span className={tp.is_active ? 'text-slate-900' : 'text-slate-400 line-through'}>
+                                {tp.name}
+                              </span>
+                            </div>
+                          </td>
+
+                          <td className="px-3 py-3 text-right font-black font-num text-emerald-700">
+                            {formatPrice(tp.price)}
+                          </td>
+
+                          <td className="px-3 py-3 text-right font-medium font-num text-slate-500">
+                            {formatPrice(tp.cogs || 0)}
+                          </td>
+
+                          <td className="px-3 py-3 text-right font-bold font-num text-xs">
+                            {Number(tp.price) > 0 ? (
+                              <span
+                                className={
+                                  (Number(tp.price) - (tp.cogs || 0)) / Number(tp.price) >= 0.5
+                                    ? 'text-emerald-600'
+                                    : 'text-amber-600'
+                                }
+                              >
+                                {Math.round(((Number(tp.price) - (tp.cogs || 0)) / Number(tp.price)) * 100)}%
+                              </span>
+                            ) : (
+                              <span className="text-slate-400">—</span>
+                            )}
+                          </td>
+
+                          <td className="px-3 py-3 text-center">
+                            {linkedCats.length === 0 ? (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-caption font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                                🌐 Toàn cục (Mọi món)
+                              </span>
+                            ) : linkedCats.length === 1 ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-caption font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                                <FolderOpen className="w-3 h-3 text-emerald-600" />
+                                {linkedCats[0].name}
+                              </span>
+                            ) : (
+                              <div className="flex flex-wrap justify-center gap-1 max-w-[220px] mx-auto">
+                                {linkedCats.map((cat) => (
+                                  <span
+                                    key={cat.id}
+                                    className="inline-flex items-center text-caption font-bold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200"
+                                  >
+                                    {cat.name}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </td>
+
+                          <td className="px-3 py-3 text-center">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleToggleStatus(tp);
+                              }}
+                              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-caption font-extrabold transition cursor-pointer ${
+                                tp.is_active
+                                  ? 'bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200 shadow-sm'
+                                  : 'bg-slate-100 text-slate-500 hover:bg-slate-200 border border-slate-200'
+                              }`}
+                              title={tp.is_active ? 'Bấm để Tắt' : 'Bấm để Bật'}
+                            >
+                              <span
+                                className={`w-1.5 h-1.5 rounded-full ${
+                                  tp.is_active ? 'bg-purple-500' : 'bg-slate-400'
+                                }`}
+                              />
+                              <span>{tp.is_active ? 'Đang bán' : 'Tạm hết'}</span>
+                            </button>
+                          </td>
+
+                          <td className="px-3.5 py-3 text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleStartEdit(tp);
+                                }}
+                                className="p-1.5 rounded-full text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 transition cursor-pointer"
+                                title="Sửa topping"
+                              >
+                                <Edit2 className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDelete(tp);
+                                }}
+                                className="p-1.5 rounded-full text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
+                                title="Xóa topping"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
+        </div>
       </div>
-    </div>
+    </ModalShell>
   );
 }

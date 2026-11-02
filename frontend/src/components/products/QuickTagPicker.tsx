@@ -74,8 +74,8 @@ export default function QuickTagPicker({ currentTag, locked, tags, customTags, o
         title="Gắn nhãn nhanh"
         className={
           hasTag && style
-            ? `text-[10px] uppercase font-extrabold px-2 py-0.5 rounded-lg border inline-flex items-center gap-1 cursor-pointer active:scale-95 transition ${style.badgeClasses}`
-            : 'text-[10px] font-bold px-2 py-0.5 rounded-lg border border-dashed border-slate-300 text-slate-500 hover:border-purple-400 hover:text-purple-700 hover:bg-purple-50 inline-flex items-center gap-1 cursor-pointer active:scale-95 transition'
+            ? `text-caption uppercase font-extrabold px-2 py-0.5 rounded-lg border inline-flex items-center gap-1 cursor-pointer active:scale-95 transition ${style.badgeClasses}`
+            : 'text-caption font-bold px-2 py-0.5 rounded-lg border border-dashed border-slate-300 text-slate-500 hover:border-purple-400 hover:text-purple-700 hover:bg-purple-50 inline-flex items-center gap-1 cursor-pointer active:scale-95 transition'
         }
       >
         {hasTag && style ? (
@@ -96,7 +96,7 @@ export default function QuickTagPicker({ currentTag, locked, tags, customTags, o
         <div
           ref={panelRef}
           style={{ top: pos.top, left: pos.left }}
-          className="fixed z-[80] w-56 max-h-[60vh] overflow-y-auto bg-white text-slate-800 border border-slate-200 shadow-2xl rounded-2xl p-1.5 space-y-0.5 animate-scaleIn"
+          className="fixed z-popover w-56 max-h-[60vh] overflow-y-auto bg-white text-slate-800 border border-slate-200 shadow-popover rounded-2xl p-1.5 space-y-0.5 animate-scaleIn"
         >
           {tags.map((tg) => {
             const s = getTagBadgeStyle(tg.id, customTags);
@@ -110,7 +110,7 @@ export default function QuickTagPicker({ currentTag, locked, tags, customTags, o
                   selected ? 'bg-purple-50 font-bold' : 'hover:bg-purple-50/70 font-semibold'
                 }`}
               >
-                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border text-[10px] uppercase font-extrabold ${s.badgeClasses}`}>
+                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border text-caption uppercase font-extrabold ${s.badgeClasses}`}>
                   <span>{s.icon}</span>
                   <span>{s.name}</span>
                 </span>

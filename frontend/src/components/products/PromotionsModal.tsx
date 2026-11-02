@@ -29,6 +29,7 @@ import { useConfirm } from '@/context/ConfirmContext';
 import { formatCurrency, SettingsMap } from '@/lib/utils';
 import ModernSelect from '@/components/common/ModernSelect';
 import { FilterBar, Chip } from '@/components/ui';
+import { ModalShell } from '@/components/ui/ModalShell';
 import { Promotion, PromoType, PromoScope } from '@/types/promotion';
 
 export type { Promotion, PromoType, PromoScope };
@@ -394,47 +395,32 @@ export default function PromotionsModal({ isOpen, onClose, settings: initialSett
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-150">
-      <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-4xl w-full p-4 sm:p-6 shadow-2xl space-y-4 max-h-[92dvh] sm:max-h-[90vh] overflow-y-auto pb-safe">
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 pr-2">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-700 shrink-0 shadow-2xs">
-              <Gift className="w-4 h-4 sm:w-5 sm:h-5" />
-            </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <h2 className="text-sm sm:text-base font-extrabold text-slate-900 truncate">
-                  {t('promotions.title') || 'Chương Trình Khuyến Mãi'}
-                </h2>
-                <span className="text-[11px] font-bold px-2 py-0.2 bg-indigo-50 text-indigo-700 rounded-full border border-indigo-100">
-                  {promotions.length}
-                </span>
-              </div>
-              <p className="text-[11px] sm:text-xs text-slate-500 truncate">
-                {t('promotions.subtitle') || 'Quản lý mã giảm giá, chiết khấu hóa đơn và quà tặng kèm'}
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-1.5 shrink-0">
-            <button
-              type="button"
-              onClick={openCreateForm}
-              className="bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-extrabold text-xs px-2.5 sm:px-3.5 py-2 rounded-xl flex items-center gap-1 shadow-xs transition cursor-pointer"
-            >
-              <Plus className="w-4 h-4" />
-              <span>{t('promotions.create_btn') || '+ Thêm KM'}</span>
-            </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className="p-2 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 transition cursor-pointer"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
+    <ModalShell
+      isOpen={isOpen}
+      onClose={onClose}
+      size="xl"
+      icon={<Gift className="w-5 h-5 text-brand-purple" />}
+      title={
+        <div className="flex items-center gap-2">
+          <span>{t('promotions.title') || 'Chương Trình Khuyến Mãi'}</span>
+          <span className="text-caption font-num font-bold px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full border border-purple-200">
+            {promotions.length}
+          </span>
         </div>
-
+      }
+      description={t('promotions.subtitle') || 'Quản lý mã giảm giá, chiết khấu hóa đơn và quà tặng kèm'}
+      headerActions={
+        <button
+          type="button"
+          onClick={openCreateForm}
+          className="bg-brand-purple hover:bg-purple-700 active:scale-95 text-white font-extrabold text-xs px-3.5 py-1.5 rounded-full flex items-center gap-1 shadow-sm transition cursor-pointer"
+        >
+          <Plus className="w-4 h-4" />
+          <span>{t('promotions.create_btn') || '+ Thêm KM'}</span>
+        </button>
+      }
+    >
+      <div className="space-y-4">
         {/* Search & Filter Toolbar */}
         <FilterBar
           searchValue={searchQuery}
@@ -450,38 +436,32 @@ export default function PromotionsModal({ isOpen, onClose, settings: initialSett
               </label>
               <ModernSelect
                 value={typeFilter}
-                onChange={(val) => setTypeFilter(String(val))}
+                onChange={(val) => setTypeFilter(val as string)}
                 options={promoTypeOptions}
-                size="sm"
               />
             </div>
           }
-          chipsSlot={
-            typeFilter !== 'all' ? (
-              <Chip variant="brand" onRemove={() => setTypeFilter('all')}>
-                {promoTypeOptions.find((o) => o.value === typeFilter)?.label || typeFilter}
-              </Chip>
-            ) : undefined
-          }
         />
 
-        {/* Promotions List */}
+        {/* Loading / Empty States */}
         {loading ? (
-          <div className="flex items-center justify-center py-16">
-            <RefreshCw className="w-7 h-7 text-indigo-600 animate-spin" />
+          <div className="text-center py-12 text-slate-400">
+            <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-purple-600" />
+            <p className="text-xs font-semibold">{t('common.loading') || 'Đang tải danh sách...'}</p>
           </div>
         ) : filteredPromos.length === 0 ? (
-          <div className="text-center py-12 bg-slate-50 rounded-2xl border border-slate-200">
-            <Gift className="w-10 h-10 text-slate-300 mx-auto mb-2" />
-            <p className="text-slate-500 font-bold text-sm">Chưa có chương trình khuyến mãi nào</p>
-            <p className="text-xs text-slate-400 mt-1">Bấm &quot;+ Thêm KM&quot; để tạo chương trình giảm giá đầu tiên</p>
+          <div className="text-center py-12 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+            <Gift className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+            <p className="text-xs text-slate-500 font-semibold">
+              {searchQuery ? 'Không tìm thấy khuyến mãi phù hợp' : t('promotions.empty') || 'Chưa có chương trình khuyến mãi nào'}
+            </p>
           </div>
         ) : (
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-[11px] text-slate-400 font-medium px-1">
-              <span>💡 Kéo thả biểu tượng ⋮⋮ để sắp xếp thứ tự ưu tiên áp dụng khuyến mãi</span>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[58vh] overflow-y-auto pr-1">
+          <div>
+            <p className="text-caption text-slate-400 mb-2">
+              💡 Kéo thả biểu tượng <span className="font-mono font-bold">⋮⋮</span> để sắp xếp thứ tự ưu tiên áp dụng
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {filteredPromos.map((promo, idx) => {
                 const isGift = promo.promo_type === 'gift_item';
                 const isPercent = promo.promo_type === 'discount_percent';
@@ -496,13 +476,13 @@ export default function PromotionsModal({ isOpen, onClose, settings: initialSett
                     onDragOver={(e) => handleDragOver(e, idx)}
                     onDragEnd={handleDragEnd}
                     onDrop={(e) => handleDrop(e, idx)}
-                    className={`bg-white rounded-2xl border p-3.5 space-y-2.5 transition shadow-xs cursor-move select-none ${
+                    className={`bg-white rounded-2xl border p-3.5 space-y-2.5 transition shadow-sm cursor-move select-none ${
                       isDragging
-                        ? 'opacity-40 scale-95 border-dashed border-indigo-400 bg-indigo-50/40'
+                        ? 'opacity-40 scale-95 border-dashed border-purple-400 bg-purple-50/40'
                         : isDragOver
-                        ? 'border-indigo-500 ring-2 ring-indigo-500/20 bg-indigo-50/20'
+                        ? 'border-purple-500 ring-2 ring-purple-500/20 bg-purple-50/20'
                         : promo.is_active
-                        ? 'border-slate-200 hover:border-indigo-300'
+                        ? 'border-slate-200 hover:border-purple-300'
                         : 'border-slate-200/60 opacity-60 bg-slate-50/50'
                     }`}
                   >
@@ -511,16 +491,16 @@ export default function PromotionsModal({ isOpen, onClose, settings: initialSett
                       <div className="flex items-center gap-1.5 min-w-0">
                         <GripVertical className="w-4 h-4 text-slate-300 group-hover:text-slate-500 shrink-0 cursor-grab active:cursor-grabbing" />
                         <span
-                          className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border flex items-center gap-1 shrink-0 ${
+                          className={`text-caption font-extrabold px-2 py-0.5 rounded-full border flex items-center gap-1 shrink-0 ${
                             isGift
                               ? 'bg-amber-50 text-amber-800 border-amber-200'
                               : isPercent
-                              ? 'bg-indigo-50 text-indigo-800 border-indigo-200'
-                              : 'bg-purple-50 text-purple-800 border-purple-200'
+                              ? 'bg-purple-50 text-purple-800 border-purple-200'
+                              : 'bg-brand-purple/10 text-purple-900 border-purple-200'
                           }`}
                         >
                           {isGift ? <Gift className="w-3 h-3" /> : isPercent ? <Percent className="w-3 h-3" /> : <Coins className="w-3 h-3" />}
-                          <span>
+                          <span className="font-num">
                             {isGift
                               ? 'Tặng món'
                               : isPercent
@@ -536,7 +516,7 @@ export default function PromotionsModal({ isOpen, onClose, settings: initialSett
                           e.stopPropagation();
                           handleToggleActive(promo);
                         }}
-                        className={`text-[11px] font-bold px-2 py-0.5 rounded-full transition cursor-pointer shrink-0 ${
+                        className={`text-caption font-bold px-2 py-0.5 rounded-full transition cursor-pointer shrink-0 ${
                           promo.is_active
                             ? 'bg-purple-50 text-purple-700 border border-purple-200'
                             : 'bg-slate-100 text-slate-500 border border-slate-200'
@@ -553,11 +533,11 @@ export default function PromotionsModal({ isOpen, onClose, settings: initialSett
                         <div className="mt-1 space-y-0.5">
                           {promo.allow_select_gift ? (
                             <div className="flex items-center gap-1.5 flex-wrap">
-                              <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-200">
+                              <span className="text-caption font-extrabold px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-200">
                                 🎁 Cho phép chọn món
                               </span>
                               {promo.gift_variant && (
-                                <span className="text-[11px] font-medium text-amber-800 truncate">
+                                <span className="text-caption font-medium text-amber-800 truncate">
                                   (Gợi ý: {promo.gift_variant.variant_name})
                                 </span>
                               )}
@@ -574,15 +554,15 @@ export default function PromotionsModal({ isOpen, onClose, settings: initialSett
                     </div>
 
                     {/* Conditions & Details */}
-                    <div className="bg-slate-50 rounded-xl p-2 text-[11px] space-y-1 text-slate-600">
+                    <div className="bg-slate-50 rounded-xl p-2 text-caption space-y-1 text-slate-600">
                       {promo.min_order_amount > 0 && (
-                        <div>Đơn tối thiểu: <span className="font-bold text-slate-800">{formatCurrency(promo.min_order_amount, settings)}</span></div>
+                        <div>Đơn tối thiểu: <span className="font-num font-bold text-slate-800">{formatCurrency(promo.min_order_amount, settings)}</span></div>
                       )}
                       {promo.min_quantity > 0 && (
-                        <div>SL tối thiểu: <span className="font-bold text-slate-800">{promo.min_quantity} món</span></div>
+                        <div>SL tối thiểu: <span className="font-num font-bold text-slate-800">{promo.min_quantity} món</span></div>
                       )}
-                      <div className="flex items-center justify-between text-slate-400 text-[10px]">
-                        <span>Đã dùng: <strong className="text-slate-700">{promo.usage_count}</strong> {promo.usage_limit > 0 ? `/ ${promo.usage_limit}` : '(Vô hạn)'}</span>
+                      <div className="flex items-center justify-between text-slate-400 text-caption">
+                        <span>Đã dùng: <strong className="font-num text-slate-700">{promo.usage_count}</strong> {promo.usage_limit > 0 ? `/ ${promo.usage_limit}` : '(Vô hạn)'}</span>
                         <span>Phạm vi: <strong className="text-slate-700">{promo.scope === 'all' ? 'Toàn menu' : promo.scope === 'category' ? 'Theo danh mục' : 'Theo món'}</strong></span>
                       </div>
                     </div>
@@ -595,10 +575,10 @@ export default function PromotionsModal({ isOpen, onClose, settings: initialSett
                           e.stopPropagation();
                           openEditForm(promo);
                         }}
-                        className="p-1.5 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+                        className="p-1.5 text-purple-700 bg-purple-50 hover:bg-purple-100 rounded-full text-xs font-bold transition flex items-center gap-1 cursor-pointer"
                       >
                         <Edit2 className="w-3.5 h-3.5" />
-                        <span>Sửa</span>
+                        <span>{t('common.edit') || 'Sửa'}</span>
                       </button>
                       <button
                         type="button"
@@ -606,9 +586,10 @@ export default function PromotionsModal({ isOpen, onClose, settings: initialSett
                           e.stopPropagation();
                           handleDeletePromotion(promo.id);
                         }}
-                        className="p-1.5 text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg text-xs font-bold transition cursor-pointer"
+                        className="p-1.5 text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-full text-xs font-bold transition flex items-center gap-1 cursor-pointer"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
+                        <span>{t('common.delete') || 'Xóa'}</span>
                       </button>
                     </div>
                   </div>
@@ -620,329 +601,314 @@ export default function PromotionsModal({ isOpen, onClose, settings: initialSett
 
         {/* ── CREATE / EDIT PROMOTION SUB-MODAL ─────────────────────────────── */}
         {isFormOpen && (
-          <div className="fixed inset-0 z-60 bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-150">
-            <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-lg w-full p-4 sm:p-6 shadow-2xl space-y-4 max-h-[92dvh] sm:max-h-[90vh] overflow-y-auto pb-safe">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                <h3 className="font-extrabold text-slate-900 text-sm sm:text-base flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-600" />
-                  <span>{editingPromo ? 'Chỉnh Sửa Khuyến Mãi' : 'Thêm Khuyến Mãi Mới'}</span>
-                </h3>
-                <button
-                  type="button"
-                  onClick={() => setIsFormOpen(false)}
-                  className="p-1.5 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 transition cursor-pointer"
-                >
-                  <X className="w-5 h-5" />
-                </button>
+          <ModalShell
+            isOpen={isFormOpen}
+            onClose={() => setIsFormOpen(false)}
+            nested={true}
+            size="md"
+            icon={<Sparkles className="w-5 h-5 text-brand-purple" />}
+            title={editingPromo ? 'Chỉnh Sửa Khuyến Mãi' : 'Thêm Khuyến Mãi Mới'}
+          >
+            <form onSubmit={handleSavePromotion} className="space-y-3.5 text-xs">
+              {/* Promo Name */}
+              <div>
+                <label className="app-label">Tên chương trình khuyến mãi *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="VD: Giảm 20K Mừng Khai Trương"
+                  value={formName}
+                  onChange={(e) => setFormName(e.target.value)}
+                  className="app-input font-semibold"
+                />
               </div>
 
-              <form onSubmit={handleSavePromotion} className="space-y-3.5 text-xs">
-                {/* Promo Name */}
+              {/* Promo Type */}
+              <div>
+                <label className="app-label">Hình thức khuyến mãi *</label>
+                <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setFormType('discount_amount')}
+                    className={`p-2 sm:p-2.5 rounded-xl border text-center font-bold transition flex flex-col items-center gap-1 cursor-pointer text-caption sm:text-xs ${
+                      formType === 'discount_amount'
+                        ? 'border-purple-600 bg-purple-50 text-purple-700 ring-2 ring-purple-500/20'
+                        : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    <Coins className="w-4 h-4" />
+                    <span>Giảm tiền (đ)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormType('discount_percent')}
+                    className={`p-2 sm:p-2.5 rounded-xl border text-center font-bold transition flex flex-col items-center gap-1 cursor-pointer text-caption sm:text-xs ${
+                      formType === 'discount_percent'
+                        ? 'border-purple-600 bg-purple-50 text-purple-700 ring-2 ring-purple-500/20'
+                        : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    <Percent className="w-4 h-4" />
+                    <span>Giảm %</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormType('gift_item')}
+                    className={`p-2 sm:p-2.5 rounded-xl border text-center font-bold transition flex flex-col items-center gap-1 cursor-pointer text-caption sm:text-xs ${
+                      formType === 'gift_item'
+                        ? 'border-amber-600 bg-amber-50 text-amber-700 ring-2 ring-amber-500/20'
+                        : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    <Gift className="w-4 h-4" />
+                    <span>Tặng món</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Discount Value */}
+              {formType !== 'gift_item' && (
                 <div>
-                  <label className="app-label">Tên chương trình khuyến mãi *</label>
+                  <label className="app-label">
+                    {formType === 'discount_percent' ? 'Mức giảm (%) *' : 'Số tiền giảm (VNĐ) *'}
+                  </label>
                   <input
                     type="text"
+                    inputMode="numeric"
                     required
-                    placeholder="VD: Giảm 20K Mừng Khai Trương"
-                    value={formName}
-                    onChange={(e) => setFormName(e.target.value)}
-                    className="app-input font-semibold"
+                    placeholder={formType === 'discount_percent' ? 'VD: 10, 20...' : 'VD: 10000, 20000...'}
+                    value={formValue ? (formType === 'discount_percent' ? formValue : formValue.toLocaleString('vi-VN')) : ''}
+                    onChange={(e) => {
+                      const raw = e.target.value.replace(/\D/g, '');
+                      setFormValue(raw === '' ? 0 : parseInt(raw, 10));
+                    }}
+                    className="app-input font-num font-bold"
                   />
                 </div>
+              )}
 
-                {/* Promo Type */}
-                <div>
-                  <label className="app-label">Hình thức khuyến mãi *</label>
-                  <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setFormType('discount_amount')}
-                      className={`p-2 sm:p-2.5 rounded-xl border text-center font-bold transition flex flex-col items-center gap-1 cursor-pointer text-[11px] sm:text-xs ${
-                        formType === 'discount_amount'
-                          ? 'border-purple-600 bg-purple-50 text-purple-700 ring-2 ring-purple-500/20'
-                          : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
-                      }`}
-                    >
-                      <Coins className="w-4 h-4" />
-                      <span>Giảm tiền (đ)</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setFormType('discount_percent')}
-                      className={`p-2 sm:p-2.5 rounded-xl border text-center font-bold transition flex flex-col items-center gap-1 cursor-pointer text-[11px] sm:text-xs ${
-                        formType === 'discount_percent'
-                          ? 'border-indigo-600 bg-indigo-50 text-indigo-700 ring-2 ring-indigo-500/20'
-                          : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
-                      }`}
-                    >
-                      <Percent className="w-4 h-4" />
-                      <span>Giảm %</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setFormType('gift_item')}
-                      className={`p-2 sm:p-2.5 rounded-xl border text-center font-bold transition flex flex-col items-center gap-1 cursor-pointer text-[11px] sm:text-xs ${
-                        formType === 'gift_item'
-                          ? 'border-amber-600 bg-amber-50 text-amber-700 ring-2 ring-amber-500/20'
-                          : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
-                      }`}
-                    >
-                      <Gift className="w-4 h-4" />
-                      <span>Tặng món</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Discount Value or Gift Selector */}
-                {formType !== 'gift_item' ? (
-                  <div>
-                    <label className="app-label">
-                      {formType === 'discount_amount' ? 'Số tiền giảm (đ) *' : 'Phần trăm giảm (%) *'}
-                    </label>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        inputMode="numeric"
-                        required
-                        value={formValue ? (formType === 'discount_amount' ? formValue.toLocaleString('vi-VN') : formValue) : ''}
-                        onChange={(e) => {
-                          const raw = e.target.value.replace(/\D/g, '');
-                          const num = raw === '' ? 0 : parseInt(raw, 10);
-                          setFormValue(formType === 'discount_percent' ? Math.min(100, num) : num);
-                        }}
-                        placeholder="0"
-                        className="app-input pr-12 font-bold"
-                      />
-                      <span className="absolute right-3.5 top-1/2 -translate-y-1/2 font-bold text-slate-400">
-                        {formType === 'discount_amount' ? 'đ' : '%'}
+              {/* Gift Item Configuration */}
+              {formType === 'gift_item' && (
+                <div className="p-3 bg-amber-50/60 rounded-2xl border border-amber-200 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="font-bold text-amber-900 text-xs block">
+                        {t('promotions.gift_allow_select') || 'Cho phép chọn món khi bán hàng'}
+                      </span>
+                      <span className="text-caption text-amber-700">
+                        {formAllowSelectGift
+                          ? t('promotions.gift_allow_select_hint') || 'Thu ngân được phép linh hoạt chọn món quà theo yêu cầu của khách'
+                          : t('promotions.gift_fixed_hint') || 'Cố định 1 món quà tặng cụ thể'}
                       </span>
                     </div>
+                    <input
+                      type="checkbox"
+                      checked={formAllowSelectGift}
+                      onChange={(e) => setFormAllowSelectGift(e.target.checked)}
+                      className="w-4 h-4 text-amber-600 rounded focus:ring-amber-500 cursor-pointer"
+                    />
                   </div>
-                ) : (
-                  <div className="bg-amber-50/70 border border-amber-200/80 rounded-2xl p-3.5 space-y-3">
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="text-xs font-bold text-amber-950 flex items-center gap-1.5">
-                          <Gift className="w-4 h-4 text-amber-600 shrink-0" />
-                          <span>{t('promotions.allow_select_gift_label') || 'Cho phép chọn món được tặng khi áp dụng'}</span>
-                        </div>
-                        <p className="text-[11px] text-amber-800/80 mt-0.5 leading-relaxed">
-                          {t('promotions.allow_select_gift_hint') || 'Thu ngân có thể linh hoạt chọn món quà tặng trực tiếp tại giỏ hàng POS khi áp dụng khuyến mãi này.'}
-                        </p>
-                      </div>
-                      <label className="relative inline-flex items-center cursor-pointer shrink-0">
-                        <input
-                          type="checkbox"
-                          checked={formAllowSelectGift}
-                          onChange={(e) => setFormAllowSelectGift(e.target.checked)}
-                          className="sr-only peer"
-                        />
-                        <div className="w-10 h-6 bg-slate-200 peer-focus:outline-hidden rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600"></div>
-                      </label>
-                    </div>
 
-                    {formAllowSelectGift ? (
-                      <div className="space-y-3 pt-2.5 border-t border-amber-200/60">
-                        {/* Scope of allowed gifts */}
-                        <div>
-                          <label className="text-[11px] font-bold text-slate-700 block mb-1.5">
-                            {t('promotions.gift_scope_label') || 'Phạm vi món được tặng'}
-                          </label>
-                          <div className="grid grid-cols-2 gap-2">
-                            <button
-                              type="button"
-                              onClick={() => setFormGiftScope('all')}
-                              className={`py-2 px-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 border cursor-pointer ${
-                                formGiftScope === 'all'
-                                  ? 'bg-amber-600 text-white border-amber-600 shadow-2xs'
-                                  : 'bg-white text-slate-700 border-slate-200 hover:border-amber-300'
-                              }`}
-                            >
-                              <span>{t('promotions.gift_scope_all') || 'Tất cả món trong menu'}</span>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setFormGiftScope('specific')}
-                              className={`py-2 px-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 border cursor-pointer ${
-                                formGiftScope === 'specific'
-                                  ? 'bg-amber-600 text-white border-amber-600 shadow-2xs'
-                                  : 'bg-white text-slate-700 border-slate-200 hover:border-amber-300'
-                              }`}
-                            >
-                              <span>{t('promotions.gift_scope_specific') || 'Chỉ các món chỉ định'}</span>
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* If specific, render selectable list of variants with search/check */}
-                        {formGiftScope === 'specific' && (
-                          <div className="space-y-1.5">
-                            <div className="flex items-center justify-between">
-                              <label className="text-[11px] font-bold text-slate-700">
-                                {t('promotions.select_gift_target_variants') || 'Chọn các món/biến thể được phép tặng:'} ({formGiftTargetIds.length}) *
-                              </label>
-                              <span className="text-[10px] text-amber-700 font-semibold">
-                                Đã chọn {formGiftTargetIds.length} món
-                              </span>
-                            </div>
-                            <div className="max-h-48 overflow-y-auto border border-amber-200/90 rounded-xl p-2 bg-white space-y-1 divide-y divide-slate-100">
-                              {allVariants.map((v) => {
-                                const isSelected = formGiftTargetIds.includes(v.id);
-                                return (
-                                  <label
-                                    key={v.id}
-                                    className="flex items-center justify-between p-1.5 hover:bg-amber-50/50 rounded-lg cursor-pointer text-xs"
-                                  >
-                                    <div className="flex items-center gap-2 min-w-0">
-                                      <input
-                                        type="checkbox"
-                                        checked={isSelected}
-                                        onChange={() => {
-                                          if (isSelected) {
-                                            setFormGiftTargetIds(formGiftTargetIds.filter((id) => id !== v.id));
-                                          } else {
-                                            setFormGiftTargetIds([...formGiftTargetIds, v.id]);
-                                          }
-                                        }}
-                                        className="w-4 h-4 rounded text-amber-600 focus:ring-amber-500 border-slate-300 cursor-pointer"
-                                      />
-                                      <span className="font-semibold text-slate-800 truncate">
-                                        {v.productName} - {v.variantName}
-                                      </span>
-                                    </div>
-                                    <span className="text-[11px] font-bold text-slate-500 shrink-0">
-                                      {formatCurrency(v.price, settings)}
-                                    </span>
-                                  </label>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Default / suggested gift variant */}
-                        <div>
-                          <label className="text-[11px] font-bold text-slate-700 block mb-1">
-                            {t('promotions.default_gift_variant') || 'Món quà tặng gợi ý mặc định (tùy chọn)'}
-                          </label>
-                          <ModernSelect
-                            value={formGiftVariantId || 0}
-                            onChange={(val) => setFormGiftVariantId(Number(val) || null)}
-                            options={[
-                              { value: 0, label: '— Không đặt gợi ý (Thu ngân tự chọn khi bán) —' },
-                              ...allVariants
-                                .filter((v) => formGiftScope === 'all' || formGiftTargetIds.includes(v.id))
-                                .map((v) => ({
-                                  value: v.id,
-                                  label: `${v.productName} - ${v.variantName} (${formatCurrency(v.price, settings)})`,
-                                })),
-                            ]}
-                          />
-                        </div>
-                      </div>
-                    ) : (
-                      /* Fixed single gift variant */
+                  {formAllowSelectGift ? (
+                    <div className="space-y-2.5 pt-2 border-t border-amber-200/60">
                       <div>
-                        <label className="text-[11px] font-bold text-slate-700 block mb-1">
-                          {t('promotions.fixed_gift_variant') || 'Món quà tặng cố định *'}
+                        <label className="text-caption font-bold text-slate-700 block mb-1">
+                          {t('promotions.gift_selection_scope') || 'Phạm vi các món được phép chọn làm quà:'}
+                        </label>
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setFormGiftScope('all')}
+                            className={`py-2 px-2.5 rounded-full text-xs font-bold transition flex items-center justify-center gap-1.5 border cursor-pointer ${
+                              formGiftScope === 'all'
+                                ? 'bg-amber-600 text-white border-amber-600 shadow-sm'
+                                : 'bg-white text-slate-700 border-slate-200 hover:border-amber-300'
+                            }`}
+                          >
+                            <span>{t('promotions.gift_scope_all') || 'Tất cả món trong menu'}</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setFormGiftScope('specific')}
+                            className={`py-2 px-2.5 rounded-full text-xs font-bold transition flex items-center justify-center gap-1.5 border cursor-pointer ${
+                              formGiftScope === 'specific'
+                                ? 'bg-amber-600 text-white border-amber-600 shadow-sm'
+                                : 'bg-white text-slate-700 border-slate-200 hover:border-amber-300'
+                            }`}
+                          >
+                            <span>{t('promotions.gift_scope_specific') || 'Chỉ các món chỉ định'}</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* If specific, render selectable list of variants with search/check */}
+                      {formGiftScope === 'specific' && (
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <label className="text-caption font-bold text-slate-700">
+                              {t('promotions.select_gift_target_variants') || 'Chọn các món/biến thể được phép tặng:'} ({formGiftTargetIds.length}) *
+                            </label>
+                            <span className="text-caption font-num text-amber-700 font-semibold">
+                              Đã chọn {formGiftTargetIds.length} món
+                            </span>
+                          </div>
+                          <div className="max-h-48 overflow-y-auto border border-amber-200/90 rounded-xl p-2 bg-white space-y-1 divide-y divide-slate-100">
+                            {allVariants.map((v) => {
+                              const isSelected = formGiftTargetIds.includes(v.id);
+                              return (
+                                <label
+                                  key={v.id}
+                                  className="flex items-center justify-between p-1.5 hover:bg-amber-50/50 rounded-lg cursor-pointer text-xs"
+                                >
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    <input
+                                      type="checkbox"
+                                      checked={isSelected}
+                                      onChange={() => {
+                                        if (isSelected) {
+                                          setFormGiftTargetIds(formGiftTargetIds.filter((id) => id !== v.id));
+                                        } else {
+                                          setFormGiftTargetIds([...formGiftTargetIds, v.id]);
+                                        }
+                                      }}
+                                      className="w-4 h-4 rounded text-amber-600 focus:ring-amber-500 border-slate-300 cursor-pointer"
+                                    />
+                                    <span className="font-semibold text-slate-800 truncate">
+                                      {v.productName} - {v.variantName}
+                                    </span>
+                                  </div>
+                                  <span className="text-caption font-num font-bold text-slate-500 shrink-0">
+                                    {formatCurrency(v.price, settings)}
+                                  </span>
+                                </label>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Default / suggested gift variant */}
+                      <div>
+                        <label className="text-caption font-bold text-slate-700 block mb-1">
+                          {t('promotions.default_gift_variant') || 'Món quà tặng gợi ý mặc định (tùy chọn)'}
                         </label>
                         <ModernSelect
                           value={formGiftVariantId || 0}
                           onChange={(val) => setFormGiftVariantId(Number(val) || null)}
                           options={[
-                            { value: 0, label: '— Chọn món tặng cố định —' },
-                            ...allVariants.map((v) => ({
-                              value: v.id,
-                              label: `${v.productName} - ${v.variantName} (${formatCurrency(v.price, settings)})`,
-                            })),
+                            { value: 0, label: '— Không đặt gợi ý (Thu ngân tự chọn khi bán) —' },
+                            ...allVariants
+                              .filter((v) => formGiftScope === 'all' || formGiftTargetIds.includes(v.id))
+                              .map((v) => ({
+                                value: v.id,
+                                label: `${v.productName} - ${v.variantName} (${formatCurrency(v.price, settings)})`,
+                              })),
                           ]}
                         />
                       </div>
-                    )}
-                  </div>
-                )}
+                    </div>
+                  ) : (
+                    /* Fixed single gift variant */
+                    <div>
+                      <label className="text-caption font-bold text-slate-700 block mb-1">
+                        {t('promotions.fixed_gift_variant') || 'Món quà tặng cố định *'}
+                      </label>
+                      <ModernSelect
+                        value={formGiftVariantId || 0}
+                        onChange={(val) => setFormGiftVariantId(Number(val) || null)}
+                        options={[
+                          { value: 0, label: '— Chọn món tặng cố định —' },
+                          ...allVariants.map((v) => ({
+                            value: v.id,
+                            label: `${v.productName} - ${v.variantName} (${formatCurrency(v.price, settings)})`,
+                          })),
+                        ]}
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
 
-                {/* Eligibility Conditions */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
-                  <div>
-                    <label className="app-label">Đơn tối thiểu (đ)</label>
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      placeholder="0"
-                      value={formMinOrderAmount ? formMinOrderAmount.toLocaleString('vi-VN') : ''}
-                      onChange={(e) => {
-                        const raw = e.target.value.replace(/\D/g, '');
-                        setFormMinOrderAmount(raw === '' ? 0 : parseInt(raw, 10));
-                      }}
-                      className="app-input font-semibold"
-                    />
-                  </div>
-                  <div>
-                    <label className="app-label">Số lượng tối thiểu</label>
-                    <input
-                      type="number"
-                      min="0"
-                      placeholder="0"
-                      value={formMinQuantity === 0 ? '' : formMinQuantity}
-                      onChange={(e) => {
-                        const raw = e.target.value.replace(/\D/g, '');
-                        setFormMinQuantity(raw === '' ? 0 : parseInt(raw, 10));
-                      }}
-                      className="app-input font-semibold"
-                    />
-                  </div>
+              {/* Eligibility Conditions */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
+                <div>
+                  <label className="app-label">Đơn tối thiểu (đ)</label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="0"
+                    value={formMinOrderAmount ? formMinOrderAmount.toLocaleString('vi-VN') : ''}
+                    onChange={(e) => {
+                      const raw = e.target.value.replace(/\D/g, '');
+                      setFormMinOrderAmount(raw === '' ? 0 : parseInt(raw, 10));
+                    }}
+                    className="app-input font-num font-semibold"
+                  />
+                </div>
+                <div>
+                  <label className="app-label">Số lượng tối thiểu</label>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="0"
+                    value={formMinQuantity === 0 ? '' : formMinQuantity}
+                    onChange={(e) => {
+                      const raw = e.target.value.replace(/\D/g, '');
+                      setFormMinQuantity(raw === '' ? 0 : parseInt(raw, 10));
+                    }}
+                    className="app-input font-num font-semibold"
+                  />
+                </div>
+              </div>
+
+              {/* Usage Limit & Is Active Switch */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3 items-center">
+                <div>
+                  <label className="app-label">Giới hạn số lượt</label>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="0 (Không giới hạn)"
+                    value={formUsageLimit === 0 ? '' : formUsageLimit}
+                    onChange={(e) => {
+                      const raw = e.target.value.replace(/\D/g, '');
+                      setFormUsageLimit(raw === '' ? 0 : parseInt(raw, 10));
+                    }}
+                    className="app-input font-num"
+                  />
                 </div>
 
-                {/* Usage Limit & Is Active Switch */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3 items-center">
-                  <div>
-                    <label className="app-label">Giới hạn số lượt</label>
-                    <input
-                      type="number"
-                      min="0"
-                      placeholder="0 (Không giới hạn)"
-                      value={formUsageLimit === 0 ? '' : formUsageLimit}
-                      onChange={(e) => {
-                        const raw = e.target.value.replace(/\D/g, '');
-                        setFormUsageLimit(raw === '' ? 0 : parseInt(raw, 10));
-                      }}
-                      className="app-input"
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between p-2.5 bg-slate-50 rounded-xl border border-slate-200 sm:mt-4">
-                    <span className="font-bold text-slate-800 text-xs">Kích hoạt ngay</span>
-                    <input
-                      type="checkbox"
-                      checked={formIsActive}
-                      onChange={(e) => setFormIsActive(e.target.checked)}
-                      className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500 cursor-pointer"
-                    />
-                  </div>
+                <div className="flex items-center justify-between p-2.5 bg-slate-50 rounded-xl border border-slate-200 sm:mt-4">
+                  <span className="font-bold text-slate-800 text-xs">Kích hoạt ngay</span>
+                  <input
+                    type="checkbox"
+                    checked={formIsActive}
+                    onChange={(e) => setFormIsActive(e.target.checked)}
+                    className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500 cursor-pointer"
+                  />
                 </div>
+              </div>
 
-                {/* Form Buttons (Balanced on mobile) */}
-                <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:justify-end pt-2 border-t border-slate-100">
-                  <button
-                    type="button"
-                    onClick={() => setIsFormOpen(false)}
-                    className="px-4 py-2.5 text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl font-bold text-xs transition cursor-pointer text-center justify-center flex items-center"
-                  >
-                    {t('common.cancel') || 'Hủy'}
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs shadow-xs transition active:scale-95 cursor-pointer text-center justify-center flex items-center"
-                  >
-                    {t('common.save') || 'Lưu khuyến mãi'}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
+              {/* Form Buttons */}
+              <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:justify-end pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsFormOpen(false)}
+                  className="px-4 py-2.5 text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-full font-bold text-xs transition cursor-pointer text-center justify-center flex items-center"
+                >
+                  {t('common.cancel') || 'Hủy'}
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 bg-brand-purple hover:bg-purple-700 text-white rounded-full font-bold text-xs shadow-sm transition active:scale-95 cursor-pointer text-center justify-center flex items-center"
+                >
+                  {t('common.save') || 'Lưu khuyến mãi'}
+                </button>
+              </div>
+            </form>
+          </ModalShell>
         )}
       </div>
-    </div>
+    </ModalShell>
   );
 }
