@@ -2088,7 +2088,7 @@ export default function TransactionsPage() {
           </div>
         )}
 
-        {/* ── TAB 3: POS ORDERS & CANCELLATION LIFECYCLE ───────────────── */}
+        {/* ── TAB 2: POS ORDERS & CANCELLATION LIFECYCLE ───────────────── */}
         {activeTab === 'orders' && (
           <div className="space-y-4">
             {/* Standardized Unified FilterBar for POS Orders */}
@@ -2131,7 +2131,7 @@ export default function TransactionsPage() {
                 </div>
               }
               chipsSlot={
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5 flex-wrap">
                   {[
                     { id: 'all', label: t('tx.filter_all_order_status') || 'Tất cả' },
                     { id: 'completed', label: t('tx.order_status_completed') || 'Hoàn thành' },
@@ -2163,11 +2163,11 @@ export default function TransactionsPage() {
             />
 
             {/* Orders Table */}
-            <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+            <div className="surface-card border-card rounded-panel shadow-card overflow-hidden">
               {/* Desktop Table View (md and up) */}
               <div className="hidden md:block overflow-x-auto">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase tracking-wider font-semibold">
+                  <thead className="bg-slate-50/80 border-b border-border-hairline text-slate-500 uppercase tracking-wider font-semibold text-[11px]">
                     <tr>
                       <th className="py-3 px-4">{t('tx.order_code')}</th>
                       <th className="py-3 px-4">{t('tx.date')}</th>
@@ -2196,11 +2196,11 @@ export default function TransactionsPage() {
                         return (
                           <React.Fragment key={order.id}>
                             <tr
-                              className={`hover:bg-slate-50 transition cursor-pointer ${isCancelled ? 'opacity-60 bg-rose-50/20' : ''
-                                } ${isExpanded ? 'bg-indigo-50/20' : ''}`}
+                              className={`hover:bg-slate-50/60 transition cursor-pointer ${isCancelled ? 'opacity-60 bg-rose-50/20' : ''
+                                } ${isExpanded ? 'bg-purple-50/20' : ''}`}
                               onClick={() => setExpandedOrderId(isExpanded ? null : order.id)}
                             >
-                              <td className="py-3 px-4 font-mono font-bold text-indigo-600">
+                              <td className="py-3 px-4 font-mono font-bold text-brand-purple">
                                 <div className="flex items-center space-x-2">
                                   {isExpanded ? (
                                     <ChevronUp className="w-3.5 h-3.5 text-slate-400 shrink-0" />
@@ -2210,25 +2210,25 @@ export default function TransactionsPage() {
                                   <div className="flex flex-col gap-0.5">
                                     <div className="flex items-center gap-1.5 flex-wrap">
                                       {order.daily_seq_no ? (
-                                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-black bg-indigo-100 text-indigo-700 border border-indigo-200 tracking-wider">
+                                        <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[11px] font-bold font-num bg-purple-50 text-brand-purple border border-purple-200 tracking-wider">
                                           #{String(order.daily_seq_no).padStart(3, '0')}
                                         </span>
                                       ) : null}
                                       {(() => {
                                         const badge = getSalesChannelBadge(order.sales_channel, salesChannelsList);
                                         return (
-                                          <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold border ${badge.bg}`}>
+                                          <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[11px] font-bold border ${badge.bg}`}>
                                             <span>{badge.icon}</span>
                                             <span>{badge.label}</span>
                                           </span>
                                         );
                                       })()}
                                     </div>
-                                    <span className="text-xs text-slate-500 font-mono font-normal">{order.order_code}</span>
+                                    <span className="text-xs text-slate-500 font-mono font-normal font-num">{order.order_code}</span>
                                   </div>
                                 </div>
                               </td>
-                              <td className="py-3 px-4 text-slate-500 whitespace-nowrap">
+                              <td className="py-3 px-4 text-slate-500 whitespace-nowrap font-num">
                                 {formatDateTime(order.created_at)}
                               </td>
                               <td className="py-3 px-4 font-medium text-slate-700">
@@ -2237,7 +2237,7 @@ export default function TransactionsPage() {
                               <td className="py-3 px-4 text-slate-600">
                                 {order.fund?.name || (funds.find((f) => f.id === order.fund_id)?.name ?? '—')}
                               </td>
-                              <td className="py-3 px-4 font-semibold text-slate-700">
+                              <td className="py-3 px-4 font-semibold text-slate-700 font-num">
                                 {t('pos.items_count', { count: itemCount })}
                               </td>
                               <td className="py-3 px-4">
@@ -2247,13 +2247,13 @@ export default function TransactionsPage() {
                                     {t('tx.order_status_cancelled') || 'Đã hủy'}
                                   </span>
                                 ) : (
-                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-purple-50 text-purple-600 border border-purple-200">
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-purple-50 text-brand-purple border border-purple-200">
                                     <CheckCircle2 className="w-3 h-3 mr-1" />
                                     {t('tx.order_status_completed') || 'Hoàn thành'}
                                   </span>
                                 )}
                               </td>
-                              <td className="py-3 px-4 text-right font-extrabold text-slate-900">
+                              <td className="py-3 px-4 text-right font-bold text-slate-900 font-num">
                                 {formatCurrency(order.total_amount, settings)}
                               </td>
                               <td className="py-3 px-4 text-right" onClick={(e) => e.stopPropagation()}>
@@ -2261,14 +2261,14 @@ export default function TransactionsPage() {
                                   <button
                                     onClick={() => setReprintOrder(order)}
                                     title="In lại hóa đơn"
-                                    className="p-1.5 text-purple-600 hover:text-purple-800 hover:bg-purple-50 rounded-lg transition cursor-pointer"
+                                    className="p-1.5 text-brand-purple hover:text-brand-purple-hover hover:bg-purple-50 rounded-full transition cursor-pointer"
                                   >
                                     <Printer className="w-4 h-4" />
                                   </button>
                                   <button
                                     onClick={() => handleReorder(order)}
                                     title={t('tx.reorder_tooltip') || 'Đặt lại đơn này'}
-                                    className="p-1.5 text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 rounded-lg transition"
+                                    className="p-1.5 text-brand-purple hover:text-brand-purple-hover hover:bg-purple-50 rounded-full transition cursor-pointer"
                                   >
                                     <RotateCcw className="w-4 h-4" />
                                   </button>
@@ -2278,7 +2278,7 @@ export default function TransactionsPage() {
                                         <button
                                           onClick={() => setCancellingOrder(order)}
                                           title={t('tx.cancel_order_tooltip') || 'Hủy đơn hàng'}
-                                          className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition"
+                                          className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-full transition cursor-pointer"
                                         >
                                           <Ban className="w-4 h-4" />
                                         </button>
@@ -2286,7 +2286,7 @@ export default function TransactionsPage() {
                                       <button
                                         onClick={() => setDeletingOrder(order)}
                                         title="Xóa vĩnh viễn đơn hàng"
-                                        className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"
+                                        className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-full transition cursor-pointer"
                                       >
                                         <Trash2 className="w-4 h-4" />
                                       </button>
@@ -2297,40 +2297,40 @@ export default function TransactionsPage() {
                             </tr>
                             {/* Expanded Order Items Row */}
                             {isExpanded && (
-                              <tr className="bg-slate-50/70">
-                                <td colSpan={8} className="p-4 border-t border-slate-100 space-y-3">
+                              <tr className="bg-slate-50/50">
+                                <td colSpan={8} className="p-4 border-t border-border-hairline space-y-3">
                                   {/* Financial Formula Breakdown Bar */}
-                                  <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-2xs flex flex-wrap items-center justify-between gap-2.5">
+                                  <div className="surface-card p-3 rounded-panel border-card shadow-card flex flex-wrap items-center justify-between gap-2.5">
                                     <div className="flex items-center gap-2 flex-wrap text-xs">
-                                      <span className="font-extrabold text-slate-500 uppercase text-[10px] tracking-wider">
+                                      <span className="font-bold text-slate-500 uppercase text-[11px] tracking-wider">
                                         💡 Đối soát thu tiền:
                                       </span>
-                                      <div className="flex items-center gap-1.5 font-medium text-slate-700 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200">
+                                      <div className="flex items-center gap-1.5 font-medium text-slate-700 bg-slate-50 px-2.5 py-1 rounded-full border border-border-hairline font-num">
                                         <span>Tổng giá món:</span>
-                                        <span className="font-extrabold text-slate-900">{formatCurrency(order.subtotal, settings)}</span>
+                                        <span className="font-bold text-slate-900">{formatCurrency(order.subtotal, settings)}</span>
                                       </div>
                                       {((order.discount_amount || 0) + (order.promotion_discount || 0) + (order.platform_fee_discount || 0)) > 0 && (
                                         <>
                                           <span className="text-rose-500 font-black text-sm">-</span>
-                                          <div className="flex items-center gap-1.5 font-medium text-rose-700 bg-rose-50 px-2.5 py-1 rounded-lg border border-rose-200">
+                                          <div className="flex items-center gap-1.5 font-medium text-rose-700 bg-rose-50 px-2.5 py-1 rounded-full border border-rose-200 font-num">
                                             <span>Giảm giá & KM:</span>
-                                            <span className="font-extrabold">-{formatCurrency((order.discount_amount || 0) + (order.promotion_discount || 0) + (order.platform_fee_discount || 0), settings)}</span>
+                                            <span className="font-bold">-{formatCurrency((order.discount_amount || 0) + (order.promotion_discount || 0) + (order.platform_fee_discount || 0), settings)}</span>
                                           </div>
                                         </>
                                       )}
                                       {((order.shipping_fee || 0) + (order.surcharge || 0)) > 0 && (
                                         <>
                                           <span className="text-cyan-600 font-black text-sm">+</span>
-                                          <div className="flex items-center gap-1.5 font-medium text-cyan-800 bg-cyan-50 px-2.5 py-1 rounded-lg border border-cyan-200">
+                                          <div className="flex items-center gap-1.5 font-medium text-cyan-800 bg-cyan-50 px-2.5 py-1 rounded-full border border-cyan-200 font-num">
                                             <span>Phí ship/Phụ thu:</span>
-                                            <span className="font-extrabold">+{formatCurrency((order.shipping_fee || 0) + (order.surcharge || 0), settings)}</span>
+                                            <span className="font-bold">+{formatCurrency((order.shipping_fee || 0) + (order.surcharge || 0), settings)}</span>
                                           </div>
                                         </>
                                       )}
                                       <span className="text-slate-400 font-black text-sm">=</span>
-                                      <div className="flex items-center gap-1.5 font-black text-purple-800 bg-purple-50 px-3 py-1 rounded-lg border-2 border-purple-300 shadow-2xs">
+                                      <div className="flex items-center gap-1.5 font-bold text-brand-purple bg-purple-50 px-3 py-1 rounded-full border border-purple-200 font-num shadow-card">
                                         <span>Tiền vào quỹ két:</span>
-                                        <span className="text-purple-700 text-sm font-black">+{formatCurrency(order.total_amount, settings)}</span>
+                                        <span className="text-brand-purple text-sm font-bold">+{formatCurrency(order.total_amount, settings)}</span>
                                       </div>
                                     </div>
                                     <div className="text-[11px] text-slate-500 font-medium">
@@ -2340,11 +2340,11 @@ export default function TransactionsPage() {
 
                                   <div className="space-y-2">
                                     <div className="flex items-center justify-between text-xs text-slate-500">
-                                      <span className="font-semibold text-slate-700 uppercase tracking-wider">
+                                      <span className="font-semibold text-slate-700 uppercase tracking-wider text-[11px]">
                                         {t('tx.order_items_detail') || 'Chi tiết món'} ({items.length} mặt hàng)
                                       </span>
                                       {order.note && (
-                                        <span className="text-amber-900 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md italic">
+                                        <span className="text-amber-900 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full text-[11px] italic">
                                           Ghi chú: {order.note}
                                         </span>
                                       )}
@@ -2353,7 +2353,7 @@ export default function TransactionsPage() {
                                       {items.map((item) => (
                                         <div
                                           key={item.id}
-                                          className="bg-white p-2.5 rounded-xl border border-slate-200 text-xs space-y-1 shadow-2xs"
+                                          className="surface-card p-3 rounded-xl border-card text-xs space-y-1 shadow-card"
                                         >
                                           <div className="flex justify-between items-start gap-1">
                                             <div className="min-w-0 flex-1">
@@ -2362,7 +2362,7 @@ export default function TransactionsPage() {
                                                   {getOrderItemName(item)}
                                                 </span>
                                                 {item.is_gift && (
-                                                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                                                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
                                                     🎁 Quà tặng (0đ)
                                                   </span>
                                                 )}
@@ -2373,18 +2373,18 @@ export default function TransactionsPage() {
                                                 </div>
                                               )}
                                             </div>
-                                            <span className="font-semibold text-slate-900 shrink-0">
+                                            <span className="font-bold text-slate-900 shrink-0 font-num">
                                               x{item.quantity}
                                             </span>
                                           </div>
                                           {item.selected_toppings && item.selected_toppings !== '[]' && (
-                                            <div className="text-[10px] text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded-md inline-block">
+                                            <div className="text-[11px] text-brand-purple bg-purple-50 px-1.5 py-0.5 rounded-full inline-block">
                                               + {item.selected_toppings}
                                             </div>
                                           )}
-                                          <div className="flex justify-between items-center pt-1 border-t border-slate-100 text-[11px]">
-                                            <span className="text-slate-400">Đơn giá: {formatCurrency(item.unit_price, settings)}</span>
-                                            <span className="font-bold text-indigo-600">{formatCurrency(item.line_total, settings)}</span>
+                                          <div className="flex justify-between items-center pt-1 border-t border-border-hairline text-[11px]">
+                                            <span className="text-slate-400 font-num">Đơn giá: {formatCurrency(item.unit_price, settings)}</span>
+                                            <span className="font-bold text-brand-purple font-num">{formatCurrency(item.line_total, settings)}</span>
                                           </div>
                                         </div>
                                       ))}
@@ -2423,7 +2423,7 @@ export default function TransactionsPage() {
                     return (
                       <div
                         key={order.id}
-                        className={`p-3.5 space-y-2.5 transition ${isCancelled ? 'bg-rose-50/20' : 'bg-white'
+                        className={`p-4 space-y-3 transition surface-card ${isCancelled ? 'opacity-70 bg-rose-50/20' : ''
                           }`}
                       >
                         <div
@@ -2433,33 +2433,33 @@ export default function TransactionsPage() {
                           <div className="flex flex-col gap-1">
                             <div className="flex items-center gap-1.5 flex-wrap">
                               {order.daily_seq_no ? (
-                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-black bg-indigo-100 text-indigo-700 border border-indigo-200 tracking-wider">
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[11px] font-bold font-num bg-purple-50 text-brand-purple border border-purple-200 tracking-wider">
                                   #{String(order.daily_seq_no).padStart(3, '0')}
                                 </span>
                               ) : null}
                               {(() => {
                                 const badge = getSalesChannelBadge(order.sales_channel, salesChannelsList);
                                 return (
-                                  <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold border ${badge.bg}`}>
+                                  <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[11px] font-bold border ${badge.bg}`}>
                                     <span>{badge.icon}</span>
                                     <span>{badge.label}</span>
                                   </span>
                                 );
                               })()}
-                              <span className="font-mono font-bold text-indigo-600 text-xs">
+                              <span className="font-mono font-bold text-brand-purple text-xs font-num">
                                 {order.order_code}
                               </span>
                             </div>
-                            <span className="text-[11px] text-slate-400">
+                            <span className="text-[11px] text-slate-400 font-num">
                               {formatDateTime(order.created_at)}
                             </span>
                           </div>
                           {isCancelled ? (
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-600 border border-rose-200">
+                            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-50 text-rose-600 border border-rose-200">
                               Đã hủy
                             </span>
                           ) : (
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 text-purple-600 border border-purple-200">
+                            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-purple-50 text-brand-purple border border-purple-200">
                               Hoàn thành
                             </span>
                           )}
@@ -2468,7 +2468,7 @@ export default function TransactionsPage() {
                         {/* Thu ngân */}
                         {(order.cashier_name || order.created_by) && (
                           <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
-                            <span className="w-3.5 h-3.5 rounded-full bg-slate-100 flex items-center justify-center text-[9px]">👤</span>
+                            <span className="w-4 h-4 rounded-full bg-slate-100 flex items-center justify-center text-[11px]">👤</span>
                             <span className="font-semibold text-slate-700">
                               {order.cashier_name || order.created_by}
                             </span>
@@ -2476,39 +2476,39 @@ export default function TransactionsPage() {
                         )}
 
                         <div className="flex items-center justify-between text-xs">
-                          <span className="text-slate-500 font-medium">
+                          <span className="text-slate-500 font-medium font-num">
                             {t('pos.items_count', { count: itemCount })} • {order.fund?.name || (funds.find((f) => f.id === order.fund_id)?.name ?? 'Tiền mặt')}
                           </span>
-                          <span className="font-extrabold text-slate-900 text-sm">
+                          <span className="font-bold text-slate-900 text-base font-num">
                             {formatCurrency(order.total_amount, settings)}
                           </span>
                         </div>
 
                         {/* Expandable items on mobile */}
                         {isExpanded && (
-                          <div className="pt-2 border-t border-slate-100 space-y-2.5 text-xs">
+                          <div className="pt-2 border-t border-border-hairline space-y-2.5 text-xs">
                             {/* Mobile Financial Formula Breakdown */}
-                            <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 space-y-1.5">
-                              <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                            <div className="surface-card p-3 rounded-xl border-card space-y-1.5 shadow-card">
+                              <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                                 💡 Đối soát thu tiền:
                               </div>
-                              <div className="flex justify-between items-center text-[11px] text-slate-600">
+                              <div className="flex justify-between items-center text-[11px] text-slate-600 font-num">
                                 <span>Tổng tiền món:</span>
                                 <span className="font-semibold text-slate-900">{formatCurrency(order.subtotal, settings)}</span>
                               </div>
                               {((order.discount_amount || 0) + (order.promotion_discount || 0) + (order.platform_fee_discount || 0)) > 0 && (
-                                <div className="flex justify-between items-center text-[11px] text-rose-600">
+                                <div className="flex justify-between items-center text-[11px] text-rose-600 font-num">
                                   <span>- Giảm giá & KM:</span>
                                   <span className="font-bold">-{formatCurrency((order.discount_amount || 0) + (order.promotion_discount || 0) + (order.platform_fee_discount || 0), settings)}</span>
                                 </div>
                               )}
                               {((order.shipping_fee || 0) + (order.surcharge || 0)) > 0 && (
-                                <div className="flex justify-between items-center text-[11px] text-cyan-700">
+                                <div className="flex justify-between items-center text-[11px] text-cyan-700 font-num">
                                   <span>+ Phí ship/Phụ thu:</span>
                                   <span className="font-bold">+{formatCurrency((order.shipping_fee || 0) + (order.surcharge || 0), settings)}</span>
                                 </div>
                               )}
-                              <div className="flex justify-between items-center text-xs font-black text-purple-700 pt-1 border-t border-slate-200">
+                              <div className="flex justify-between items-center text-xs font-bold text-brand-purple pt-1.5 border-t border-border-hairline font-num">
                                 <span>= Tiền vào quỹ két:</span>
                                 <span className="text-sm">+{formatCurrency(order.total_amount, settings)}</span>
                               </div>
@@ -2517,7 +2517,7 @@ export default function TransactionsPage() {
                             <div className="font-semibold text-slate-600 text-[11px] uppercase tracking-wider">
                               Chi tiết món:
                             </div>
-                            <div className="space-y-1.5 bg-slate-50 p-2 rounded-xl">
+                            <div className="space-y-1.5 surface-card p-2.5 rounded-xl border-card">
                               {items.map((item) => (
                                 <div key={item.id} className="flex justify-between items-start text-xs">
                                   <div className="min-w-0 flex-1 pr-2">
@@ -2526,25 +2526,25 @@ export default function TransactionsPage() {
                                         {getOrderItemName(item)}
                                       </span>
                                       {item.is_gift && (
-                                        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                                        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
                                           🎁 Quà tặng
                                         </span>
                                       )}
                                     </div>
                                     {item.variant?.variant_name && item.variant.variant_name !== 'Default' && item.variant.variant_name !== getOrderItemName(item) && (
-                                      <span className="text-[10px] text-slate-500 font-medium ml-1">
+                                      <span className="text-[11px] text-slate-500 font-medium ml-1">
                                         ({item.variant.variant_name})
                                       </span>
                                     )}
                                     {item.selected_toppings && item.selected_toppings !== '[]' && (
-                                      <div className="text-[10px] text-indigo-600">
+                                      <div className="text-[11px] text-brand-purple">
                                         + {item.selected_toppings}
                                       </div>
                                     )}
                                   </div>
                                   <div className="text-right shrink-0">
-                                    <span className="font-semibold text-slate-700">x{item.quantity}</span>
-                                    <span className="text-slate-400 text-[10px] ml-1.5">
+                                    <span className="font-semibold text-slate-700 font-num">x{item.quantity}</span>
+                                    <span className="text-slate-400 text-[11px] ml-1.5 font-num">
                                       {formatCurrency(item.line_total, settings)}
                                     </span>
                                   </div>
@@ -2552,42 +2552,42 @@ export default function TransactionsPage() {
                               ))}
                             </div>
                             {order.note && (
-                              <div className="text-[11px] text-amber-900 bg-amber-50 p-2 rounded-lg border border-amber-200 italic">
+                              <div className="text-[11px] text-amber-900 bg-amber-50 p-2 rounded-xl border border-amber-200 italic">
                                 Ghi chú: {order.note}
                               </div>
                             )}
                             {isCancelled && order.cancel_reason && (
-                              <div className="text-xs text-rose-600 bg-rose-50 p-2 rounded-lg border border-rose-100">
+                              <div className="text-xs text-rose-600 bg-rose-50 p-2.5 rounded-xl border border-rose-100">
                                 Lý do hủy: {order.cancel_reason}
                               </div>
                             )}
                           </div>
                         )}
 
-                        <div className="flex items-center justify-between pt-1 border-t border-slate-100 text-xs">
+                        <div className="flex items-center justify-between pt-1.5 border-t border-border-hairline text-xs">
                           <button
                             type="button"
                             onClick={() => setExpandedOrderId(isExpanded ? null : order.id)}
-                            className="text-slate-400 hover:text-slate-600 text-[11px] font-semibold flex items-center gap-1 cursor-pointer"
+                            className="min-h-[44px] text-slate-500 hover:text-slate-700 text-[11px] font-semibold flex items-center gap-1 cursor-pointer"
                           >
                             {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
                             <span>{isExpanded ? 'Thu gọn' : 'Xem chi tiết'}</span>
                           </button>
-                          <div className="flex items-center space-x-1.5">
+                          <div className="flex items-center space-x-1.5 flex-wrap">
                             <button
                               type="button"
                               onClick={() => setReprintOrder(order)}
-                              className="px-2.5 py-1 text-[11px] font-bold text-purple-700 bg-purple-50 hover:bg-purple-100 rounded-lg flex items-center gap-1 transition cursor-pointer"
+                              className="min-h-[44px] px-3 py-1 text-[11px] font-bold text-brand-purple bg-purple-50 hover:bg-purple-100 rounded-full flex items-center gap-1 transition active:scale-95 cursor-pointer"
                             >
-                              <Printer className="w-3 h-3" />
+                              <Printer className="w-3.5 h-3.5" />
                               <span>In lại</span>
                             </button>
                             <button
                               type="button"
                               onClick={() => handleReorder(order)}
-                              className="px-2.5 py-1 text-[11px] font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg flex items-center gap-1 transition cursor-pointer"
+                              className="min-h-[44px] px-3 py-1 text-[11px] font-bold text-brand-purple bg-purple-50 hover:bg-purple-100 rounded-full flex items-center gap-1 transition active:scale-95 cursor-pointer"
                             >
-                              <RotateCcw className="w-3 h-3" />
+                              <RotateCcw className="w-3.5 h-3.5" />
                               <span>Đặt lại</span>
                             </button>
                             {!isStaff && (
@@ -2596,19 +2596,18 @@ export default function TransactionsPage() {
                                   <button
                                     type="button"
                                     onClick={() => setCancellingOrder(order)}
-                                    className="px-2.5 py-1 text-[11px] font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg flex items-center gap-1 transition cursor-pointer"
+                                    className="min-h-[44px] px-3 py-1 text-[11px] font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-full flex items-center gap-1 transition active:scale-95 cursor-pointer"
                                   >
-                                    <Ban className="w-3 h-3" />
+                                    <Ban className="w-3.5 h-3.5" />
                                     <span>Hủy đơn</span>
                                   </button>
                                 )}
                                 <button
                                   type="button"
                                   onClick={() => setDeletingOrder(order)}
-                                  className="px-2.5 py-1 text-[11px] font-bold text-slate-500 hover:text-rose-600 bg-slate-100 hover:bg-rose-50 rounded-lg flex items-center gap-1 transition cursor-pointer"
+                                  className="min-h-[44px] min-w-[44px] flex items-center justify-center text-slate-500 hover:text-rose-600 bg-slate-100 hover:bg-rose-50 rounded-full transition active:scale-95 cursor-pointer"
                                 >
-                                  <Trash2 className="w-3 h-3" />
-                                  <span>Xóa</span>
+                                  <Trash2 className="w-4 h-4" />
                                 </button>
                               </>
                             )}
@@ -2622,23 +2621,23 @@ export default function TransactionsPage() {
 
               {/* Orders Pagination Controls */}
               {totalOrderPages > 1 && (
-                <div className="flex items-center justify-between p-3 border-t border-slate-100 bg-slate-50 text-xs">
-                  <span className="text-slate-500">
+                <div className="flex items-center justify-between p-3 border-t border-border-hairline bg-slate-50/80 text-xs">
+                  <span className="text-slate-500 font-num">
                     Trang {orderPage} / {totalOrderPages} ({filteredOrders.length} đơn hàng)
                   </span>
                   <div className="flex items-center space-x-1.5">
                     <button
                       onClick={() => setOrderPage((p) => Math.max(1, p - 1))}
                       disabled={orderPage === 1}
-                      className="p-1.5 rounded-lg border border-slate-200 bg-white disabled:opacity-40 hover:bg-slate-100 transition cursor-pointer"
+                      className="min-h-[36px] min-w-[36px] flex items-center justify-center rounded-full border border-border-hairline bg-surface-card disabled:opacity-40 hover:bg-slate-100 transition cursor-pointer"
                     >
                       <ChevronLeft className="w-4 h-4 text-slate-600" />
                     </button>
-                    <span className="font-bold text-slate-700 px-2">{orderPage}</span>
+                    <span className="font-bold text-slate-700 px-2 font-num">{orderPage}</span>
                     <button
                       onClick={() => setOrderPage((p) => Math.min(totalOrderPages, p + 1))}
                       disabled={orderPage === totalOrderPages}
-                      className="p-1.5 rounded-lg border border-slate-200 bg-white disabled:opacity-40 hover:bg-slate-100 transition cursor-pointer"
+                      className="min-h-[36px] min-w-[36px] flex items-center justify-center rounded-full border border-border-hairline bg-surface-card disabled:opacity-40 hover:bg-slate-100 transition cursor-pointer"
                     >
                       <ChevronRight className="w-4 h-4 text-slate-600" />
                     </button>
