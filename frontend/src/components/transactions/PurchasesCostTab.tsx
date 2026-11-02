@@ -2039,603 +2039,583 @@ export default function PurchasesCostTab({
         </div>
       )}
 
-      {/* ── MODAL 1: RECIPE BOM EDITOR ─────────────────────────────────────────── */}
-      {editingRecipeTarget && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-150">
-          <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-lg w-full p-4 sm:p-6 shadow-2xl space-y-4 max-h-[92dvh] sm:max-h-[90vh] overflow-y-auto pb-safe">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div>
-                <h3 className="font-extrabold text-slate-900 text-base flex items-center gap-2">
-                  <Scale className="w-5 h-5 text-emerald-700" />
-                  Định Lượng Công Thức (BOM)
-                </h3>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  {editingRecipeTarget.product_name} ({editingRecipeTarget.variant_name})
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setEditingRecipeTarget(null)}
-                className="p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
+      {/* ── MODAL 1: RECIPE BOM EDITOR (M17) ─────────────────────────────────── */}
+      <ModalShell
+        isOpen={Boolean(editingRecipeTarget)}
+        onClose={() => !savingRecipe && setEditingRecipeTarget(null)}
+        size="lg"
+        title="Định Lượng Công Thức (BOM)"
+        description={
+          editingRecipeTarget
+            ? `${editingRecipeTarget.product_name} (${editingRecipeTarget.variant_name})`
+            : ''
+        }
+        icon={<Scale className="w-5 h-5 text-emerald-700" />}
+        preventClose={savingRecipe}
+        footer={
+          <div className="flex items-center justify-end gap-2 w-full">
+            <button
+              type="button"
+              onClick={() => setEditingRecipeTarget(null)}
+              disabled={savingRecipe}
+              className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-full transition cursor-pointer"
+            >
+              Đóng
+            </button>
+            <button
+              type="button"
+              onClick={handleSaveRecipe}
+              disabled={savingRecipe}
+              className="px-5 py-2 text-xs font-extrabold text-white bg-emerald-700 hover:bg-emerald-800 rounded-full shadow-card transition active:scale-95 cursor-pointer flex items-center gap-1.5"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${savingRecipe ? 'animate-spin' : ''}`} />
+              <span>Lưu Công Thức</span>
+            </button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          {/* 1-Click Recipe Template Preset Bar */}
+          <div className="surface-card rounded-2xl p-2.5 sm:p-3 border border-card shadow-card space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-caption font-extrabold text-slate-700 flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                <span>Thư Viện Công Thức Món Mẫu F&B</span>
+              </span>
+              <span className="text-caption text-slate-400 font-semibold">1-Click nạp định lượng chuẩn</span>
             </div>
 
-            {/* 1-Click Recipe Template Preset Bar */}
-            <div className="bg-slate-50 rounded-2xl p-2.5 sm:p-3 border border-slate-200/80 space-y-2">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-[11px] font-extrabold text-slate-700 flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                  <span>Thư Viện Công Thức Món Mẫu F&B</span>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {matchedTemplate && (
+                <button
+                  type="button"
+                  onClick={() => handleApplyPresetTemplate(matchedTemplate)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-100 hover:bg-amber-200 text-amber-900 rounded-full text-xs font-black border border-amber-300 shadow-card transition active:scale-95 cursor-pointer"
+                >
+                  <Sparkles className="w-3 h-3 text-amber-700" />
+                  <span>✨ Gợi ý chuẩn: {matchedTemplate.name}</span>
+                </button>
+              )}
+
+              <div className="w-64">
+                <ModernSelect
+                  value=""
+                  onChange={(val) => {
+                    if (!val) return;
+                    const selected = POPULAR_RECIPE_TEMPLATES.find((t) => t.id === val);
+                    if (selected) handleApplyPresetTemplate(selected);
+                  }}
+                  placeholder="+ Chọn từ 11+ mẫu công thức..."
+                  size="sm"
+                  options={recipeTemplateOptions}
+                  title="Mẫu công thức"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Interactive Live Cost & Profit Simulator Widget */}
+          <div className="bg-gradient-to-br from-emerald-50/90 to-slate-50 rounded-2xl p-3.5 border border-emerald-200/90 shadow-card space-y-2.5">
+            <div className="flex items-center justify-between gap-2 border-b border-emerald-200/50 pb-2">
+              <span className="text-caption font-black text-emerald-950 flex items-center gap-1.5">
+                <Calculator className="w-3.5 h-3.5 text-emerald-700" />
+                <span>Mô Phỏng Giá Bán & Biên Lợi Nhuận Thực Tế</span>
+              </span>
+              <span
+                className={`text-caption font-black px-2.5 py-0.5 rounded-full border shadow-card ${simulatedMarginPct >= 65
+                  ? 'bg-emerald-600 text-white border-emerald-700'
+                  : simulatedMarginPct >= 50
+                    ? 'bg-amber-500 text-white border-amber-600'
+                    : 'bg-rose-600 text-white border-rose-700'
+                  }`}
+              >
+                {simulatedMarginPct >= 65
+                  ? '🟢 Lãi cao (Lý tưởng)'
+                  : simulatedMarginPct >= 50
+                    ? '🟡 Lãi vừa (Tiêu chuẩn)'
+                    : '🔴 Lãi thấp (Cần tăng giá)'}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2 text-xs">
+              <div className="bg-white/80 p-2 rounded-xl border border-emerald-100/80">
+                <span className="text-caption font-bold text-slate-500 block">Tiền vốn 1 ly (COGS)</span>
+                <span className="text-base sm:text-lg font-black text-emerald-950 block mt-0.5 font-num">
+                  {formatCurrency(recipePreviewCost, settings)}
                 </span>
-                <span className="text-[10px] text-slate-400 font-semibold">1-Click nạp định lượng chuẩn</span>
               </div>
 
-              <div className="flex items-center gap-1.5 flex-wrap">
-                {matchedTemplate && (
-                  <button
-                    type="button"
-                    onClick={() => handleApplyPresetTemplate(matchedTemplate)}
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-100 hover:bg-amber-200 text-amber-900 rounded-xl text-xs font-black border border-amber-300 shadow-2xs transition active:scale-95 cursor-pointer"
-                  >
-                    <Sparkles className="w-3 h-3 text-amber-700" />
-                    <span>✨ Gợi ý chuẩn: {matchedTemplate.name}</span>
-                  </button>
-                )}
-
-                <div className="w-64">
-                  <ModernSelect
-                    value=""
-                    onChange={(val) => {
-                      if (!val) return;
-                      const selected = POPULAR_RECIPE_TEMPLATES.find((t) => t.id === val);
-                      if (selected) handleApplyPresetTemplate(selected);
-                    }}
-                    placeholder="+ Chọn từ 11+ mẫu công thức..."
-                    size="sm"
-                    options={recipeTemplateOptions}
-                    title="Mẫu công thức"
+              <div className="bg-white/80 p-2 rounded-xl border border-emerald-100/80">
+                <span className="text-caption font-bold text-slate-500 block">Giá bán mô phỏng</span>
+                <div className="flex items-center gap-1 mt-0.5">
+                  <input
+                    type="number"
+                    step="1000"
+                    min="0"
+                    value={simulatedPrice}
+                    onChange={(e) => setSimulatedPrice(parseFloat(e.target.value) || 0)}
+                    className="app-input-compact font-num font-black"
                   />
                 </div>
               </div>
-            </div>
 
-            {/* Interactive Live Cost & Profit Simulator Widget */}
-            <div className="bg-gradient-to-br from-emerald-50/90 to-slate-50 rounded-2xl p-3.5 border border-emerald-200/90 shadow-2xs space-y-2.5">
-              <div className="flex items-center justify-between gap-2 border-b border-emerald-200/50 pb-2">
-                <span className="text-[11px] font-black text-emerald-950 flex items-center gap-1.5">
-                  <Calculator className="w-3.5 h-3.5 text-emerald-700" />
-                  <span>Mô Phỏng Giá Bán & Biên Lợi Nhuận Thực Tế</span>
-                </span>
-                <span
-                  className={`text-[10px] font-black px-2 py-0.5 rounded-full border shadow-2xs ${simulatedMarginPct >= 65
-                    ? 'bg-emerald-600 text-white border-emerald-700'
-                    : simulatedMarginPct >= 50
-                      ? 'bg-amber-500 text-white border-amber-600'
-                      : 'bg-rose-600 text-white border-rose-700'
-                    }`}
-                >
-                  {simulatedMarginPct >= 65
-                    ? '🟢 Lãi cao (Lý tưởng)'
-                    : simulatedMarginPct >= 50
-                      ? '🟡 Lãi vừa (Tiêu chuẩn)'
-                      : '🔴 Lãi thấp (Cần tăng giá)'}
-                </span>
-              </div>
-
-              <div className="grid grid-cols-3 gap-2 text-xs">
-                <div className="bg-white/80 p-2 rounded-xl border border-emerald-100/80">
-                  <span className="text-[10px] font-bold text-slate-500 block">Tiền vốn 1 ly (COGS)</span>
-                  <span className="text-base sm:text-lg font-black text-emerald-950 block mt-0.5">
-                    {formatCurrency(recipePreviewCost, settings)}
+              <div className="bg-white/80 p-2 rounded-xl border border-emerald-100/80 text-right">
+                <span className="text-caption font-bold text-slate-500 block">Tiền lời / Tỷ suất</span>
+                <div className="flex items-baseline justify-end gap-1 mt-0.5 font-num">
+                  <span className="text-sm sm:text-base font-black text-emerald-900">
+                    {formatCurrency(simulatedProfit, settings)}
+                  </span>
+                  <span className="text-caption font-extrabold text-emerald-700">
+                    ({simulatedMarginPct}%)
                   </span>
                 </div>
-
-                <div className="bg-white/80 p-2 rounded-xl border border-emerald-100/80">
-                  <span className="text-[10px] font-bold text-slate-500 block">Giá bán mô phỏng</span>
-                  <div className="flex items-center gap-1 mt-0.5">
-                    <input
-                      type="number"
-                      step="1000"
-                      min="0"
-                      value={simulatedPrice}
-                      onChange={(e) => setSimulatedPrice(parseFloat(e.target.value) || 0)}
-                      className="w-full h-7 px-1.5 border border-slate-200 rounded-lg text-xs font-black text-slate-900 bg-white"
-                    />
-                  </div>
-                </div>
-
-                <div className="bg-white/80 p-2 rounded-xl border border-emerald-100/80 text-right">
-                  <span className="text-[10px] font-bold text-slate-500 block">Tiền lời / Tỷ suất</span>
-                  <div className="flex items-baseline justify-end gap-1 mt-0.5">
-                    <span className="text-sm sm:text-base font-black text-emerald-900">
-                      {formatCurrency(simulatedProfit, settings)}
-                    </span>
-                    <span className="text-[11px] font-extrabold text-emerald-700">
-                      ({simulatedMarginPct}%)
-                    </span>
-                  </div>
-                </div>
               </div>
             </div>
+          </div>
 
-            {/* Recipe Lines */}
-            <div className="space-y-2.5">
-              <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
-                <span>Định lượng nguyên liệu cho 1 ly</span>
-                <span className="text-[10px] text-slate-400 font-semibold">Tự tính theo giá nhập gần nhất</span>
-              </label>
+          {/* Recipe Lines */}
+          <div className="space-y-2.5">
+            <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
+              <span>Định lượng nguyên liệu cho 1 ly</span>
+              <span className="text-caption text-slate-400 font-semibold">Tự tính theo giá nhập gần nhất</span>
+            </label>
 
-              {recipeLines.map((line, idx) => {
-                const selectedIng = ingredients.find((i) => i.id === line.ingredient_id);
-                const baseUnit = selectedIng?.base_unit || selectedIng?.unit || 'ml';
-                const unitPrice = selectedIng?.latest_purchase_price || 0;
-                const lineCost = Math.round(line.usage_quantity * unitPrice);
+            {recipeLines.map((line, idx) => {
+              const selectedIng = ingredients.find((i) => i.id === line.ingredient_id);
+              const baseUnit = selectedIng?.base_unit || selectedIng?.unit || 'ml';
+              const unitPrice = selectedIng?.latest_purchase_price || 0;
+              const lineCost = Math.round(line.usage_quantity * unitPrice);
 
-                return (
-                  <div
-                    key={idx}
-                    className="p-2.5 bg-slate-50 rounded-2xl border border-slate-200 flex items-center gap-2 text-xs"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <ModernSelect
-                        value={String(line.ingredient_id)}
-                        onChange={(val) => {
-                          const newIngId = Number(val);
+              return (
+                <div
+                  key={idx}
+                  className="p-2.5 surface-card rounded-2xl border border-card flex items-center gap-2 text-xs shadow-card"
+                >
+                  <div className="flex-1 min-w-0">
+                    <ModernSelect
+                      value={String(line.ingredient_id)}
+                      onChange={(val) => {
+                        const newIngId = Number(val);
+                        setRecipeLines((prev) => {
+                          const updated = [...prev];
+                          updated[idx] = { ...updated[idx], ingredient_id: newIngId };
+                          return updated;
+                        });
+                      }}
+                      size="sm"
+                      searchable
+                      options={recipeIngredientOptions}
+                      title="Nguyên liệu"
+                    />
+                  </div>
+
+                  <div className="w-28 shrink-0">
+                    <div className="relative">
+                      <input
+                        type="number"
+                        step="any"
+                        min="0"
+                        value={line.usage_quantity}
+                        onChange={(e) => {
+                          const val = parseFloat(e.target.value) || 0;
                           setRecipeLines((prev) => {
                             const updated = [...prev];
-                            updated[idx] = { ...updated[idx], ingredient_id: newIngId };
+                            updated[idx] = { ...updated[idx], usage_quantity: val };
                             return updated;
                           });
                         }}
-                        size="sm"
-                        searchable
-                        options={recipeIngredientOptions}
-                        title="Nguyên liệu"
+                        className="app-input-compact pr-8 text-right font-num font-black"
                       />
+                      <span className="absolute right-2 top-1/2 -translate-y-1/2 text-caption text-slate-400 font-bold pointer-events-none">
+                        {baseUnit}
+                      </span>
                     </div>
-
-                    <div className="w-28 shrink-0">
-                      <div className="relative">
-                        <input
-                          type="number"
-                          step="any"
-                          min="0"
-                          value={line.usage_quantity}
-                          onChange={(e) => {
-                            const val = parseFloat(e.target.value) || 0;
-                            setRecipeLines((prev) => {
-                              const updated = [...prev];
-                              updated[idx] = { ...updated[idx], usage_quantity: val };
-                              return updated;
-                            });
-                          }}
-                          className="w-full h-9 pr-8 pl-2 border border-slate-200 rounded-xl text-xs font-black text-right bg-white"
-                        />
-                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 font-bold pointer-events-none">
-                          {baseUnit}
-                        </span>
-                      </div>
-                    </div>
-
-                    <span className="text-[11px] font-black text-emerald-800 w-16 text-right shrink-0">
-                      {formatCurrency(lineCost)}
-                    </span>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setRecipeLines((prev) => prev.filter((_, i) => i !== idx));
-                      }}
-                      className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition cursor-pointer shrink-0"
-                      title="Xóa nguyên liệu này"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
                   </div>
-                );
-              })}
 
-              <button
-                type="button"
-                onClick={() => {
-                  setRecipeLines((prev) => [
-                    ...prev,
-                    { ingredient_id: ingredients[0]?.id || 0, usage_quantity: 30 },
-                  ]);
-                }}
-                className="w-full py-2.5 px-3 border border-dashed border-slate-300 hover:border-emerald-500 text-slate-600 hover:text-emerald-700 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 bg-white cursor-pointer"
-              >
-                <PlusCircle className="w-4 h-4" />
-                <span>+ Thêm nguyên liệu vào công thức</span>
-              </button>
-            </div>
+                  <span className="text-caption font-black text-emerald-800 w-16 text-right shrink-0 font-num">
+                    {formatCurrency(lineCost)}
+                  </span>
 
-            <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2 pb-safe">
-              <button
-                type="button"
-                onClick={() => setEditingRecipeTarget(null)}
-                className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer"
-              >
-                Đóng
-              </button>
-              <button
-                type="button"
-                onClick={handleSaveRecipe}
-                disabled={savingRecipe}
-                className="px-5 py-2.5 text-xs font-extrabold text-white bg-emerald-700 hover:bg-emerald-800 rounded-xl shadow-xs transition active:scale-95 cursor-pointer flex items-center gap-1.5"
-              >
-                <RefreshCw className={`w-3.5 h-3.5 ${savingRecipe ? 'animate-spin' : ''}`} />
-                <span>Lưu Công Thức</span>
-              </button>
-            </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRecipeLines((prev) => prev.filter((_, i) => i !== idx));
+                    }}
+                    className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-full transition cursor-pointer shrink-0"
+                    title="Xóa nguyên liệu này"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              );
+            })}
+
+            <button
+              type="button"
+              onClick={() => {
+                setRecipeLines((prev) => [
+                  ...prev,
+                  { ingredient_id: ingredients[0]?.id || 0, usage_quantity: 30 },
+                ]);
+              }}
+              className="w-full py-2.5 px-3 border border-dashed border-slate-300 hover:border-emerald-500 text-slate-600 hover:text-emerald-700 rounded-full text-xs font-bold transition flex items-center justify-center gap-1.5 bg-white cursor-pointer shadow-card"
+            >
+              <PlusCircle className="w-4 h-4" />
+              <span>+ Thêm nguyên liệu vào công thức</span>
+            </button>
           </div>
         </div>
-      )}
+      </ModalShell>
 
-      {/* ── MODAL 2: INGREDIENT ADD / EDIT ────────────────────────────────────── */}
-      {isIngredientModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-150">
-          <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-lg w-full p-4 sm:p-6 shadow-2xl space-y-4 max-h-[92dvh] sm:max-h-[90vh] overflow-y-auto pb-safe">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="font-extrabold text-slate-900 text-base flex items-center gap-2">
-                <Package className="w-5 h-5 text-emerald-700" />
-                <span>{editingIngredient ? 'Chỉnh Sửa Thông Tin Nguyên Liệu' : 'Thêm Nguyên Liệu Mới'}</span>
-              </h3>
-              <button
-                type="button"
-                onClick={() => setIsIngredientModalOpen(false)}
-                className="p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
+      {/* ── MODAL 2: INGREDIENT ADD / EDIT (M18) ───────────────────────────── */}
+      <ModalShell
+        isOpen={isIngredientModalOpen}
+        onClose={() => !savingIngredient && setIsIngredientModalOpen(false)}
+        size="lg"
+        title={editingIngredient ? 'Chỉnh Sửa Thông Tin Nguyên Liệu' : 'Thêm Nguyên Liệu Mới'}
+        description="Cấu hình quy cách mua hàng, đơn vị cơ sở và tỷ lệ hao hụt"
+        icon={<Package className="w-5 h-5 text-emerald-700" />}
+        preventClose={savingIngredient}
+        footer={
+          <div className="flex items-center justify-end gap-2 w-full">
+            <button
+              type="button"
+              onClick={() => setIsIngredientModalOpen(false)}
+              disabled={savingIngredient}
+              className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-full transition cursor-pointer"
+            >
+              Hủy
+            </button>
+            <button
+              type="submit"
+              form="ingredient-edit-form"
+              disabled={savingIngredient}
+              className="px-5 py-2 text-xs font-extrabold text-white bg-emerald-700 hover:bg-emerald-800 rounded-full shadow-card transition active:scale-95 cursor-pointer flex items-center gap-1.5"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${savingIngredient ? 'animate-spin' : ''}`} />
+              <span>{editingIngredient ? 'Lưu Thay Đổi' : 'Thêm Mới'}</span>
+            </button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          {/* Mode Switcher */}
+          <div className="flex bg-slate-100 p-1 rounded-full gap-1">
+            <button
+              type="button"
+              onClick={() => setIngFormMode('basic')}
+              className={`flex-1 py-1.5 px-3 rounded-full text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                ingFormMode === 'basic'
+                  ? 'bg-white text-emerald-950 shadow-card font-extrabold border border-emerald-200'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              <span>🌱 Chế độ Cơ bản</span>
+              <span className="text-caption font-normal opacity-75 hidden sm:inline">(Không cần quy cách)</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setIngFormMode('advanced')}
+              className={`flex-1 py-1.5 px-3 rounded-full text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                ingFormMode === 'advanced'
+                  ? 'bg-white text-brand-purple shadow-card font-extrabold border border-purple-200'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              <span>⚙️ Chế độ Nâng cao</span>
+              <span className="text-caption font-normal opacity-75 hidden sm:inline">(Quy cách & Quy đổi)</span>
+            </button>
+          </div>
+
+          <form id="ingredient-edit-form" onSubmit={handleSaveIngredient} className="space-y-3.5 text-xs">
+            <div>
+              <label className="text-xs font-bold text-slate-700 block mb-1">Tên Nguyên Liệu / Vật Tư *</label>
+              <input
+                type="text"
+                required
+                placeholder="VD: Cốt cà phê, Sữa đặc, Sữa tươi, Ly 500ml, Chanh tươi..."
+                value={ingFormName}
+                onChange={(e) => setIngFormName(e.target.value)}
+                className="app-input-compact font-bold"
+              />
             </div>
 
-            {/* Mode Switcher */}
-            <div className="flex bg-slate-100 p-1 rounded-2xl gap-1">
-              <button
-                type="button"
-                onClick={() => setIngFormMode('basic')}
-                className={`flex-1 py-1.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${ingFormMode === 'basic'
-                  ? 'bg-white text-emerald-800 shadow-xs border border-emerald-200'
-                  : 'text-slate-500 hover:text-slate-800'
-                  }`}
-              >
-                <span>🌱 Chế độ Cơ bản</span>
-                <span className="text-[10px] font-normal opacity-75 hidden sm:inline">(Không cần quy cách)</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setIngFormMode('advanced')}
-                className={`flex-1 py-1.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${ingFormMode === 'advanced'
-                  ? 'bg-white text-indigo-800 shadow-xs border border-indigo-200'
-                  : 'text-slate-500 hover:text-slate-800'
-                  }`}
-              >
-                <span>⚙️ Chế độ Nâng cao</span>
-                <span className="text-[10px] font-normal opacity-75 hidden sm:inline">(Quy cách & Quy đổi)</span>
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveIngredient} className="space-y-3.5 text-xs">
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">Tên Nguyên Liệu / Vật Tư *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="VD: Cốt cà phê, Sữa đặc, Sữa tươi, Ly 500ml, Chanh tươi..."
-                  value={ingFormName}
-                  onChange={(e) => setIngFormName(e.target.value)}
-                  className="w-full h-9.5 px-3 border border-slate-200 rounded-xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                <label className="text-xs font-bold text-slate-700 block mb-1">Phân Loại</label>
+                <ModernSelect
+                  value={ingFormCategory}
+                  onChange={(val) => setIngFormCategory(String(val))}
+                  size="sm"
+                  options={ingredientCategoryOptions}
+                  title="Phân loại"
                 />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">Phân Loại</label>
-                  <ModernSelect
-                    value={ingFormCategory}
-                    onChange={(val) => setIngFormCategory(String(val))}
-                    size="sm"
-                    options={ingredientCategoryOptions}
-                    title="Phân loại"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">
-                    Đơn Vị Cơ Sở (Base Unit) *
-                  </label>
-                  <ModernSelect
-                    value={ingFormBaseUnit}
-                    onChange={(val) => setIngFormBaseUnit(String(val))}
-                    size="sm"
-                    options={COMMON_BASE_UNITS}
-                    title="Đơn vị cơ sở"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">
-                    Giá quy đổi gần nhất (đ/{ingFormBaseUnit})
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="any"
-                    placeholder="VD: 120"
-                    value={ingFormPrice === 0 ? '' : ingFormPrice}
-                    onChange={(e) => setIngFormPrice(parseFloat(e.target.value) || 0)}
-                    className="w-full h-9 px-3 border border-slate-200 rounded-xl text-xs font-extrabold text-right text-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">
-                    Giá quy đổi bình quân (BQ) (đ/{ingFormBaseUnit})
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="any"
-                    placeholder="VD: 115"
-                    value={ingFormAvgPrice === 0 ? '' : ingFormAvgPrice}
-                    onChange={(e) => setIngFormAvgPrice(parseFloat(e.target.value) || 0)}
-                    className="w-full h-9 px-3 border border-slate-200 rounded-xl text-xs font-bold text-right text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  />
-                </div>
               </div>
 
               <div>
                 <label className="text-xs font-bold text-slate-700 block mb-1">
-                  Tỷ Lệ Hao Hụt (%)
+                  Đơn Vị Cơ Sở (Base Unit) *
                 </label>
-                <div className="relative w-full">
-                  <input
-                    type="number"
-                    step="1"
-                    min="0"
-                    max="99"
-                    value={Math.round(ingFormLossRate * 100)}
-                    onChange={(e) => {
-                      const val = parseFloat(e.target.value) || 0;
-                      setIngFormLossRate(val / 100);
-                    }}
-                    className="w-full h-9 pr-7 pl-3 border border-slate-200 rounded-xl text-xs font-black text-center"
-                  />
-                  <span className="absolute right-2.5 top-1/2 -translate-y-1/2 font-bold text-slate-400">%</span>
-                </div>
-                <p className="text-[10px] text-slate-400 mt-1">
-                  Tỷ lệ hao hụt khi sơ chế / pha chế (vd: 5% cho hoa quả gọt vỏ, bỏ hạt).
-                </p>
+                <ModernSelect
+                  value={ingFormBaseUnit}
+                  onChange={(val) => setIngFormBaseUnit(String(val))}
+                  size="sm"
+                  options={COMMON_BASE_UNITS}
+                  title="Đơn vị cơ sở"
+                />
               </div>
-
-              {/* Mode Specific Section */}
-              {ingFormMode === 'basic' ? (
-                <div className="p-3 bg-emerald-50/70 rounded-2xl border border-emerald-200/90 text-emerald-900 text-xs flex items-start gap-2.5">
-                  <Sparkles className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                  <div>
-                    <span className="font-bold block">Chế độ cơ bản kích hoạt</span>
-                    <span className="text-[11px] text-emerald-800/90 leading-relaxed block mt-0.5">
-                      Quy cách mua hàng tự động mặc định theo 1 {ingFormBaseUnit}. Bạn không cần cấu hình tỷ lệ đóng gói thùng, chai, lon phức tạp.
-                    </span>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 space-y-2.5">
-                    <span className="text-[11px] font-bold text-slate-700 block">
-                      Quy Cách Mua Hàng Mặc Định:
-                    </span>
-                    <div className="grid grid-cols-3 gap-2">
-                      <div>
-                        <span className="text-[10px] text-slate-400 font-bold block mb-0.5">Đơn vị mua</span>
-                        <ModernSelect
-                          value={ingFormDefaultPurchaseUnit}
-                          onChange={(val) => setIngFormDefaultPurchaseUnit(String(val))}
-                          size="sm"
-                          options={purchaseUnitOptions}
-                          title="Đơn vị mua"
-                        />
-                      </div>
-
-                      <div>
-                        <span className="text-[10px] text-slate-400 font-bold block mb-0.5">Chứa (số lượng)</span>
-                        <input
-                          type="number"
-                          value={ingFormDefaultCapacityQty}
-                          onChange={(e) => setIngFormDefaultCapacityQty(parseFloat(e.target.value) || 1)}
-                          className="w-full h-8 px-1.5 border border-slate-200/90 rounded-lg text-xs font-black text-center bg-white shadow-2xs"
-                        />
-                      </div>
-
-                      <div>
-                        <span className="text-[10px] text-slate-400 font-bold block mb-0.5">Đơn vị con</span>
-                        <ModernSelect
-                          value={ingFormDefaultCapacityUnit}
-                          onChange={(val) => setIngFormDefaultCapacityUnit(String(val))}
-                          size="sm"
-                          options={capacityUnitOptions}
-                          title="Đơn vị con"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-emerald-50/60 p-3 rounded-2xl border border-emerald-200/80 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-bold text-emerald-950">
-                        Các quy cách mua hàng lưu sẵn (Presets):
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIngFormPresets((prev) => [
-                            ...prev,
-                            {
-                              label: `${ingFormDefaultPurchaseUnit} (${ingFormDefaultCapacityQty}${ingFormDefaultCapacityUnit})`,
-                              purchase_unit: ingFormDefaultPurchaseUnit,
-                              pack_qty: 1,
-                              pack_unit: '',
-                              capacity_qty: ingFormDefaultCapacityQty,
-                              capacity_unit: ingFormDefaultCapacityUnit,
-                            },
-                          ]);
-                        }}
-                        className="text-[10px] font-bold text-emerald-800 bg-white hover:bg-emerald-100 px-2 py-0.5 rounded-md border border-emerald-300 transition cursor-pointer"
-                      >
-                        + Thêm quy cách
-                      </button>
-                    </div>
-
-                    {ingFormPresets.length === 0 ? (
-                      <p className="text-[10px] text-slate-500 italic">
-                        Chưa có quy cách lưu sẵn. Hệ thống sẽ tự động lưu khi nhập hàng.
-                      </p>
-                    ) : (
-                      <div className="space-y-1.5">
-                        {ingFormPresets.map((pr, pIdx) => (
-                          <div
-                            key={pIdx}
-                            className="bg-white p-2 rounded-xl border border-emerald-200 text-xs flex items-center justify-between gap-2"
-                          >
-                            <span className="font-bold text-emerald-900">
-                              {pr.purchase_unit} ({pr.pack_qty > 1 ? `${pr.pack_qty}x ` : ''}{pr.capacity_qty}{pr.capacity_unit})
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => setIngFormPresets((prev) => prev.filter((_, idx) => idx !== pIdx))}
-                              className="p-1 text-slate-400 hover:text-rose-600 rounded-md transition cursor-pointer"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </>
-              )}
-
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2 pb-safe">
-                <button
-                  type="button"
-                  onClick={() => setIsIngredientModalOpen(false)}
-                  className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer"
-                >
-                  Hủy
-                </button>
-                <button
-                  type="submit"
-                  disabled={savingIngredient}
-                  className="px-5 py-2.5 text-xs font-extrabold text-white bg-emerald-700 hover:bg-emerald-800 rounded-xl shadow-xs transition active:scale-95 cursor-pointer flex items-center gap-1.5"
-                >
-                  <RefreshCw className={`w-3.5 h-3.5 ${savingIngredient ? 'animate-spin' : ''}`} />
-                  <span>{editingIngredient ? 'Lưu Thay Đổi' : 'Thêm Mới'}</span>
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* ── MODAL 3: INGREDIENT PURCHASE PRICE HISTORY ───────────────────────── */}
-      {viewingHistoryIng && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-150">
-          <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-2xl w-full p-4 sm:p-6 shadow-2xl space-y-4 max-h-[92dvh] sm:max-h-[90vh] overflow-y-auto pb-safe">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div>
-                <h3 className="font-extrabold text-slate-900 text-base flex items-center gap-2">
-                  <History className="w-5 h-5 text-indigo-600" />
-                  Lịch Sử Nhập Hàng
-                </h3>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Nguyên liệu: <strong>{viewingHistoryIng.name}</strong> • Base Unit:{' '}
-                  <strong>{viewingHistoryIng.base_unit || viewingHistoryIng.unit}</strong>
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setViewingHistoryIng(null)}
-                className="p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
             </div>
 
-            {historyLoading ? (
-              <div className="flex justify-center py-10">
-                <RefreshCw className="w-6 h-6 text-indigo-600 animate-spin" />
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">
+                  Giá quy đổi gần nhất (đ/{ingFormBaseUnit})
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="any"
+                  placeholder="VD: 120"
+                  value={ingFormPrice === 0 ? '' : ingFormPrice}
+                  onChange={(e) => setIngFormPrice(parseFloat(e.target.value) || 0)}
+                  className="app-input-compact font-num font-extrabold text-right text-emerald-700"
+                />
               </div>
-            ) : ingHistoryRecords.length === 0 ? (
-              <div className="py-8 text-center text-slate-400 text-xs font-semibold">
-                Chưa có đợt nhập hàng nào được ghi nhận cho nguyên liệu này
+
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">
+                  Giá quy đổi bình quân (BQ) (đ/{ingFormBaseUnit})
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="any"
+                  placeholder="VD: 115"
+                  value={ingFormAvgPrice === 0 ? '' : ingFormAvgPrice}
+                  onChange={(e) => setIngFormAvgPrice(parseFloat(e.target.value) || 0)}
+                  className="app-input-compact font-num font-bold text-right text-slate-700"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs font-bold text-slate-700 block mb-1">
+                Tỷ Lệ Hao Hụt (%)
+              </label>
+              <div className="relative w-full">
+                <input
+                  type="number"
+                  step="1"
+                  min="0"
+                  max="99"
+                  value={Math.round(ingFormLossRate * 100)}
+                  onChange={(e) => {
+                    const val = parseFloat(e.target.value) || 0;
+                    setIngFormLossRate(val / 100);
+                  }}
+                  className="app-input-compact pr-8 text-center font-num font-black"
+                />
+                <span className="absolute right-2.5 top-1/2 -translate-y-1/2 font-bold text-slate-400">%</span>
+              </div>
+              <p className="text-caption text-slate-400 mt-1">
+                Tỷ lệ hao hụt khi sơ chế / pha chế (vd: 5% cho hoa quả gọt vỏ, bỏ hạt).
+              </p>
+            </div>
+
+            {/* Mode Specific Section */}
+            {ingFormMode === 'basic' ? (
+              <div className="p-3 bg-emerald-50/70 rounded-2xl border border-emerald-200/90 text-emerald-900 text-xs flex items-start gap-2.5 shadow-card">
+                <Sparkles className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-bold block">Chế độ cơ bản kích hoạt</span>
+                  <span className="text-caption text-emerald-800/90 leading-relaxed block mt-0.5">
+                    Quy cách mua hàng tự động mặc định theo 1 {ingFormBaseUnit}. Bạn không cần cấu hình tỷ lệ đóng gói thùng, chai, lon phức tạp.
+                  </span>
+                </div>
               </div>
             ) : (
-              <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
-                <div className="overflow-x-auto max-h-[55vh] custom-scrollbar">
-                  <table className="w-full text-left text-xs">
-                    <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase tracking-wider font-semibold sticky top-0">
-                      <tr>
-                        <th className="py-2.5 px-3">Ngày Nhập</th>
-                        <th className="py-2.5 px-3 text-right">Giá Mua</th>
-                        <th className="py-2.5 px-3">Quy Cách</th>
-                        <th className="py-2.5 px-3 text-right">Tổng Tiền</th>
-                        <th className="py-2.5 px-3 text-right">Cost Quy Đổi</th>
-                        <th className="py-2.5 px-3">Quỹ Chi Trả</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {ingHistoryRecords.map((rec) => {
-                        const baseUnit = viewingHistoryIng.base_unit || viewingHistoryIng.unit || 'ml';
-                        const pUnit = rec.purchase_unit || baseUnit;
-                        const pQty = rec.purchase_quantity || rec.quantity;
-                        const pPrice = rec.purchase_unit_price || rec.unit_price;
-                        const spec = rec.conversion_spec || `${pQty} ${pUnit}`;
-                        const effectivePrice = rec.effective_base_price || rec.base_unit_price || rec.unit_price;
+              <>
+                <div className="surface-card p-3 rounded-2xl border border-card shadow-card space-y-2.5">
+                  <span className="text-caption font-bold text-slate-700 block">
+                    Quy Cách Mua Hàng Mặc Định:
+                  </span>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div>
+                      <span className="text-caption text-slate-400 font-bold block mb-0.5">Đơn vị mua</span>
+                      <ModernSelect
+                        value={ingFormDefaultPurchaseUnit}
+                        onChange={(val) => setIngFormDefaultPurchaseUnit(String(val))}
+                        size="sm"
+                        options={purchaseUnitOptions}
+                        title="Đơn vị mua"
+                      />
+                    </div>
 
-                        return (
-                          <tr key={rec.id} className="hover:bg-slate-50 transition">
-                            <td className="py-2.5 px-3 font-semibold text-slate-500 whitespace-nowrap">
-                              {new Date(rec.created_at).toLocaleDateString('vi-VN')}
-                            </td>
-                            <td className="py-2.5 px-3 text-right font-bold text-slate-900">
-                              {formatCurrency(pPrice, settings)}/{pUnit}
-                            </td>
-                            <td className="py-2.5 px-3 text-slate-600 font-medium">{spec}</td>
-                            <td className="py-2.5 px-3 text-right font-black text-rose-600">
-                              {formatCurrency(rec.subtotal, settings)}
-                            </td>
-                            <td className="py-2.5 px-3 text-right font-extrabold text-emerald-800">
-                              <span className="bg-emerald-50 text-emerald-900 border border-emerald-200 px-1.5 py-0.5 rounded text-[11px]">
-                                {formatCurrency(effectivePrice, settings)}/{baseUnit}
-                              </span>
-                            </td>
-                            <td className="py-2.5 px-3 text-slate-600 font-medium">{rec.fund_name || '—'}</td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                    <div>
+                      <span className="text-caption text-slate-400 font-bold block mb-0.5">Chứa (số lượng)</span>
+                      <input
+                        type="number"
+                        value={ingFormDefaultCapacityQty}
+                        onChange={(e) => setIngFormDefaultCapacityQty(parseFloat(e.target.value) || 1)}
+                        className="app-input-compact text-center font-num font-black"
+                      />
+                    </div>
+
+                    <div>
+                      <span className="text-caption text-slate-400 font-bold block mb-0.5">Đơn vị con</span>
+                      <ModernSelect
+                        value={ingFormDefaultCapacityUnit}
+                        onChange={(val) => setIngFormDefaultCapacityUnit(String(val))}
+                        size="sm"
+                        options={capacityUnitOptions}
+                        title="Đơn vị con"
+                      />
+                    </div>
+                  </div>
                 </div>
-              </div>
-            )}
 
-            <div className="pt-3 border-t border-slate-100 flex justify-end pb-safe">
-              <button
-                type="button"
-                onClick={() => setViewingHistoryIng(null)}
-                className="px-4 py-2 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition cursor-pointer"
-              >
-                Đóng
-              </button>
-            </div>
-          </div>
+                <div className="bg-emerald-50/60 p-3 rounded-2xl border border-emerald-200/80 shadow-card space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-caption font-bold text-emerald-950">
+                      Các quy cách mua hàng lưu sẵn (Presets):
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIngFormPresets((prev) => [
+                          ...prev,
+                          {
+                            label: `${ingFormDefaultPurchaseUnit} (${ingFormDefaultCapacityQty}${ingFormDefaultCapacityUnit})`,
+                            purchase_unit: ingFormDefaultPurchaseUnit,
+                            pack_qty: 1,
+                            pack_unit: '',
+                            capacity_qty: ingFormDefaultCapacityQty,
+                            capacity_unit: ingFormDefaultCapacityUnit,
+                          },
+                        ]);
+                      }}
+                      className="text-caption font-bold text-emerald-800 bg-white hover:bg-emerald-100 px-2.5 py-1 rounded-full border border-emerald-300 transition cursor-pointer"
+                    >
+                      + Thêm quy cách
+                    </button>
+                  </div>
+
+                  {ingFormPresets.length === 0 ? (
+                    <p className="text-caption text-slate-500 italic">
+                      Chưa có quy cách lưu sẵn. Hệ thống sẽ tự động lưu khi nhập hàng.
+                    </p>
+                  ) : (
+                    <div className="space-y-1.5">
+                      {ingFormPresets.map((pr, pIdx) => (
+                        <div
+                          key={pIdx}
+                          className="bg-white p-2 rounded-xl border border-emerald-200 text-xs flex items-center justify-between gap-2 shadow-card"
+                        >
+                          <span className="font-bold text-emerald-900 font-num">
+                            {pr.purchase_unit} ({pr.pack_qty > 1 ? `${pr.pack_qty}x ` : ''}{pr.capacity_qty}{pr.capacity_unit})
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setIngFormPresets((prev) => prev.filter((_, idx) => idx !== pIdx))}
+                            className="p-1 text-slate-400 hover:text-rose-600 rounded-full transition cursor-pointer"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+          </form>
         </div>
-      )}
+      </ModalShell>
+
+      {/* ── MODAL 3: INGREDIENT PURCHASE PRICE HISTORY (M19) ─────────────────── */}
+      <ModalShell
+        isOpen={Boolean(viewingHistoryIng)}
+        onClose={() => setViewingHistoryIng(null)}
+        size="xl"
+        title="Lịch Sử Nhập Hàng"
+        description={
+          viewingHistoryIng
+            ? `Nguyên liệu: ${viewingHistoryIng.name} • Base Unit: ${viewingHistoryIng.base_unit || viewingHistoryIng.unit}`
+            : ''
+        }
+        icon={<History className="w-5 h-5 text-brand-purple" />}
+        footer={
+          <div className="flex justify-end w-full">
+            <button
+              type="button"
+              onClick={() => setViewingHistoryIng(null)}
+              className="px-5 py-2 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-full transition cursor-pointer"
+            >
+              Đóng
+            </button>
+          </div>
+        }
+      >
+        <div>
+          {historyLoading ? (
+            <div className="flex justify-center py-10">
+              <RefreshCw className="w-6 h-6 text-brand-purple animate-spin" />
+            </div>
+          ) : ingHistoryRecords.length === 0 ? (
+            <div className="py-8 text-center text-slate-400 text-xs font-semibold">
+              Chưa có đợt nhập hàng nào được ghi nhận cho nguyên liệu này
+            </div>
+          ) : (
+            <div className="surface-card rounded-2xl border border-card shadow-card overflow-hidden">
+              <div className="overflow-x-auto max-h-[55vh] custom-scrollbar">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-50 border-b border-card text-slate-500 uppercase tracking-wider font-semibold sticky top-0">
+                    <tr>
+                      <th className="py-2.5 px-3">Ngày Nhập</th>
+                      <th className="py-2.5 px-3 text-right">Giá Mua</th>
+                      <th className="py-2.5 px-3">Quy Cách</th>
+                      <th className="py-2.5 px-3 text-right">Tổng Tiền</th>
+                      <th className="py-2.5 px-3 text-right">Cost Quy Đổi</th>
+                      <th className="py-2.5 px-3">Quỹ Chi Trả</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {ingHistoryRecords.map((rec) => {
+                      const baseUnit = viewingHistoryIng?.base_unit || viewingHistoryIng?.unit || 'ml';
+                      const pUnit = rec.purchase_unit || baseUnit;
+                      const pQty = rec.purchase_quantity || rec.quantity;
+                      const pPrice = rec.purchase_unit_price || rec.unit_price;
+                      const spec = rec.conversion_spec || `${pQty} ${pUnit}`;
+                      const effectivePrice = rec.effective_base_price || rec.base_unit_price || rec.unit_price;
+
+                      return (
+                        <tr key={rec.id} className="hover:bg-slate-50 transition">
+                          <td className="py-2.5 px-3 font-semibold text-slate-500 whitespace-nowrap font-num">
+                            {new Date(rec.created_at).toLocaleDateString('vi-VN')}
+                          </td>
+                          <td className="py-2.5 px-3 text-right font-bold text-slate-900 font-num">
+                            {formatCurrency(pPrice, settings)}/{pUnit}
+                          </td>
+                          <td className="py-2.5 px-3 text-slate-600 font-medium">{spec}</td>
+                          <td className="py-2.5 px-3 text-right font-black text-rose-600 font-num">
+                            {formatCurrency(rec.subtotal, settings)}
+                          </td>
+                          <td className="py-2.5 px-3 text-right font-extrabold text-emerald-800">
+                            <span className="bg-emerald-50 text-emerald-900 border border-emerald-200 px-2 py-0.5 rounded-full text-caption font-num">
+                              {formatCurrency(effectivePrice, settings)}/{baseUnit}
+                            </span>
+                          </td>
+                          <td className="py-2.5 px-3 text-slate-600 font-medium">{rec.fund_name || '—'}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+      </ModalShell>
     </div>
   );
 }
