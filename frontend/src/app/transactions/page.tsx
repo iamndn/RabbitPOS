@@ -48,7 +48,7 @@ import { getChannelBadge, parseSalesChannels, SalesChannel } from '@/types/sales
 import ReceiptModal, { CompletedOrderData } from '@/components/pos/ReceiptModal';
 import ModernDateRangePicker, { DatePeriod, computeDateRange, getLocalMonthStr, getLocalDateStr, toLocalDateStr } from '@/components/common/ModernDateRangePicker';
 import ModernSelect, { ModernSelectOption } from '@/components/common/ModernSelect';
-import { FilterBar, FilterPill, Chip } from '@/components/ui';
+import { FilterBar, FilterPill, Chip, ModalShell } from '@/components/ui';
 import HorizontalScroller from '@/components/common/HorizontalScroller';
 import { fetchApi } from '@/lib/api';
 import { getAuthUser, isStaffRole } from '@/lib/auth';
@@ -297,6 +297,7 @@ export default function TransactionsPage() {
   const [actualBalanceInput, setActualBalanceInput] = useState<number>(0);
   const [reconcileNotes, setReconcileNotes] = useState<string>('');
   const [reconciling, setReconciling] = useState<boolean>(false);
+  const reconcilingRef = React.useRef<boolean>(false);
   const [sendEmailAfterReconcile, setSendEmailAfterReconcile] = useState<boolean>(false);
 
   const showToast = (type: 'success' | 'error', message: string) => {
@@ -312,12 +313,16 @@ export default function TransactionsPage() {
   const [updateActualInput, setUpdateActualInput] = useState<number>(0);
   const [updateNotes, setUpdateNotes] = useState<string>('');
   const [updatingReconcile, setUpdatingReconcile] = useState<boolean>(false);
+  const updatingReconcileRef = React.useRef<boolean>(false);
 
   // Reconciliation Audit History States
   const [viewingHistoryFund, setViewingHistoryFund] = useState<Fund | null>(null);
   const [historyData, setHistoryData] = useState<FundReconciliationRecord[]>([]);
   const [historyLoading, setHistoryLoading] = useState<boolean>(false);
   const [restoringReconcile, setRestoringReconcile] = useState<boolean>(false);
+  const restoringReconcileRef = React.useRef<boolean>(false);
+  const [deletingReconcileFundId, setDeletingReconcileFundId] = useState<number | null>(null);
+  const deletingReconcileRef = React.useRef<boolean>(false);
 
   // Filters for Transactions (Persistent across navigation and refreshes, defaults to 'today')
   const [txSearchQuery, setTxSearchQuery] = useState<string>('');
@@ -472,6 +477,7 @@ export default function TransactionsPage() {
   // Modal State: Delete Transaction
   const [deletingTransaction, setDeletingTransaction] = useState<Transaction | null>(null);
   const [deleteLoading, setDeleteLoading] = useState<boolean>(false);
+  const deleteLoadingRef = React.useRef<boolean>(false);
 
   // Dynamic Transaction Categories State
   const [txCategories, setTxCategories] = useState<TransactionCategory[]>([]);
@@ -482,10 +488,12 @@ export default function TransactionsPage() {
   const [cancelReason, setCancelReason] = useState<string>('');
   const [cancelWithRefund, setCancelWithRefund] = useState<boolean>(true);
   const [cancelLoading, setCancelLoading] = useState<boolean>(false);
+  const cancelLoadingRef = React.useRef<boolean>(false);
 
   // Modal State: Delete Order
   const [deletingOrder, setDeletingOrder] = useState<OrderApi | null>(null);
   const [deleteOrderLoading, setDeleteOrderLoading] = useState<boolean>(false);
+  const deleteOrderLoadingRef = React.useRef<boolean>(false);
 
   // Expanded Order Items Row
   const [expandedOrderId, setExpandedOrderId] = useState<number | null>(null);
@@ -668,49 +676,65 @@ export default function TransactionsPage() {
 
   const handleSaveReconciliation = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedFundForReconcile) return;
+    if (!selectedFundForReconcile || reconcilingRef.current) return;
 
+    reconcilingRef.current = true;
     setReconciling(true);
     const fundName = selectedFundForReconcile.name;
-    const res = await fetchApi<any>(`/funds/${selectedFundForReconcile.id}/reconcile`, {
-      method: 'POST',
-      body: JSON.stringify({
-        actual_balance: Number(actualBalanceInput),
-        notes: reconcileNotes,
-        created_by: 'Store Manager',
-      }),
-    });
+    try {
+      const res = await fetchApi<any>(`/funds/${selectedFundForReconcile.id}/reconcile`, {
+        method: 'POST',
+        body: JSON.stringify({
+          actual_balance: Number(actualBalanceInput),
+          notes: reconcileNotes,
+          created_by: 'Store Manager',
+        }),
+      });
 
-    if (res.status === 'success') {
-      setSelectedFundForReconcile(null);
-      await loadData();
-      await loadPeriodSummary();
-      showToast('success', t('funds.reconcile_success', { name: fundName }));
+      if (res.status === 'success') {
+        setSelectedFundForReconcile(null);
+        await loadData();
+        await loadPeriodSummary();
+        showToast('success', t('funds.reconcile_success', { name: fundName }));
 
-      if (sendEmailAfterReconcile) {
-        const today = new Date().toISOString().slice(0, 10);
-        fetchApi<any>('/analytics/send-daily-report-email', {
-          method: 'POST',
-          body: JSON.stringify({ date: today }),
-        }).then((emailRes) => {
-          if (emailRes.status !== 'success') {
-            console.warn('[TransactionsPage] Email report dispatch failed after reconciliation:', emailRes.message);
-          }
-        }).catch(console.warn);
+        if (sendEmailAfterReconcile) {
+          const today = new Date().toISOString().slice(0, 10);
+          fetchApi<any>('/analytics/send-daily-report-email', {
+            method: 'POST',
+            body: JSON.stringify({ date: today }),
+          }).then((emailRes) => {
+            if (emailRes.status !== 'success') {
+              console.warn('[TransactionsPage] Email report dispatch failed after reconciliation:', emailRes.message);
+            }
+          }).catch(console.warn);
+        }
+        setSendEmailAfterReconcile(false);
+      } else {
+        showToast('error', t('funds.reconcile_failed', { error: res.message }));
       }
-      setSendEmailAfterReconcile(false);
-    } else {
-      showToast('error', t('funds.reconcile_failed', { error: res.message }));
+    } catch (err: any) {
+      showToast('error', err?.message || 'Có lỗi xảy ra khi đối soát');
+    } finally {
+      reconcilingRef.current = false;
+      setReconciling(false);
     }
-    setReconciling(false);
   };
 
   const handleDeleteLatestReconciliation = async (fund: Fund) => {
+    if (deletingReconcileRef.current) return;
     const confirmMsg = t('funds.delete_latest_reconcile_confirm', { name: fund.name }) ||
       `Bạn có chắc chắn muốn xóa giao dịch đối soát gần nhất của quỹ ${fund.name}? Số dư két sẽ được hoàn tác lại số tiền chênh lệch.`;
-    if (!window.confirm(confirmMsg)) {
+    const isConfirmed = await confirm({
+      title: t('funds.delete_reconcile_btn') || 'Xóa đối soát & hoàn tác số dư',
+      message: confirmMsg,
+      type: 'danger',
+      confirmText: t('common.delete') || 'Xóa đối soát',
+    });
+    if (!isConfirmed) {
       return;
     }
+    deletingReconcileRef.current = true;
+    setDeletingReconcileFundId(fund.id);
     try {
       const res = await fetchApi<any>(`/funds/${fund.id}/reconcile/latest`, {
         method: 'DELETE',
@@ -727,6 +751,9 @@ export default function TransactionsPage() {
       }
     } catch (err: any) {
       showToast('error', err?.message || 'Có lỗi xảy ra khi xóa đối soát');
+    } finally {
+      deletingReconcileRef.current = false;
+      setDeletingReconcileFundId(null);
     }
   };
 
@@ -747,8 +774,9 @@ export default function TransactionsPage() {
 
   const handleSaveUpdateReconciliation = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!updatingReconcileFund) return;
+    if (!updatingReconcileFund || updatingReconcileRef.current) return;
 
+    updatingReconcileRef.current = true;
     setUpdatingReconcile(true);
     try {
       const res = await fetchApi<any>(`/funds/${updatingReconcileFund.id}/reconcile`, {
@@ -773,6 +801,7 @@ export default function TransactionsPage() {
     } catch (err: any) {
       showToast('error', err?.message || 'Có lỗi xảy ra khi cập nhật đối soát');
     } finally {
+      updatingReconcileRef.current = false;
       setUpdatingReconcile(false);
     }
   };
@@ -799,11 +828,19 @@ export default function TransactionsPage() {
   };
 
   const handleRestoreReconciliation = async (fund: Fund) => {
+    if (restoringReconcileRef.current) return;
     const confirmMsg = t('funds.restore_reconcile_confirm', { name: fund.name }) ||
       `Bạn có chắc chắn muốn khôi phục lại lệnh đối soát trước đó của quỹ ${fund.name}? Số dư két sẽ được tự động cập nhật lại tương ứng.`;
-    if (!window.confirm(confirmMsg)) {
+    const isConfirmed = await confirm({
+      title: t('funds.restore_reconcile_btn') || 'Khôi phục đối soát',
+      message: confirmMsg,
+      type: 'warning',
+      confirmText: t('common.confirm') || 'Xác nhận khôi phục',
+    });
+    if (!isConfirmed) {
       return;
     }
+    restoringReconcileRef.current = true;
     setRestoringReconcile(true);
     try {
       const res = await fetchApi<any>(`/funds/${fund.id}/reconcile/restore`, {
@@ -822,6 +859,7 @@ export default function TransactionsPage() {
     } catch (err: any) {
       showToast('error', err?.message || 'Có lỗi xảy ra khi khôi phục đối soát');
     } finally {
+      restoringReconcileRef.current = false;
       setRestoringReconcile(false);
     }
   };
@@ -913,33 +951,43 @@ export default function TransactionsPage() {
   };
 
   const handleConfirmDeleteTransaction = async () => {
-    if (!deletingTransaction) return;
+    if (!deletingTransaction || deleteLoadingRef.current) return;
+    deleteLoadingRef.current = true;
     setDeleteLoading(true);
-    const res = await fetchApi<{ id: number }>(`/transactions/${deletingTransaction.id}`, {
-      method: 'DELETE',
-    });
-    setDeleteLoading(false);
-    if (res.status === 'success') {
-      setDeletingTransaction(null);
-      await loadData();
-    } else {
-      showAlert(t('common.error') || 'Lỗi', res.message || 'Failed to delete transaction', 'danger');
+    try {
+      const res = await fetchApi<{ id: number }>(`/transactions/${deletingTransaction.id}`, {
+        method: 'DELETE',
+      });
+      if (res.status === 'success') {
+        setDeletingTransaction(null);
+        await loadData();
+      } else {
+        showAlert(t('common.error') || 'Lỗi', res.message || 'Failed to delete transaction', 'danger');
+      }
+    } finally {
+      deleteLoadingRef.current = false;
+      setDeleteLoading(false);
     }
   };
 
   const handleConfirmDeleteOrder = async () => {
-    if (!deletingOrder) return;
+    if (!deletingOrder || deleteOrderLoadingRef.current) return;
+    deleteOrderLoadingRef.current = true;
     setDeleteOrderLoading(true);
-    const res = await fetchApi<{ id: number; order_code: string }>(`/orders/${deletingOrder.id}`, {
-      method: 'DELETE',
-    });
-    setDeleteOrderLoading(false);
-    if (res.status === 'success') {
-      setDeletingOrder(null);
-      showAlert(t('common.success') || 'Thành công', `Đã xóa vĩnh viễn đơn hàng #${deletingOrder.order_code}`, 'success');
-      await loadData();
-    } else {
-      showAlert(t('common.error') || 'Lỗi', res.message || 'Không thể xóa đơn hàng', 'danger');
+    try {
+      const res = await fetchApi<{ id: number; order_code: string }>(`/orders/${deletingOrder.id}`, {
+        method: 'DELETE',
+      });
+      if (res.status === 'success') {
+        setDeletingOrder(null);
+        showAlert(t('common.success') || 'Thành công', `Đã xóa vĩnh viễn đơn hàng #${deletingOrder.order_code}`, 'success');
+        await loadData();
+      } else {
+        showAlert(t('common.error') || 'Lỗi', res.message || 'Không thể xóa đơn hàng', 'danger');
+      }
+    } finally {
+      deleteOrderLoadingRef.current = false;
+      setDeleteOrderLoading(false);
     }
   };
 
@@ -951,24 +999,29 @@ export default function TransactionsPage() {
 
   const handleConfirmCancelOrder = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!cancellingOrder || !cancelReason.trim()) return;
+    if (!cancellingOrder || !cancelReason.trim() || cancelLoadingRef.current) return;
 
+    cancelLoadingRef.current = true;
     setCancelLoading(true);
-    const res = await fetchApi<OrderApi>(`/orders/${cancellingOrder.id}/cancel`, {
-      method: 'POST',
-      body: JSON.stringify({
-        refund: cancelWithRefund,
-        cancel_reason: cancelReason.trim(),
-      }),
-    });
+    try {
+      const res = await fetchApi<OrderApi>(`/orders/${cancellingOrder.id}/cancel`, {
+        method: 'POST',
+        body: JSON.stringify({
+          refund: cancelWithRefund,
+          cancel_reason: cancelReason.trim(),
+        }),
+      });
 
-    if (res.status === 'success') {
-      setCancellingOrder(null);
-      await loadData();
-    } else {
-      showAlert(t('common.error') || 'Lỗi', res.message || 'Failed to cancel order', 'danger');
+      if (res.status === 'success') {
+        setCancellingOrder(null);
+        await loadData();
+      } else {
+        showAlert(t('common.error') || 'Lỗi', res.message || 'Failed to cancel order', 'danger');
+      }
+    } finally {
+      cancelLoadingRef.current = false;
+      setCancelLoading(false);
     }
-    setCancelLoading(false);
   };
 
   // Re-order Flow: Hydrate cancelled order into POS cart and redirect
@@ -2652,11 +2705,11 @@ export default function TransactionsPage() {
         {activeTab === 'funds' && (
           <div className="space-y-6">
             {/* Funds Real-Time Balance Cards */}
-            <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+            <div className="surface-card p-5 rounded-panel border-card shadow-card space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border-hairline pb-3">
                 <div>
-                  <h3 className="text-sm sm:text-base font-black text-slate-900 flex items-center gap-2">
-                    <Wallet className="w-5 h-5 text-purple-700" />
+                  <h3 className="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
+                    <Wallet className="w-5 h-5 text-brand-purple" />
                     <span>Quản Lý Tài Khoản Quỹ & Đối Soát Thực Tế</span>
                   </h3>
                   <p className="text-xs text-slate-500">
@@ -2667,9 +2720,9 @@ export default function TransactionsPage() {
                   <button
                     type="button"
                     onClick={() => setShowEmailReportModal(true)}
-                    className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold px-3 py-2 rounded-xl border border-indigo-200 flex items-center gap-1.5 transition active:scale-95 cursor-pointer shadow-2xs"
+                    className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-3 py-2 rounded-full border border-border-hairline flex items-center gap-1.5 transition active:scale-95 cursor-pointer"
                   >
-                    <Mail className="w-3.5 h-3.5 text-indigo-600" />
+                    <Mail className="w-3.5 h-3.5 text-brand-purple" />
                     <span>Gửi Báo Cáo Email</span>
                   </button>
                 </div>
@@ -2677,7 +2730,7 @@ export default function TransactionsPage() {
 
               {loading ? (
                 <div className="flex justify-center py-12">
-                  <RefreshCw className="w-7 h-7 text-indigo-600 animate-spin" />
+                  <RefreshCw className="w-7 h-7 text-brand-purple animate-spin" />
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -2687,11 +2740,11 @@ export default function TransactionsPage() {
                     return (
                       <div
                         key={fund.id}
-                        className="bg-slate-50/70 p-4 rounded-2xl border border-slate-200 shadow-2xs flex flex-col justify-between space-y-3 hover:border-indigo-300 hover:bg-slate-50 transition"
+                        className="surface-card p-4 rounded-panel border-card shadow-card flex flex-col justify-between space-y-3 hover:border-brand-purple/40 transition"
                       >
                         <div className="flex items-start justify-between">
                           <div className="flex items-center space-x-3">
-                            <div className={`p-2.5 rounded-xl ${isBank ? 'bg-blue-50 text-blue-600 border border-blue-100' : 'bg-purple-50 text-purple-600 border border-purple-100'}`}>
+                            <div className={`p-2.5 rounded-full ${isBank ? 'bg-blue-50 text-blue-600 border border-blue-100' : 'bg-purple-50 text-brand-purple border border-purple-100'}`}>
                               {isBank ? <Building2 className="w-5 h-5" /> : <Wallet className="w-5 h-5" />}
                             </div>
                             <div>
@@ -2702,16 +2755,16 @@ export default function TransactionsPage() {
                             </div>
                           </div>
 
-                          <span className="bg-purple-50 text-purple-700 border border-purple-200 text-[11px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                          <span className="bg-purple-50 text-brand-purple border border-purple-200 text-[11px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
                             <CheckCircle2 className="w-3 h-3" /> {t('funds.active_badge')}
                           </span>
                         </div>
 
                         {/* Balance Display */}
-                        <div className="bg-white p-3.5 rounded-xl border border-slate-100 flex items-center justify-between shadow-2xs">
+                        <div className="bg-white/80 p-3.5 rounded-xl border border-border-hairline flex items-center justify-between">
                           <div>
                             <span className="text-[11px] text-slate-500 font-semibold">{t('funds.theoretical_balance')}</span>
-                            <div className="text-xl font-black text-slate-900 mt-0.5">
+                            <div className="text-xl font-bold text-slate-900 mt-0.5 font-num">
                               {formatCurrency(fund.current_balance, settings)}
                             </div>
                           </div>
@@ -2719,12 +2772,12 @@ export default function TransactionsPage() {
 
                         {/* Action Buttons */}
                         {!isStaff && (
-                          <div className="space-y-2 pt-2.5 border-t border-slate-200/60">
+                          <div className="space-y-2 pt-2.5 border-t border-border-hairline">
                             <div className="grid grid-cols-2 gap-2">
                               <button
                                 type="button"
                                 onClick={() => openReconcileModal(fund)}
-                                className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 shadow-2xs transition cursor-pointer active:scale-95"
+                                className="bg-brand-purple hover:bg-brand-purple-hover text-white text-xs font-bold py-2 px-3 rounded-full flex items-center justify-center gap-1.5 shadow-card transition cursor-pointer active:scale-95"
                                 title={t('funds.reconcile_count')}
                               >
                                 <Scale className="w-3.5 h-3.5" /> {t('funds.reconcile_count')}
@@ -2732,7 +2785,7 @@ export default function TransactionsPage() {
                               <button
                                 type="button"
                                 onClick={() => openUpdateReconcileModal(fund)}
-                                className="bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 text-xs font-bold py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 transition cursor-pointer active:scale-95 shadow-2xs"
+                                className="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-border-hairline text-xs font-bold py-2 px-3 rounded-full flex items-center justify-center gap-1.5 transition cursor-pointer active:scale-95"
                                 title={t('funds.update_reconcile_btn') || 'Cập nhật đối soát'}
                               >
                                 <Pencil className="w-3.5 h-3.5" /> {t('funds.update_reconcile_btn')}
@@ -2743,17 +2796,18 @@ export default function TransactionsPage() {
                               <button
                                 type="button"
                                 onClick={() => handleDeleteLatestReconciliation(fund)}
-                                className="bg-white hover:bg-rose-50 text-rose-600 hover:text-rose-700 text-[11px] font-semibold py-1.5 px-2 rounded-xl border border-rose-200 flex items-center justify-center gap-1 transition cursor-pointer shadow-2xs"
+                                disabled={deletingReconcileFundId !== null}
+                                className="bg-surface-card hover:bg-rose-50 text-rose-600 hover:text-rose-700 text-[11px] font-bold py-1.5 px-2 rounded-full border border-rose-200 flex items-center justify-center gap-1 transition cursor-pointer disabled:opacity-40"
                                 title={t('funds.delete_latest_reconcile_btn') || 'Hoàn tác đối soát gần nhất'}
                               >
-                                <RotateCcw className="w-3.5 h-3.5 shrink-0" />
+                                <RotateCcw className={`w-3.5 h-3.5 shrink-0 ${deletingReconcileFundId === fund.id ? 'animate-spin' : ''}`} />
                                 <span className="truncate">Hoàn tác</span>
                               </button>
                               <button
                                 type="button"
                                 onClick={() => handleRestoreReconciliation(fund)}
                                 disabled={restoringReconcile}
-                                className="bg-white hover:bg-purple-50 text-purple-600 hover:text-purple-700 text-[11px] font-semibold py-1.5 px-2 rounded-xl border border-purple-200 flex items-center justify-center gap-1 transition cursor-pointer shadow-2xs disabled:opacity-50"
+                                className="bg-surface-card hover:bg-purple-50 text-brand-purple hover:text-brand-purple-hover text-[11px] font-bold py-1.5 px-2 rounded-full border border-purple-200 flex items-center justify-center gap-1 transition cursor-pointer disabled:opacity-40"
                                 title={t('funds.restore_reconcile_btn') || 'Khôi phục lệnh đối soát trước đó'}
                               >
                                 <RotateCw className={`w-3.5 h-3.5 shrink-0 ${restoringReconcile ? 'animate-spin' : ''}`} />
@@ -2762,7 +2816,7 @@ export default function TransactionsPage() {
                               <button
                                 type="button"
                                 onClick={() => openReconcileHistoryModal(fund)}
-                                className="bg-white hover:bg-slate-100 text-slate-700 text-[11px] font-semibold py-1.5 px-2 rounded-xl border border-slate-200 flex items-center justify-center gap-1 transition cursor-pointer shadow-2xs"
+                                className="bg-surface-card hover:bg-slate-100 text-slate-700 text-[11px] font-bold py-1.5 px-2 rounded-full border border-border-hairline flex items-center justify-center gap-1 transition cursor-pointer"
                                 title={t('funds.reconcile_history_btn') || 'Xem lịch sử đối soát két'}
                               >
                                 <History className="w-3.5 h-3.5 shrink-0" />
@@ -2779,11 +2833,11 @@ export default function TransactionsPage() {
             </div>
 
             {/* ── PERIODIC BALANCE SUMMARY ─── */}
-            <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+            <div className="surface-card p-5 rounded-panel border-card shadow-card space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border-hairline pb-3">
                 <div>
                   <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                    <Coins className="w-4 h-4 text-indigo-600" />
+                    <Coins className="w-4 h-4 text-brand-purple" />
                     <span>{t('funds.period_summary_title')}</span>
                   </h4>
                   <p className="text-xs text-slate-500">{t('funds.period_summary_subtitle')}</p>
@@ -2808,11 +2862,11 @@ export default function TransactionsPage() {
               {/* Table & Cards */}
               <div className="hidden md:block overflow-x-auto">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold uppercase text-[11px]">
+                  <thead className="bg-slate-50/80 border-b border-border-hairline text-slate-500 font-semibold uppercase text-[11px]">
                     <tr>
                       <th className="py-2.5 px-3">{t('funds.fund_name')}</th>
                       <th className="py-2.5 px-3 text-right">{t('funds.opening_balance')}</th>
-                      <th className="py-2.5 px-3 text-right text-purple-600">(+) {t('funds.period_inflow')}</th>
+                      <th className="py-2.5 px-3 text-right text-brand-purple">(+) {t('funds.period_inflow')}</th>
                       <th className="py-2.5 px-3 text-right text-rose-600">(-) {t('funds.period_outflow')}</th>
                       <th className="py-2.5 px-3 text-right">{t('funds.closing_balance')}</th>
                       <th className="py-2.5 px-3 text-right">{t('funds.prev_closing_balance')}</th>
@@ -2829,23 +2883,23 @@ export default function TransactionsPage() {
                     ) : periodSummary?.funds && periodSummary.funds.length > 0 ? (
                       <>
                         {periodSummary.funds.map((f) => (
-                          <tr key={f.fund_id} className="hover:bg-slate-50 transition">
+                          <tr key={f.fund_id} className="hover:bg-slate-50/60 transition font-num">
                             <td className="py-2.5 px-3 font-bold text-slate-900 flex items-center gap-2">
                               <span
-                                className={`w-2 h-2 rounded-full ${f.fund_type === 'bank' ? 'bg-blue-500' : 'bg-purple-500'}`}
+                                className={`w-2 h-2 rounded-full ${f.fund_type === 'bank' ? 'bg-blue-500' : 'bg-brand-purple'}`}
                               />
                               {f.fund_name}
                             </td>
                             <td className="py-2.5 px-3 text-right text-slate-600 font-medium">
                               {formatCurrency(f.current_month.opening_balance, settings)}
                             </td>
-                            <td className="py-2.5 px-3 text-right font-semibold text-purple-600">
+                            <td className="py-2.5 px-3 text-right font-bold text-brand-purple">
                               +{formatCurrency(f.current_month.total_inflow, settings)}
                             </td>
-                            <td className="py-2.5 px-3 text-right font-semibold text-rose-600">
+                            <td className="py-2.5 px-3 text-right font-bold text-rose-600">
                               -{formatCurrency(f.current_month.total_outflow, settings)}
                             </td>
-                            <td className="py-2.5 px-3 text-right font-extrabold text-slate-900">
+                            <td className="py-2.5 px-3 text-right font-bold text-slate-900">
                               {formatCurrency(f.current_month.closing_balance, settings)}
                             </td>
                             <td className="py-2.5 px-3 text-right text-slate-400">
@@ -2853,8 +2907,8 @@ export default function TransactionsPage() {
                             </td>
                             <td className="py-2.5 px-3 text-right">
                               <span
-                                className={`inline-block px-2 py-0.5 rounded-full font-bold text-[10px] ${f.growth_pct >= 0
-                                  ? 'bg-purple-50 text-purple-700 border border-purple-200'
+                                className={`inline-block px-2 py-0.5 rounded-full font-bold text-[11px] font-num ${f.growth_pct >= 0
+                                  ? 'bg-purple-50 text-brand-purple border border-purple-200'
                                   : 'bg-rose-50 text-rose-700 border border-rose-200'
                                   }`}
                               >
@@ -2866,18 +2920,18 @@ export default function TransactionsPage() {
                         ))}
 
                         {periodSummary?.totals && (
-                          <tr className="bg-slate-50 font-extrabold text-slate-900 border-t-2 border-slate-200">
+                          <tr className="bg-slate-50/80 font-bold text-slate-900 border-t-2 border-border-hairline font-num">
                             <td className="py-2.5 px-3 uppercase text-xs">{t('common.all')}</td>
                             <td className="py-2.5 px-3 text-right">
                               {formatCurrency(periodSummary.totals.current_month.opening_balance, settings)}
                             </td>
-                            <td className="py-2.5 px-3 text-right text-purple-600">
+                            <td className="py-2.5 px-3 text-right text-brand-purple">
                               +{formatCurrency(periodSummary.totals.current_month.total_inflow, settings)}
                             </td>
                             <td className="py-2.5 px-3 text-right text-rose-600">
                               -{formatCurrency(periodSummary.totals.current_month.total_outflow, settings)}
                             </td>
-                            <td className="py-2.5 px-3 text-right text-indigo-600 text-xs">
+                            <td className="py-2.5 px-3 text-right text-brand-purple text-xs font-bold">
                               {formatCurrency(periodSummary.totals.current_month.closing_balance, settings)}
                             </td>
                             <td className="py-2.5 px-3 text-right text-slate-500">
@@ -2885,8 +2939,8 @@ export default function TransactionsPage() {
                             </td>
                             <td className="py-2.5 px-3 text-right">
                               <span
-                                className={`inline-block px-2 py-0.5 rounded-full font-bold text-[10px] ${periodSummary.totals.growth_pct >= 0
-                                  ? 'bg-purple-100 text-purple-800'
+                                className={`inline-block px-2 py-0.5 rounded-full font-bold text-[11px] font-num ${periodSummary.totals.growth_pct >= 0
+                                  ? 'bg-purple-100 text-brand-purple'
                                   : 'bg-rose-100 text-rose-800'
                                   }`}
                               >
@@ -2942,112 +2996,98 @@ export default function TransactionsPage() {
       />
 
       {/* Cancel Order Modal */}
-      {cancellingOrder && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-150">
-          <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl space-y-4 animate-in slide-in-from-bottom-6 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200 pb-safe sm:pb-6 border border-slate-100">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div className="flex items-center space-x-2 text-rose-600">
-                <AlertTriangle className="w-5 h-5" />
-                <h3 className="text-base font-bold text-slate-900 truncate">
-                  {t('tx.cancel_order_modal_title')} #{cancellingOrder.order_code}
-                </h3>
+      <ModalShell
+        isOpen={Boolean(cancellingOrder)}
+        onClose={() => !cancelLoading && setCancellingOrder(null)}
+        preventClose={cancelLoading}
+        size="sm"
+        title={`${t('tx.cancel_order_modal_title') || 'Hủy đơn hàng'} #${cancellingOrder?.order_code}`}
+        icon={<AlertTriangle className="w-5 h-5 text-rose-600" />}
+      >
+        {cancellingOrder && (
+          <form onSubmit={handleConfirmCancelOrder} className="space-y-4 text-xs">
+            {/* Order Overview Summary */}
+            <div className="p-3 bg-rose-50/60 rounded-xl border border-rose-100 space-y-1">
+              <div className="flex justify-between text-slate-700">
+                <span>Số tiền đơn hàng:</span>
+                <span className="font-bold text-slate-900 font-num">{formatCurrency(cancellingOrder.total_amount, settings)}</span>
               </div>
+              <div className="flex justify-between text-slate-700">
+                <span>Tài khoản thanh toán:</span>
+                <span className="font-bold text-brand-purple">{cancellingOrder.fund?.name || `#${cancellingOrder.fund_id}`}</span>
+              </div>
+            </div>
+
+            {/* Cancel Reason */}
+            <div>
+              <label className="font-bold text-slate-700 uppercase tracking-wide block mb-1">
+                {t('tx.cancel_reason_label')} *
+              </label>
+              <textarea
+                required
+                rows={3}
+                placeholder={t('tx.cancel_reason_placeholder')}
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                className="w-full p-2.5 border border-border-hairline rounded-field focus:outline-none focus:ring-2 focus:ring-rose-500 text-xs"
+              />
+            </div>
+
+            {/* Refund Checkbox */}
+            <label className="flex items-start space-x-2.5 p-3 surface-card rounded-xl border-card cursor-pointer">
+              <input
+                type="checkbox"
+                checked={cancelWithRefund}
+                onChange={(e) => setCancelWithRefund(e.target.checked)}
+                className="mt-0.5 w-4 h-4 text-rose-600 border-slate-300 rounded focus:ring-rose-500"
+              />
+              <div>
+                <span className="font-bold text-slate-800 block text-xs">
+                  {t('tx.refund_to_fund_checkbox', { fund: cancellingOrder.fund?.name || 'Quỹ' })}
+                </span>
+                <span className="text-[11px] text-slate-500 block mt-0.5">
+                  Tự động tạo giao dịch chi hoàn tiền và khấu trừ số dư quỹ tương ứng.
+                </span>
+              </div>
+            </label>
+
+            {/* Actions */}
+            <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end sm:space-x-2 pt-2 border-t border-border-hairline">
               <button
+                type="button"
+                disabled={cancelLoading}
                 onClick={() => setCancellingOrder(null)}
-                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 transition cursor-pointer"
+                className="w-full sm:w-auto px-4 py-2.5 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-full transition cursor-pointer text-center justify-center flex items-center disabled:opacity-50"
               >
-                <X className="w-5 h-5" />
+                {t('common.cancel')}
+              </button>
+              <button
+                type="submit"
+                disabled={cancelLoading || !cancelReason.trim()}
+                className="w-full sm:w-auto px-5 py-2.5 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-full shadow-card transition disabled:opacity-50 flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <Ban className="w-3.5 h-3.5" />
+                {cancelLoading ? t('common.loading') : t('tx.confirm_cancel_btn')}
               </button>
             </div>
+          </form>
+        )}
+      </ModalShell>
 
-            <form onSubmit={handleConfirmCancelOrder} className="space-y-4 text-xs">
-              {/* Order Overview Summary */}
-              <div className="p-3 bg-rose-50/60 rounded-2xl border border-rose-100 space-y-1">
-                <div className="flex justify-between text-slate-700">
-                  <span>Số tiền đơn hàng:</span>
-                  <span className="font-bold text-slate-900">{formatCurrency(cancellingOrder.total_amount, settings)}</span>
-                </div>
-                <div className="flex justify-between text-slate-700">
-                  <span>Tài khoản thanh toán:</span>
-                  <span className="font-bold text-indigo-600">{cancellingOrder.fund?.name || `#${cancellingOrder.fund_id}`}</span>
-                </div>
-              </div>
-
-              {/* Cancel Reason */}
-              <div>
-                <label className="font-bold text-slate-700 uppercase tracking-wide block mb-1">
-                  {t('tx.cancel_reason_label')} *
-                </label>
-                <textarea
-                  required
-                  rows={3}
-                  placeholder={t('tx.cancel_reason_placeholder')}
-                  value={cancelReason}
-                  onChange={(e) => setCancelReason(e.target.value)}
-                  className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-500 text-xs"
-                />
-              </div>
-
-              {/* Refund Checkbox */}
-              <label className="flex items-start space-x-2.5 p-3 bg-slate-50 rounded-2xl border border-slate-200 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={cancelWithRefund}
-                  onChange={(e) => setCancelWithRefund(e.target.checked)}
-                  className="mt-0.5 w-4 h-4 text-rose-600 border-slate-300 rounded focus:ring-rose-500"
-                />
-                <div>
-                  <span className="font-bold text-slate-800 block text-xs">
-                    {t('tx.refund_to_fund_checkbox', { fund: cancellingOrder.fund?.name || 'Quỹ' })}
-                  </span>
-                  <span className="text-[11px] text-slate-500 block mt-0.5">
-                    Tự động tạo giao dịch chi hoàn tiền và khấu trừ số dư quỹ tương ứng.
-                  </span>
-                </div>
-              </label>
-
-              {/* Actions */}
-              <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end sm:space-x-2 pt-2 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setCancellingOrder(null)}
-                  className="w-full sm:w-auto px-4 py-2.5 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition cursor-pointer text-center justify-center flex items-center"
-                >
-                  {t('common.cancel')}
-                </button>
-                <button
-                  type="submit"
-                  disabled={cancelLoading || !cancelReason.trim()}
-                  className="w-full sm:w-auto px-5 py-2.5 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow-xs transition disabled:opacity-50 flex items-center justify-center gap-1.5 cursor-pointer"
-                >
-                  <Ban className="w-3.5 h-3.5" />
-                  {cancelLoading ? t('common.loading') : t('tx.confirm_cancel_btn')}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
       {/* Delete Transaction Confirmation Modal */}
-      {deletingTransaction && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="bg-white rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 max-w-md w-full shadow-2xl border border-slate-100 space-y-4 animate-in slide-in-from-bottom-6 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200 pb-safe sm:pb-6">
-            <div className="flex items-center space-x-3 text-rose-600">
-              <div className="p-3 bg-rose-50 rounded-2xl shrink-0">
-                <AlertTriangle className="w-6 h-6" />
-              </div>
-              <div className="min-w-0">
-                <h3 className="text-base font-bold text-slate-900 truncate">
-                  {t('tx.confirm_delete_tx_title') || 'Xác nhận xóa giao dịch'}
-                </h3>
-                <p className="text-xs text-slate-500 truncate">
-                  {t('tx.confirm_delete_tx_subtitle') || 'Hành động này sẽ tự động điều chỉnh hoàn trả số dư vào quỹ liên quan.'}
-                </p>
-              </div>
-            </div>
-
+      <ModalShell
+        isOpen={Boolean(deletingTransaction)}
+        onClose={() => !deleteLoading && setDeletingTransaction(null)}
+        preventClose={deleteLoading}
+        size="sm"
+        title={t('tx.confirm_delete_tx_title') || 'Xác nhận xóa giao dịch'}
+        description={t('tx.confirm_delete_tx_subtitle') || 'Hành động này sẽ tự động điều chỉnh hoàn trả số dư vào quỹ liên quan.'}
+        icon={<AlertTriangle className="w-5 h-5 text-rose-600" />}
+      >
+        {deletingTransaction && (
+          <div className="space-y-4 text-xs">
             {deletingTransaction.reference_order_id && (
-              <div className="p-3 bg-amber-50 border border-amber-200 rounded-2xl text-xs text-amber-900 space-y-1">
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 space-y-1">
                 <div className="font-bold flex items-center gap-1.5">
                   <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
                   <span>Giao dịch đơn hàng tự động #{deletingTransaction.reference_order?.order_code || deletingTransaction.reference_order_id}</span>
@@ -3061,23 +3101,23 @@ export default function TransactionsPage() {
             {(deletingTransaction.category === 'reconciliation_variance' ||
               deletingTransaction.category === 'chênh lệch đối soát' ||
               deletingTransaction.category === 'chênh lệch đối soát két') && (
-              <div className="p-3 bg-indigo-50 border border-indigo-200 rounded-2xl text-xs text-indigo-900 space-y-1">
+              <div className="p-3 bg-purple-50 border border-purple-200 rounded-xl text-xs text-brand-purple space-y-1">
                 <div className="font-bold flex items-center gap-1.5">
-                  <Scale className="w-4 h-4 text-indigo-600 shrink-0" />
+                  <Scale className="w-4 h-4 text-brand-purple shrink-0" />
                   <span>{t('funds.delete_reconcile_warning_title') || 'Giao dịch đối soát chênh lệch két'}</span>
                 </div>
-                <p className="text-[11px] text-indigo-800 leading-relaxed">
+                <p className="text-[11px] text-slate-700 leading-relaxed">
                   {t('funds.delete_reconcile_warning_desc') ||
                     'Hành động này sẽ xóa giao dịch đối soát này và hoàn tác số dư quỹ về trạng thái trước khi đối soát.'}
                 </p>
-                <div className="text-[11px] text-indigo-900 font-semibold pt-0.5">
+                <div className="text-[11px] text-brand-purple font-bold pt-0.5 font-num">
                   Số dư két sẽ điều chỉnh: {deletingTransaction.transaction_type === 'inflow' ? '-' : '+'}
                   {formatCurrency(deletingTransaction.amount, settings)}
                 </div>
               </div>
             )}
 
-            <div className="p-3 bg-slate-50 rounded-2xl space-y-1.5 text-xs text-slate-700 border border-slate-100">
+            <div className="p-3 surface-card rounded-xl space-y-1.5 text-xs text-slate-700 border-card">
               <div className="flex justify-between">
                 <span className="text-slate-500">{t('tx.fund')}:</span>
                 <span className="font-semibold">{deletingTransaction.fund?.name || t('tx.unknown_fund')}</span>
@@ -3094,17 +3134,18 @@ export default function TransactionsPage() {
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">{t('tx.amount')}:</span>
-                <span className="font-bold text-rose-600">
+                <span className="font-bold text-rose-600 font-num">
                   {formatCurrency(deletingTransaction.amount, settings)}
                 </span>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end sm:space-x-2 pt-2 border-t border-slate-100">
+            <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end sm:space-x-2 pt-2 border-t border-border-hairline">
               <button
                 type="button"
+                disabled={deleteLoading}
                 onClick={() => setDeletingTransaction(null)}
-                className="w-full sm:w-auto px-4 py-2.5 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition cursor-pointer text-center justify-center flex items-center"
+                className="w-full sm:w-auto px-4 py-2.5 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-full transition cursor-pointer text-center justify-center flex items-center disabled:opacity-50"
               >
                 {t('common.cancel') || 'Hủy'}
               </button>
@@ -3112,35 +3153,29 @@ export default function TransactionsPage() {
                 type="button"
                 disabled={deleteLoading}
                 onClick={handleConfirmDeleteTransaction}
-                className="w-full sm:w-auto px-5 py-2.5 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow-xs transition disabled:opacity-50 flex items-center justify-center gap-1.5 cursor-pointer"
+                className="w-full sm:w-auto px-5 py-2.5 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-full shadow-card transition disabled:opacity-50 flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 {deleteLoading ? (t('common.loading') || 'Đang xử lý...') : (t('common.delete') || 'Xóa giao dịch')}
               </button>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </ModalShell>
 
       {/* Delete Order Confirmation Modal */}
-      {deletingOrder && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="bg-white rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 max-w-md w-full shadow-2xl border border-slate-100 space-y-4 animate-in slide-in-from-bottom-6 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200 pb-safe sm:pb-6">
-            <div className="flex items-center space-x-3 text-rose-600">
-              <div className="p-3 bg-rose-50 rounded-2xl shrink-0">
-                <AlertTriangle className="w-6 h-6" />
-              </div>
-              <div className="min-w-0">
-                <h3 className="text-base font-bold text-slate-900 truncate">
-                  Xác nhận xóa vĩnh viễn đơn hàng
-                </h3>
-                <p className="text-xs text-slate-500 truncate">
-                  Đơn #{deletingOrder.order_code}
-                </p>
-              </div>
-            </div>
-
-            <div className="p-3 bg-amber-50 border border-amber-200 rounded-2xl text-xs text-amber-900 space-y-1">
+      <ModalShell
+        isOpen={Boolean(deletingOrder)}
+        onClose={() => !deleteOrderLoading && setDeletingOrder(null)}
+        preventClose={deleteOrderLoading}
+        size="sm"
+        title="Xác nhận xóa vĩnh viễn đơn hàng"
+        description={deletingOrder ? `Đơn #${deletingOrder.order_code}` : ''}
+        icon={<AlertTriangle className="w-5 h-5 text-rose-600" />}
+      >
+        {deletingOrder && (
+          <div className="space-y-4 text-xs">
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 space-y-1">
               <div className="font-bold flex items-center gap-1.5">
                 <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
                 <span>Cảnh báo hoàn tác dữ liệu</span>
@@ -3150,14 +3185,14 @@ export default function TransactionsPage() {
               </p>
             </div>
 
-            <div className="p-3 bg-slate-50 rounded-2xl space-y-1.5 text-xs text-slate-700 border border-slate-100">
+            <div className="p-3 surface-card rounded-xl space-y-1.5 text-xs text-slate-700 border-card">
               <div className="flex justify-between">
                 <span className="text-slate-500">Mã đơn hàng:</span>
-                <span className="font-bold text-indigo-600 font-mono">{deletingOrder.order_code}</span>
+                <span className="font-bold text-brand-purple font-mono font-num">{deletingOrder.order_code}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">Thời gian:</span>
-                <span className="font-medium text-slate-700">{formatDateTime(deletingOrder.created_at)}</span>
+                <span className="font-medium text-slate-700 font-num">{formatDateTime(deletingOrder.created_at)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">Thu ngân:</span>
@@ -3169,23 +3204,24 @@ export default function TransactionsPage() {
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">Trạng thái:</span>
-                <span className={`font-bold ${deletingOrder.status === 'cancelled' ? 'text-rose-600' : 'text-purple-600'}`}>
+                <span className={`font-bold ${deletingOrder.status === 'cancelled' ? 'text-rose-600' : 'text-brand-purple'}`}>
                   {deletingOrder.status === 'cancelled' ? 'Đã hủy' : 'Hoàn thành'}
                 </span>
               </div>
-              <div className="flex justify-between pt-1 border-t border-slate-200">
+              <div className="flex justify-between pt-1 border-t border-border-hairline">
                 <span className="text-slate-600 font-semibold">Tổng số tiền:</span>
-                <span className="font-extrabold text-rose-600 text-sm">
+                <span className="font-bold text-rose-600 text-sm font-num">
                   {formatCurrency(deletingOrder.total_amount, settings)}
                 </span>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end sm:space-x-2 pt-2 border-t border-slate-100">
+            <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end sm:space-x-2 pt-2 border-t border-border-hairline">
               <button
                 type="button"
+                disabled={deleteOrderLoading}
                 onClick={() => setDeletingOrder(null)}
-                className="w-full sm:w-auto px-4 py-2.5 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition cursor-pointer text-center justify-center flex items-center"
+                className="w-full sm:w-auto px-4 py-2.5 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-full transition cursor-pointer text-center justify-center flex items-center disabled:opacity-50"
               >
                 {t('common.cancel') || 'Hủy'}
               </button>
@@ -3193,15 +3229,15 @@ export default function TransactionsPage() {
                 type="button"
                 disabled={deleteOrderLoading}
                 onClick={handleConfirmDeleteOrder}
-                className="w-full sm:w-auto px-5 py-2.5 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow-xs transition disabled:opacity-50 flex items-center justify-center gap-1.5 cursor-pointer"
+                className="w-full sm:w-auto px-5 py-2.5 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-full shadow-card transition disabled:opacity-50 flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 {deleteOrderLoading ? (t('common.loading') || 'Đang xử lý...') : 'Xóa vĩnh viễn'}
               </button>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </ModalShell>
 
       {/* Category Management Modal */}
       <TransactionCategoryModal
@@ -3215,406 +3251,372 @@ export default function TransactionsPage() {
       />
 
       {/* Reconcile Dialog Modal */}
-      {selectedFundForReconcile && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-150">
-          <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-md w-full p-4 sm:p-6 shadow-2xl space-y-4 animate-in zoom-in-95 duration-200 pb-safe border border-slate-100">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div className="flex items-center gap-2 text-indigo-600 min-w-0 pr-2">
-                <Scale className="w-5 h-5 shrink-0" />
-                <h2 className="font-extrabold text-sm sm:text-base text-slate-900 truncate">
-                  {t('funds.reconcile_fund_title', { name: selectedFundForReconcile.name })}
-                </h2>
-              </div>
-              <button
-                type="button"
-                onClick={() => setSelectedFundForReconcile(null)}
-                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 transition cursor-pointer shrink-0"
-              >
-                <X className="w-5 h-5" />
-              </button>
+      <ModalShell
+        isOpen={Boolean(selectedFundForReconcile)}
+        onClose={() => !reconciling && setSelectedFundForReconcile(null)}
+        preventClose={reconciling}
+        size="sm"
+        title={selectedFundForReconcile ? t('funds.reconcile_fund_title', { name: selectedFundForReconcile.name }) : ''}
+        icon={<Scale className="w-5 h-5 text-brand-purple" />}
+      >
+        {selectedFundForReconcile && (
+          <form onSubmit={handleSaveReconciliation} className="space-y-3.5 sm:space-y-4 text-xs">
+            {/* Theoretical Balance Card */}
+            <div className="surface-card p-3 rounded-xl border-card flex justify-between items-center">
+              <span className="text-slate-500 font-semibold">{t('funds.theoretical_balance_label')}</span>
+              <span className="font-bold text-slate-900 text-sm font-num">
+                {formatCurrency(selectedFundForReconcile.current_balance, settings)}
+              </span>
             </div>
 
-            <form onSubmit={handleSaveReconciliation} className="space-y-3.5 sm:space-y-4 text-xs">
-              {/* Theoretical Balance Card */}
-              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 flex justify-between items-center">
-                <span className="text-slate-500 font-semibold">{t('funds.theoretical_balance_label')}</span>
-                <span className="font-bold text-slate-900 text-sm">
-                  {formatCurrency(selectedFundForReconcile.current_balance, settings)}
-                </span>
-              </div>
+            <div>
+              <label className="font-bold text-slate-800 mb-1 block">{t('funds.actual_balance_label')}</label>
+              <input
+                type="number"
+                step="1000"
+                min="0"
+                required
+                placeholder="500.000"
+                value={actualBalanceInput === 0 ? '' : actualBalanceInput}
+                onChange={(e) => {
+                  const raw = e.target.value.replace(/\D/g, '');
+                  setActualBalanceInput(raw === '' ? 0 : parseInt(raw, 10));
+                }}
+                className="w-full p-2.5 sm:p-3 border border-border-hairline rounded-field text-base font-bold text-brand-purple focus:outline-none focus:ring-2 focus:ring-brand-purple font-num"
+              />
+            </div>
 
-              <div>
-                <label className="font-bold text-slate-800 mb-1 block">{t('funds.actual_balance_label')}</label>
-                <input
-                  type="number"
-                  step="1000"
-                  min="0"
-                  required
-                  placeholder="500.000"
-                  value={actualBalanceInput === 0 ? '' : actualBalanceInput}
-                  onChange={(e) => {
-                    const raw = e.target.value.replace(/\D/g, '');
-                    setActualBalanceInput(raw === '' ? 0 : parseInt(raw, 10));
-                  }}
-                  className="w-full p-2.5 sm:p-3 border border-slate-200 rounded-xl text-base font-extrabold text-indigo-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
-              </div>
+            {/* Live Variance Calculation */}
+            {(() => {
+              const variance = actualBalanceInput - selectedFundForReconcile.current_balance;
+              if (variance === 0) {
+                return (
+                  <div className="p-2.5 sm:p-3 bg-purple-50 text-brand-purple rounded-xl border border-purple-200 flex items-center gap-2 font-medium text-xs">
+                    <CheckCircle2 className="w-4 h-4 text-brand-purple shrink-0" />
+                    <span>{t('funds.variance_none')}</span>
+                  </div>
+                );
+              } else if (variance > 0) {
+                return (
+                  <div className="p-2.5 sm:p-3 bg-amber-50 text-amber-900 rounded-xl border border-amber-200 flex items-center gap-2 font-medium text-xs font-num">
+                    <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                    <span>{t('funds.variance_surplus', { amount: formatCurrency(variance, settings) })}</span>
+                  </div>
+                );
+              } else {
+                return (
+                  <div className="p-2.5 sm:p-3 bg-rose-50 text-rose-900 rounded-xl border border-rose-200 flex items-center gap-2 font-medium text-xs font-num">
+                    <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                    <span>{t('funds.variance_deficit', { amount: formatCurrency(Math.abs(variance), settings) })}</span>
+                  </div>
+                );
+              }
+            })()}
 
-              {/* Live Variance Calculation */}
-              {(() => {
-                const variance = actualBalanceInput - selectedFundForReconcile.current_balance;
-                if (variance === 0) {
-                  return (
-                    <div className="p-2.5 sm:p-3 bg-purple-50 text-purple-800 rounded-xl border border-purple-200 flex items-center gap-2 font-medium text-xs">
-                      <CheckCircle2 className="w-4 h-4 text-purple-600 shrink-0" />
-                      <span>{t('funds.variance_none')}</span>
-                    </div>
-                  );
-                } else if (variance > 0) {
-                  return (
-                    <div className="p-2.5 sm:p-3 bg-amber-50 text-amber-900 rounded-xl border border-amber-200 flex items-center gap-2 font-medium text-xs">
-                      <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
-                      <span>{t('funds.variance_surplus', { amount: formatCurrency(variance, settings) })}</span>
-                    </div>
-                  );
-                } else {
-                  return (
-                    <div className="p-2.5 sm:p-3 bg-rose-50 text-rose-900 rounded-xl border border-rose-200 flex items-center gap-2 font-medium text-xs">
-                      <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
-                      <span>{t('funds.variance_deficit', { amount: formatCurrency(Math.abs(variance), settings) })}</span>
-                    </div>
-                  );
-                }
-              })()}
+            <div>
+              <label className="font-semibold text-slate-700 mb-1 block">{t('funds.reconcile_notes_label')}</label>
+              <textarea
+                rows={2}
+                placeholder={t('funds.reconcile_notes_placeholder')}
+                value={reconcileNotes}
+                onChange={(e) => setReconcileNotes(e.target.value)}
+                className="w-full p-2.5 border border-border-hairline rounded-field focus:outline-none focus:ring-2 focus:ring-brand-purple"
+              />
+            </div>
 
-              <div>
-                <label className="font-semibold text-slate-700 mb-1 block">{t('funds.reconcile_notes_label')}</label>
-                <textarea
-                  rows={2}
-                  placeholder={t('funds.reconcile_notes_placeholder')}
-                  value={reconcileNotes}
-                  onChange={(e) => setReconcileNotes(e.target.value)}
-                  className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
-              </div>
+            {/* Email report option after reconciliation */}
+            <label className="flex items-center gap-2.5 cursor-pointer bg-purple-50 border border-purple-200 rounded-xl p-2.5 sm:p-3">
+              <input
+                type="checkbox"
+                checked={sendEmailAfterReconcile}
+                onChange={(e) => setSendEmailAfterReconcile(e.target.checked)}
+                className="w-4 h-4 accent-purple-600 rounded cursor-pointer"
+              />
+              <Mail className="w-4 h-4 text-brand-purple shrink-0" />
+              <span className="text-xs font-semibold text-brand-purple">{t('email_report.funds_prompt_label')}</span>
+            </label>
 
-              {/* Email report option after reconciliation */}
-              <label className="flex items-center gap-2.5 cursor-pointer bg-purple-50 border border-purple-200 rounded-xl p-2.5 sm:p-3">
-                <input
-                  type="checkbox"
-                  checked={sendEmailAfterReconcile}
-                  onChange={(e) => setSendEmailAfterReconcile(e.target.checked)}
-                  className="w-4 h-4 accent-purple-600 rounded cursor-pointer"
-                />
-                <Mail className="w-4 h-4 text-purple-600 shrink-0" />
-                <span className="text-xs font-semibold text-purple-800">{t('email_report.funds_prompt_label')}</span>
-              </label>
-
-              {/* Modal Buttons (Balanced on mobile) */}
-              <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end sm:space-x-2 pt-2 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setSelectedFundForReconcile(null)}
-                  className="w-full px-4 py-2.5 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition cursor-pointer text-center justify-center flex items-center"
-                >
-                  {t('common.cancel')}
-                </button>
-                <button
-                  type="submit"
-                  disabled={reconciling}
-                  className="w-full px-5 py-2.5 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition cursor-pointer text-center"
-                >
-                  {reconciling && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
-                  <span>{t('funds.submit_reconcile')}</span>
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+            {/* Modal Buttons (Balanced on mobile) */}
+            <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end sm:space-x-2 pt-2 border-t border-border-hairline">
+              <button
+                type="button"
+                disabled={reconciling}
+                onClick={() => setSelectedFundForReconcile(null)}
+                className="w-full px-4 py-2.5 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-full transition cursor-pointer text-center justify-center flex items-center disabled:opacity-50"
+              >
+                {t('common.cancel')}
+              </button>
+              <button
+                type="submit"
+                disabled={reconciling}
+                className="w-full px-5 py-2.5 text-xs font-bold text-white bg-brand-purple hover:bg-brand-purple-hover disabled:bg-slate-300 rounded-full shadow-card flex items-center justify-center gap-1.5 transition cursor-pointer text-center"
+              >
+                {reconciling && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+                <span>{t('funds.submit_reconcile')}</span>
+              </button>
+            </div>
+          </form>
+        )}
+      </ModalShell>
 
       {/* Update Reconciliation Dialog Modal */}
-      {updatingReconcileFund && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-150">
-          <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-md w-full p-4 sm:p-6 shadow-2xl space-y-4 animate-in zoom-in-95 duration-200 pb-safe border border-slate-100">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div className="flex items-center gap-2 text-amber-600 min-w-0 pr-2">
-                <Pencil className="w-5 h-5 shrink-0" />
-                <h2 className="font-extrabold text-sm sm:text-base text-slate-900 truncate">
-                  {t('funds.update_reconcile_title')}
-                </h2>
+      <ModalShell
+        isOpen={Boolean(updatingReconcileFund)}
+        onClose={() => !updatingReconcile && setUpdatingReconcileFund(null)}
+        preventClose={updatingReconcile}
+        nested
+        size="sm"
+        title={t('funds.update_reconcile_title')}
+        icon={<Pencil className="w-5 h-5 text-amber-600" />}
+      >
+        {updatingReconcileFund && (
+          <form onSubmit={handleSaveUpdateReconciliation} className="space-y-3.5 sm:space-y-4 text-xs">
+            {/* Fund Info & Current Balance Card */}
+            <div className="bg-amber-50/70 p-3 rounded-xl border border-amber-200/80 flex justify-between items-center">
+              <div>
+                <span className="text-[11px] font-semibold text-amber-800">{updatingReconcileFund.name}</span>
+                <div className="text-[11px] text-slate-500">Số dư ghi nhận hiện tại</div>
               </div>
-              <button
-                type="button"
-                onClick={() => setUpdatingReconcileFund(null)}
-                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 transition cursor-pointer shrink-0"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              <span className="font-bold text-slate-900 text-sm font-num">
+                {formatCurrency(updatingReconcileFund.current_balance, settings)}
+              </span>
             </div>
 
-            <form onSubmit={handleSaveUpdateReconciliation} className="space-y-3.5 sm:space-y-4 text-xs">
-              {/* Fund Info & Current Balance Card */}
-              <div className="bg-amber-50/70 p-3 rounded-xl border border-amber-200/80 flex justify-between items-center">
-                <div>
-                  <span className="text-[11px] font-semibold text-amber-800">{updatingReconcileFund.name}</span>
-                  <div className="text-[11px] text-slate-500">Số dư ghi nhận hiện tại</div>
-                </div>
-                <span className="font-bold text-slate-900 text-sm">
-                  {formatCurrency(updatingReconcileFund.current_balance, settings)}
-                </span>
-              </div>
+            <div>
+              <label className="font-bold text-slate-800 mb-1 block">
+                {t('funds.actual_balance_label')}
+              </label>
+              <input
+                type="number"
+                step="1000"
+                min="0"
+                required
+                placeholder="500.000"
+                value={updateActualInput === 0 ? '' : updateActualInput}
+                onChange={(e) => {
+                  const raw = e.target.value.replace(/\D/g, '');
+                  setUpdateActualInput(raw === '' ? 0 : parseInt(raw, 10));
+                }}
+                className="w-full p-2.5 sm:p-3 border border-border-hairline rounded-field text-base font-bold text-amber-950 focus:outline-none focus:ring-2 focus:ring-amber-500 font-num"
+              />
+            </div>
 
-              <div>
-                <label className="font-bold text-slate-800 mb-1 block">
-                  {t('funds.actual_balance_label')}
-                </label>
-                <input
-                  type="number"
-                  step="1000"
-                  min="0"
-                  required
-                  placeholder="500.000"
-                  value={updateActualInput === 0 ? '' : updateActualInput}
-                  onChange={(e) => {
-                    const raw = e.target.value.replace(/\D/g, '');
-                    setUpdateActualInput(raw === '' ? 0 : parseInt(raw, 10));
-                  }}
-                  className="w-full p-2.5 sm:p-3 border border-slate-200 rounded-xl text-base font-extrabold text-amber-950 focus:outline-none focus:ring-2 focus:ring-amber-500"
-                />
-              </div>
+            {/* Live Variance Calculation */}
+            {(() => {
+              const diff = updateActualInput - updatingReconcileFund.current_balance;
+              if (diff === 0) {
+                return (
+                  <div className="p-2.5 sm:p-3 bg-slate-50 text-slate-700 rounded-xl border border-border-hairline flex items-center gap-2 font-medium text-xs">
+                    <CheckCircle2 className="w-4 h-4 text-slate-500 shrink-0" />
+                    <span>Số dư thực tế kiểm kê không đổi so với số dư hiện tại.</span>
+                  </div>
+                );
+              } else if (diff > 0) {
+                return (
+                  <div className="p-2.5 sm:p-3 bg-purple-50 text-brand-purple rounded-xl border border-purple-200 flex items-center gap-2 font-medium text-xs font-num">
+                    <CheckCircle2 className="w-4 h-4 text-brand-purple shrink-0" />
+                    <span>Số dư két sẽ điều chỉnh tăng thêm: +{formatCurrency(diff, settings)}</span>
+                  </div>
+                );
+              } else {
+                return (
+                  <div className="p-2.5 sm:p-3 bg-rose-50 text-rose-900 rounded-xl border border-rose-200 flex items-center gap-2 font-medium text-xs font-num">
+                    <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                    <span>Số dư két sẽ điều chỉnh giảm đi: -{formatCurrency(Math.abs(diff), settings)}</span>
+                  </div>
+                );
+              }
+            })()}
 
-              {/* Live Variance Calculation */}
-              {(() => {
-                const diff = updateActualInput - updatingReconcileFund.current_balance;
-                if (diff === 0) {
-                  return (
-                    <div className="p-2.5 sm:p-3 bg-slate-50 text-slate-700 rounded-xl border border-slate-200 flex items-center gap-2 font-medium text-xs">
-                      <CheckCircle2 className="w-4 h-4 text-slate-500 shrink-0" />
-                      <span>Số dư thực tế kiểm kê không đổi so với số dư hiện tại.</span>
-                    </div>
-                  );
-                } else if (diff > 0) {
-                  return (
-                    <div className="p-2.5 sm:p-3 bg-purple-50 text-purple-800 rounded-xl border border-purple-200 flex items-center gap-2 font-medium text-xs">
-                      <CheckCircle2 className="w-4 h-4 text-purple-600 shrink-0" />
-                      <span>Số dư két sẽ điều chỉnh tăng thêm: +{formatCurrency(diff, settings)}</span>
-                    </div>
-                  );
-                } else {
-                  return (
-                    <div className="p-2.5 sm:p-3 bg-rose-50 text-rose-900 rounded-xl border border-rose-200 flex items-center gap-2 font-medium text-xs">
-                      <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
-                      <span>Số dư két sẽ điều chỉnh giảm đi: -{formatCurrency(Math.abs(diff), settings)}</span>
-                    </div>
-                  );
-                }
-              })()}
+            <div>
+              <label className="font-semibold text-slate-700 mb-1 block">Lý do điều chỉnh / Ghi chú</label>
+              <textarea
+                rows={2}
+                placeholder={t('funds.update_reconcile_notes_placeholder')}
+                value={updateNotes}
+                onChange={(e) => setUpdateNotes(e.target.value)}
+                className="w-full p-2.5 border border-border-hairline rounded-field focus:outline-none focus:ring-2 focus:ring-amber-500"
+              />
+            </div>
 
-              <div>
-                <label className="font-semibold text-slate-700 mb-1 block">Lý do điều chỉnh / Ghi chú</label>
-                <textarea
-                  rows={2}
-                  placeholder={t('funds.update_reconcile_notes_placeholder')}
-                  value={updateNotes}
-                  onChange={(e) => setUpdateNotes(e.target.value)}
-                  className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500"
-                />
-              </div>
-
-              {/* Modal Buttons */}
-              <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end sm:space-x-2 pt-2 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setUpdatingReconcileFund(null)}
-                  className="w-full px-4 py-2.5 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition cursor-pointer text-center justify-center flex items-center"
-                >
-                  {t('common.cancel')}
-                </button>
-                <button
-                  type="submit"
-                  disabled={updatingReconcile}
-                  className="w-full px-5 py-2.5 text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 disabled:bg-slate-300 rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition cursor-pointer text-center"
-                >
-                  {updatingReconcile && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
-                  <span>{t('funds.update_reconcile_btn')}</span>
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+            {/* Modal Buttons */}
+            <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end sm:space-x-2 pt-2 border-t border-border-hairline">
+              <button
+                type="button"
+                disabled={updatingReconcile}
+                onClick={() => setUpdatingReconcileFund(null)}
+                className="w-full px-4 py-2.5 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-full transition cursor-pointer text-center justify-center flex items-center disabled:opacity-50"
+              >
+                {t('common.cancel')}
+              </button>
+              <button
+                type="submit"
+                disabled={updatingReconcile}
+                className="w-full px-5 py-2.5 text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 disabled:bg-slate-300 rounded-full shadow-card flex items-center justify-center gap-1.5 transition cursor-pointer text-center"
+              >
+                {updatingReconcile && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+                <span>{t('funds.update_reconcile_btn')}</span>
+              </button>
+            </div>
+          </form>
+        )}
+      </ModalShell>
 
       {/* Reconciliation Audit History Modal */}
-      {viewingHistoryFund && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-150">
-          <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-xl w-full p-4 sm:p-6 shadow-2xl space-y-4 animate-in zoom-in-95 duration-200 pb-safe border border-slate-100 max-h-[90vh] flex flex-col">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3 shrink-0">
-              <div className="flex items-center gap-2 text-indigo-600 min-w-0 pr-2">
-                <History className="w-5 h-5 shrink-0" />
-                <div>
-                  <h2 className="font-extrabold text-sm sm:text-base text-slate-900 truncate">
-                    {t('funds.reconcile_history_title', { name: viewingHistoryFund.name })}
-                  </h2>
-                  <p className="text-[11px] text-slate-400">Nhật ký kiểm kê két tiền, cập nhật & hoàn tác</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setViewingHistoryFund(null)}
-                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 transition cursor-pointer shrink-0"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="overflow-y-auto space-y-3 flex-1 pr-1 text-xs">
-              {historyLoading ? (
-                <div className="flex flex-col items-center justify-center py-12 text-slate-400 gap-2">
-                  <RefreshCw className="w-6 h-6 animate-spin text-indigo-600" />
-                  <span>Đang tải lịch sử đối soát...</span>
-                </div>
-              ) : historyData.length === 0 ? (
-                <div className="text-center py-12 text-slate-400 space-y-2">
-                  <Scale className="w-8 h-8 mx-auto text-slate-300" />
-                  <p className="font-medium">Chưa có lịch sử đối soát nào cho quỹ này.</p>
-                </div>
-              ) : (
-                historyData.map((rec) => {
-                  const statusBadge = () => {
-                    switch (rec.status) {
-                      case 'active':
-                        return (
-                          <span className="bg-purple-50 text-purple-700 border border-purple-200 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
-                            <CheckCircle2 className="w-3 h-3" />
-                            {t('funds.reconcile_status_active') || 'Đang áp dụng'}
-                          </span>
-                        );
-                      case 'updated':
-                        return (
-                          <span className="bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
-                            <Pencil className="w-3 h-3" />
-                            {t('funds.reconcile_status_updated') || 'Đã cập nhật'}
-                          </span>
-                        );
-                      case 'reverted':
-                        return (
-                          <span className="bg-rose-50 text-rose-700 border border-rose-200 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
-                            <RotateCcw className="w-3 h-3" />
-                            {t('funds.reconcile_status_reverted') || 'Đã hoàn tác'}
-                          </span>
-                        );
-                      default:
-                        return null;
-                    }
-                  };
-
-                  return (
-                    <div
-                      key={rec.id}
-                      className={`p-3.5 rounded-2xl border transition shadow-2xs space-y-2.5 ${
-                        rec.status === 'reverted'
-                          ? 'bg-slate-50/80 border-slate-200 opacity-80'
-                          : 'bg-white border-slate-200/80 hover:border-indigo-200'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between gap-2 flex-wrap">
-                        <div className="flex items-center gap-2">
-                          {statusBadge()}
-                          <span className="font-mono text-slate-500 text-[11px]">
-                            {formatDateTime(rec.created_at)}
-                          </span>
-                        </div>
-                        <span className="text-[11px] text-slate-400 font-medium">
-                          {rec.created_by || 'Store Manager'}
-                        </span>
-                      </div>
-
-                      {/* 3-column stats */}
-                      <div className="grid grid-cols-3 gap-2 bg-slate-50/70 p-2.5 rounded-xl border border-slate-100 text-center">
-                        <div>
-                          <div className="text-[10px] text-slate-400 font-semibold">{t('funds.theoretical_balance')}</div>
-                          <div className="font-bold text-slate-800 text-[11px] mt-0.5">
-                            {formatCurrency(rec.theoretical_balance, settings)}
-                          </div>
-                        </div>
-                        <div>
-                          <div className="text-[10px] text-slate-400 font-semibold">{t('funds.actual_balance')}</div>
-                          <div className="font-extrabold text-indigo-950 text-[11px] mt-0.5">
-                            {formatCurrency(rec.actual_balance, settings)}
-                          </div>
-                        </div>
-                        <div>
-                          <div className="text-[10px] text-slate-400 font-semibold">{t('funds.discrepancy')}</div>
-                          <div
-                            className={`font-black text-[11px] mt-0.5 ${
-                              rec.variance > 0
-                                ? 'text-purple-600'
-                                : rec.variance < 0
-                                ? 'text-rose-600'
-                                : 'text-slate-500'
-                            }`}
-                          >
-                            {rec.variance > 0 ? '+' : ''}
-                            {formatCurrency(rec.variance, settings)}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Previous actual info if updated */}
-                      {rec.previous_actual !== undefined && rec.previous_actual !== null && (
-                        <div className="text-[11px] text-amber-700 bg-amber-50/60 border border-amber-100 px-2.5 py-1 rounded-lg flex items-center justify-between">
-                          <span>Số đếm trước khi sửa:</span>
-                          <span className="font-semibold">{formatCurrency(rec.previous_actual, settings)}</span>
-                        </div>
-                      )}
-
-                      {/* Notes */}
-                      {rec.notes && (
-                        <div className="text-[11px] text-slate-600 italic bg-white p-2 rounded-lg border border-slate-100">
-                          {rec.notes}
-                        </div>
-                      )}
-
-                      {/* Revert timestamp */}
-                      {rec.reverted_at && (
-                        <div className="text-[10px] text-rose-500 italic">
-                          Đã hoàn tác lúc: {formatDateTime(rec.reverted_at)}
-                        </div>
-                      )}
-
-                      {/* Action if reverted */}
-                      {rec.status === 'reverted' && (
-                        <div className="pt-1 flex justify-end">
-                          <button
-                            type="button"
-                            onClick={() => handleRestoreReconciliation(viewingHistoryFund)}
-                            disabled={restoringReconcile}
-                            className="bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 text-xs font-semibold py-1.5 px-3 rounded-xl flex items-center gap-1.5 transition cursor-pointer"
-                          >
-                            <RotateCw className={`w-3.5 h-3.5 ${restoringReconcile ? 'animate-spin' : ''}`} />
-                            <span>{t('funds.restore_reconcile_btn') || 'Khôi phục lệnh này'}</span>
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })
-              )}
-            </div>
-
-            <div className="pt-2 border-t border-slate-100 flex justify-end shrink-0">
-              <button
-                type="button"
-                onClick={() => setViewingHistoryFund(null)}
-                className="w-full sm:w-auto px-5 py-2.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition cursor-pointer"
-              >
-                {t('common.close') || 'Đóng'}
-              </button>
-            </div>
+      <ModalShell
+        isOpen={Boolean(viewingHistoryFund)}
+        onClose={() => setViewingHistoryFund(null)}
+        size="xl"
+        title={viewingHistoryFund ? t('funds.reconcile_history_title', { name: viewingHistoryFund.name }) : ''}
+        description="Nhật ký kiểm kê két tiền, cập nhật & hoàn tác"
+        icon={<History className="w-5 h-5 text-brand-purple" />}
+        footer={
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={() => setViewingHistoryFund(null)}
+              className="w-full sm:w-auto px-5 py-2.5 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-full transition cursor-pointer"
+            >
+              {t('common.close') || 'Đóng'}
+            </button>
           </div>
+        }
+      >
+        <div className="overflow-y-auto space-y-3 pr-1 text-xs max-h-[70vh]">
+          {historyLoading ? (
+            <div className="flex flex-col items-center justify-center py-12 text-slate-400 gap-2">
+              <RefreshCw className="w-6 h-6 animate-spin text-brand-purple" />
+              <span>Đang tải lịch sử đối soát...</span>
+            </div>
+          ) : historyData.length === 0 ? (
+            <div className="text-center py-12 text-slate-400 space-y-2">
+              <Scale className="w-8 h-8 mx-auto text-slate-300" />
+              <p className="font-medium">Chưa có lịch sử đối soát nào cho quỹ này.</p>
+            </div>
+          ) : (
+            historyData.map((rec) => {
+              const statusBadge = () => {
+                switch (rec.status) {
+                  case 'active':
+                    return (
+                      <span className="bg-purple-50 text-brand-purple border border-purple-200 text-[11px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                        <CheckCircle2 className="w-3 h-3" />
+                        {t('funds.reconcile_status_active') || 'Đang áp dụng'}
+                      </span>
+                    );
+                  case 'updated':
+                    return (
+                      <span className="bg-amber-50 text-amber-700 border border-amber-200 text-[11px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                        <Pencil className="w-3 h-3" />
+                        {t('funds.reconcile_status_updated') || 'Đã cập nhật'}
+                      </span>
+                    );
+                  case 'reverted':
+                    return (
+                      <span className="bg-rose-50 text-rose-700 border border-rose-200 text-[11px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                        <RotateCcw className="w-3 h-3" />
+                        {t('funds.reconcile_status_reverted') || 'Đã hoàn tác'}
+                      </span>
+                    );
+                  default:
+                    return null;
+                }
+              };
+
+              return (
+                <div
+                  key={rec.id}
+                  className={`p-3.5 rounded-xl border transition shadow-card space-y-2.5 ${
+                    rec.status === 'reverted'
+                      ? 'bg-slate-50/80 border-slate-200 opacity-80'
+                      : 'surface-card border-card hover:border-brand-purple/30'
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <div className="flex items-center gap-2">
+                      {statusBadge()}
+                      <span className="font-mono text-slate-500 text-[11px] font-num">
+                        {formatDateTime(rec.created_at)}
+                      </span>
+                    </div>
+                    <span className="text-[11px] text-slate-400 font-medium">
+                      {rec.created_by || 'Store Manager'}
+                    </span>
+                  </div>
+
+                  {/* 3-column stats */}
+                  <div className="grid grid-cols-3 gap-2 bg-slate-50/70 p-2.5 rounded-xl border border-slate-100 text-center font-num">
+                    <div>
+                      <div className="text-[11px] text-slate-400 font-semibold">{t('funds.theoretical_balance')}</div>
+                      <div className="font-bold text-slate-800 text-[11px] mt-0.5">
+                        {formatCurrency(rec.theoretical_balance, settings)}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-[11px] text-slate-400 font-semibold">{t('funds.actual_balance')}</div>
+                      <div className="font-bold text-brand-purple text-[11px] mt-0.5">
+                        {formatCurrency(rec.actual_balance, settings)}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-[11px] text-slate-400 font-semibold">{t('funds.discrepancy')}</div>
+                      <div
+                        className={`font-bold text-[11px] mt-0.5 ${
+                          rec.variance > 0
+                            ? 'text-brand-purple'
+                            : rec.variance < 0
+                            ? 'text-rose-600'
+                            : 'text-slate-500'
+                        }`}
+                      >
+                        {rec.variance > 0 ? '+' : ''}
+                        {formatCurrency(rec.variance, settings)}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Previous actual info if updated */}
+                  {rec.previous_actual !== undefined && rec.previous_actual !== null && (
+                    <div className="text-[11px] text-amber-700 bg-amber-50/60 border border-amber-100 px-2.5 py-1 rounded-full flex items-center justify-between font-num">
+                      <span>Số đếm trước khi sửa:</span>
+                      <span className="font-bold">{formatCurrency(rec.previous_actual, settings)}</span>
+                    </div>
+                  )}
+
+                  {/* Notes */}
+                  {rec.notes && (
+                    <div className="text-[11px] text-slate-600 italic bg-white p-2 rounded-xl border border-border-hairline">
+                      {rec.notes}
+                    </div>
+                  )}
+
+                  {/* Revert timestamp */}
+                  {rec.reverted_at && (
+                    <div className="text-[11px] text-rose-500 italic font-num">
+                      Đã hoàn tác lúc: {formatDateTime(rec.reverted_at)}
+                    </div>
+                  )}
+
+                  {/* Action if reverted */}
+                  {rec.status === 'reverted' && (
+                    <div className="pt-1 flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => viewingHistoryFund && handleRestoreReconciliation(viewingHistoryFund)}
+                        disabled={restoringReconcile}
+                        className="bg-purple-50 hover:bg-purple-100 text-brand-purple border border-purple-200 text-xs font-bold py-1.5 px-3 rounded-full flex items-center gap-1.5 transition cursor-pointer disabled:opacity-40"
+                      >
+                        <RotateCw className={`w-3.5 h-3.5 ${restoringReconcile ? 'animate-spin' : ''}`} />
+                        <span>{t('funds.restore_reconcile_btn') || 'Khôi phục lệnh này'}</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          )}
         </div>
-      )}
+      </ModalShell>
 
       {/* Financial Report Email Modal */}
       <EmailReportModal
