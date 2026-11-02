@@ -22,6 +22,7 @@ import { fetchApi, uploadImage, getImageUrl } from '@/lib/api';
 import { useToast } from '@/context/ToastContext';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
 import ModernSelect, { ModernSelectOption } from '@/components/common/ModernSelect';
+import { ModalShell } from '@/components/ui/ModalShell';
 import {
   Store,
   CreateStoreRequest,
@@ -298,35 +299,46 @@ export default function StoreFormModal({
   }));
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
-      <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-2xl w-full p-5 sm:p-6 shadow-2xl space-y-5 animate-in slide-in-from-bottom sm:zoom-in-95 duration-200 hardware-accelerated max-h-[92dvh] sm:max-h-[90vh] overflow-y-auto pb-safe">
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-          <div className="flex items-center space-x-2.5">
-            <div className="p-2 bg-purple-100 text-purple-800 rounded-xl">
-              <StoreIcon className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="text-base font-black text-slate-900">
-                {isEdit ? 'Chỉnh sửa Cửa hàng' : 'Thêm Cửa hàng Mới'}
-              </h3>
-              <p className="text-xs text-slate-500">
-                {isEdit
-                  ? `Cập nhật thông tin chi nhánh: ${storeToEdit?.name}`
-                  : 'Khởi tạo chi nhánh kinh doanh độc lập trên hệ thống RabbitPOS'}
-              </p>
-            </div>
-          </div>
+    <ModalShell
+      isOpen={isOpen}
+      onClose={onClose}
+      preventClose={isSubmitting}
+      size="lg"
+      icon={<Building2 className="w-5 h-5 text-brand-purple" />}
+      title={isEdit ? 'Chỉnh sửa Cửa hàng' : 'Thêm Cửa hàng Mới'}
+      description={isEdit ? `Cập nhật thông tin chi nhánh: ${storeToEdit?.name}` : 'Khởi tạo chi nhánh kinh doanh độc lập trên hệ thống RabbitPOS'}
+      footer={
+        <div className="flex items-center justify-end gap-2.5 w-full">
           <button
             type="button"
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition"
+            disabled={isSubmitting}
+            className="px-5 py-2.5 rounded-full text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 transition cursor-pointer border border-border-hairline"
           >
-            <X className="w-5 h-5" />
+            Hủy
+          </button>
+          <button
+            type="submit"
+            form="store-form"
+            disabled={isSubmitting}
+            className="inline-flex items-center space-x-2 px-6 py-2.5 rounded-full bg-brand-purple hover:bg-purple-800 text-white font-bold text-xs shadow-card transition active:scale-95 cursor-pointer disabled:opacity-50"
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Đang xử lý...</span>
+              </>
+            ) : (
+              <>
+                <Check className="w-4 h-4 stroke-[3]" />
+                <span>{isEdit ? 'Lưu thay đổi' : 'Tạo cửa hàng'}</span>
+              </>
+            )}
           </button>
         </div>
-
-        <form onSubmit={handleSubmit} className="space-y-5">
+      }
+    >
+      <form id="store-form" onSubmit={handleSubmit} className="space-y-5">
           {/* Section 1: Basic Information */}
           <div className="space-y-3.5">
             <h4 className="text-xs font-black uppercase text-slate-400 tracking-wider flex items-center gap-1.5">
@@ -363,7 +375,7 @@ export default function StoreFormModal({
                   className="w-full px-3 py-2 text-xs font-mono bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-600 font-bold"
                   required
                 />
-                <span className="text-[10px] text-slate-400 mt-0.5 block">
+                <span className="text-caption text-slate-400 mt-0.5 block">
                   Chữ thường, số và gạch ngang (dùng định danh và lọc dữ liệu)
                 </span>
               </div>
@@ -458,7 +470,7 @@ export default function StoreFormModal({
                       className="hidden"
                     />
                   </label>
-                  <p className="text-[10px] text-slate-400 mt-1">
+                  <p className="text-caption text-slate-400 mt-1">
                     PNG, JPG hoặc WebP. Khuyến nghị ảnh vuông hoặc tỉ lệ ngang nhỏ hơn 2MB.
                   </p>
                 </div>
@@ -567,7 +579,7 @@ export default function StoreFormModal({
                     <span className="block text-xs font-bold text-slate-900">
                       Tạo menu trống (Blank)
                     </span>
-                    <span className="block text-[10px] text-slate-500 leading-tight mt-0.5">
+                    <span className="block text-caption text-slate-500 leading-tight mt-0.5">
                       Chỉ tạo quỹ tiền mặc định (Tiền mặt, Chuyển khoản) và danh mục thu chi.
                     </span>
                   </div>
@@ -594,7 +606,7 @@ export default function StoreFormModal({
                       <Sparkles className="w-3 h-3 text-blue-600" />
                       Sao chép từ cửa hàng khác
                     </span>
-                    <span className="block text-[10px] text-slate-500 leading-tight mt-0.5">
+                    <span className="block text-caption text-slate-500 leading-tight mt-0.5">
                       Sao chép món, biến thể, topping, khuyến mãi & công thức từ chi nhánh sẵn có.
                     </span>
                   </div>
@@ -603,7 +615,7 @@ export default function StoreFormModal({
 
               {/* Clone Options Details */}
               {cloneMode === 'clone' && (
-                <div className="p-3.5 bg-blue-50/50 rounded-2xl border border-blue-200 space-y-3 animate-in fade-in duration-150">
+                <div className="p-3.5 bg-blue-50/50 rounded-2xl border border-blue-200 space-y-3 ">
                   <div>
                     <label className="block text-xs font-bold text-slate-800 mb-1">
                       Chọn cửa hàng nguồn để sao chép:
@@ -674,36 +686,7 @@ export default function StoreFormModal({
             </div>
           )}
 
-          {/* Action Buttons */}
-          <div className="flex items-center justify-end space-x-2.5 pt-3 border-t border-slate-100">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={isSubmitting}
-              className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition active:scale-95"
-            >
-              Hủy
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="inline-flex items-center space-x-2 px-5 py-2 rounded-xl bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs shadow-md shadow-purple-700/20 transition active:scale-95 cursor-pointer disabled:opacity-50"
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Đang xử lý...</span>
-                </>
-              ) : (
-                <>
-                  <Check className="w-4 h-4 stroke-[3]" />
-                  <span>{isEdit ? 'Lưu thay đổi' : 'Tạo cửa hàng'}</span>
-                </>
-              )}
-            </button>
-          </div>
         </form>
-      </div>
-    </div>
+    </ModalShell>
   );
 }

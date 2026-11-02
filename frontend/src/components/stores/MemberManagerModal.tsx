@@ -20,6 +20,7 @@ import { fetchApi } from '@/lib/api';
 import { useToast } from '@/context/ToastContext';
 import { useConfirm } from '@/context/ConfirmContext';
 import ModernSelect, { ModernSelectOption } from '@/components/common/ModernSelect';
+import { ModalShell } from '@/components/ui/ModalShell';
 import {
   Store,
   StoreRole,
@@ -273,34 +274,27 @@ export default function MemberManagerModal({
     }
   };
 
-  if (!isOpen || !store) return null;
-
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
-      <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-2xl w-full p-5 sm:p-6 shadow-2xl space-y-5 animate-in slide-in-from-bottom sm:zoom-in-95 duration-200 hardware-accelerated max-h-[92dvh] sm:max-h-[90vh] overflow-y-auto pb-safe">
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-          <div className="flex items-center space-x-2.5">
-            <div className="p-2 bg-blue-100 text-blue-800 rounded-xl">
-              <Users className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="text-base font-black text-slate-900">
-                Quản lý Nhân sự: {store.name}
-              </h3>
-              <p className="text-xs text-slate-500">
-                Phân quyền truy cập và gán vai trò nhân viên cho chi nhánh ({store.code})
-              </p>
-            </div>
-          </div>
+    <ModalShell
+      isOpen={isOpen && !!store}
+      onClose={onClose}
+      size="lg"
+      icon={<Users className="w-5 h-5 text-brand-purple" />}
+      title={`Quản lý Nhân sự: ${store?.name || ''}`}
+      description={`Phân quyền truy cập và gán vai trò nhân viên cho chi nhánh (${store?.code || ''})`}
+      footer={
+        <div className="flex justify-end w-full">
           <button
             type="button"
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition"
+            className="px-6 py-2 rounded-full text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 transition cursor-pointer border border-border-hairline"
           >
-            <X className="w-5 h-5" />
+            Đóng
           </button>
         </div>
+      }
+    >
+      <div className="space-y-5">
 
         {/* Existing Members List */}
         <div className="space-y-2.5">
@@ -308,7 +302,7 @@ export default function MemberManagerModal({
             <span className="text-xs font-black uppercase text-slate-400 tracking-wider">
               Danh sách nhân sự hiện tại ({members.length})
             </span>
-            <span className="text-[10px] text-slate-400 font-medium">
+            <span className="text-caption text-slate-400 font-medium">
               ★ = Cửa hàng mặc định khi đăng nhập
             </span>
           </div>
@@ -333,7 +327,7 @@ export default function MemberManagerModal({
                   >
                     {/* User info */}
                     <div className="flex items-center space-x-3 min-w-0">
-                      <div className="w-8 h-8 rounded-xl bg-slate-100 text-slate-700 font-black text-xs flex items-center justify-center shrink-0 uppercase border border-slate-200">
+                      <div className="w-8 h-8 rounded-2xl bg-slate-100 text-slate-700 font-black text-xs flex items-center justify-center shrink-0 uppercase border border-slate-200">
                         {m.username.slice(0, 2)}
                       </div>
                       <div className="min-w-0">
@@ -342,12 +336,12 @@ export default function MemberManagerModal({
                             {m.username}
                           </span>
                           {isSuper && (
-                            <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-purple-100 text-purple-700 border border-purple-200">
+                            <span className="text-caption font-bold px-1.5 py-0.2 rounded bg-purple-100 text-purple-700 border border-purple-200">
                               Super Admin
                             </span>
                           )}
                         </div>
-                        <div className="text-[10px] text-slate-400 truncate mt-0.5">
+                        <div className="text-caption text-slate-400 truncate mt-0.5">
                           {m.email || 'Không có email'}
                         </div>
                       </div>
@@ -412,13 +406,13 @@ export default function MemberManagerModal({
             <span className="text-xs font-black uppercase text-slate-400 tracking-wider">
               Thêm nhân sự vào chi nhánh
             </span>
-            <div className="inline-flex p-0.5 rounded-xl bg-slate-100 border border-slate-200 text-xs font-bold">
+            <div className="inline-flex p-0.5 rounded-2xl bg-slate-100 border border-slate-200 text-xs font-bold">
               <button
                 type="button"
                 onClick={() => setAddMode('assign_existing')}
                 className={`px-3 py-1 rounded-lg transition ${
                   addMode === 'assign_existing'
-                    ? 'bg-white text-slate-900 shadow-xs'
+                    ? 'bg-white text-slate-900 shadow-card'
                     : 'text-slate-500 hover:text-slate-900'
                 }`}
               >
@@ -429,7 +423,7 @@ export default function MemberManagerModal({
                 onClick={() => setAddMode('create_new')}
                 className={`px-3 py-1 rounded-lg transition ${
                   addMode === 'create_new'
-                    ? 'bg-white text-slate-900 shadow-xs'
+                    ? 'bg-white text-slate-900 shadow-card'
                     : 'text-slate-500 hover:text-slate-900'
                 }`}
               >
@@ -477,7 +471,7 @@ export default function MemberManagerModal({
                 <button
                   type="submit"
                   disabled={isAssigning || !selectedUserId}
-                  className="inline-flex items-center space-x-1.5 px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white font-bold text-xs rounded-xl transition active:scale-95 disabled:opacity-50 cursor-pointer shadow-sm"
+                  className="inline-flex items-center space-x-1.5 px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white font-bold text-xs rounded-2xl transition active:scale-95 disabled:opacity-50 cursor-pointer shadow-sm"
                 >
                   {isAssigning ? (
                     <>
@@ -508,7 +502,7 @@ export default function MemberManagerModal({
                     value={newUsername}
                     onChange={(e) => setNewUsername(e.target.value)}
                     placeholder="VD: thu_ngan_01"
-                    className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 font-bold"
+                    className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 font-bold"
                     required
                   />
                 </div>
@@ -521,7 +515,7 @@ export default function MemberManagerModal({
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     placeholder="Tối thiểu 6 ký tự"
-                    className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                     required
                   />
                 </div>
@@ -548,7 +542,7 @@ export default function MemberManagerModal({
                     value={newFullName}
                     onChange={(e) => setNewFullName(e.target.value)}
                     placeholder="VD: Nguyễn Văn A"
-                    className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                   />
                 </div>
                 <div>
@@ -560,7 +554,7 @@ export default function MemberManagerModal({
                     value={newEmail}
                     onChange={(e) => setNewEmail(e.target.value)}
                     placeholder="nhanvien@example.com"
-                    className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                   />
                 </div>
               </div>
@@ -569,7 +563,7 @@ export default function MemberManagerModal({
                 <button
                   type="submit"
                   disabled={isCreatingUser}
-                  className="inline-flex items-center space-x-1.5 px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white font-bold text-xs rounded-xl transition active:scale-95 disabled:opacity-50 cursor-pointer shadow-sm"
+                  className="inline-flex items-center space-x-1.5 px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white font-bold text-xs rounded-2xl transition active:scale-95 disabled:opacity-50 cursor-pointer shadow-sm"
                 >
                   {isCreatingUser ? (
                     <>
@@ -588,17 +582,7 @@ export default function MemberManagerModal({
           )}
         </div>
 
-        {/* Footer */}
-        <div className="flex justify-end pt-3 border-t border-slate-100">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition active:scale-95"
-          >
-            Đóng
-          </button>
-        </div>
       </div>
-    </div>
+    </ModalShell>
   );
 }

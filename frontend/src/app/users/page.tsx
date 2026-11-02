@@ -26,6 +26,8 @@ import {
 import AppShell from '@/components/AppShell';
 import { FilterBar, Chip } from '@/components/ui';
 import ModernSelect, { ModernSelectOption } from '@/components/common/ModernSelect';
+import { ModalShell } from '@/components/ui/ModalShell';
+import { Switch } from '@/components/ui/Switch';
 import { fetchApi } from '@/lib/api';
 import { getAuthUser, isMasterRole, isOwnerRole, UserInfo } from '@/lib/auth';
 import { useStore } from '@/lib/StoreContext';
@@ -458,7 +460,7 @@ export default function UsersPage() {
     <AppShell>
       <div className="space-y-6 max-w-7xl mx-auto px-2 sm:px-4 py-4">
         {/* Page Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 surface-card p-4 sm:p-6 rounded-2xl border-card shadow-card">
           <div className="flex items-center space-x-3.5">
             <div className="p-3 bg-purple-600 text-white rounded-2xl shadow-md shadow-purple-200 shrink-0">
               <Users className="w-6 h-6" />
@@ -496,7 +498,7 @@ export default function UsersPage() {
 
         {/* Overview Stats Badges */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center space-x-3.5">
+          <div className="surface-card p-4 rounded-2xl border-card shadow-card flex items-center space-x-3.5">
             <div className="p-2.5 bg-slate-100 text-slate-700 rounded-xl">
               <Users className="w-5 h-5" />
             </div>
@@ -506,7 +508,7 @@ export default function UsersPage() {
             </div>
           </div>
 
-          <div className="bg-white p-4 rounded-2xl border border-purple-100 shadow-xs flex items-center space-x-3.5">
+          <div className="surface-card p-4 rounded-2xl border-card shadow-card flex items-center space-x-3.5">
             <div className="p-2.5 bg-purple-100 text-purple-700 rounded-xl">
               <Shield className="w-5 h-5" />
             </div>
@@ -516,7 +518,7 @@ export default function UsersPage() {
             </div>
           </div>
 
-          <div className="bg-white p-4 rounded-2xl border border-blue-100 shadow-xs flex items-center space-x-3.5">
+          <div className="surface-card p-4 rounded-2xl border-card shadow-card flex items-center space-x-3.5">
             <div className="p-2.5 bg-blue-100 text-blue-700 rounded-xl">
               <Shield className="w-5 h-5" />
             </div>
@@ -526,7 +528,7 @@ export default function UsersPage() {
             </div>
           </div>
 
-          <div className="bg-white p-4 rounded-2xl border border-purple-100 shadow-xs flex items-center space-x-3.5">
+          <div className="surface-card p-4 rounded-2xl border-card shadow-card flex items-center space-x-3.5">
             <div className="p-2.5 bg-purple-100 text-purple-700 rounded-xl">
               <Users className="w-5 h-5" />
             </div>
@@ -618,18 +620,18 @@ export default function UsersPage() {
               const canToggleThisUser = !isSelf && (isMasterCaller || (!isTargetMaster && !isTargetOwner && isOwnerCaller));
 
               return (
-                <div key={u.id} className="bg-white rounded-2xl border border-slate-200 shadow-xs p-4 space-y-3">
+                <div key={u.id} className="surface-card rounded-2xl border-card shadow-card p-4 space-y-3">
                   {/* Card Top: Avatar, Name, Role badge, Status */}
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center space-x-3 min-w-0">
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-600 to-purple-800 text-white font-black flex items-center justify-center text-xs shadow-xs shrink-0">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-600 to-purple-800 text-white font-black flex items-center justify-center text-xs shadow-card shrink-0">
                         {u.username.slice(0, 2).toUpperCase()}
                       </div>
                       <div className="min-w-0">
                         <p className="font-bold text-slate-900 text-sm truncate flex items-center gap-1.5">
                           <span className="truncate">{u.full_name || u.username}</span>
                           {isSelf && (
-                            <span className="text-[10px] px-1.5 py-0.5 bg-purple-50 text-purple-700 font-extrabold rounded-md border border-purple-200 shrink-0">
+                            <span className="text-caption px-1.5 py-0.5 bg-purple-50 text-purple-700 font-extrabold rounded-md border border-purple-200 shrink-0">
                               {t('users.self_tag') || 'Bạn'}
                             </span>
                           )}
@@ -641,12 +643,12 @@ export default function UsersPage() {
                     <div className="flex flex-col items-end gap-1 shrink-0">
                       {getRoleBadge(u.role)}
                       {u.is_active ? (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-200">
+                        <span className="inline-flex items-center gap-1 text-caption font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-200">
                           <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse"></span>
                           {t('users.status_active') || 'Hoạt động'}
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-200">
+                        <span className="inline-flex items-center gap-1 text-caption font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-200">
                           <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
                           {t('users.status_inactive') || 'Tạm khóa'}
                         </span>
@@ -657,7 +659,7 @@ export default function UsersPage() {
                   {/* Details row: Phone, PIN */}
                   <div className="grid grid-cols-2 gap-2 text-xs pt-2 border-t border-slate-100 text-slate-600">
                     <div>
-                      <span className="text-[10px] text-slate-400 block font-semibold uppercase">Số điện thoại</span>
+                      <span className="text-caption text-slate-400 block font-semibold uppercase">Số điện thoại</span>
                       {u.phone ? (
                         <a href={`tel:${u.phone}`} className="font-semibold text-purple-700 flex items-center gap-1 mt-0.5">
                           <Phone className="w-3 h-3 text-slate-400" />
@@ -668,7 +670,7 @@ export default function UsersPage() {
                       )}
                     </div>
                     <div>
-                      <span className="text-[10px] text-slate-400 block font-semibold uppercase">Mã PIN POS</span>
+                      <span className="text-caption text-slate-400 block font-semibold uppercase">Mã PIN POS</span>
                       {u.has_pin ? (
                         <span className="inline-flex items-center gap-1 text-[11px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-lg border border-purple-200 mt-0.5">
                           <KeyRound className="w-3 h-3 text-purple-600" />
@@ -684,18 +686,18 @@ export default function UsersPage() {
 
                   {/* Assigned Stores */}
                   <div className="pt-2 border-t border-slate-100 text-xs text-slate-600">
-                    <span className="text-[10px] text-slate-400 block font-semibold uppercase mb-1">Cửa hàng trực thuộc</span>
+                    <span className="text-caption text-slate-400 block font-semibold uppercase mb-1">Cửa hàng trực thuộc</span>
                     {u.stores && u.stores.length > 0 ? (
                       <div className="flex flex-wrap gap-1">
                         {u.stores.map((s) => (
                           <span
                             key={s.id}
-                            className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 border border-purple-200"
+                            className="inline-flex items-center gap-1 text-caption font-bold px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 border border-purple-200"
                           >
                             <Building2 className="w-2.5 h-2.5 text-purple-600 shrink-0" />
                             <span>{s.name}</span>
                             {s.role === 'store_admin' && (
-                              <span className="text-[8px] bg-purple-200 text-purple-900 px-1 rounded font-extrabold ml-0.5">Admin</span>
+                              <span className="text-caption bg-purple-200 text-purple-900 px-1 rounded font-extrabold ml-0.5">Admin</span>
                             )}
                           </span>
                         ))}
@@ -758,7 +760,7 @@ export default function UsersPage() {
         </div>
 
         {/* Desktop Users Table (Hidden on mobile) */}
-        <div className="hidden md:block bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+        <div className="hidden md:block surface-card rounded-2xl border-card shadow-card overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
@@ -802,14 +804,14 @@ export default function UsersPage() {
                         {/* User Identity */}
                         <td className="py-3.5 px-4">
                           <div className="flex items-center space-x-3">
-                            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-600 to-purple-800 text-white font-black flex items-center justify-center text-xs shadow-xs shrink-0">
+                            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-600 to-purple-800 text-white font-black flex items-center justify-center text-xs shadow-card shrink-0">
                               {u.username.slice(0, 2).toUpperCase()}
                             </div>
                             <div className="min-w-0">
                               <p className="font-bold text-slate-900 truncate">
                                 {u.full_name || u.username}
                                 {isSelf && (
-                                  <span className="ml-1.5 text-[10px] px-1.5 py-0.5 bg-purple-50 text-purple-700 font-extrabold rounded-md border border-purple-200">
+                                  <span className="ml-1.5 text-caption px-1.5 py-0.5 bg-purple-50 text-purple-700 font-extrabold rounded-md border border-purple-200">
                                     {t('users.self_tag') || 'Bạn'}
                                   </span>
                                 )}
@@ -829,12 +831,12 @@ export default function UsersPage() {
                               {u.stores.map((s) => (
                                 <span
                                   key={s.id}
-                                  className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 border border-purple-200"
+                                  className="inline-flex items-center gap-1 text-caption font-bold px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 border border-purple-200"
                                 >
                                   <Building2 className="w-2.5 h-2.5 text-purple-600 shrink-0" />
                                   <span className="truncate max-w-[120px]">{s.name}</span>
                                   {s.role === 'store_admin' && (
-                                    <span className="text-[8px] bg-purple-200 text-purple-900 px-1 rounded font-extrabold ml-0.5 shrink-0">Admin</span>
+                                    <span className="text-caption bg-purple-200 text-purple-900 px-1 rounded font-extrabold ml-0.5 shrink-0">Admin</span>
                                   )}
                                 </span>
                               ))}
@@ -953,36 +955,43 @@ export default function UsersPage() {
 
         {/* Modal: Add / Edit User */}
         {isModalOpen && (
-          <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-            <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-              <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-                <div className="flex items-center space-x-2.5">
-                  <div className="p-2 bg-purple-600 text-white rounded-xl shadow-xs">
-                    <UserPlus className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="font-black text-slate-900 text-base">
-                      {editingUser
-                        ? (t('users.modal_edit_title') || 'Chỉnh sửa Nhân viên')
-                        : (t('users.modal_add_title') || 'Thêm Nhân viên Mới')}
-                    </h3>
-                    <p className="text-[11px] text-slate-500 font-medium">
-                      {editingUser
-                        ? `${t('users.modal_edit_desc') || 'Cập nhật thông tin tài khoản'} @${editingUser.username}`
-                        : (t('users.modal_add_desc') || 'Khởi tạo tài khoản nhân viên & phân quyền')}
-                    </p>
-                  </div>
-                </div>
+          <ModalShell
+            isOpen={isModalOpen}
+            onClose={() => setIsModalOpen(false)}
+            preventClose={isSubmitting}
+            size="lg"
+            icon={<UserPlus className="w-5 h-5 text-brand-purple" />}
+            title={editingUser
+              ? (t('users.modal_edit_title') || 'Chỉnh sửa Nhân viên')
+              : (t('users.modal_add_title') || 'Thêm Nhân viên Mới')}
+            description={editingUser
+              ? `${t('users.modal_edit_desc') || 'Cập nhật thông tin tài khoản'} @${editingUser.username}`
+              : (t('users.modal_add_desc') || 'Khởi tạo tài khoản nhân viên & phân quyền')}
+            footer={
+              <div className="flex items-center justify-end space-x-2.5 w-full">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition cursor-pointer"
+                  className="px-5 py-2.5 border border-border-hairline text-slate-700 hover:bg-slate-100 text-xs font-bold rounded-full transition cursor-pointer"
                 >
-                  <X className="w-5 h-5" />
+                  {t('common.cancel') || 'Hủy'}
+                </button>
+                <button
+                  type="submit"
+                  form="user-form"
+                  disabled={isSubmitting}
+                  className="px-6 py-2.5 bg-brand-purple hover:bg-purple-800 text-white text-xs font-bold rounded-full shadow-card transition cursor-pointer disabled:opacity-50"
+                >
+                  {isSubmitting
+                    ? (t('users.btn_saving') || 'Đang lưu...')
+                    : editingUser
+                    ? (t('users.btn_save') || 'Lưu thay đổi')
+                    : (t('users.btn_create') || 'Tạo nhân viên')}
                 </button>
               </div>
-
-              <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+            }
+          >
+            <form id="user-form" onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {/* Username */}
                   <div>
@@ -1068,7 +1077,7 @@ export default function UsersPage() {
                           className="sr-only"
                         />
                         <span className="text-xs font-black text-purple-900">{t('users.role_master') || 'Master'}</span>
-                        <span className="text-[10px] text-purple-600 font-medium mt-0.5">
+                        <span className="text-caption text-purple-600 font-medium mt-0.5">
                           {t('users.role_master_desc') || 'Toàn quyền hệ thống'}
                         </span>
                       </label>
@@ -1089,7 +1098,7 @@ export default function UsersPage() {
                           className="sr-only"
                         />
                         <span className="text-xs font-black text-blue-900">{t('users.role_owner') || 'Owner'}</span>
-                        <span className="text-[10px] text-blue-600 font-medium mt-0.5">
+                        <span className="text-caption text-blue-600 font-medium mt-0.5">
                           {t('users.role_owner_desc') || 'Quản lý cửa hàng'}
                         </span>
                       </label>
@@ -1110,7 +1119,7 @@ export default function UsersPage() {
                           className="sr-only"
                         />
                         <span className="text-xs font-black text-purple-900">{t('users.role_staff') || 'Staff'}</span>
-                        <span className="text-[10px] text-purple-600 font-medium mt-0.5">
+                        <span className="text-caption text-purple-600 font-medium mt-0.5">
                           {t('users.role_staff_desc') || 'Thu ngân / Pha chế'}
                         </span>
                       </label>
@@ -1121,7 +1130,7 @@ export default function UsersPage() {
                         <Users className="w-4 h-4 text-purple-700" />
                         <span className="text-xs font-bold text-purple-900">Staff (Nhân viên cửa hàng)</span>
                       </div>
-                      <span className="text-[10px] font-semibold text-purple-600">Quyền hạn thu ngân / pha chế</span>
+                      <span className="text-caption font-semibold text-purple-600">Quyền hạn thu ngân / pha chế</span>
                     </div>
                   )}
                 </div>
@@ -1132,7 +1141,7 @@ export default function UsersPage() {
                     <label className="text-xs font-bold text-slate-700">
                       Cửa hàng phân công <span className="text-rose-500">*</span>
                     </label>
-                    <span className="text-[10px] text-slate-400 font-medium">
+                    <span className="text-caption text-slate-400 font-medium">
                       {isMasterCaller ? 'Tất cả cửa hàng trên hệ thống' : 'Cửa hàng thuộc quyền quản lý'}
                     </span>
                   </div>
@@ -1173,7 +1182,7 @@ export default function UsersPage() {
                     </div>
                   )}
                   {selectedStoreIds.length === 0 && (
-                    <p className="text-[10px] text-rose-500 font-medium mt-1">
+                    <p className="text-caption text-rose-500 font-medium mt-1">
                       Vui lòng chọn ít nhất 1 cửa hàng phân công.
                     </p>
                   )}
@@ -1203,7 +1212,7 @@ export default function UsersPage() {
                     <label className="text-xs font-bold text-slate-700">
                       {t('users.field_pin') || 'Mã PIN nhanh (4 - 6 số)'}
                     </label>
-                    <span className="text-[10px] text-slate-400 font-medium">
+                    <span className="text-caption text-slate-400 font-medium">
                       {t('users.field_pin_tip') || 'Dùng mở khóa máy POS nhanh'}
                     </span>
                   </div>
@@ -1242,60 +1251,39 @@ export default function UsersPage() {
                   </button>
                 </div>
 
-                {/* Actions */}
-                <div className="pt-4 flex items-center justify-end space-x-2.5 border-t border-slate-100">
-                  <button
-                    type="button"
-                    onClick={() => setIsModalOpen(false)}
-                    className="px-4 py-2 border border-slate-200 text-slate-700 hover:bg-slate-50 text-xs font-bold rounded-xl transition cursor-pointer"
-                  >
-                    {t('common.cancel') || 'Hủy'}
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="px-5 py-2 bg-purple-700 hover:bg-purple-800 text-white text-xs font-bold rounded-xl shadow-md shadow-purple-200 transition cursor-pointer disabled:opacity-50"
-                  >
-                    {isSubmitting
-                      ? (t('users.btn_saving') || 'Đang lưu...')
-                      : editingUser
-                      ? (t('users.btn_save') || 'Lưu thay đổi')
-                      : (t('users.btn_create') || 'Tạo nhân viên')}
-                  </button>
-                </div>
               </form>
-            </div>
-          </div>
+          </ModalShell>
         )}
 
         {/* Modal: Quick Password / PIN Reset */}
         {isPasswordModalOpen && passwordTargetUser && (
-          <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
-            <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-              <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-amber-50/50">
-                <div className="flex items-center space-x-2.5">
-                  <div className="p-2 bg-amber-600 text-white rounded-xl shadow-xs">
-                    <KeyRound className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="font-black text-slate-900 text-base">
-                      {t('users.modal_pwd_title') || 'Đổi Mật khẩu / Mã PIN'}
-                    </h3>
-                    <p className="text-[11px] text-slate-500 font-medium">
-                      Tài khoản: @{passwordTargetUser.username}
-                    </p>
-                  </div>
-                </div>
+          <ModalShell
+            isOpen={isPasswordModalOpen && !!passwordTargetUser}
+            onClose={() => setIsPasswordModalOpen(false)}
+            size="md"
+            icon={<KeyRound className="w-5 h-5 text-amber-600" />}
+            title={t('users.modal_pwd_title') || 'Đổi Mật khẩu / Mã PIN'}
+            description={`Tài khoản: @${passwordTargetUser?.username || ''}`}
+            footer={
+              <div className="flex items-center justify-end space-x-2.5 w-full">
                 <button
                   type="button"
                   onClick={() => setIsPasswordModalOpen(false)}
-                  className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition cursor-pointer"
+                  className="px-5 py-2.5 border border-border-hairline text-slate-700 hover:bg-slate-100 text-xs font-bold rounded-full transition cursor-pointer"
                 >
-                  <X className="w-5 h-5" />
+                  {t('common.cancel') || 'Hủy'}
+                </button>
+                <button
+                  type="submit"
+                  form="password-form"
+                  className="px-6 py-2.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-full shadow-card transition cursor-pointer"
+                >
+                  {t('users.btn_update') || 'Cập nhật'}
                 </button>
               </div>
-
-              <form onSubmit={handleSavePasswordPin} className="p-6 space-y-4">
+            }
+          >
+            <form id="password-form" onSubmit={handleSavePasswordPin} className="space-y-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1.5">
                     {t('users.modal_pwd_new_password') || 'Mật khẩu mới (Tối thiểu 6 ký tự)'}
@@ -1323,24 +1311,8 @@ export default function UsersPage() {
                   />
                 </div>
 
-                <div className="pt-3 flex items-center justify-end space-x-2.5 border-t border-slate-100">
-                  <button
-                    type="button"
-                    onClick={() => setIsPasswordModalOpen(false)}
-                    className="px-4 py-2 border border-slate-200 text-slate-700 hover:bg-slate-50 text-xs font-bold rounded-xl transition cursor-pointer"
-                  >
-                    {t('common.cancel') || 'Hủy'}
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-5 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl shadow-md shadow-amber-200 transition cursor-pointer"
-                  >
-                    {t('users.btn_update') || 'Cập nhật'}
-                  </button>
-                </div>
               </form>
-            </div>
-          </div>
+          </ModalShell>
         )}
       </div>
     </AppShell>

@@ -325,7 +325,7 @@ export default function StoresPage() {
 
         {/* Executive KPI Summary Row */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
-          <div className="bg-white p-4 sm:p-5 rounded-3xl border border-slate-200 shadow-xs flex items-center space-x-3.5">
+          <div className="surface-card p-4 sm:p-5 rounded-2xl border-card shadow-card flex items-center space-x-3.5">
             <div className="p-3 bg-blue-50 text-blue-700 rounded-2xl shrink-0">
               <StoreIcon className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
@@ -339,7 +339,7 @@ export default function StoresPage() {
             </div>
           </div>
 
-          <div className="bg-white p-4 sm:p-5 rounded-3xl border border-slate-200 shadow-xs flex items-center space-x-3.5">
+          <div className="surface-card p-4 sm:p-5 rounded-2xl border-card shadow-card flex items-center space-x-3.5">
             <div className="p-3 bg-purple-50 text-purple-700 rounded-2xl shrink-0">
               <CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
@@ -353,7 +353,7 @@ export default function StoresPage() {
             </div>
           </div>
 
-          <div className="bg-white p-4 sm:p-5 rounded-3xl border border-slate-200 shadow-xs flex items-center space-x-3.5">
+          <div className="surface-card p-4 sm:p-5 rounded-2xl border-card shadow-card flex items-center space-x-3.5">
             <div className="p-3 bg-purple-50 text-purple-700 rounded-2xl shrink-0">
               <Users className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
@@ -368,7 +368,7 @@ export default function StoresPage() {
           </div>
 
           {isSuperAdmin ? (
-            <div className="bg-white p-4 sm:p-5 rounded-3xl border border-slate-200 shadow-xs flex items-center space-x-3.5">
+            <div className="surface-card p-4 sm:p-5 rounded-2xl border-card shadow-card flex items-center space-x-3.5">
               <div className="p-3 bg-amber-50 text-amber-700 rounded-2xl shrink-0">
                 <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6" />
               </div>
@@ -382,7 +382,7 @@ export default function StoresPage() {
               </div>
             </div>
           ) : (
-            <div className="bg-white p-4 sm:p-5 rounded-3xl border border-slate-200 shadow-xs flex items-center space-x-3.5">
+            <div className="surface-card p-4 sm:p-5 rounded-2xl border-card shadow-card flex items-center space-x-3.5">
               <div className="p-3 bg-purple-50 text-purple-700 rounded-2xl shrink-0">
                 <Building2 className="w-5 h-5 sm:w-6 sm:h-6" />
               </div>
@@ -400,7 +400,7 @@ export default function StoresPage() {
 
         {/* Cross-Store Executive Overview Section */}
         {isSuperAdmin && overview && (
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-xs p-5 sm:p-6 space-y-4">
+          <div className="surface-card rounded-2xl border-card shadow-card p-5 sm:p-6 space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
               <div className="flex items-center space-x-2.5">
                 <div className="p-2 bg-purple-100 text-purple-800 rounded-xl">
@@ -438,14 +438,14 @@ export default function StoresPage() {
                 <span className="text-base sm:text-lg font-black text-slate-900">
                   {formatCurrency(overview.total_range_revenue ?? overview.total_today_revenue ?? 0)}
                 </span>
-                <span className="text-[10px] text-slate-500 block mt-0.5">{periodLabel}</span>
+                <span className="text-caption text-slate-500 block mt-0.5">{periodLabel}</span>
               </div>
               <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80">
                 <span className="text-[11px] font-bold text-slate-400 block">Tổng Đơn hàng</span>
                 <span className="text-base sm:text-lg font-black text-blue-700">
                   {(overview.total_range_orders ?? overview.total_today_orders ?? 0).toLocaleString()} đơn
                 </span>
-                <span className="text-[10px] text-slate-500 block mt-0.5">{periodLabel}</span>
+                <span className="text-caption text-slate-500 block mt-0.5">{periodLabel}</span>
               </div>
               <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80">
                 <span className="text-[11px] font-bold text-slate-400 block">Giá trị Đơn TB (AOV)</span>
@@ -456,14 +456,14 @@ export default function StoresPage() {
                       : 0
                   )}
                 </span>
-                <span className="text-[10px] text-slate-500 block mt-0.5">Doanh thu / đơn</span>
+                <span className="text-caption text-slate-500 block mt-0.5">Doanh thu / đơn</span>
               </div>
               <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80">
                 <span className="text-[11px] font-bold text-slate-400 block">Lợi nhuận Gộp Ước tính</span>
                 <span className="text-base sm:text-lg font-black text-purple-700">
                   {formatCurrency(overview.total_range_profit ?? 0)}
                 </span>
-                <span className="text-[10px] text-purple-600 block mt-0.5">
+                <span className="text-caption text-purple-600 block mt-0.5">
                   {(overview.total_range_revenue && overview.total_range_revenue > 0)
                     ? `Biên LN: ${(((overview.total_range_profit ?? 0) / overview.total_range_revenue) * 100).toFixed(1)}%`
                     : 'Biên LN: 0%'}
@@ -489,7 +489,7 @@ export default function StoresPage() {
                       className={`p-4 rounded-2xl border transition space-y-3 ${
                         isCurrent
                           ? 'bg-purple-50/50 border-purple-300 ring-1 ring-purple-500/20'
-                          : 'bg-slate-50 border-slate-200/80 hover:bg-white hover:shadow-xs'
+                          : 'bg-slate-50 border-slate-200/80 hover:bg-white hover:shadow-card'
                       }`}
                     >
                       <div className="flex items-center justify-between">
@@ -499,22 +499,22 @@ export default function StoresPage() {
                               {item.store_name}
                             </span>
                             {isCurrent && (
-                              <span className="text-[9px] font-bold text-purple-800 bg-purple-100 px-1 rounded">
+                              <span className="text-caption font-bold text-purple-800 bg-purple-100 px-1 rounded">
                                 Đang chọn
                               </span>
                             )}
                           </div>
                           <div className="flex items-center space-x-1.5 mt-0.5">
-                            <span className="text-[10px] font-mono text-slate-400 font-semibold">
+                            <span className="text-caption font-mono text-slate-400 font-semibold">
                               {item.store_code}
                             </span>
-                            <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded border ${badge.color}`}>
+                            <span className={`text-caption font-bold px-1.5 py-0.2 rounded border ${badge.color}`}>
                               {badge.label}
                             </span>
                           </div>
                         </div>
                         <span
-                          className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded border ${
+                          className={`text-caption font-extrabold px-1.5 py-0.5 rounded border ${
                             item.is_active
                               ? 'bg-purple-50 text-purple-700 border-purple-200'
                               : 'bg-slate-100 text-slate-400 border-slate-200'
@@ -526,22 +526,22 @@ export default function StoresPage() {
 
                       <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-200/60">
                         <div>
-                          <span className="text-[10px] text-slate-400 font-bold block">Doanh thu ({periodLabel})</span>
+                          <span className="text-caption text-slate-400 font-bold block">Doanh thu ({periodLabel})</span>
                           <span className="text-xs font-black text-slate-900">
                             {formatCurrency(itemRev, { currency_symbol: item.currency })}
                           </span>
-                          <span className="text-[9px] text-slate-500 block">{itemOrd} đơn</span>
+                          <span className="text-caption text-slate-500 block">{itemOrd} đơn</span>
                         </div>
                         <div>
-                          <span className="text-[10px] text-slate-400 font-bold block">Lợi nhuận & Biên LN</span>
+                          <span className="text-caption text-slate-400 font-bold block">Lợi nhuận & Biên LN</span>
                           <span className="text-xs font-black text-purple-700">
                             {formatCurrency(itemProf, { currency_symbol: item.currency })}
                           </span>
-                          <span className="text-[9px] text-purple-600 block">Biên LN: {itemMargin.toFixed(1)}%</span>
+                          <span className="text-caption text-purple-600 block">Biên LN: {itemMargin.toFixed(1)}%</span>
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-between pt-2 border-t border-slate-200/60 text-[10px] text-slate-500">
+                      <div className="flex items-center justify-between pt-2 border-t border-slate-200/60 text-caption text-slate-500">
                         <span>AOV: <strong className="text-slate-800">{formatCurrency(itemAov, { currency_symbol: item.currency })}</strong></span>
                         {!isCurrent && (
                           <button
@@ -566,7 +566,7 @@ export default function StoresPage() {
         )}
 
         {/* Store List Header with Search & Filter Controls */}
-        <div className="bg-white rounded-3xl border border-slate-200 shadow-xs p-5 sm:p-6 space-y-4">
+        <div className="surface-card rounded-2xl border-card shadow-card p-5 sm:p-6 space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <h2 className="text-base font-black text-slate-900 flex items-center space-x-2">
               <span>Danh sách Cửa hàng</span>
@@ -631,7 +631,7 @@ export default function StoresPage() {
                     className={`p-5 rounded-3xl border transition flex flex-col justify-between space-y-4 ${
                       isCurrent
                         ? 'bg-purple-50/40 border-purple-300 ring-2 ring-purple-500/10 shadow-sm'
-                        : 'bg-white border-slate-200 hover:border-slate-300 hover:shadow-xs'
+                        : 'bg-white border-slate-200 hover:border-slate-300 hover:shadow-card'
                     }`}
                   >
                     {/* Top Row: Avatar & Badges */}
@@ -642,13 +642,13 @@ export default function StoresPage() {
                             <img
                               src={getImageUrl(store.logo_url) || store.logo_url}
                               alt={store.name}
-                              className="w-11 h-11 rounded-2xl object-contain bg-white border border-slate-200 p-1 shrink-0 shadow-xs"
+                              className="w-11 h-11 rounded-2xl object-contain bg-white border border-slate-200 p-1 shrink-0 shadow-card"
                               onError={(e) => {
                                 (e.target as HTMLImageElement).style.display = 'none';
                               }}
                             />
                           ) : (
-                            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-purple-600 to-purple-800 text-white font-black text-sm flex items-center justify-center shrink-0 shadow-xs">
+                            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-purple-600 to-purple-800 text-white font-black text-sm flex items-center justify-center shrink-0 shadow-card">
                               {initials}
                             </div>
                           )}
@@ -658,11 +658,11 @@ export default function StoresPage() {
                               {store.name}
                             </h3>
                             <div className="flex items-center space-x-1.5 mt-0.5">
-                              <span className="font-mono text-[10px] text-slate-500 font-bold bg-slate-100 px-1.5 py-0.2 rounded border border-slate-200">
+                              <span className="font-mono text-caption text-slate-500 font-bold bg-slate-100 px-1.5 py-0.2 rounded border border-slate-200">
                                 {store.code}
                               </span>
                               <span
-                                className={`text-[10px] font-bold px-1.5 py-0.2 rounded border ${badge.color}`}
+                                className={`text-caption font-bold px-1.5 py-0.2 rounded border ${badge.color}`}
                               >
                                 {badge.label}
                               </span>
@@ -672,7 +672,7 @@ export default function StoresPage() {
 
                         {/* Status badge */}
                         <span
-                          className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full border shrink-0 ${
+                          className={`text-caption font-extrabold px-2 py-0.5 rounded-full border shrink-0 ${
                             store.is_active
                               ? 'bg-purple-50 text-purple-700 border-purple-200'
                               : 'bg-amber-50 text-amber-700 border-amber-200'
@@ -702,7 +702,7 @@ export default function StoresPage() {
                             <Users className="w-3 h-3" /> {store.member_count || 0} nhân sự
                           </span>
                         </div>
-                        <div className="flex items-center justify-between text-[10px] text-slate-400 pt-0.5">
+                        <div className="flex items-center justify-between text-caption text-slate-400 pt-0.5">
                           <span>
                             🌐 Múi giờ: <strong className="text-slate-600 font-mono">{store.timezone || 'Asia/Ho_Chi_Minh'}</strong>
                           </span>
@@ -765,7 +765,7 @@ export default function StoresPage() {
                         <button
                           type="button"
                           onClick={() => handleSwitchToStore(store)}
-                          className="inline-flex items-center space-x-1 px-3 py-1 bg-slate-900 hover:bg-purple-700 text-white font-bold text-[11px] rounded-xl transition active:scale-95 cursor-pointer shadow-xs"
+                          className="inline-flex items-center space-x-1 px-3 py-1 bg-slate-900 hover:bg-purple-700 text-white font-bold text-[11px] rounded-xl transition active:scale-95 cursor-pointer shadow-card"
                         >
                           <span>Chuyển đến</span>
                           <ArrowRight className="w-3 h-3" />
