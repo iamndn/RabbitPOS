@@ -98,3 +98,4 @@ export const SkeletonListGroup: React.FC<{ rows?: number; className?: string }> 
 );
 
 SkeletonListGroup.displayName = 'SkeletonListGroup';
+

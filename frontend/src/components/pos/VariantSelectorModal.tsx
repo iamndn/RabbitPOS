@@ -73,19 +73,19 @@ interface Props {
 // Standardized sugar level presets (100-70-50-30-0%)
 const SUGAR_LEVELS = [
   { value: '100', label: '100%', sub: 'Đường' },
-  { value: '70',  label: '70%',  sub: 'Đường' },
-  { value: '50',  label: '50%',  sub: 'Đường' },
-  { value: '30',  label: '30%',  sub: 'Đường' },
-  { value: '0',   label: '0%',   sub: 'Không' },
+  { value: '70', label: '70%', sub: 'Đường' },
+  { value: '50', label: '50%', sub: 'Đường' },
+  { value: '30', label: '30%', sub: 'Đường' },
+  { value: '0', label: '0%', sub: 'Không' },
 ];
 
 // Standardized ice level presets (100-70-50-30-0%)
 const ICE_LEVELS = [
   { value: '100', label: '100%', sub: 'Đá' },
-  { value: '70',  label: '70%',  sub: 'Đá' },
-  { value: '50',  label: '50%',  sub: 'Đá' },
-  { value: '30',  label: '30%',  sub: 'Đá' },
-  { value: '0',   label: '0%',   sub: 'Ko đá' },
+  { value: '70', label: '70%', sub: 'Đá' },
+  { value: '50', label: '50%', sub: 'Đá' },
+  { value: '30', label: '30%', sub: 'Đá' },
+  { value: '0', label: '0%', sub: 'Ko đá' },
 ];
 
 export default function VariantSelectorModal({ product, onClose, onAddToCart, settings }: Props) {
@@ -249,11 +249,10 @@ export default function VariantSelectorModal({ product, onClose, onAddToCart, se
                   key={v.id}
                   type="button"
                   onClick={() => setSelectedVariant(v)}
-                  className={`min-h-[52px] px-3.5 py-2.5 rounded-card border text-left transition-all duration-press ease-press flex items-center justify-between gap-2 active:scale-[0.98] ${
-                    isSelected
-                      ? 'border-brand-600 bg-brand-50/75 ring-2 ring-brand-500/20'
-                      : 'bg-surface-card border-card shadow-card hover:bg-slate-50'
-                  }`}
+                  className={`min-h-[52px] px-3.5 py-2.5 rounded-card border text-left transition-all duration-press ease-press flex items-center justify-between gap-2 active:scale-[0.98] ${isSelected
+                    ? 'border-brand-600 bg-brand-50/75 ring-2 ring-brand-500/20'
+                    : 'bg-surface-card border-card shadow-card hover:bg-slate-50'
+                    }`}
                 >
                   <div className="min-w-0">
                     <span className="block text-subhead font-semibold text-slate-900 truncate">
@@ -283,11 +282,10 @@ export default function VariantSelectorModal({ product, onClose, onAddToCart, se
                   key={lvl.value}
                   type="button"
                   onClick={() => setSugarLevel(lvl.value)}
-                  className={`min-h-[48px] py-1.5 px-1 rounded-field border text-center transition-all duration-press ease-press active:scale-[0.96] flex flex-col items-center justify-center ${
-                    isSelected
-                      ? 'border-brand-600 bg-brand-600 text-white font-semibold'
-                      : 'border-card bg-surface-card text-slate-700 hover:bg-slate-50'
-                  }`}
+                  className={`min-h-[48px] py-1.5 px-1 rounded-field border text-center transition-all duration-press ease-press active:scale-[0.96] flex flex-col items-center justify-center ${isSelected
+                    ? 'border-brand-600 bg-brand-600 text-white font-semibold'
+                    : 'border-card bg-surface-card text-slate-700 hover:bg-slate-50'
+                    }`}
                 >
                   <span className="text-footnote font-semibold font-num leading-tight">{lvl.label}</span>
                   <span className={`text-caption leading-tight mt-0.5 ${isSelected ? 'text-brand-100' : 'text-slate-400'}`}>
@@ -312,11 +310,10 @@ export default function VariantSelectorModal({ product, onClose, onAddToCart, se
                   key={lvl.value}
                   type="button"
                   onClick={() => setIceLevel(lvl.value)}
-                  className={`min-h-[48px] py-1.5 px-1 rounded-field border text-center transition-all duration-press ease-press active:scale-[0.96] flex flex-col items-center justify-center ${
-                    isSelected
-                      ? 'border-sky-600 bg-sky-600 text-white font-semibold'
-                      : 'border-card bg-surface-card text-slate-700 hover:bg-slate-50'
-                  }`}
+                  className={`min-h-[48px] py-1.5 px-1 rounded-field border text-center transition-all duration-press ease-press active:scale-[0.96] flex flex-col items-center justify-center ${isSelected
+                    ? 'border-sky-600 bg-sky-600 text-white font-semibold'
+                    : 'border-card bg-surface-card text-slate-700 hover:bg-slate-50'
+                    }`}
                 >
                   <span className="text-footnote font-semibold font-num leading-tight">{lvl.label}</span>
                   <span className={`text-caption leading-tight mt-0.5 ${isSelected ? 'text-sky-100' : 'text-slate-400'}`}>
@@ -349,17 +346,15 @@ export default function VariantSelectorModal({ product, onClose, onAddToCart, se
                     key={topping.id}
                     type="button"
                     onClick={() => toggleTopping(topping)}
-                    className={`w-full min-h-[44px] px-3 py-2.5 rounded-field border flex items-center justify-between gap-2 transition-all duration-press ease-press text-subhead active:scale-[0.98] ${
-                      isSelected
-                        ? 'border-brand-600 bg-brand-50/75 text-brand-950 font-semibold ring-1 ring-brand-500/20'
-                        : 'bg-surface-card border-card text-slate-700 hover:bg-slate-50'
-                    }`}
+                    className={`w-full min-h-[44px] px-3 py-2.5 rounded-field border flex items-center justify-between gap-2 transition-all duration-press ease-press text-subhead active:scale-[0.98] ${isSelected
+                      ? 'border-brand-600 bg-brand-50/75 text-brand-950 font-semibold ring-1 ring-brand-500/20'
+                      : 'bg-surface-card border-card text-slate-700 hover:bg-slate-50'
+                      }`}
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
                       <div
-                        className={`w-4 h-4 rounded-[5px] border flex items-center justify-center shrink-0 ${
-                          isSelected ? 'bg-brand-600 border-brand-600' : 'border-slate-300 bg-white'
-                        }`}
+                        className={`w-4 h-4 rounded-[5px] border flex items-center justify-center shrink-0 ${isSelected ? 'bg-brand-600 border-brand-600' : 'border-slate-300 bg-white'
+                          }`}
                       >
                         {isSelected && <Check className="w-3 h-3 text-white" />}
                       </div>

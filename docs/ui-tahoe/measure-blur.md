@@ -102,3 +102,4 @@ Run the snippet above in each of the 4 scenarios below at mobile (`390x844`) and
 ### Accessibility / Reduced-Transparency Check (`Override Q3`)
 - Open the Top Bar User Menu and toggle **`Hiệu ứng kính`** (`Glass effects`) **OFF** (`localStorage['rabbitpos_glass_enabled'] = 'false'`, adds `html.no-glass`), then re-run the snippet:
   - Expected: `htmlNoGlass: true` and **`ACTIVE_BLUR_LAYERS: 0 / 3 (PASS)`** across every screen and modal.
+

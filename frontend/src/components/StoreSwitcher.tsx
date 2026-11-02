@@ -150,9 +150,8 @@ export default function StoreSwitcher() {
         </div>
 
         <ChevronDown
-          className={`w-3.5 h-3.5 text-slate-500 transition-transform duration-snappy ease-spring-snappy shrink-0 ${
-            isOpen ? 'rotate-180' : ''
-          }`}
+          className={`w-3.5 h-3.5 text-slate-500 transition-transform duration-snappy ease-spring-snappy shrink-0 ${isOpen ? 'rotate-180' : ''
+            }`}
         />
       </button>
 
@@ -222,11 +221,10 @@ export default function StoreSwitcher() {
                   key={store.id}
                   type="button"
                   onClick={() => handleSelectStore(store)}
-                  className={`w-full min-h-[48px] md:min-h-[44px] flex items-center gap-3 px-3 py-2.5 rounded-field text-left transition duration-press ease-press cursor-pointer active:scale-[0.98] ${
-                    isCurrent
-                      ? 'bg-brand-50 text-brand-950 font-semibold border border-brand-200 shadow-card'
-                      : 'hover:bg-slate-900/[0.04] text-slate-700 border border-transparent'
-                  }`}
+                  className={`w-full min-h-[48px] md:min-h-[44px] flex items-center gap-3 px-3 py-2.5 rounded-field text-left transition duration-press ease-press cursor-pointer active:scale-[0.98] ${isCurrent
+                    ? 'bg-brand-50 text-brand-950 font-semibold border border-brand-200 shadow-card'
+                    : 'hover:bg-slate-900/[0.04] text-slate-700 border border-transparent'
+                    }`}
                 >
                   {/* Store Avatar */}
                   {store.logo_url ? (
@@ -240,11 +238,10 @@ export default function StoreSwitcher() {
                     />
                   ) : (
                     <div
-                      className={`w-8 h-8 rounded-sm-tahoe font-bold text-footnote flex items-center justify-center shrink-0 border ${
-                        isCurrent
-                          ? 'bg-brand-600 text-white border-brand-700'
-                          : 'bg-surface-grouped text-slate-700 border-card'
-                      }`}
+                      className={`w-8 h-8 rounded-sm-tahoe font-bold text-footnote flex items-center justify-center shrink-0 border ${isCurrent
+                        ? 'bg-brand-600 text-white border-brand-700'
+                        : 'bg-surface-grouped text-slate-700 border-card'
+                        }`}
                     >
                       {itemInitials}
                     </div>

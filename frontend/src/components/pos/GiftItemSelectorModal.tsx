@@ -212,11 +212,10 @@ export default function GiftItemSelectorModal({
                     onSelectGift(variant, product);
                     onClose();
                   }}
-                  className={`p-3 rounded-card border text-left transition-all duration-press ease-press flex items-center justify-between gap-3 cursor-pointer select-none active:scale-[0.98] ${
-                    isCurrentSelected
-                      ? 'bg-brand-50/75 border-brand-500 ring-2 ring-brand-500/20'
-                      : 'bg-surface-card border-card shadow-card hover:border-brand-300 hover:bg-slate-50/70'
-                  }`}
+                  className={`p-3 rounded-card border text-left transition-all duration-press ease-press flex items-center justify-between gap-3 cursor-pointer select-none active:scale-[0.98] ${isCurrentSelected
+                    ? 'bg-brand-50/75 border-brand-500 ring-2 ring-brand-500/20'
+                    : 'bg-surface-card border-card shadow-card hover:border-brand-300 hover:bg-slate-50/70'
+                    }`}
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     {/* Product Thumbnail */}
@@ -261,11 +260,10 @@ export default function GiftItemSelectorModal({
 
                   {/* Capsule Action Pill */}
                   <span
-                    className={`px-3 py-1.5 rounded-full text-caption font-semibold transition shrink-0 inline-flex items-center gap-1 ${
-                      isCurrentSelected
-                        ? 'bg-brand-600 text-white'
-                        : 'bg-slate-900 text-white'
-                    }`}
+                    className={`px-3 py-1.5 rounded-full text-caption font-semibold transition shrink-0 inline-flex items-center gap-1 ${isCurrentSelected
+                      ? 'bg-brand-600 text-white'
+                      : 'bg-slate-900 text-white'
+                      }`}
                   >
                     {isCurrentSelected ? (
                       <>

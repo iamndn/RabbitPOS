@@ -23,3 +23,4 @@
 - **Zero decorative blur**: Removed `backdrop-blur-sm` from `ResponsiveSheet` backdrop (`:193`) and sticky footer (`:250`); only the sheet platter itself carries `glass-thick` (`1` blur pass).
 - **Killed uppercase eyebrows & micro-text**: Replaced `uppercase` `text-[10px]`/`text-[9px]` in `FieldShell`, `ModernSelect`, `ModernDateRangePicker`, and `ToastContainer` with sentence-case `text-subhead`/`text-footnote` and `11px` `text-caption` floor.
 - **No ghost/glow shadows**: Replaced dead `shadow-2xs`/`shadow-xs` per context (`0px` on inline badges/nested boxes, `shadow-card` on cards, `shadow-glass-sm` on active thumbs).
+
