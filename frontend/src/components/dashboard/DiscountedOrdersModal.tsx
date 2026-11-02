@@ -22,6 +22,7 @@ import { useTranslation } from '@/lib/i18n/LanguageContext';
 import { formatCurrency, formatDateTime, SettingsMap } from '@/lib/utils';
 import ModernSelect from '@/components/common/ModernSelect';
 import { FilterBar, Chip } from '@/components/ui';
+import { ModalShell } from '@/components/ui/ModalShell';
 
 export interface DiscountedOrderItem {
   id: number;
@@ -283,71 +284,65 @@ export default function DiscountedOrdersModal({
     document.body.removeChild(link);
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 animate-in fade-in duration-150">
-      <div className="bg-white rounded-3xl max-w-5xl w-full p-4 sm:p-6 shadow-2xl space-y-4 max-h-[92dvh] sm:max-h-[90vh] flex flex-col animate-in zoom-in-95 duration-200 border border-slate-100">
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-rose-50 text-rose-600 rounded-2xl border border-rose-100/80">
-              <Percent className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="font-extrabold text-base sm:text-lg text-slate-900">
-                  Chi Tiết Đơn Hàng Giảm Giá & Khuyến Mãi
-                </h3>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-50 text-rose-700 border border-rose-200">
-                  {totalSummary.totalOrdersCount} đơn
-                </span>
-              </div>
-              <p className="text-xs text-slate-400">
-                Kỳ phân tích: <span className="font-semibold text-slate-600">{from}</span> đến{' '}
-                <span className="font-semibold text-slate-600">{to}</span>
-                {periodName && ` (${periodName})`}
-              </p>
-            </div>
+    <ModalShell
+      isOpen={isOpen}
+      onClose={onClose}
+      size="2xl"
+      title={
+        <div className="flex items-center gap-2.5">
+          <div className="p-2 bg-rose-50 text-rose-600 rounded-xl border border-rose-200 shrink-0">
+            <Percent className="w-5 h-5" />
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition cursor-pointer"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="font-extrabold text-sm sm:text-base text-slate-900">
+                Chi Tiết Đơn Hàng Giảm Giá & Khuyến Mãi
+              </h3>
+              <span className="px-2 py-0.5 rounded-full text-caption font-extrabold bg-rose-50 text-rose-700 border border-rose-200 font-num">
+                {totalSummary.totalOrdersCount} đơn
+              </span>
+            </div>
+            <p className="text-caption text-slate-400">
+              Kỳ phân tích: <span className="font-semibold text-slate-600 font-num">{from}</span> đến{' '}
+              <span className="font-semibold text-slate-600 font-num">{to}</span>
+              {periodName && ` (${periodName})`}
+            </p>
+          </div>
         </div>
-
+      }
+    >
+      <div className="space-y-4">
         {/* 3 Metric Cards on Top */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div className="bg-rose-50/60 border border-rose-100 rounded-2xl p-3.5 flex items-center gap-3">
-            <div className="p-2.5 bg-white text-rose-600 rounded-xl shadow-2xs">
+          <div className="surface-card border-card rounded-2xl p-3.5 flex items-center gap-3 shadow-card">
+            <div className="p-2.5 bg-rose-50 text-rose-600 rounded-xl border border-rose-200 shrink-0">
               <Tag className="w-5 h-5" />
             </div>
             <div>
-              <span className="text-[11px] font-semibold text-rose-800">Tổng Tiền Đã Giảm</span>
-              <div className="text-lg font-black text-rose-600">
+              <span className="text-caption font-bold text-rose-800">Tổng Tiền Đã Giảm</span>
+              <div className="text-lg font-black text-rose-600 font-num">
                 -{formatCurrency(totalSummary.totalDiscountAmount, settings)}
               </div>
-              <span className="text-[10px] text-rose-500 font-medium">
+              <span className="text-caption text-rose-500 font-medium font-num">
                 Chiếm {totalSummary.discountRate.toFixed(1)}% doanh số gộp
               </span>
             </div>
           </div>
 
-          <div className="bg-indigo-50/60 border border-indigo-100 rounded-2xl p-3.5 flex items-center gap-3">
-            <div className="p-2.5 bg-white text-indigo-600 rounded-xl shadow-2xs">
+          <div className="surface-card border-card rounded-2xl p-3.5 flex items-center gap-3 shadow-card">
+            <div className="p-2.5 bg-purple-50 text-brand-purple rounded-xl border border-purple-200 shrink-0">
               <ShoppingBag className="w-5 h-5" />
             </div>
             <div>
-              <span className="text-[11px] font-semibold text-indigo-800">Số Lượng Đơn Được Giảm</span>
-              <div className="text-lg font-black text-indigo-600">
+              <span className="text-caption font-bold text-brand-purple">Số Lượng Đơn Được Giảm</span>
+              <div className="text-lg font-black text-brand-purple font-num">
                 {totalSummary.totalOrdersCount}{' '}
-                <span className="text-xs font-semibold text-indigo-500">
+                <span className="text-xs font-semibold text-purple-500 font-num">
                   / {totalCompletedOrders || totalSummary.totalOrdersCount} đơn
                 </span>
               </div>
-              <span className="text-[10px] text-indigo-500 font-medium">
+              <span className="text-caption text-slate-500 font-medium font-num">
                 Tỷ lệ đơn áp dụng:{' '}
                 {totalCompletedOrders > 0
                   ? ((totalSummary.totalOrdersCount / totalCompletedOrders) * 100).toFixed(1)
@@ -357,17 +352,17 @@ export default function DiscountedOrdersModal({
             </div>
           </div>
 
-          <div className="bg-purple-50/60 border border-purple-100 rounded-2xl p-3.5 flex items-center gap-3">
-            <div className="p-2.5 bg-white text-purple-600 rounded-xl shadow-2xs">
+          <div className="surface-card border-card rounded-2xl p-3.5 flex items-center gap-3 shadow-card">
+            <div className="p-2.5 bg-purple-50 text-brand-purple rounded-xl border border-purple-200 shrink-0">
               <Sparkles className="w-5 h-5" />
             </div>
             <div>
-              <span className="text-[11px] font-semibold text-purple-800">Mức Giảm Trung Bình</span>
-              <div className="text-lg font-black text-purple-600">
+              <span className="text-caption font-bold text-brand-purple">Mức Giảm Trung Bình</span>
+              <div className="text-lg font-black text-brand-purple font-num">
                 {formatCurrency(totalSummary.avgDiscount, settings)}{' '}
                 <span className="text-xs font-semibold text-purple-500">/ đơn</span>
               </div>
-              <span className="text-[10px] text-purple-600 font-medium">
+              <span className="text-caption text-purple-700 font-medium">
                 Tương đương ~1 ly nước ưu đãi
               </span>
             </div>
@@ -449,7 +444,7 @@ export default function DiscountedOrdersModal({
             <button
               onClick={handleExportCSV}
               disabled={filteredOrders.length === 0}
-              className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-full border border-border-hairline transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
               title="Xuất file CSV"
             >
               <Download className="w-3.5 h-3.5" />
@@ -489,7 +484,7 @@ export default function DiscountedOrdersModal({
         />
 
         {/* Content Table / Cards */}
-        <div className="flex-1 overflow-y-auto min-h-[300px] border border-slate-200 rounded-2xl bg-white shadow-2xs">
+        <div className="flex-1 overflow-y-auto min-h-[300px] border border-card rounded-2xl surface-card shadow-card">
           {isLoading ? (
             <div className="flex flex-col items-center justify-center h-64 text-slate-400 space-y-2">
               <RefreshCw className="w-6 h-6 animate-spin text-rose-500" />
@@ -509,7 +504,7 @@ export default function DiscountedOrdersModal({
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
-                  <tr className="bg-slate-50/80 text-slate-500 font-bold border-b border-slate-200 sticky top-0 z-10 backdrop-blur-xs">
+                  <tr className="bg-slate-50/90 text-slate-500 font-bold border-b border-card sticky top-0 z-10">
                     <th className="py-3 px-3.5">Mã đơn & Thời gian</th>
                     <th className="py-3 px-3.5">Thu ngân</th>
                     <th className="py-3 px-3.5">Chi tiết món</th>
@@ -529,15 +524,15 @@ export default function DiscountedOrdersModal({
                       <tr key={o.id} className="hover:bg-slate-50/80 transition">
                         {/* Order Code & Time */}
                         <td className="py-3 px-3.5 whitespace-nowrap">
-                          <div className="font-mono font-bold text-indigo-600">{o.order_code}</div>
-                          <div className="text-[11px] text-slate-400 mt-0.5">
+                          <div className="font-mono font-bold text-brand-purple font-num">{o.order_code}</div>
+                          <div className="text-caption text-slate-400 mt-0.5 font-num">
                             {formatDateTime(o.created_at)}
                           </div>
                         </td>
 
                         {/* Cashier */}
                         <td className="py-3 px-3.5 whitespace-nowrap">
-                          <span className="font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
+                          <span className="font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-full border border-border-hairline text-caption">
                             {cashier}
                           </span>
                         </td>
@@ -550,28 +545,28 @@ export default function DiscountedOrdersModal({
                         </td>
 
                         {/* Subtotal (Gross) */}
-                        <td className="py-3 px-3.5 text-right font-medium text-slate-600 whitespace-nowrap">
+                        <td className="py-3 px-3.5 text-right font-medium text-slate-600 whitespace-nowrap font-num">
                           {formatCurrency(o.subtotal, settings)}
                         </td>
 
                         {/* Discount */}
-                        <td className="py-3 px-3.5 text-right font-bold text-rose-600 whitespace-nowrap">
-                          <div className="inline-flex items-center gap-1 bg-rose-50 text-rose-700 border border-rose-200 px-2 py-0.5 rounded-lg">
+                        <td className="py-3 px-3.5 text-right font-bold text-rose-600 whitespace-nowrap font-num">
+                          <div className="inline-flex items-center gap-1 bg-rose-50 text-rose-700 border border-rose-200 px-2 py-0.5 rounded-full">
                             <span>-{formatCurrency(totalDisc, settings)}</span>
                           </div>
                           {o.promotion_discount > 0 && (
-                            <div className="text-[10px] text-purple-600 font-medium mt-0.5">
+                            <div className="text-caption text-brand-purple font-medium mt-0.5 font-num">
                               🎁 KM: -{formatCurrency(o.promotion_discount, settings)}
                             </div>
                           )}
                         </td>
 
                         {/* Net Paid */}
-                        <td className="py-3 px-3.5 text-right font-black text-slate-900 whitespace-nowrap">
-                          <div className="text-purple-700 font-extrabold">
+                        <td className="py-3 px-3.5 text-right font-black text-slate-900 whitespace-nowrap font-num">
+                          <div className="text-brand-purple font-extrabold">
                             +{formatCurrency(o.total_amount, settings)}
                           </div>
-                          <div className="text-[10px] text-slate-400 font-normal">
+                          <div className="text-caption text-slate-400 font-normal">
                             {o.fund?.name ? `(${o.fund.name})` : ''}
                           </div>
                         </td>
@@ -579,7 +574,7 @@ export default function DiscountedOrdersModal({
                         {/* Note */}
                         <td className="py-3 px-3.5 max-w-[160px]">
                           {o.note ? (
-                            <span className="text-[11px] text-amber-900 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md italic block truncate" title={o.note}>
+                            <span className="text-caption text-amber-900 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full italic block truncate" title={o.note}>
                               {o.note}
                             </span>
                           ) : (
@@ -596,16 +591,16 @@ export default function DiscountedOrdersModal({
         </div>
 
         {/* Footer & Pagination */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-2 border-t border-slate-100 pt-2 text-xs text-slate-500">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-2 border-t border-card pt-2 text-xs text-slate-500">
           <div>
-            Hiển thị <span className="font-bold text-slate-800">{filteredOrders.length}</span> đơn hàng có chiết khấu
+            Hiển thị <span className="font-bold text-slate-800 font-num">{filteredOrders.length}</span> đơn hàng có chiết khấu
           </div>
           {totalPages > 1 && (
-            <div className="flex items-center space-x-1.5">
+            <div className="flex items-center space-x-1.5 font-num">
               <button
                 onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                 disabled={currentPage === 1}
-                className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
+                className="p-1.5 rounded-full border border-border-hairline text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
@@ -615,7 +610,7 @@ export default function DiscountedOrdersModal({
               <button
                 onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                 disabled={currentPage === totalPages}
-                className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
+                className="p-1.5 rounded-full border border-border-hairline text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
               >
                 <ChevronRight className="w-4 h-4" />
               </button>
@@ -623,6 +618,6 @@ export default function DiscountedOrdersModal({
           )}
         </div>
       </div>
-    </div>
+    </ModalShell>
   );
 }

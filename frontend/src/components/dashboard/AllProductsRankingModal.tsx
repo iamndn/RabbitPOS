@@ -24,6 +24,7 @@ import { exportToCsv } from '@/lib/exportCsv';
 import { exportProductsRankingToExcel } from '@/lib/exportExcel';
 import ModernSelect from '@/components/common/ModernSelect';
 import { FilterBar, Chip } from '@/components/ui';
+import { ModalShell } from '@/components/ui/ModalShell';
 
 export interface ProductRankingItem {
   product_id: number;
@@ -156,30 +157,24 @@ export default function AllProductsRankingModal({
     ]);
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-150">
-      <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-5xl 2xl:max-w-6xl 3xl:max-w-7xl w-full p-4 sm:p-6 shadow-2xl space-y-4 max-h-[92dvh] sm:max-h-[90vh] flex flex-col animate-in slide-in-from-bottom-6 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200 pb-safe sm:pb-6 border border-slate-100">
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-100 pb-3 shrink-0">
-          <div className="flex items-center space-x-2.5 min-w-0 pr-2">
-            <div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl border border-indigo-100 shrink-0">
-              <TrendingUp className="w-5 h-5" />
-            </div>
-            <div className="min-w-0">
-              <h2 className="text-sm sm:text-base font-bold text-slate-900 truncate">{t('dashboard.all_products_ranking_title')}</h2>
-              <p className="text-[11px] sm:text-xs text-slate-500 truncate">{t('dashboard.all_products_ranking_subtitle')}</p>
-            </div>
+    <ModalShell
+      isOpen={isOpen}
+      onClose={onClose}
+      size="2xl"
+      title={
+        <div className="flex items-center space-x-2.5 min-w-0 pr-2">
+          <div className="p-2 bg-purple-50 text-brand-purple rounded-xl border border-purple-200 shrink-0">
+            <TrendingUp className="w-5 h-5" />
           </div>
-          <button
-            onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 transition cursor-pointer shrink-0"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="min-w-0">
+            <h2 className="text-sm sm:text-base font-bold text-slate-900 truncate">{t('dashboard.all_products_ranking_title')}</h2>
+            <p className="text-caption text-slate-500 truncate">{t('dashboard.all_products_ranking_subtitle')}</p>
+          </div>
         </div>
-
+      }
+    >
+      <div className="space-y-4">
         {/* Search Bar & Filter Controls */}
         <FilterBar
           searchValue={search}
@@ -240,10 +235,10 @@ export default function AllProductsRankingModal({
               type="button"
               onClick={handleExportExcel}
               disabled={exportingExcel}
-              className="bg-purple-50 hover:bg-purple-100 text-purple-800 text-xs font-bold px-3 py-2 rounded-xl border border-purple-200 flex items-center gap-1.5 transition active:scale-95 cursor-pointer shrink-0 shadow-2xs disabled:opacity-50"
+              className="bg-purple-50 hover:bg-purple-100 text-purple-800 text-xs font-bold px-3.5 py-2 rounded-full border border-purple-200 flex items-center gap-1.5 transition active:scale-95 cursor-pointer shrink-0 disabled:opacity-50"
               title="Xuất file Excel (.xlsx)"
             >
-              {exportingExcel ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <FileSpreadsheet className="w-3.5 h-3.5 text-purple-600" />}
+              {exportingExcel ? <RefreshCw className="w-3.5 h-3.5 animate-spin text-brand-purple" /> : <FileSpreadsheet className="w-3.5 h-3.5 text-brand-purple" />}
               <span className="hidden sm:inline">Xuất Excel</span>
             </button>
           }
@@ -273,11 +268,11 @@ export default function AllProductsRankingModal({
 
 
         {/* Table & Mobile Cards Content */}
-        <div className="flex-1 overflow-y-auto border border-slate-200 rounded-2xl shadow-sm">
+        <div className="flex-1 overflow-y-auto border border-card rounded-2xl surface-card shadow-card">
           {/* 1. Desktop Table View (md and up) */}
           <div className="hidden md:block overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase tracking-wider font-semibold sticky top-0 z-10">
+            <table className="w-full text-left text-xs font-num">
+              <thead className="bg-slate-50/90 border-b border-card text-slate-500 uppercase tracking-wider font-semibold sticky top-0 z-10">
                 <tr>
                   <th className="py-3 px-4 w-12 text-center">#</th>
                   <th className="py-3 px-4">{t('dashboard.col_product')}</th>
@@ -306,16 +301,16 @@ export default function AllProductsRankingModal({
                   items.map((it, idx) => {
                     const rank = (page - 1) * limit + idx + 1;
                     return (
-                      <tr key={`${it.product_id}-${it.variant_name}`} className="hover:bg-slate-50 transition">
+                      <tr key={`${it.product_id}-${it.variant_name}`} className="hover:bg-slate-50/70 transition">
                         <td className="py-3 px-4 text-center font-bold text-slate-400">
                           {rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank}
                         </td>
-                        <td className="py-3 px-4">
+                        <td className="py-3 px-4 font-sans">
                           <span className="font-bold text-slate-900 block">{it.product_name}</span>
-                          <span className="text-[11px] text-indigo-600 font-medium">{it.variant_name}</span>
+                          <span className="text-caption text-brand-purple font-medium">{it.variant_name}</span>
                         </td>
-                        <td className="py-3 px-4 text-slate-600">
-                          <span className="bg-slate-100 px-2 py-0.5 rounded text-[11px] font-semibold border border-slate-200">
+                        <td className="py-3 px-4 text-slate-600 font-sans">
+                          <span className="bg-slate-100 px-2 py-0.5 rounded-full text-caption font-semibold border border-border-hairline">
                             {it.category_name}
                           </span>
                         </td>
@@ -326,17 +321,17 @@ export default function AllProductsRankingModal({
                         <td className="py-3 px-4 text-right text-slate-500 font-medium">
                           {formatCurrency(it.total_cogs, settings)}
                         </td>
-                        <td className="py-3 px-4 text-right font-extrabold text-purple-600">
+                        <td className="py-3 px-4 text-right font-extrabold text-brand-purple">
                           +{formatCurrency(it.total_profit, settings)}
                         </td>
                         <td className="py-3 px-4 text-right">
                           <span
-                            className={`inline-block px-2 py-0.5 rounded-full font-bold text-[11px] ${
+                            className={`inline-block px-2.5 py-0.5 rounded-full font-bold text-caption border ${
                               it.margin_percentage >= 50
-                                ? 'bg-purple-50 text-purple-700 border border-purple-200'
+                                ? 'bg-purple-50 text-brand-purple border-purple-200'
                                 : it.margin_percentage >= 30
-                                ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                                : 'bg-rose-50 text-rose-700 border border-rose-200'
+                                ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                : 'bg-rose-50 text-rose-700 border-rose-200'
                             }`}
                           >
                             {it.margin_percentage}%
@@ -364,24 +359,24 @@ export default function AllProductsRankingModal({
               items.map((it, idx) => {
                 const rank = (page - 1) * limit + idx + 1;
                 return (
-                  <div key={`${it.product_id}-${it.variant_name}`} className="p-3.5 space-y-2.5 bg-white">
+                  <div key={`${it.product_id}-${it.variant_name}`} className="p-3.5 space-y-2.5 surface-card">
                     {/* Header: Rank + Product + Variant + Category + Margin */}
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex items-center gap-2 min-w-0">
-                        <span className={`w-6 h-6 rounded-lg flex items-center justify-center font-extrabold text-[11px] shrink-0 ${
+                        <span className={`w-6 h-6 rounded-lg flex items-center justify-center font-extrabold text-caption shrink-0 font-num ${
                           rank === 1 ? 'bg-amber-100 text-amber-800 border border-amber-300' :
                           rank === 2 ? 'bg-slate-200 text-slate-700 border border-slate-300' :
                           rank === 3 ? 'bg-orange-100 text-orange-800 border border-orange-300' :
-                          'bg-slate-100 text-slate-500 border border-slate-200'
+                          'bg-slate-100 text-slate-500 border border-border-hairline'
                         }`}>
                           {rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank}
                         </span>
                         <div className="min-w-0">
                           <span className="font-bold text-slate-900 block truncate text-xs">{it.product_name}</span>
                           <div className="flex items-center gap-1.5 mt-0.5">
-                            <span className="text-[11px] text-indigo-600 font-semibold">{it.variant_name}</span>
-                            <span className="text-[10px] text-slate-400">•</span>
-                            <span className="text-[10px] text-slate-500 bg-slate-100 px-1.5 py-0.2 rounded border border-slate-200">
+                            <span className="text-caption text-brand-purple font-semibold">{it.variant_name}</span>
+                            <span className="text-caption text-slate-400">•</span>
+                            <span className="text-caption text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded-full border border-border-hairline">
                               {it.category_name}
                             </span>
                           </div>
@@ -389,9 +384,9 @@ export default function AllProductsRankingModal({
                       </div>
 
                       <span
-                        className={`shrink-0 inline-block px-2 py-0.5 rounded-lg font-bold text-[10px] border ${
+                        className={`shrink-0 inline-block px-2 py-0.5 rounded-full font-bold text-caption border font-num ${
                           it.margin_percentage >= 50
-                            ? 'bg-purple-50 text-purple-700 border-purple-200'
+                            ? 'bg-purple-50 text-brand-purple border-purple-200'
                             : it.margin_percentage >= 30
                             ? 'bg-amber-50 text-amber-700 border-amber-200'
                             : 'bg-rose-50 text-rose-700 border-rose-200'
@@ -402,22 +397,22 @@ export default function AllProductsRankingModal({
                     </div>
 
                     {/* Metrics Grid */}
-                    <div className="grid grid-cols-2 gap-2 bg-slate-50 p-2 rounded-xl border border-slate-100 text-xs">
+                    <div className="grid grid-cols-2 gap-2 bg-slate-50 p-2.5 rounded-xl border border-border-hairline text-xs font-num">
                       <div>
-                        <span className="text-[10px] text-slate-400 block">Doanh thu & Số lượng</span>
+                        <span className="text-caption text-slate-400 block font-sans">Doanh thu & Số lượng</span>
                         <div className="font-extrabold text-slate-900 text-xs">
                           {formatCurrency(it.total_revenue, settings)}
                         </div>
-                        <span className="text-[11px] text-indigo-600 font-medium">
+                        <span className="text-caption text-brand-purple font-medium">
                           {it.quantity_sold} ly
                         </span>
                       </div>
                       <div className="text-right">
-                        <span className="text-[10px] text-slate-400 block">Lợi nhuận gộp</span>
-                        <div className="font-extrabold text-purple-600 text-xs">
+                        <span className="text-caption text-slate-400 block font-sans">Lợi nhuận gộp</span>
+                        <div className="font-extrabold text-brand-purple text-xs">
                           +{formatCurrency(it.total_profit, settings)}
                         </div>
-                        <span className="text-[11px] text-slate-500">
+                        <span className="text-caption text-slate-500">
                           Vốn: {formatCurrency(it.total_cogs, settings)}
                         </span>
                       </div>
@@ -430,8 +425,8 @@ export default function AllProductsRankingModal({
         </div>
 
         {/* Footer & Pagination */}
-        <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
-          <span className="text-slate-500">
+        <div className="flex items-center justify-between pt-2 border-t border-card text-xs text-slate-500 font-num">
+          <span className="font-sans">
             {t('dashboard.pagination_info', { count: totalItems, page: page, pages: totalPages })}
           </span>
 
@@ -439,23 +434,23 @@ export default function AllProductsRankingModal({
             <button
               disabled={page <= 1 || loading}
               onClick={() => setPage((p) => Math.max(1, p - 1))}
-              className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-40 transition"
+              className="p-1.5 rounded-full border border-border-hairline text-slate-600 hover:bg-slate-100 disabled:opacity-40 transition cursor-pointer"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
-            <span className="px-3 py-1 font-bold text-slate-800 bg-slate-100 rounded-lg">
+            <span className="px-3 py-1 font-bold text-slate-800 bg-slate-100 rounded-full">
               {page} / {totalPages}
             </span>
             <button
               disabled={page >= totalPages || loading}
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-40 transition"
+              className="p-1.5 rounded-full border border-border-hairline text-slate-600 hover:bg-slate-100 disabled:opacity-40 transition cursor-pointer"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>
         </div>
       </div>
-    </div>
+    </ModalShell>
   );
 }

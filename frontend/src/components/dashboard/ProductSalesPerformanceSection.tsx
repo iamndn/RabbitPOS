@@ -429,7 +429,7 @@ export default function ProductSalesPerformanceSection({
                         </div>
                         <div className="min-w-0">
                           <p className="font-bold text-slate-900 truncate leading-tight text-xs">{item.product_name}</p>
-                          <span className="text-[10px] font-medium text-indigo-600 bg-indigo-50 border border-indigo-100 px-1.5 py-0.5 rounded-full block w-fit max-w-[120px] truncate">
+                          <span className="text-caption font-semibold text-brand-purple bg-purple-50 border border-purple-200 px-2 py-0.5 rounded-full block w-fit max-w-[120px] truncate">
                             {item.category_name}
                           </span>
                         </div>
@@ -438,15 +438,15 @@ export default function ProductSalesPerformanceSection({
 
                     {/* Quantity */}
                     <td className="py-3 px-3 text-right">
-                      <span className={`inline-block font-extrabold text-xs px-2 py-0.5 rounded-lg ${
-                        sortField === 'quantity_sold' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-800'
+                      <span className={`inline-block font-extrabold text-xs px-2.5 py-0.5 rounded-full font-num ${
+                        sortField === 'quantity_sold' ? 'bg-brand-purple text-white' : 'bg-slate-100 text-slate-800'
                       }`}>
                         {item.quantity_sold.toLocaleString()}
                       </span>
                     </td>
 
                     {/* Revenue */}
-                    <td className={`py-3 px-3 text-right font-bold text-xs ${sortField === 'total_revenue' ? 'text-indigo-600' : 'text-slate-800'}`}>
+                    <td className={`py-3 px-3 text-right font-bold text-xs font-num ${sortField === 'total_revenue' ? 'text-brand-purple' : 'text-slate-800'}`}>
                       {formatCurrency(item.total_revenue, settings)}
                     </td>
 
@@ -487,16 +487,16 @@ export default function ProductSalesPerformanceSection({
         </div>
 
         {/* 2. Mobile Cards View (< md) */}
-        <div className="md:hidden divide-y divide-slate-100">
+        <div className="md:hidden divide-y divide-slate-100 font-num">
           {/* Quick Sort Bar for Mobile */}
-          <div className="p-3 bg-slate-50 border-b border-slate-100 flex items-center justify-between gap-2 overflow-x-auto no-scrollbar text-[11px]">
+          <div className="p-3 bg-slate-50 border-b border-card flex items-center justify-between gap-2 overflow-x-auto no-scrollbar text-caption font-sans">
             <span className="text-slate-400 font-semibold shrink-0">Sắp xếp theo:</span>
-            <div className="flex items-center gap-1.5 shrink-0">
+            <div className="flex items-center gap-1.5 shrink-0 font-num">
               <button
                 type="button"
                 onClick={() => handleSort('total_profit')}
-                className={`px-2.5 py-1 rounded-lg font-bold transition flex items-center gap-1 cursor-pointer ${
-                  sortField === 'total_profit' ? 'bg-purple-600 text-white shadow-xs' : 'bg-white text-slate-600 border border-slate-200'
+                className={`px-3 py-1 rounded-full font-bold transition flex items-center gap-1 cursor-pointer ${
+                  sortField === 'total_profit' ? 'bg-purple-600 text-white shadow-card' : 'bg-white text-slate-600 border border-border-hairline'
                 }`}
               >
                 Lợi nhuận
@@ -505,8 +505,8 @@ export default function ProductSalesPerformanceSection({
               <button
                 type="button"
                 onClick={() => handleSort('total_revenue')}
-                className={`px-2.5 py-1 rounded-lg font-bold transition flex items-center gap-1 cursor-pointer ${
-                  sortField === 'total_revenue' ? 'bg-indigo-600 text-white shadow-xs' : 'bg-white text-slate-600 border border-slate-200'
+                className={`px-3 py-1 rounded-full font-bold transition flex items-center gap-1 cursor-pointer ${
+                  sortField === 'total_revenue' ? 'bg-brand-purple text-white shadow-card' : 'bg-white text-slate-600 border border-border-hairline'
                 }`}
               >
                 Doanh thu
@@ -515,8 +515,8 @@ export default function ProductSalesPerformanceSection({
               <button
                 type="button"
                 onClick={() => handleSort('quantity_sold')}
-                className={`px-2.5 py-1 rounded-lg font-bold transition flex items-center gap-1 cursor-pointer ${
-                  sortField === 'quantity_sold' ? 'bg-indigo-600 text-white shadow-xs' : 'bg-white text-slate-600 border border-slate-200'
+                className={`px-3 py-1 rounded-full font-bold transition flex items-center gap-1 cursor-pointer ${
+                  sortField === 'quantity_sold' ? 'bg-brand-purple text-white shadow-card' : 'bg-white text-slate-600 border border-border-hairline'
                 }`}
               >
                 SL bán
@@ -574,51 +574,51 @@ export default function ProductSalesPerformanceSection({
                     </div>
 
                     <div className="min-w-0">
-                      <p className="font-bold text-slate-900 truncate leading-tight text-xs">{item.product_name}</p>
-                      <span className="text-[10px] font-medium text-indigo-600 bg-indigo-50 border border-indigo-100 px-1.5 py-0.5 rounded-full inline-block mt-0.5">
+                      <p className="font-bold text-slate-900 truncate leading-tight text-xs font-sans">{item.product_name}</p>
+                      <span className="text-caption font-semibold text-brand-purple bg-purple-50 border border-purple-200 px-2 py-0.5 rounded-full inline-block mt-0.5 font-sans">
                         {item.category_name}
                       </span>
                     </div>
                   </div>
 
                   {/* Margin % Badge */}
-                  <span className={`shrink-0 inline-flex items-center text-[11px] font-extrabold px-2 py-0.5 rounded-lg border ${marginBadgeClass(item.margin_percentage)}`}>
+                  <span className={`shrink-0 inline-flex items-center text-caption font-extrabold px-2.5 py-0.5 rounded-full border ${marginBadgeClass(item.margin_percentage)} font-num`}>
                     {item.margin_percentage.toFixed(1)}% LN
                   </span>
                 </div>
 
                 {/* Metrics Grid */}
-                <div className="grid grid-cols-2 gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-xs">
+                <div className="grid grid-cols-2 gap-2 bg-slate-50 p-2.5 rounded-xl border border-border-hairline text-xs font-num">
                   <div>
-                    <span className="text-[10px] text-slate-400 block">Doanh thu & SL bán</span>
+                    <span className="text-caption text-slate-400 block font-sans">Doanh thu & SL bán</span>
                     <div className="font-extrabold text-slate-900 text-sm">
                       {formatCurrency(item.total_revenue, settings)}
                     </div>
-                    <span className="text-[11px] text-indigo-600 font-semibold">
+                    <span className="text-caption text-brand-purple font-semibold">
                       Đã bán: {item.quantity_sold.toLocaleString()} ly
                     </span>
                   </div>
 
                   <div className="text-right">
-                    <span className="text-[10px] text-slate-400 block">Lợi nhuận gộp</span>
-                    <div className={`font-extrabold text-sm ${item.total_profit >= 0 ? 'text-purple-600' : 'text-rose-600'}`}>
+                    <span className="text-caption text-slate-400 block font-sans">Lợi nhuận gộp</span>
+                    <div className={`font-extrabold text-sm ${item.total_profit >= 0 ? 'text-brand-purple' : 'text-rose-600'}`}>
                       {item.total_profit >= 0 ? '+' : ''}{formatCurrency(item.total_profit, settings)}
                     </div>
-                    <span className="text-[11px] text-slate-500">
+                    <span className="text-caption text-slate-500 font-sans">
                       Vốn: {formatCurrency(item.total_cogs, settings)}
                     </span>
                   </div>
                 </div>
 
                 {/* Revenue Share Bar */}
-                <div className="space-y-1">
-                  <div className="flex justify-between text-[10px] text-slate-500">
-                    <span>Tỷ trọng doanh thu</span>
+                <div className="space-y-1 font-num">
+                  <div className="flex justify-between text-caption text-slate-500">
+                    <span className="font-sans">Tỷ trọng doanh thu</span>
                     <span className="font-bold text-slate-700">{item.revenue_share_percentage.toFixed(1)}%</span>
                   </div>
                   <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-indigo-500 rounded-full"
+                      className="h-full bg-brand-purple rounded-full"
                       style={{ width: `${Math.min(100, item.revenue_share_percentage)}%` }}
                     />
                   </div>
@@ -630,9 +630,9 @@ export default function ProductSalesPerformanceSection({
 
         {/* Footer */}
         {!loading && sortedItems.length > 0 && (
-          <div className="px-4 py-3 border-t border-slate-100 text-[11px] text-slate-400 flex items-center justify-between bg-slate-50/50">
-            <span>{t('product_perf.row_count', { count: sortedItems.length })}</span>
-            <span className="text-indigo-600 font-bold">
+          <div className="px-4 py-3 border-t border-card text-caption text-slate-400 flex items-center justify-between bg-slate-50/50 font-num">
+            <span className="font-sans">{t('product_perf.row_count', { count: sortedItems.length })}</span>
+            <span className="text-brand-purple font-bold">
               {t('product_perf.period_label')}: {data?.from} → {data?.to}
             </span>
           </div>
