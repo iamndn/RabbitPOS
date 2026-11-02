@@ -914,9 +914,9 @@ export default function PurchasesCostTab({
           <div className="flex items-center gap-2 self-stretch sm:self-auto shrink-0">
             <a
               href="/transactions?tab=ledger&type=purchase"
-              className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-2xl text-xs font-bold transition active:scale-95 cursor-pointer"
+              className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-full text-xs font-bold transition active:scale-95 cursor-pointer shadow-card"
             >
-              <History className="w-4 h-4 text-indigo-600" aria-hidden="true" />
+              <History className="w-4 h-4 text-brand-purple" aria-hidden="true" />
               <span>{t('purchases.link_ledger_vouchers')}</span>
             </a>
             {onOpenExpenseModal && (

@@ -565,7 +565,7 @@ export default function SettingsPage() {
 
         {loading ? (
           <div className="bg-white p-16 rounded-2xl border border-slate-200 flex flex-col justify-center items-center gap-3">
-            <RefreshCw className="w-8 h-8 text-indigo-600 animate-spin" />
+            <RefreshCw className="w-8 h-8 text-brand-purple animate-spin" />
             <span className="text-xs font-medium text-slate-400">Đang tải cài đặt hệ thống...</span>
           </div>
         ) : (
@@ -686,7 +686,7 @@ export default function SettingsPage() {
               <div className="surface-card p-5 sm:p-7 rounded-2xl border-card shadow-card space-y-6 text-xs">
                 <div className="pb-4 border-b border-slate-100 flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="p-2.5 bg-indigo-50 rounded-xl border border-indigo-100 text-indigo-600">
+                    <div className="p-2.5 bg-purple-50 rounded-xl border border-purple-200 text-brand-purple">
                       <Store className="w-5 h-5" />
                     </div>
                     <div>
@@ -773,14 +773,14 @@ export default function SettingsPage() {
                             type="text"
                             value={form.store_logo_url || ''}
                             onChange={(e) => handleChange('store_logo_url', e.target.value)}
-                            className="flex-1 px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 bg-slate-50/50 hover:bg-white focus:bg-white transition text-xs"
+                            className="flex-1 px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 bg-slate-50/50 hover:bg-white focus:bg-white transition text-xs"
                             placeholder={t('settings.store_logo_placeholder')}
                           />
                           <button
                             type="button"
                             onClick={() => logoInputRef.current?.click()}
                             disabled={logoUploading}
-                            className="flex items-center gap-1.5 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 font-semibold px-4 py-2.5 rounded-xl transition text-xs whitespace-nowrap disabled:opacity-50"
+                            className="flex items-center gap-1.5 bg-purple-50 hover:bg-purple-100 border border-purple-200 text-brand-purple font-semibold px-4 py-2.5 rounded-xl transition text-xs whitespace-nowrap disabled:opacity-50"
                           >
                             {logoUploading ? (
                               <RefreshCw className="w-3.5 h-3.5 animate-spin" />
@@ -913,7 +913,7 @@ export default function SettingsPage() {
             {activeTab === 'currency' && (
               <div className="surface-card p-5 sm:p-7 rounded-2xl border-card shadow-card space-y-6 text-xs">
                 <div className="pb-4 border-b border-slate-100 flex items-center gap-3">
-                  <div className="p-2.5 bg-indigo-50 rounded-xl border border-indigo-100 text-indigo-600">
+                  <div className="p-2.5 bg-purple-50 rounded-xl border border-purple-200 text-brand-purple">
                     <Coins className="w-5 h-5" />
                   </div>
                   <div>
@@ -936,7 +936,7 @@ export default function SettingsPage() {
                       required
                       value={form.currency_code || ''}
                       onChange={(e) => handleChange('currency_code', e.target.value)}
-                      className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 bg-slate-50/50 hover:bg-white focus:bg-white transition"
+                      className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 bg-slate-50/50 hover:bg-white focus:bg-white transition"
                       placeholder="VND, USD, EUR..."
                     />
                   </div>
@@ -950,7 +950,7 @@ export default function SettingsPage() {
                       required
                       value={form.currency_symbol || ''}
                       onChange={(e) => handleChange('currency_symbol', e.target.value)}
-                      className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 bg-slate-50/50 hover:bg-white focus:bg-white transition"
+                      className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 bg-slate-50/50 hover:bg-white focus:bg-white transition"
                       placeholder="đ, $, €..."
                     />
                   </div>
@@ -970,12 +970,12 @@ export default function SettingsPage() {
                   </div>
 
                   {/* Preview Box */}
-                  <div className="sm:col-span-3 bg-indigo-50/60 p-4 rounded-2xl border border-indigo-100/80 flex items-center justify-between">
+                  <div className="sm:col-span-3 bg-purple-50/60 p-4 rounded-2xl border border-purple-200/80 flex items-center justify-between">
                     <div>
-                      <span className="text-[11px] text-indigo-900 font-semibold block">{t('settings.preview_label')}</span>
+                      <span className="text-[11px] text-purple-950 font-semibold block">{t('settings.preview_label')}</span>
                       <span className="text-xs text-slate-500">Mẫu định dạng tiền tệ thực tế</span>
                     </div>
-                    <span className="text-base font-extrabold text-indigo-700 bg-white px-3.5 py-1.5 rounded-xl border border-indigo-200 shadow-card">
+                    <span className="text-base font-extrabold text-brand-purple bg-white px-3.5 py-1.5 rounded-xl border border-purple-200 shadow-card">
                       {formatCurrency(35000, form)}
                     </span>
                   </div>
@@ -987,7 +987,7 @@ export default function SettingsPage() {
             {activeTab === 'vietqr' && (
               <div className="surface-card p-5 sm:p-7 rounded-2xl border-card shadow-card space-y-6 text-xs">
                 <div className="pb-4 border-b border-slate-100 flex items-center gap-3">
-                  <div className="p-2.5 bg-indigo-50 rounded-xl border border-indigo-100 text-indigo-600">
+                  <div className="p-2.5 bg-purple-50 rounded-xl border border-purple-200 text-brand-purple">
                     <QrCode className="w-5 h-5" />
                   </div>
                   <div>
@@ -1011,7 +1011,7 @@ export default function SettingsPage() {
                         required
                         value={form.vietqr_bank_id || ''}
                         onChange={(e) => handleChange('vietqr_bank_id', e.target.value)}
-                        className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 bg-slate-50/50 hover:bg-white focus:bg-white transition"
+                        className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 bg-slate-50/50 hover:bg-white focus:bg-white transition"
                         placeholder="MB, VCB, ACB, TCB, VPB, TPB, BIDV..."
                       />
                       <p className="text-[11px] text-slate-400 mt-1">Mã ngân hàng chuẩn VietQR (VD: MB, VCB, ACB, VPB...)</p>
@@ -1026,7 +1026,7 @@ export default function SettingsPage() {
                         required
                         value={form.vietqr_account_no || ''}
                         onChange={(e) => handleChange('vietqr_account_no', e.target.value)}
-                        className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 bg-slate-50/50 hover:bg-white focus:bg-white transition font-mono"
+                        className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 bg-slate-50/50 hover:bg-white focus:bg-white transition font-mono"
                         placeholder={t('settings.vietqr_account_no_placeholder')}
                       />
                     </div>
@@ -1040,7 +1040,7 @@ export default function SettingsPage() {
                         required
                         value={form.vietqr_account_name || ''}
                         onChange={(e) => handleChange('vietqr_account_name', e.target.value)}
-                        className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 bg-slate-50/50 hover:bg-white focus:bg-white transition uppercase font-semibold"
+                        className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 bg-slate-50/50 hover:bg-white focus:bg-white transition uppercase font-semibold"
                         placeholder={t('settings.vietqr_account_name_placeholder')}
                       />
                     </div>
@@ -1432,7 +1432,7 @@ export default function SettingsPage() {
                 {/* 2. Sync Status & Controls Card */}
                 <div className="surface-card p-5 sm:p-7 rounded-2xl border-card shadow-card space-y-5">
                   <div className="pb-4 border-b border-slate-100 flex items-center gap-3">
-                    <div className="p-2.5 bg-indigo-50 rounded-xl border border-indigo-100 text-indigo-600">
+                    <div className="p-2.5 bg-purple-50 rounded-xl border border-purple-200 text-brand-purple">
                       <RefreshCw className="w-5 h-5" />
                     </div>
                     <div>
@@ -1548,7 +1548,7 @@ export default function SettingsPage() {
                       type="button"
                       onClick={handleSyncSheetsNow}
                       disabled={syncingSheetsNow || !form.google_sheets_spreadsheet_id || !form.google_sheets_service_account_json}
-                      className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 text-white font-bold text-xs py-3 px-6 rounded-xl shadow-card transition flex items-center justify-center gap-2 shrink-0 w-full sm:w-auto"
+                      className="bg-brand-purple hover:bg-purple-800 disabled:bg-slate-300 text-white font-bold text-xs py-3 px-6 rounded-xl shadow-card transition flex items-center justify-center gap-2 shrink-0 w-full sm:w-auto"
                     >
                       {syncingSheetsNow ? (
                         <RefreshCw className="w-4 h-4 animate-spin" />
@@ -1772,13 +1772,13 @@ export default function SettingsPage() {
                                   <span className="font-bold text-slate-900">{backupPreview.stats.toppings || 0}</span> Topping
                                 </div>
                                 <div className="bg-white p-2 rounded-lg border border-slate-200/60">
-                                  <span className="font-bold text-indigo-600">{backupPreview.stats.ingredients || 0}</span> Nguyên vật liệu
+                                  <span className="font-bold text-brand-purple">{backupPreview.stats.ingredients || 0}</span> Nguyên vật liệu
                                 </div>
                                 <div className="bg-white p-2 rounded-lg border border-slate-200/60">
-                                  <span className="font-bold text-indigo-600">{backupPreview.stats.purchase_items || 0}</span> Nhập hàng
+                                  <span className="font-bold text-brand-purple">{backupPreview.stats.purchase_items || 0}</span> Nhập hàng
                                 </div>
                                 <div className="bg-white p-2 rounded-lg border border-slate-200/60">
-                                  <span className="font-bold text-indigo-600">{backupPreview.stats.recipe_items || 0}</span> Định lượng BOM
+                                  <span className="font-bold text-brand-purple">{backupPreview.stats.recipe_items || 0}</span> Định lượng BOM
                                 </div>
                                 <div className="bg-white p-2 rounded-lg border border-slate-200/60">
                                   <span className="font-bold text-slate-900">{backupPreview.stats.promotions || 0}</span> Khuyến mãi
@@ -1913,8 +1913,8 @@ export default function SettingsPage() {
 
                       {/* Supported Sheets Overview Pills */}
                       <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 pt-1">
-                        <div className="bg-indigo-50/70 border border-indigo-100 rounded-xl p-3 space-y-1">
-                          <span className="font-bold text-indigo-900 block text-xs">📁 Danh Mục</span>
+                        <div className="bg-purple-50/70 border border-purple-200 rounded-xl p-3 space-y-1">
+                          <span className="font-bold text-purple-950 block text-xs">📁 Danh Mục</span>
                           <p className="text-slate-500 text-[11px]">Tên danh mục, thứ tự, trạng thái</p>
                         </div>
                         <div className="bg-violet-50/70 border border-violet-100 rounded-xl p-3 space-y-1">

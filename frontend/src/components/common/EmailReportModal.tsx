@@ -301,7 +301,7 @@ export default function EmailReportModal({
               type="date"
               value={emailDate}
               onChange={(e) => setEmailDate(e.target.value)}
-              className="w-full text-xs font-bold border border-slate-200 rounded-xl px-3.5 py-2.5 bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400 min-h-[42px]"
+              className="w-full text-xs font-bold border border-slate-200 rounded-xl px-3.5 py-2.5 bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-400 min-h-[42px]"
             />
           </div>
 
@@ -309,12 +309,12 @@ export default function EmailReportModal({
           <div className="bg-slate-50 rounded-2xl p-3.5 border border-slate-200/80 space-y-2.5">
             <div className="flex items-center justify-between text-xs">
               <span className="font-extrabold text-slate-800 flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+                <Sparkles className="w-3.5 h-3.5 text-brand-purple" />
                 Số liệu tóm tắt ngày {emailDate}
               </span>
               {previewLoading && (
                 <span className="flex items-center gap-1 text-[11px] text-slate-400">
-                  <RefreshCw className="w-3 h-3 animate-spin text-indigo-500" />
+                  <RefreshCw className="w-3 h-3 animate-spin text-brand-purple" />
                   Đang tải...
                 </span>
               )}
