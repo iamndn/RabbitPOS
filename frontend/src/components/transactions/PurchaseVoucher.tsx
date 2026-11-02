@@ -35,10 +35,10 @@ export default function PurchaseVoucher({ items, settings, expanded, onToggle }:
       </button>
 
       {expanded && (
-        <div className="mt-2 rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+        <div className="mt-2 rounded-xl border border-card bg-surface-card shadow-card overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-[11px] tabular-nums">
-              <thead className="bg-slate-50 text-slate-500 uppercase tracking-wider">
+            <table className="w-full text-[11px] tabular-nums font-num">
+              <thead className="bg-slate-50/80 text-slate-500 uppercase tracking-wider font-semibold border-b border-border-hairline">
                 <tr>
                   <th className="text-left font-bold px-2.5 py-1.5">{t('tx.voucher_col_item')}</th>
                   <th className="text-right font-bold px-2.5 py-1.5">{t('tx.voucher_col_qty')}</th>
@@ -51,14 +51,14 @@ export default function PurchaseVoucher({ items, settings, expanded, onToggle }:
                 {items.map((pi, idx) => (
                   <tr key={pi.id ?? idx}>
                     <td className="px-2.5 py-1.5 font-semibold text-slate-800">{pi.ingredient?.name || pi.ingredient_name}</td>
-                    <td className="px-2.5 py-1.5 text-right text-slate-700">
+                    <td className="px-2.5 py-1.5 text-right text-slate-700 font-num">
                       {pi.quantity} {pi.unit || pi.ingredient?.unit}
                     </td>
-                    <td className="px-2.5 py-1.5 text-right text-slate-700">{formatCurrency(pi.unit_price, settings)}</td>
-                    <td className="px-2.5 py-1.5 text-right text-slate-500">
+                    <td className="px-2.5 py-1.5 text-right text-slate-700 font-num">{formatCurrency(pi.unit_price, settings)}</td>
+                    <td className="px-2.5 py-1.5 text-right text-slate-500 font-num">
                       {pi.loss_rate ? `${pi.loss_rate}%` : '—'}
                     </td>
-                    <td className="px-2.5 py-1.5 text-right font-bold text-slate-900">{formatCurrency(pi.subtotal, settings)}</td>
+                    <td className="px-2.5 py-1.5 text-right font-bold text-slate-900 font-num">{formatCurrency(pi.subtotal, settings)}</td>
                   </tr>
                 ))}
               </tbody>

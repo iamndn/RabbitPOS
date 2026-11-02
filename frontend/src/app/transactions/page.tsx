@@ -1304,10 +1304,10 @@ export default function TransactionsPage() {
     <AppShell>
       <div className="space-y-4 sm:space-y-6 w-full max-w-7xl 2xl:max-w-[1800px] 3xl:max-w-[2400px] 4k:max-w-[3200px] mx-auto overflow-x-hidden">
         {/* Page Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 surface-card p-4 sm:p-5 rounded-panel border-card shadow-card">
           <div>
-            <h1 className="text-lg sm:text-xl font-black text-slate-900 flex items-center gap-2">
-              <TrendingUp className="w-6 h-6 text-purple-700 shrink-0" />
+            <h1 className="text-lg sm:text-xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
+              <TrendingUp className="w-6 h-6 text-brand-purple shrink-0" />
               {t('tx.title') || 'Sổ Thu Chi & Giao Dịch'}
             </h1>
             <p className="text-xs text-slate-500 mt-0.5">
@@ -1334,10 +1334,10 @@ export default function TransactionsPage() {
                 <button
                   type="button"
                   onClick={() => setShowEmailReportModal(true)}
-                  className="col-span-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold px-3 py-2 rounded-xl border border-indigo-200 flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer shadow-2xs w-full sm:w-auto"
+                  className="col-span-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-3 py-2 rounded-full border border-border-hairline flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer w-full sm:w-auto"
                   title="Gửi báo cáo tài chính qua email"
                 >
-                  <Mail className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                  <Mail className="w-3.5 h-3.5 text-brand-purple shrink-0" />
                   <span className="truncate">Email Báo Cáo</span>
                 </button>
                 {/* 2. Xuất Excel */}
@@ -1345,10 +1345,10 @@ export default function TransactionsPage() {
                   type="button"
                   onClick={handleExportExcel}
                   disabled={exportingExcel}
-                  className="col-span-1 bg-purple-50 hover:bg-purple-100 text-purple-800 text-xs font-bold px-3 py-2 rounded-xl border border-purple-200 flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer w-full sm:w-auto shadow-2xs disabled:opacity-50"
+                  className="col-span-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-3 py-2 rounded-full border border-border-hairline flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer w-full sm:w-auto disabled:opacity-50"
                   title="Xuất dữ liệu ra file Excel (.xlsx)"
                 >
-                  {exportingExcel ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <FileSpreadsheet className="w-3.5 h-3.5 text-purple-600 shrink-0" />}
+                  {exportingExcel ? <RefreshCw className="w-3.5 h-3.5 animate-spin text-brand-purple" /> : <FileSpreadsheet className="w-3.5 h-3.5 text-brand-purple shrink-0" />}
                   <span className="truncate">Xuất Excel</span>
                 </button>
                 {/* 3. Danh Mục */}
@@ -1356,9 +1356,9 @@ export default function TransactionsPage() {
                   <button
                     type="button"
                     onClick={() => setIsCategoryModalOpen(true)}
-                    className="col-span-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-3 py-2 rounded-xl border border-slate-200 flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer w-full sm:w-auto shadow-2xs"
+                    className="col-span-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-3 py-2 rounded-full border border-border-hairline flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer w-full sm:w-auto"
                   >
-                    <Tag className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                    <Tag className="w-3.5 h-3.5 text-brand-purple shrink-0" />
                     <span className="truncate">{t('tx_cat.btn_manage_categories') || 'Danh mục'}</span>
                   </button>
                 )}
@@ -1366,7 +1366,7 @@ export default function TransactionsPage() {
                 <button
                   type="button"
                   onClick={() => handleOpenCreateModal()}
-                  className="col-span-1 bg-purple-700 hover:bg-purple-800 text-white text-xs font-black px-3.5 py-2 rounded-xl flex items-center justify-center gap-1.5 shadow-xs transition active:scale-95 cursor-pointer w-full sm:w-auto"
+                  className="col-span-1 bg-brand-purple hover:bg-brand-purple-hover text-white text-xs font-bold px-3.5 py-2 rounded-full flex items-center justify-center gap-1.5 shadow-card transition active:scale-95 cursor-pointer w-full sm:w-auto"
                 >
                   <Plus className="w-3.5 h-3.5 shrink-0" />
                   <span className="truncate">Nhập Thu/Chi</span>
@@ -1392,20 +1392,20 @@ export default function TransactionsPage() {
                 <button
                   type="button"
                   onClick={() => setShowEmailReportModal(true)}
-                  className="col-span-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold px-3 py-2 rounded-xl border border-indigo-200 flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer shadow-2xs w-full sm:w-auto"
+                  className="col-span-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-3 py-2 rounded-full border border-border-hairline flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer w-full sm:w-auto"
                   title="Gửi báo cáo qua email"
                 >
-                  <Mail className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                  <Mail className="w-3.5 h-3.5 text-brand-purple shrink-0" />
                   <span className="truncate">Email Báo Cáo</span>
                 </button>
                 <button
                   type="button"
                   onClick={handleExportExcel}
                   disabled={exportingExcel}
-                  className="col-span-1 bg-purple-50 hover:bg-purple-100 text-purple-800 text-xs font-bold px-3 py-2 rounded-xl border border-purple-200 flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer w-full sm:w-auto shadow-2xs disabled:opacity-50"
+                  className="col-span-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-3 py-2 rounded-full border border-border-hairline flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer w-full sm:w-auto disabled:opacity-50"
                   title="Xuất dữ liệu ra file Excel (.xlsx)"
                 >
-                  {exportingExcel ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <FileSpreadsheet className="w-3.5 h-3.5 text-purple-600 shrink-0" />}
+                  {exportingExcel ? <RefreshCw className="w-3.5 h-3.5 animate-spin text-brand-purple" /> : <FileSpreadsheet className="w-3.5 h-3.5 text-brand-purple shrink-0" />}
                   <span className="truncate">Xuất Excel</span>
                 </button>
               </>
@@ -1416,7 +1416,7 @@ export default function TransactionsPage() {
                 <button
                   type="button"
                   onClick={handleExportCsv}
-                  className="col-span-2 sm:col-span-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-3 py-2 rounded-xl border border-slate-200 flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer w-full sm:w-auto"
+                  className="col-span-2 sm:col-span-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-3 py-2 rounded-full border border-border-hairline flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer w-full sm:w-auto"
                 >
                   <Download className="w-3.5 h-3.5 text-slate-500 shrink-0" /> <span className="truncate">{t('common.export_csv')}</span>
                 </button>
@@ -1426,9 +1426,9 @@ export default function TransactionsPage() {
         </div>
 
         {/* Sticky Tab Navigation Bar: 3 Tabs (Ledger, Orders, Funds) */}
-        <div className="sticky top-14 z-30 bg-slate-50 pt-1 pb-2 border-b border-slate-200/80">
+        <div className="sticky top-14 z-20 glass-regular py-1.5 px-1.5 rounded-panel border-b border-border-hairline">
           <HorizontalScroller
-            wrapperClassName="bg-slate-200/70 p-1 rounded-2xl"
+            wrapperClassName="bg-slate-200/50 p-1 rounded-full"
             className="space-x-1 sm:space-x-2"
             scrollAmount={200}
             arrowSize="sm"
@@ -1437,14 +1437,14 @@ export default function TransactionsPage() {
             <button
               type="button"
               onClick={() => handleTabChange('ledger')}
-              className={`flex-1 min-w-[130px] py-2 px-3 text-xs sm:text-sm font-bold rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${activeTab === 'ledger'
-                  ? 'bg-white text-purple-900 shadow-sm font-extrabold'
+              className={`flex-1 min-w-[130px] py-2 px-3 text-xs sm:text-sm font-bold rounded-full transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${activeTab === 'ledger'
+                  ? 'bg-brand-purple text-white shadow-card font-bold'
                   : 'text-slate-600 hover:text-slate-900'
                 }`}
             >
-              <TrendingUp className="w-4 h-4 text-indigo-600 shrink-0" />
+              <TrendingUp className={`w-4 h-4 shrink-0 ${activeTab === 'ledger' ? 'text-white' : 'text-brand-purple'}`} />
               <span>{t('tx.tab_ledger') || '💸 Sổ thu/chi'}</span>
-              <span className="bg-slate-100 text-slate-600 text-[10px] sm:text-xs px-1.5 py-0.2 rounded-full font-bold">
+              <span className={`text-[11px] px-1.5 py-0.5 rounded-full font-bold font-num ${activeTab === 'ledger' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'}`}>
                 {safeTransactions.length}
               </span>
             </button>
@@ -1453,14 +1453,14 @@ export default function TransactionsPage() {
             <button
               type="button"
               onClick={() => handleTabChange('orders')}
-              className={`flex-1 min-w-[130px] py-2 px-3 text-xs sm:text-sm font-bold rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${activeTab === 'orders'
-                  ? 'bg-white text-amber-900 shadow-sm font-extrabold'
+              className={`flex-1 min-w-[130px] py-2 px-3 text-xs sm:text-sm font-bold rounded-full transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${activeTab === 'orders'
+                  ? 'bg-brand-purple text-white shadow-card font-bold'
                   : 'text-slate-600 hover:text-slate-900'
                 }`}
             >
-              <Receipt className="w-4 h-4 text-amber-600 shrink-0" />
+              <Receipt className={`w-4 h-4 shrink-0 ${activeTab === 'orders' ? 'text-white' : 'text-amber-600'}`} />
               <span>{t('tx.tab_orders') || '🧾 Lịch sử đơn hàng'}</span>
-              <span className="bg-amber-50 text-amber-700 text-[10px] sm:text-xs px-1.5 py-0.2 rounded-full font-bold">
+              <span className={`text-[11px] px-1.5 py-0.5 rounded-full font-bold font-num ${activeTab === 'orders' ? 'bg-white/20 text-white' : 'bg-amber-100 text-amber-800'}`}>
                 {safeOrders.length}
               </span>
             </button>
@@ -1469,36 +1469,36 @@ export default function TransactionsPage() {
             <button
               type="button"
               onClick={() => handleTabChange('funds')}
-              className={`flex-1 min-w-[130px] py-2 px-3 text-xs sm:text-sm font-bold rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${activeTab === 'funds'
-                  ? 'bg-white text-purple-900 shadow-sm font-extrabold'
+              className={`flex-1 min-w-[130px] py-2 px-3 text-xs sm:text-sm font-bold rounded-full transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${activeTab === 'funds'
+                  ? 'bg-brand-purple text-white shadow-card font-bold'
                   : 'text-slate-600 hover:text-slate-900'
                 }`}
             >
-              <Wallet className="w-4 h-4 text-purple-600 shrink-0" />
+              <Wallet className={`w-4 h-4 shrink-0 ${activeTab === 'funds' ? 'text-white' : 'text-brand-purple'}`} />
               <span>{t('tx.tab_funds') || '💳 Quản lý quỹ'}</span>
-              <span className="bg-purple-50 text-purple-700 text-[10px] sm:text-xs px-1.5 py-0.2 rounded-full font-bold">
+              <span className={`text-[11px] px-1.5 py-0.5 rounded-full font-bold font-num ${activeTab === 'funds' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'}`}>
                 {safeFunds.length}
               </span>
             </button>
           </HorizontalScroller>
         </div>
 
-        {/* ── TAB 2: FINANCIAL LEDGER TRANSACTIONS ──────────────────────── */}
+        {/* ── TAB 1: FINANCIAL LEDGER TRANSACTIONS ──────────────────────── */}
         {activeTab === 'ledger' && (
           <div className="space-y-4 sm:space-y-6">
             {/* Active Fund Filter Banner if filtered by a specific fund */}
             {selectedFundId !== null && (
-              <div className="bg-slate-50 border border-slate-200 p-3 sm:p-3.5 rounded-2xl flex items-center justify-between gap-3 text-xs shadow-xs">
-                <div className="flex items-center gap-2 text-indigo-950 font-bold">
-                  <Wallet className="w-4 h-4 text-indigo-600 shrink-0" />
+              <div className="surface-card border-card p-3 sm:p-3.5 rounded-panel flex items-center justify-between gap-3 text-xs shadow-card">
+                <div className="flex items-center gap-2 text-slate-900 font-bold">
+                  <Wallet className="w-4 h-4 text-brand-purple shrink-0" />
                   <span>
-                    Đang xem giao dịch của quỹ: <span className="text-purple-800 font-extrabold underline">{safeFunds.find((f) => f.id === selectedFundId)?.name || 'Quỹ #' + selectedFundId}</span>
+                    Đang xem giao dịch của quỹ: <span className="text-brand-purple font-bold underline">{safeFunds.find((f) => f.id === selectedFundId)?.name || 'Quỹ #' + selectedFundId}</span>
                   </span>
                 </div>
                 <button
                   type="button"
                   onClick={() => setSelectedFundId(null)}
-                  className="px-3 py-1.5 bg-white hover:bg-indigo-100 text-indigo-700 font-extrabold rounded-xl border border-indigo-300 shadow-2xs transition active:scale-95 cursor-pointer shrink-0"
+                  className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-brand-purple font-bold rounded-full border border-border-hairline transition active:scale-95 cursor-pointer shrink-0"
                 >
                   👁️ Xem toàn bộ quỹ
                 </button>
@@ -1507,34 +1507,34 @@ export default function TransactionsPage() {
 
             {/* KPI Summary Row */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+              <div className="surface-card p-4 rounded-panel border-card shadow-card flex items-center justify-between">
                 <div>
                   <span className="text-xs font-semibold text-slate-500">{t('tx.inflows')}</span>
-                  <div className="text-2xl font-extrabold text-emerald-700 mt-1">{formatCurrency(totalInflow, settings)}</div>
+                  <div className="text-2xl font-bold font-num text-emerald-700 mt-1">{formatCurrency(totalInflow, settings)}</div>
                 </div>
-                <div className="p-3 rounded-2xl bg-purple-50 text-purple-600 border border-purple-100">
+                <div className="p-3 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-100">
                   <ArrowDownLeft className="w-6 h-6" />
                 </div>
               </div>
 
-              <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+              <div className="surface-card p-4 rounded-panel border-card shadow-card flex items-center justify-between">
                 <div>
                   <span className="text-xs font-semibold text-slate-500">{t('tx.outflows')}</span>
-                  <div className="text-2xl font-extrabold text-rose-600 mt-1">{formatCurrency(totalOutflow, settings)}</div>
+                  <div className="text-2xl font-bold font-num text-rose-600 mt-1">{formatCurrency(totalOutflow, settings)}</div>
                 </div>
-                <div className="p-3 rounded-2xl bg-rose-50 text-rose-600 border border-rose-100">
+                <div className="p-3 rounded-full bg-rose-50 text-rose-600 border border-rose-100">
                   <ArrowUpRight className="w-6 h-6" />
                 </div>
               </div>
 
-              <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+              <div className="surface-card p-4 rounded-panel border-card shadow-card flex items-center justify-between">
                 <div>
                   <span className="text-xs font-semibold text-slate-500">{t('tx.net_cash_flow')}</span>
-                  <div className={`text-2xl font-extrabold mt-1 ${netCashFlow >= 0 ? 'text-emerald-700' : 'text-rose-600'}`}>
+                  <div className={`text-2xl font-bold font-num mt-1 ${netCashFlow >= 0 ? 'text-emerald-700' : 'text-rose-600'}`}>
                     {formatCurrency(netCashFlow, settings)}
                   </div>
                 </div>
-                <div className="p-3 rounded-2xl bg-indigo-50 text-indigo-600 border border-indigo-100">
+                <div className="p-3 rounded-full bg-purple-50 text-brand-purple border border-purple-100">
                   <TrendingUp className="w-6 h-6" />
                 </div>
               </div>
@@ -1542,8 +1542,8 @@ export default function TransactionsPage() {
 
             {/* Cash Flow Breakdown by Fund Bar */}
             {fundInflows.length > 0 && (
-              <div className="bg-white p-3 sm:p-4 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs">
-                <div className="flex items-center gap-2 font-black text-slate-700 uppercase tracking-wider text-[11px]">
+              <div className="surface-card p-3 sm:p-4 rounded-panel border-card shadow-card flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs">
+                <div className="flex items-center gap-2 font-bold text-slate-700 uppercase tracking-wider text-[11px]">
                   <Coins className="w-4 h-4 text-amber-600 shrink-0" />
                   <span>Phân rã dòng thu theo quỹ:</span>
                 </div>
@@ -1555,14 +1555,14 @@ export default function TransactionsPage() {
                         key={fi.id}
                         type="button"
                         onClick={() => setSelectedFundId(isSelected ? null : fi.id)}
-                        className={`px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition cursor-pointer shadow-2xs active:scale-95 ${isSelected
-                            ? 'bg-purple-700 text-white shadow-xs ring-2 ring-purple-500/30'
-                            : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200'
+                        className={`px-3 py-1.5 rounded-full font-bold flex items-center gap-1.5 transition cursor-pointer active:scale-95 ${isSelected
+                            ? 'bg-brand-purple text-white shadow-card ring-2 ring-brand-purple/30'
+                            : 'bg-slate-100/80 text-slate-700 hover:bg-slate-200 border border-border-hairline'
                           }`}
                         title={`Bấm để ${isSelected ? 'bỏ lọc' : 'lọc riêng'} quỹ ${fi.name}`}
                       >
                         <span className={isSelected ? 'text-purple-100' : 'text-slate-500 font-semibold'}>{fi.name}:</span>
-                        <span className={isSelected ? 'text-white font-extrabold' : 'text-purple-700 font-extrabold'}>
+                        <span className={`font-num ${isSelected ? 'text-white font-bold' : 'text-brand-purple font-bold'}`}>
                           {formatCurrency(fi.inflowAmount, settings)}
                         </span>
                       </button>
@@ -1572,7 +1572,7 @@ export default function TransactionsPage() {
                     <button
                       type="button"
                       onClick={() => setSelectedFundId(null)}
-                      className="px-2.5 py-1.5 rounded-xl text-[11px] font-extrabold text-slate-500 hover:text-rose-600 bg-slate-100 hover:bg-slate-200 transition cursor-pointer"
+                      className="px-2.5 py-1.5 rounded-full text-[11px] font-bold text-slate-500 hover:text-rose-600 bg-slate-100 hover:bg-slate-200 transition cursor-pointer"
                     >
                       ✕ Bỏ lọc ({formatCurrency(totalInflow, settings)})
                     </button>
@@ -1582,11 +1582,11 @@ export default function TransactionsPage() {
             )}
 
             {/* Expense / Income Category Breakdown Section */}
-            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+            <div className="surface-card p-4 sm:p-5 rounded-panel border-card shadow-card space-y-4">
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-border-hairline pb-3">
                 <div>
                   <h3 className="font-bold text-sm text-slate-900 flex items-center gap-2">
-                    <Tag className="w-4 h-4 text-indigo-600" />
+                    <Tag className="w-4 h-4 text-brand-purple" />
                     {t('tx.category_breakdown_title')}
                   </h3>
                   <p className="text-xs text-slate-400">{t('tx.category_breakdown_subtitle')}</p>
@@ -1594,12 +1594,12 @@ export default function TransactionsPage() {
 
                 <div className="flex flex-wrap items-center gap-2">
                   {/* Inflow vs Outflow Type Switch (Justified on mobile) */}
-                  <div className="grid grid-cols-2 sm:flex items-center space-x-1 bg-slate-100 p-1 rounded-xl text-xs w-full sm:w-auto">
+                  <div className="grid grid-cols-2 sm:flex items-center space-x-1 bg-slate-100 p-1 rounded-full text-xs w-full sm:w-auto">
                     <button
                       type="button"
                       onClick={() => setBreakdownType('outflow')}
-                      className={`flex-1 px-3 py-1.5 rounded-lg font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${breakdownType === 'outflow'
-                        ? 'bg-white text-rose-600 shadow-sm'
+                      className={`flex-1 px-3 py-1.5 rounded-full font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${breakdownType === 'outflow'
+                        ? 'bg-white text-rose-600 shadow-card'
                         : 'text-slate-600 hover:text-slate-900'
                         }`}
                     >
@@ -1609,12 +1609,12 @@ export default function TransactionsPage() {
                     <button
                       type="button"
                       onClick={() => setBreakdownType('inflow')}
-                      className={`flex-1 px-3 py-1.5 rounded-lg font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${breakdownType === 'inflow'
-                        ? 'bg-white text-purple-600 shadow-sm'
+                      className={`flex-1 px-3 py-1.5 rounded-full font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${breakdownType === 'inflow'
+                        ? 'bg-white text-brand-purple shadow-card'
                         : 'text-slate-600 hover:text-slate-900'
                         }`}
                     >
-                      <span className="w-2 h-2 rounded-full bg-purple-500 shrink-0" />
+                      <span className="w-2 h-2 rounded-full bg-brand-purple shrink-0" />
                       <span>{t('tx.inflows')}</span>
                     </button>
                   </div>
@@ -1624,11 +1624,11 @@ export default function TransactionsPage() {
               {breakdownLoading ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
                   {[...Array(4)].map((_, i) => (
-                    <div key={i} className="p-3 bg-slate-50 rounded-xl border border-slate-200/80 space-y-2 animate-pulse">
-                      <div className="h-3 bg-slate-200 rounded w-24" />
-                      <div className="h-6 bg-slate-200 rounded w-32" />
+                    <div key={i} className="p-3.5 surface-card rounded-xl border-card space-y-2 animate-pulse">
+                      <div className="h-3 bg-slate-200 rounded-full w-24" />
+                      <div className="h-6 bg-slate-200 rounded-full w-32" />
                       <div className="h-1.5 bg-slate-200 rounded-full w-full" />
-                      <div className="h-2.5 bg-slate-100 rounded w-16 ml-auto" />
+                      <div className="h-2.5 bg-slate-100 rounded-full w-16 ml-auto" />
                     </div>
                   ))}
                 </div>
@@ -1638,7 +1638,7 @@ export default function TransactionsPage() {
                     categoryBreakdown.categories.map((c, idx) => (
                       <div
                         key={idx}
-                        className="p-3 bg-slate-50 rounded-xl border border-slate-200/80 space-y-2 flex flex-col justify-between"
+                        className="p-3.5 surface-card rounded-xl border-card space-y-2 flex flex-col justify-between shadow-card"
                       >
                         <div>
                           <div className="flex items-center justify-between">
@@ -1646,29 +1646,29 @@ export default function TransactionsPage() {
                               {c.category_label}
                             </span>
                             <span
-                              className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded ${breakdownType === 'outflow'
+                              className={`text-[11px] font-bold font-num px-1.5 py-0.5 rounded-full ${breakdownType === 'outflow'
                                 ? 'bg-rose-50 text-rose-700 border border-rose-200'
-                                : 'bg-purple-50 text-purple-700 border border-purple-200'
+                                : 'bg-purple-50 text-brand-purple border border-purple-200'
                                 }`}
                             >
                               {c.percentage}%
                             </span>
                           </div>
                           <div
-                            className={`text-base font-extrabold mt-1 ${breakdownType === 'outflow' ? 'text-rose-600' : 'text-purple-600'
+                            className={`text-base font-bold font-num mt-1 ${breakdownType === 'outflow' ? 'text-rose-600' : 'text-brand-purple'
                               }`}
                           >
                             {formatCurrency(c.total_amount, settings)}
                           </div>
                         </div>
-                        <div className="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
+                        <div className="w-full bg-slate-200/80 rounded-full h-1.5 overflow-hidden">
                           <div
                             style={{ width: `${c.percentage}%` }}
-                            className={`h-full rounded-full ${breakdownType === 'outflow' ? 'bg-rose-500' : 'bg-purple-500'
+                            className={`h-full rounded-full ${breakdownType === 'outflow' ? 'bg-rose-500' : 'bg-brand-purple'
                               }`}
                           />
                         </div>
-                        <span className="text-[10px] text-slate-400 text-right font-medium">
+                        <span className="text-[11px] text-slate-400 text-right font-medium font-num">
                           {c.count} {t('tx.transactions_count')}
                         </span>
                       </div>
@@ -1737,7 +1737,7 @@ export default function TransactionsPage() {
                 </div>
               }
               chipsSlot={
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5 flex-wrap">
                   {[
                     { id: 'all', label: t('tx.filter_all_types') || 'Tất cả' },
                     { id: 'inflow', label: t('tx.type_inflow') || 'Thu tiền (+)' },
@@ -1779,11 +1779,11 @@ export default function TransactionsPage() {
             />
 
             {/* Transaction History Table */}
-            <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+            <div className="surface-card border-card rounded-panel shadow-card overflow-hidden">
               {/* Desktop Table View (md and up) */}
               <div className="hidden md:block overflow-x-auto">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase tracking-wider font-semibold">
+                  <thead className="bg-slate-50/80 border-b border-border-hairline text-slate-500 uppercase tracking-wider font-semibold text-[11px]">
                     <tr>
                       <th className="py-3 px-4">{t('tx.date')}</th>
                       <th className="py-3 px-4">{t('tx.fund')}</th>
@@ -1811,15 +1811,15 @@ export default function TransactionsPage() {
                         const isManual = !tx.reference_order_id && !isReconciliation;
 
                         return (
-                          <tr key={tx.id} className="hover:bg-slate-50 transition">
-                            <td className="py-3 px-4 text-slate-600 font-mono">{dateStr}</td>
+                          <tr key={tx.id} className="hover:bg-slate-50/60 transition">
+                            <td className="py-3 px-4 text-slate-600 font-mono font-num">{dateStr}</td>
                             <td className="py-3 px-4 font-semibold text-slate-900">
                               {tx.fund?.name || t('tx.unknown_fund')}
                             </td>
                             <td className="py-3 px-4">
                               <span
                                 className={`px-2.5 py-1 rounded-full text-[11px] font-bold flex items-center gap-1 w-fit ${isInflow
-                                  ? 'bg-purple-50 text-purple-700 border border-purple-200'
+                                  ? 'bg-purple-50 text-brand-purple border border-purple-200'
                                   : 'bg-rose-50 text-rose-700 border border-rose-200'
                                   }`}
                               >
@@ -1828,7 +1828,7 @@ export default function TransactionsPage() {
                               </span>
                             </td>
                             <td className="py-3 px-4">
-                              <span className="font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                              <span className="font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200/80 text-[11px]">
                                 {getCategoryName(tx.category)}
                               </span>
                             </td>
@@ -1836,33 +1836,33 @@ export default function TransactionsPage() {
                               <div>{tx.description}</div>
                               {tx.reference_order?.order_code && (
                                 <div className="mt-1 flex items-center gap-1.5 flex-wrap">
-                                  <span className="font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded text-[11px]">
+                                  <span className="font-bold text-brand-purple bg-purple-50 px-2 py-0.5 rounded-full text-[11px] font-num">
                                     {tx.reference_order.order_code}
                                   </span>
                                   {((tx.reference_order.discount_amount || 0) + (tx.reference_order.promotion_discount || 0) + (tx.reference_order.platform_fee_discount || 0)) > 0 && (
-                                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold bg-rose-50 text-rose-700 border border-rose-200 px-1.5 py-0.5 rounded">
+                                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-200 px-2 py-0.5 rounded-full font-num">
                                       <span>Món: {formatCurrency(tx.reference_order.subtotal || 0, settings)}</span>
                                       <span className="font-bold text-rose-600">- Giảm: {formatCurrency((tx.reference_order.discount_amount || 0) + (tx.reference_order.promotion_discount || 0) + (tx.reference_order.platform_fee_discount || 0), settings)}</span>
-                                      <span className="text-purple-700 font-extrabold">= Quỹ: +{formatCurrency(tx.amount, settings)}</span>
+                                      <span className="text-brand-purple font-bold">= Quỹ: +{formatCurrency(tx.amount, settings)}</span>
                                     </span>
                                   )}
                                 </div>
                               )}
                               {tx.purchase_items && tx.purchase_items.length > 0 && (
-                              <PurchaseVoucher
-                                items={tx.purchase_items}
-                                settings={settings}
-                                expanded={expandedTxIds.has(tx.id)}
-                                onToggle={() => toggleTxExpanded(tx.id)}
-                              />
-                            )}
+                                <PurchaseVoucher
+                                  items={tx.purchase_items}
+                                  settings={settings}
+                                  expanded={expandedTxIds.has(tx.id)}
+                                  onToggle={() => toggleTxExpanded(tx.id)}
+                                />
+                              )}
                             </td>
-                            <td className={`py-3 px-4 text-right font-extrabold text-sm ${isInflow ? 'text-purple-600' : 'text-rose-600'}`}>
+                            <td className={`py-3 px-4 text-right font-bold text-sm font-num ${isInflow ? 'text-brand-purple' : 'text-rose-600'}`}>
                               {isInflow ? '+' : '-'}{formatCurrency(tx.amount, settings)}
                             </td>
                             <td className="py-3 px-4 text-center">
                               {isStaff ? (
-                                <span className="text-[10px] text-slate-400 font-medium italic">
+                                <span className="text-[11px] text-slate-400 font-medium italic">
                                   {t('common.view_only') || 'Chỉ xem'}
                                 </span>
                               ) : isManual ? (
@@ -1870,14 +1870,14 @@ export default function TransactionsPage() {
                                   <button
                                     onClick={() => handleOpenEditModal(tx)}
                                     title={t('common.edit') || 'Chỉnh sửa'}
-                                    className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition"
+                                    className="p-1.5 text-slate-500 hover:text-brand-purple hover:bg-purple-50 rounded-full transition cursor-pointer"
                                   >
                                     <Pencil className="w-4 h-4" />
                                   </button>
                                   <button
                                     onClick={() => setDeletingTransaction(tx)}
                                     title={t('common.delete') || 'Xóa'}
-                                    className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
+                                    className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-full transition cursor-pointer"
                                   >
                                     <Trash2 className="w-4 h-4" />
                                   </button>
@@ -1887,14 +1887,14 @@ export default function TransactionsPage() {
                                   <button
                                     onClick={() => openUpdateReconcileModalForTx(tx)}
                                     title={t('funds.update_reconcile_btn') || 'Cập nhật đối soát'}
-                                    className="p-1.5 text-amber-600 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 rounded-lg transition cursor-pointer"
+                                    className="p-1.5 text-amber-600 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 rounded-full transition cursor-pointer"
                                   >
                                     <Pencil className="w-4 h-4" />
                                   </button>
                                   <button
                                     onClick={() => setDeletingTransaction(tx)}
                                     title={t('funds.delete_reconcile_btn') || 'Xóa đối soát & hoàn tác số dư'}
-                                    className="p-1.5 text-rose-500 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg transition cursor-pointer"
+                                    className="p-1.5 text-rose-500 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-full transition cursor-pointer"
                                   >
                                     <Trash2 className="w-4 h-4" />
                                   </button>
@@ -1905,12 +1905,12 @@ export default function TransactionsPage() {
                                     <button
                                       onClick={() => setDeletingTransaction(tx)}
                                       title="Xóa giao dịch & đơn hàng"
-                                      className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"
+                                      className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-full transition cursor-pointer"
                                     >
                                       <Trash2 className="w-4 h-4" />
                                     </button>
                                   ) : null}
-                                  <span className="text-[10px] text-slate-400 font-medium px-2 py-0.5 bg-slate-100 rounded">
+                                  <span className="text-[11px] text-slate-400 font-medium px-2 py-0.5 bg-slate-100 rounded-full">
                                     {t('tx.system_auto') || 'Tự động'}
                                   </span>
                                 </div>
@@ -1940,23 +1940,23 @@ export default function TransactionsPage() {
                     const isManual = !tx.reference_order_id && !isReconciliation;
 
                     return (
-                      <div key={tx.id} className="p-4 space-y-2.5 bg-white">
+                      <div key={tx.id} className="p-4 space-y-2.5 surface-card">
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex items-center gap-2 flex-wrap">
                             <span
                               className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold flex items-center gap-1 ${isInflow
-                                  ? 'bg-purple-50 text-purple-700 border border-purple-200'
+                                  ? 'bg-purple-50 text-brand-purple border border-purple-200'
                                   : 'bg-rose-50 text-rose-700 border border-rose-200'
                                 }`}
                             >
                               {isInflow ? <ArrowDownLeft className="w-3.5 h-3.5" /> : <ArrowUpRight className="w-3.5 h-3.5" />}
                               {isInflow ? t('tx.type_inflow') : t('tx.type_outflow')}
                             </span>
-                            <span className="font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded text-xs border border-slate-200">
+                            <span className="font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-full text-[11px] border border-border-hairline">
                               {getCategoryName(tx.category)}
                             </span>
                           </div>
-                          <span className={`font-extrabold text-base ${isInflow ? 'text-purple-600' : 'text-rose-600'}`}>
+                          <span className={`font-bold text-base font-num ${isInflow ? 'text-brand-purple' : 'text-rose-600'}`}>
                             {isInflow ? '+' : '-'}{formatCurrency(tx.amount, settings)}
                           </span>
                         </div>
@@ -1966,14 +1966,14 @@ export default function TransactionsPage() {
                             <div>{tx.description}</div>
                             {tx.reference_order?.order_code && (
                               <div className="flex items-center gap-1.5 flex-wrap">
-                                <span className="font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded text-[11px]">
+                                <span className="font-bold text-brand-purple bg-purple-50 px-2 py-0.5 rounded-full text-[11px] font-num">
                                   {tx.reference_order.order_code}
                                 </span>
                                 {((tx.reference_order.discount_amount || 0) + (tx.reference_order.promotion_discount || 0) + (tx.reference_order.platform_fee_discount || 0)) > 0 && (
-                                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold bg-rose-50 text-rose-700 border border-rose-200 px-1.5 py-0.5 rounded">
+                                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-200 px-2 py-0.5 rounded-full font-num">
                                     <span>Món: {formatCurrency(tx.reference_order.subtotal || 0, settings)}</span>
                                     <span className="font-bold text-rose-600">- Giảm: {formatCurrency((tx.reference_order.discount_amount || 0) + (tx.reference_order.promotion_discount || 0) + (tx.reference_order.platform_fee_discount || 0), settings)}</span>
-                                    <span className="text-purple-700 font-extrabold">= Quỹ: +{formatCurrency(tx.amount, settings)}</span>
+                                    <span className="text-brand-purple font-bold">= Quỹ: +{formatCurrency(tx.amount, settings)}</span>
                                   </span>
                                 )}
                               </div>
@@ -1989,50 +1989,50 @@ export default function TransactionsPage() {
                           </div>
                         )}
 
-                        <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1 border-t border-slate-50">
+                        <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1.5 border-t border-border-hairline">
                           <div className="flex items-center gap-2">
                             <span className="font-semibold text-slate-800">{tx.fund?.name || t('tx.unknown_fund')}</span>
                             <span>•</span>
-                            <span className="font-mono text-slate-400">{dateStr}</span>
+                            <span className="font-mono text-slate-400 font-num">{dateStr}</span>
                           </div>
                           {isStaff ? (
-                            <span className="text-[10px] text-slate-400 font-medium italic">
+                            <span className="text-[11px] text-slate-400 font-medium italic">
                               {t('common.view_only') || 'Chỉ xem'}
                             </span>
                           ) : isManual ? (
                             <div className="flex items-center gap-1">
                               <button
                                 onClick={() => handleOpenEditModal(tx)}
-                                className="p-1.5 text-slate-500 hover:text-indigo-600 bg-slate-100 hover:bg-indigo-50 rounded-lg transition"
+                                className="min-h-[44px] min-w-[44px] flex items-center justify-center text-slate-500 hover:text-brand-purple bg-slate-100 hover:bg-purple-50 rounded-full transition active:scale-95 cursor-pointer"
                                 title={t('common.edit')}
                               >
-                                <Pencil className="w-3.5 h-3.5" />
+                                <Pencil className="w-4 h-4" />
                               </button>
                               <button
                                 onClick={() => setDeletingTransaction(tx)}
-                                className="p-1.5 text-slate-500 hover:text-rose-600 bg-slate-100 hover:bg-rose-50 rounded-lg transition"
+                                className="min-h-[44px] min-w-[44px] flex items-center justify-center text-slate-500 hover:text-rose-600 bg-slate-100 hover:bg-rose-50 rounded-full transition active:scale-95 cursor-pointer"
                                 title={t('common.delete')}
                               >
-                                <Trash2 className="w-3.5 h-3.5" />
+                                <Trash2 className="w-4 h-4" />
                               </button>
                             </div>
                           ) : isReconciliation ? (
                             <div className="flex items-center gap-1">
                               <button
                                 onClick={() => openUpdateReconcileModalForTx(tx)}
-                                className="p-1.5 text-amber-600 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 rounded-lg transition cursor-pointer"
+                                className="min-h-[44px] min-w-[44px] flex items-center justify-center text-amber-600 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 rounded-full transition active:scale-95 cursor-pointer"
                                 title={t('funds.update_reconcile_btn') || 'Cập nhật đối soát'}
                               >
-                                <Pencil className="w-3.5 h-3.5" />
+                                <Pencil className="w-4 h-4" />
                               </button>
                               <button
                                 onClick={() => setDeletingTransaction(tx)}
-                                className="p-1.5 text-rose-500 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg transition cursor-pointer"
+                                className="min-h-[44px] min-w-[44px] flex items-center justify-center text-rose-500 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-full transition active:scale-95 cursor-pointer"
                                 title={t('funds.delete_reconcile_btn') || 'Xóa đối soát & hoàn tác số dư'}
                               >
-                                <Trash2 className="w-3.5 h-3.5" />
+                                <Trash2 className="w-4 h-4" />
                               </button>
-                              <span className="text-[10px] text-indigo-700 bg-indigo-50 border border-indigo-200 font-medium px-2 py-0.5 rounded">
+                              <span className="text-[11px] text-brand-purple bg-purple-50 border border-purple-200 font-bold px-2 py-0.5 rounded-full">
                                 {t('tx.cat_reconciliation') || 'Đối soát két'}
                               </span>
                             </div>
@@ -2041,13 +2041,13 @@ export default function TransactionsPage() {
                               {tx.reference_order_id ? (
                                 <button
                                   onClick={() => setDeletingTransaction(tx)}
-                                  className="p-1.5 text-slate-400 hover:text-rose-600 bg-slate-100 hover:bg-rose-50 rounded-lg transition cursor-pointer"
+                                  className="min-h-[44px] min-w-[44px] flex items-center justify-center text-slate-400 hover:text-rose-600 bg-slate-100 hover:bg-rose-50 rounded-full transition active:scale-95 cursor-pointer"
                                   title="Xóa giao dịch & đơn hàng"
                                 >
-                                  <Trash2 className="w-3.5 h-3.5" />
+                                  <Trash2 className="w-4 h-4" />
                                 </button>
                               ) : null}
-                              <span className="text-[10px] text-slate-400 font-medium px-2 py-0.5 bg-slate-100 rounded">
+                              <span className="text-[11px] text-slate-400 font-medium px-2 py-0.5 bg-slate-100 rounded-full">
                                 {t('tx.system_auto') || 'Tự động'}
                               </span>
                             </div>
@@ -2061,23 +2061,23 @@ export default function TransactionsPage() {
 
               {/* Transactions Pagination Controls */}
               {totalTxPages > 1 && (
-                <div className="flex items-center justify-between p-3 border-t border-slate-100 bg-slate-50 text-xs">
-                  <span className="text-slate-500">
+                <div className="flex items-center justify-between p-3 border-t border-border-hairline bg-slate-50/80 text-xs">
+                  <span className="text-slate-500 font-num">
                     Trang {txPage} / {totalTxPages} ({filteredTransactions.length} giao dịch)
                   </span>
                   <div className="flex items-center space-x-1.5">
                     <button
                       onClick={() => setTxPage((p) => Math.max(1, p - 1))}
                       disabled={txPage === 1}
-                      className="p-1.5 rounded-lg border border-slate-200 bg-white disabled:opacity-40 hover:bg-slate-100 transition"
+                      className="min-h-[36px] min-w-[36px] flex items-center justify-center rounded-full border border-border-hairline bg-surface-card disabled:opacity-40 hover:bg-slate-100 transition cursor-pointer"
                     >
                       <ChevronLeft className="w-4 h-4 text-slate-600" />
                     </button>
-                    <span className="font-bold text-slate-700 px-2">{txPage}</span>
+                    <span className="font-bold text-slate-700 px-2 font-num">{txPage}</span>
                     <button
                       onClick={() => setTxPage((p) => Math.min(totalTxPages, p + 1))}
                       disabled={txPage === totalTxPages}
-                      className="p-1.5 rounded-lg border border-slate-200 bg-white disabled:opacity-40 hover:bg-slate-100 transition"
+                      className="min-h-[36px] min-w-[36px] flex items-center justify-center rounded-full border border-border-hairline bg-surface-card disabled:opacity-40 hover:bg-slate-100 transition cursor-pointer"
                     >
                       <ChevronRight className="w-4 h-4 text-slate-600" />
                     </button>
