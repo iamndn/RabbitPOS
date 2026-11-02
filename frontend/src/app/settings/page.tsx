@@ -34,6 +34,7 @@ import {
   Truck,
   Plus,
   Edit2,
+  Sparkles,
 } from 'lucide-react';
 import AppShell from '@/components/AppShell';
 import { fetchApi, uploadImage, getImageUrl, getApiBaseUrl, authHeaders } from '@/lib/api';
@@ -51,12 +52,43 @@ import {
   parseSalesChannels,
 } from '@/types/sales_channel';
 import { useStore } from '@/lib/StoreContext';
+import { Switch } from '@/components/ui/Switch';
+import { ModalShell } from '@/components/ui/ModalShell';
+import {
+  isGlassEffectsEnabled,
+  setGlassEffectsEnabled,
+  isSystemGlassForcedOff,
+  GLASS_EFFECTS_CHANGE_EVENT,
+} from '@/lib/featureFlags';
 
 export default function SettingsPage() {
   const { t } = useTranslation();
   const toast = useToast();
   const { activeStore, isSuperAdmin, refreshStores } = useStore();
-  const [activeTab, setActiveTab] = useState<'store' | 'currency' | 'vietqr' | 'email' | 'sheets' | 'backup'>('store');
+  const [activeTab, setActiveTab] = useState<'store' | 'currency' | 'vietqr' | 'email' | 'sheets' | 'backup' | 'appearance'>('store');
+  const [glassEffects, setGlassEffects] = useState<boolean>(() => {
+    return isGlassEffectsEnabled();
+  });
+
+  useEffect(() => {
+    const handleGlassChange = (e: any) => {
+      if (e.detail?.enabled !== undefined) {
+        setGlassEffects(e.detail.enabled);
+      }
+    };
+    window.addEventListener(GLASS_EFFECTS_CHANGE_EVENT, handleGlassChange);
+    return () => window.removeEventListener(GLASS_EFFECTS_CHANGE_EVENT, handleGlassChange);
+  }, []);
+
+  const handleToggleGlass = (checked: boolean) => {
+    setGlassEffects(checked);
+    setGlassEffectsEnabled(checked);
+    toast.success(
+      checked
+        ? (t('settings.glass_effects_enabled') || 'Đã bật hiệu ứng kính Liquid Glass')
+        : (t('settings.glass_effects_disabled') || 'Đã tắt hiệu ứng kính Liquid Glass')
+    );
+  };
   const [backupSubTab, setBackupSubTab] = useState<'json_backup' | 'excel_import'>('excel_import');
 
   useEffect(() => {
@@ -515,9 +547,9 @@ export default function SettingsPage() {
     <AppShell>
       <div className="space-y-4 sm:space-y-6 w-full max-w-5xl 2xl:max-w-6xl 3xl:max-w-7xl 4k:max-w-[2000px] mx-auto overflow-x-hidden">
         {/* Page Header */}
-        <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="surface-card p-5 sm:p-6 rounded-2xl border-card shadow-card flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3.5">
-            <div className="w-11 h-11 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shadow-xs">
+            <div className="w-11 h-11 rounded-2xl bg-purple-50 border border-purple-200 flex items-center justify-center text-brand-purple shadow-card">
               <SettingsIcon className="w-6 h-6" />
             </div>
             <div>
@@ -538,9 +570,9 @@ export default function SettingsPage() {
           </div>
         ) : (
           <form onSubmit={handleSave} className="space-y-6">
-            {/* Main Tab Navigation Bar (5-6 Main Tabs) */}
+            {/* Main Tab Navigation Bar (Tabs: store, currency, vietqr, email, sheets, backup, appearance) */}
             <HorizontalScroller
-              wrapperClassName="bg-slate-200/70 p-1 rounded-2xl"
+              wrapperClassName="bg-slate-200/70 p-1 rounded-full"
               className="space-x-1 sm:space-x-2"
               scrollAmount={200}
               arrowSize="sm"
@@ -549,13 +581,13 @@ export default function SettingsPage() {
               <button
                 type="button"
                 onClick={() => setActiveTab('store')}
-                className={`flex-1 min-w-[130px] py-2 px-3 text-xs sm:text-sm font-bold rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
+                className={`flex-1 min-w-[130px] py-2 px-3.5 text-xs sm:text-sm font-bold rounded-full transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
                   activeTab === 'store'
-                    ? 'bg-white text-purple-900 shadow-sm font-extrabold'
+                    ? 'bg-white text-purple-900 shadow-card font-extrabold'
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                <Store className={`w-4 h-4 shrink-0 ${activeTab === 'store' ? 'text-indigo-600' : 'text-slate-400'}`} />
+                <Store className={`w-4 h-4 shrink-0 ${activeTab === 'store' ? 'text-brand-purple' : 'text-slate-400'}`} />
                 <span>{t('settings.tab_store')}</span>
               </button>
 
@@ -563,9 +595,9 @@ export default function SettingsPage() {
               <button
                 type="button"
                 onClick={() => setActiveTab('currency')}
-                className={`flex-1 min-w-[130px] py-2 px-3 text-xs sm:text-sm font-bold rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
+                className={`flex-1 min-w-[130px] py-2 px-3.5 text-xs sm:text-sm font-bold rounded-full transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
                   activeTab === 'currency'
-                    ? 'bg-white text-purple-900 shadow-sm font-extrabold'
+                    ? 'bg-white text-purple-900 shadow-card font-extrabold'
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
@@ -577,13 +609,13 @@ export default function SettingsPage() {
               <button
                 type="button"
                 onClick={() => setActiveTab('vietqr')}
-                className={`flex-1 min-w-[130px] py-2 px-3 text-xs sm:text-sm font-bold rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
+                className={`flex-1 min-w-[130px] py-2 px-3.5 text-xs sm:text-sm font-bold rounded-full transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
                   activeTab === 'vietqr'
-                    ? 'bg-white text-purple-900 shadow-sm font-extrabold'
+                    ? 'bg-white text-purple-900 shadow-card font-extrabold'
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                <QrCode className={`w-4 h-4 shrink-0 ${activeTab === 'vietqr' ? 'text-indigo-600' : 'text-slate-400'}`} />
+                <QrCode className={`w-4 h-4 shrink-0 ${activeTab === 'vietqr' ? 'text-brand-purple' : 'text-slate-400'}`} />
                 <span>{t('settings.tab_vietqr')}</span>
               </button>
 
@@ -591,13 +623,13 @@ export default function SettingsPage() {
               <button
                 type="button"
                 onClick={() => setActiveTab('email')}
-                className={`flex-1 min-w-[130px] py-2 px-3 text-xs sm:text-sm font-bold rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
+                className={`flex-1 min-w-[130px] py-2 px-3.5 text-xs sm:text-sm font-bold rounded-full transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
                   activeTab === 'email'
-                    ? 'bg-white text-purple-900 shadow-sm font-extrabold'
+                    ? 'bg-white text-purple-900 shadow-card font-extrabold'
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                <Mail className={`w-4 h-4 shrink-0 ${activeTab === 'email' ? 'text-purple-600' : 'text-slate-400'}`} />
+                <Mail className={`w-4 h-4 shrink-0 ${activeTab === 'email' ? 'text-brand-purple' : 'text-slate-400'}`} />
                 <span>{t('settings.tab_email') || 'Cấu hình Email'}</span>
               </button>
 
@@ -605,9 +637,9 @@ export default function SettingsPage() {
               <button
                 type="button"
                 onClick={() => setActiveTab('sheets')}
-                className={`flex-1 min-w-[130px] py-2 px-3 text-xs sm:text-sm font-bold rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
+                className={`flex-1 min-w-[130px] py-2 px-3.5 text-xs sm:text-sm font-bold rounded-full transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
                   activeTab === 'sheets'
-                    ? 'bg-white text-purple-900 shadow-sm font-extrabold'
+                    ? 'bg-white text-purple-900 shadow-card font-extrabold'
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
@@ -620,24 +652,38 @@ export default function SettingsPage() {
                 <button
                   type="button"
                   onClick={() => setActiveTab('backup')}
-                  className={`flex-1 min-w-[130px] py-2 px-3 text-xs sm:text-sm font-bold rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
+                  className={`flex-1 min-w-[130px] py-2 px-3.5 text-xs sm:text-sm font-bold rounded-full transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
                     activeTab === 'backup'
-                      ? 'bg-white text-purple-900 shadow-sm font-extrabold'
+                      ? 'bg-white text-purple-900 shadow-card font-extrabold'
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
-                  <Database className={`w-4 h-4 shrink-0 ${activeTab === 'backup' ? 'text-violet-600' : 'text-slate-400'}`} />
+                  <Database className={`w-4 h-4 shrink-0 ${activeTab === 'backup' ? 'text-brand-purple' : 'text-slate-400'}`} />
                   <span>{t('settings.tab_backup')}</span>
-                  <span className="text-[9px] bg-purple-100 text-purple-700 px-1.5 py-0.2 rounded font-extrabold">
+                  <span className="text-caption bg-purple-100 text-brand-purple px-2 py-0.5 rounded-full font-bold">
                     Platform
                   </span>
                 </button>
               )}
+
+              {/* Tab 7: Appearance & Visual Effects (Override Q3) */}
+              <button
+                type="button"
+                onClick={() => setActiveTab('appearance')}
+                className={`flex-1 min-w-[130px] py-2 px-3.5 text-xs sm:text-sm font-bold rounded-full transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
+                  activeTab === 'appearance'
+                    ? 'bg-white text-purple-900 shadow-card font-extrabold'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <Sparkles className={`w-4 h-4 shrink-0 ${activeTab === 'appearance' ? 'text-brand-purple' : 'text-slate-400'}`} />
+                <span>{t('settings.tab_appearance') || 'Giao diện'}</span>
+              </button>
             </HorizontalScroller>
 
             {/* TAB 1: Store Information */}
             {activeTab === 'store' && (
-              <div className="bg-white p-5 sm:p-7 rounded-2xl border border-slate-200/80 shadow-xs space-y-6 text-xs animate-in fade-in duration-150">
+              <div className="surface-card p-5 sm:p-7 rounded-2xl border-card shadow-card space-y-6 text-xs">
                 <div className="pb-4 border-b border-slate-100 flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="p-2.5 bg-indigo-50 rounded-xl border border-indigo-100 text-indigo-600">
@@ -772,24 +818,20 @@ export default function SettingsPage() {
                       <span>Cài đặt Bán hàng & In Hóa đơn POS</span>
                     </label>
 
-                    <div className="p-4 bg-slate-50 border border-slate-200/80 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                      <div className="space-y-1">
+                    <div className="p-4 bg-slate-50 border border-border-hairline rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="space-y-1 pr-2">
                         <span className="font-bold text-slate-800 block text-xs">
                           Tự động bật hộp thoại in hóa đơn sau khi thanh toán đơn hàng
                         </span>
-                        <p className="text-[11px] text-slate-500">
+                        <p className="text-caption text-slate-500">
                           Nếu tắt, đơn hàng sẽ hoàn tất nhanh mà không tự bật cửa sổ in (bạn vẫn có thể in lại bất cứ lúc nào trong mục Lịch sử đơn hàng).
                         </p>
                       </div>
-                      <label className="relative inline-flex items-center cursor-pointer shrink-0">
-                        <input
-                          type="checkbox"
-                          checked={form.auto_show_receipt_after_checkout !== 'false'}
-                          onChange={(e) => handleChange('auto_show_receipt_after_checkout', e.target.checked ? 'true' : 'false')}
-                          className="sr-only peer"
-                        />
-                        <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
-                      </label>
+                      <Switch
+                        checked={form.auto_show_receipt_after_checkout !== 'false'}
+                        onCheckedChange={(checked) => handleChange('auto_show_receipt_after_checkout', checked ? 'true' : 'false')}
+                        aria-label="Tự động in hóa đơn sau thanh toán"
+                      />
                     </div>
                   </div>
 
@@ -808,7 +850,7 @@ export default function SettingsPage() {
                       <button
                         type="button"
                         onClick={() => setIsChannelModalOpen(true)}
-                        className="px-3.5 py-2 bg-purple-700 hover:bg-purple-800 active:scale-95 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition cursor-pointer shadow-xs shrink-0"
+                        className="px-3.5 py-2 bg-purple-700 hover:bg-purple-800 active:scale-95 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition cursor-pointer shadow-card shrink-0"
                       >
                         <Plus className="w-4 h-4" />
                         <span>Thêm / Quản lý kênh</span>
@@ -823,7 +865,7 @@ export default function SettingsPage() {
                         return (
                           <div
                             key={ch.id}
-                            className={`p-3.5 rounded-2xl border transition-all space-y-2.5 shadow-2xs ${
+                            className={`p-3.5 rounded-2xl border transition-all space-y-2.5 shadow-card ${
                               isActive
                                 ? 'bg-white border-slate-200 hover:border-slate-300'
                                 : 'bg-slate-50 border-slate-200 opacity-60'
@@ -835,7 +877,7 @@ export default function SettingsPage() {
                                 <span>{ch.name}</span>
                               </span>
                               <div className="flex items-center gap-1">
-                                <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded border ${colorDef.bg} ${colorDef.text} ${colorDef.border}`}>
+                                <span className={`text-caption font-bold px-1.5 py-0.2 rounded border ${colorDef.bg} ${colorDef.text} ${colorDef.border}`}>
                                   {ch.is_delivery_app ? 'App giao' : 'Trực tiếp'}
                                 </span>
                                 <button
@@ -869,7 +911,7 @@ export default function SettingsPage() {
 
             {/* TAB 2: Currency & Pricing */}
             {activeTab === 'currency' && (
-              <div className="bg-white p-5 sm:p-7 rounded-2xl border border-slate-200/80 shadow-xs space-y-6 text-xs animate-in fade-in duration-150">
+              <div className="surface-card p-5 sm:p-7 rounded-2xl border-card shadow-card space-y-6 text-xs">
                 <div className="pb-4 border-b border-slate-100 flex items-center gap-3">
                   <div className="p-2.5 bg-indigo-50 rounded-xl border border-indigo-100 text-indigo-600">
                     <Coins className="w-5 h-5" />
@@ -933,7 +975,7 @@ export default function SettingsPage() {
                       <span className="text-[11px] text-indigo-900 font-semibold block">{t('settings.preview_label')}</span>
                       <span className="text-xs text-slate-500">Mẫu định dạng tiền tệ thực tế</span>
                     </div>
-                    <span className="text-base font-extrabold text-indigo-700 bg-white px-3.5 py-1.5 rounded-xl border border-indigo-200 shadow-2xs">
+                    <span className="text-base font-extrabold text-indigo-700 bg-white px-3.5 py-1.5 rounded-xl border border-indigo-200 shadow-card">
                       {formatCurrency(35000, form)}
                     </span>
                   </div>
@@ -943,7 +985,7 @@ export default function SettingsPage() {
 
             {/* TAB 3: VietQR Payment Settings */}
             {activeTab === 'vietqr' && (
-              <div className="bg-white p-5 sm:p-7 rounded-2xl border border-slate-200/80 shadow-xs space-y-6 text-xs animate-in fade-in duration-150">
+              <div className="surface-card p-5 sm:p-7 rounded-2xl border-card shadow-card space-y-6 text-xs">
                 <div className="pb-4 border-b border-slate-100 flex items-center gap-3">
                   <div className="p-2.5 bg-indigo-50 rounded-xl border border-indigo-100 text-indigo-600">
                     <QrCode className="w-5 h-5" />
@@ -1012,7 +1054,7 @@ export default function SettingsPage() {
                     </div>
 
                     <div className="space-y-1">
-                      <span className="text-[10px] uppercase tracking-wider text-slate-400 block">Số tài khoản</span>
+                      <span className="text-caption uppercase tracking-wider text-slate-400 block">Số tài khoản</span>
                       <span className="font-mono text-lg font-bold tracking-widest text-white block">
                         {form.vietqr_account_no || '•••• •••• ••••'}
                       </span>
@@ -1020,13 +1062,13 @@ export default function SettingsPage() {
 
                     <div className="flex items-center justify-between pt-2 border-t border-slate-800 text-xs">
                       <div>
-                        <span className="text-[9px] uppercase tracking-wider text-slate-400 block">Chủ tài khoản</span>
+                        <span className="text-caption uppercase tracking-wider text-slate-400 block">Chủ tài khoản</span>
                         <span className="font-bold text-slate-200 uppercase">
                           {form.vietqr_account_name || 'CHỦ TÀI KHOẢN'}
                         </span>
                       </div>
                       <div className="text-right">
-                        <span className="text-[9px] uppercase tracking-wider text-slate-400 block">Ngân hàng</span>
+                        <span className="text-caption uppercase tracking-wider text-slate-400 block">Ngân hàng</span>
                         <span className="font-bold text-indigo-300">
                           {form.vietqr_bank_id || 'MBBANK'}
                         </span>
@@ -1039,10 +1081,10 @@ export default function SettingsPage() {
 
             {/* TAB 4: Email & Automated Reports */}
             {activeTab === 'email' && (
-              <div className="space-y-6 text-xs animate-in fade-in duration-150">
+              <div className="space-y-6 text-xs">
                 {/* 1. SMTP Server Settings Card (Super Admin only - Global Platform) */}
                 {isSuperAdmin && (
-                  <div className="bg-white p-5 sm:p-7 rounded-2xl border border-slate-200/80 shadow-xs space-y-5">
+                  <div className="surface-card p-5 sm:p-7 rounded-2xl border-card shadow-card space-y-5">
                     <div className="pb-4 border-b border-slate-100 flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className="p-2.5 bg-purple-50 rounded-xl border border-purple-100 text-purple-600">
@@ -1055,7 +1097,7 @@ export default function SettingsPage() {
                           <p className="text-slate-500 text-xs mt-0.5">{t('email_report.settings_section_desc')}</p>
                         </div>
                       </div>
-                      <span className="text-[10px] bg-purple-50 text-purple-700 border border-purple-200 px-2 py-0.5 rounded-md font-extrabold">
+                      <span className="text-caption bg-purple-50 text-purple-700 border border-purple-200 px-2 py-0.5 rounded-md font-extrabold">
                         Platform-Wide (Super Admin)
                       </span>
                     </div>
@@ -1083,7 +1125,7 @@ export default function SettingsPage() {
                       <div className="flex items-center justify-between mb-1.5">
                         <label className="font-semibold text-slate-700 block">{t('email_report.smtp_password')}</label>
                         {form.smtp_password_configured === 'true' && (
-                          <span className="text-[10px] bg-purple-100 text-purple-800 font-bold px-2 py-0.5 rounded-md flex items-center gap-1">
+                          <span className="text-caption bg-purple-100 text-purple-800 font-bold px-2 py-0.5 rounded-md flex items-center gap-1">
                             <CheckCircle2 className="w-3 h-3 text-purple-600" />
                             Đã mã hóa & cấu hình
                           </span>
@@ -1111,7 +1153,7 @@ export default function SettingsPage() {
                   {/* Test SMTP button */}
                   <div className="pt-2 flex justify-end">
                     <button type="button" onClick={handleTestSMTP} disabled={testingSmtp}
-                      className="bg-purple-600 hover:bg-purple-700 disabled:bg-slate-300 text-white font-bold text-xs py-2.5 px-4 rounded-xl transition flex items-center gap-2 shadow-xs">
+                      className="bg-purple-600 hover:bg-purple-700 disabled:bg-slate-300 text-white font-bold text-xs py-2.5 px-4 rounded-xl transition flex items-center gap-2 shadow-card">
                       {testingSmtp ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
                       <span>{testingSmtp ? t('email_report.sending') : t('email_report.test_smtp_button')}</span>
                     </button>
@@ -1130,14 +1172,14 @@ export default function SettingsPage() {
                       <span className="text-slate-600 text-[11px]">Thông số SMTP kết nối được cấu hình tập trung bởi Tổng quản trị (Super Admin). Chi nhánh gửi báo cáo tài chính qua máy chủ chung của hệ thống.</span>
                     </div>
                   </div>
-                  <span className="text-[10px] bg-purple-100 text-purple-800 border border-purple-200 px-2 py-0.5 rounded-md font-extrabold shrink-0">
+                  <span className="text-caption bg-purple-100 text-purple-800 border border-purple-200 px-2 py-0.5 rounded-md font-extrabold shrink-0">
                     Platform-Wide
                   </span>
                 </div>
               )}
 
                 {/* 2. Automated Daily Report Configuration */}
-                <div className="bg-white p-5 sm:p-7 rounded-2xl border border-slate-200/80 shadow-xs space-y-5">
+                <div className="surface-card p-5 sm:p-7 rounded-2xl border-card shadow-card space-y-5">
                   <div className="pb-4 border-b border-slate-100 flex items-center gap-3">
                     <div className="p-2.5 bg-purple-50 rounded-xl border border-purple-100 text-purple-600">
                       <Clock className="w-5 h-5" />
@@ -1160,15 +1202,17 @@ export default function SettingsPage() {
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <label className="flex items-center gap-3 cursor-pointer bg-purple-50/70 border border-purple-200/80 rounded-2xl p-4 transition hover:bg-purple-50">
-                        <input type="checkbox" checked={form.enable_daily_email_report === 'true'}
-                          onChange={(e) => handleChange('enable_daily_email_report', e.target.checked ? 'true' : 'false')}
-                          className="w-4 h-4 accent-purple-600 rounded" />
+                      <div className="flex items-center justify-between gap-3 bg-purple-50/70 border border-purple-200/80 rounded-2xl p-4">
                         <div>
                           <span className="text-xs font-bold text-purple-900 block">{t('email_report.enable_auto_report')}</span>
-                          <span className="text-[11px] text-purple-700">Tự động gửi báo cáo mỗi ngày</span>
+                          <span className="text-caption text-purple-700">Tự động gửi báo cáo mỗi ngày</span>
                         </div>
-                      </label>
+                        <Switch
+                          checked={form.enable_daily_email_report === 'true'}
+                          onCheckedChange={(checked) => handleChange('enable_daily_email_report', checked ? 'true' : 'false')}
+                          aria-label={t('email_report.enable_auto_report')}
+                        />
+                      </div>
 
                       <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/70 space-y-1.5">
                         <label className="font-semibold text-slate-700 block">{t('email_report.report_time')}</label>
@@ -1183,9 +1227,9 @@ export default function SettingsPage() {
 
             {/* TAB 5: Google Sheets Synchronization */}
             {activeTab === 'sheets' && (
-              <div className="space-y-6 text-xs animate-in fade-in duration-150">
+              <div className="space-y-6 text-xs">
                 {/* 1. Configuration & Service Account Card */}
-                <div className="bg-white p-5 sm:p-7 rounded-2xl border border-slate-200/80 shadow-xs space-y-6">
+                <div className="surface-card p-5 sm:p-7 rounded-2xl border-card shadow-card space-y-6">
                   <div className="pb-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div className="flex items-center gap-3">
                       <div className="p-2.5 bg-teal-50 rounded-xl border border-teal-100 text-teal-600">
@@ -1223,41 +1267,39 @@ export default function SettingsPage() {
                   {/* Sync Switches */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {/* Enable Sync Master Switch */}
-                    <label className="flex items-start gap-3 cursor-pointer bg-teal-50/70 border border-teal-200/80 rounded-2xl p-4 transition hover:bg-teal-50">
-                      <input
-                        type="checkbox"
-                        checked={form.google_sheets_sync_enabled === 'true'}
-                        onChange={(e) => handleChange('google_sheets_sync_enabled', e.target.checked ? 'true' : 'false')}
-                        className="w-4 h-4 accent-teal-600 rounded mt-0.5"
-                      />
-                      <div>
+                    <div className="flex items-start justify-between gap-3 bg-teal-50/70 border border-teal-200/80 rounded-2xl p-4">
+                      <div className="pr-2">
                         <span className="text-xs font-bold text-teal-950 block">
                           {t('google_sheets.enable_sync')}
                         </span>
-                        <span className="text-[11px] text-teal-700">
+                        <span className="text-caption text-teal-700">
                           {t('google_sheets.enable_sync_desc')}
                         </span>
                       </div>
-                    </label>
+                      <Switch
+                        checked={form.google_sheets_sync_enabled === 'true'}
+                        onCheckedChange={(checked) => handleChange('google_sheets_sync_enabled', checked ? 'true' : 'false')}
+                        aria-label={t('google_sheets.enable_sync')}
+                      />
+                    </div>
 
                     {/* Real-time Append Switch */}
-                    <label className="flex items-start gap-3 cursor-pointer bg-purple-50/70 border border-purple-200/80 rounded-2xl p-4 transition hover:bg-purple-50">
-                      <input
-                        type="checkbox"
-                        checked={form.google_sheets_auto_realtime_sync !== 'false'}
-                        onChange={(e) => handleChange('google_sheets_auto_realtime_sync', e.target.checked ? 'true' : 'false')}
-                        className="w-4 h-4 accent-purple-600 rounded mt-0.5"
-                      />
-                      <div>
+                    <div className="flex items-start justify-between gap-3 bg-purple-50/70 border border-purple-200/80 rounded-2xl p-4">
+                      <div className="pr-2">
                         <span className="text-xs font-bold text-purple-950 block flex items-center gap-1.5">
                           <Zap className="w-3.5 h-3.5 text-amber-500 shrink-0" />
                           {t('google_sheets.realtime_sync')}
                         </span>
-                        <span className="text-[11px] text-purple-700">
+                        <span className="text-caption text-purple-700">
                           {t('google_sheets.realtime_sync_desc')}
                         </span>
                       </div>
-                    </label>
+                      <Switch
+                        checked={form.google_sheets_auto_realtime_sync !== 'false'}
+                        onCheckedChange={(checked) => handleChange('google_sheets_auto_realtime_sync', checked ? 'true' : 'false')}
+                        aria-label={t('google_sheets.realtime_sync')}
+                      />
+                    </div>
                   </div>
 
                   {/* Spreadsheet ID Input */}
@@ -1298,7 +1340,7 @@ export default function SettingsPage() {
                           {t('google_sheets.service_account_json')} <span className="text-rose-500">*</span>
                         </label>
                         {form.google_sheets_service_account_configured === 'true' && (
-                          <span className="text-[10px] bg-teal-100 text-teal-800 font-bold px-2 py-0.5 rounded-md flex items-center gap-1">
+                          <span className="text-caption bg-teal-100 text-teal-800 font-bold px-2 py-0.5 rounded-md flex items-center gap-1">
                             <CheckCircle2 className="w-3 h-3 text-teal-600" />
                             Đã mã hóa & cấu hình
                           </span>
@@ -1307,7 +1349,7 @@ export default function SettingsPage() {
                       <button
                         type="button"
                         onClick={() => sheetsJsonFileRef.current?.click()}
-                        className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-3 py-1.5 rounded-xl border border-slate-200 flex items-center gap-1.5 transition shadow-2xs"
+                        className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-3 py-1.5 rounded-xl border border-slate-200 flex items-center gap-1.5 transition shadow-card"
                       >
                         <FileJson className="w-3.5 h-3.5 text-teal-600" />
                         <span>{t('google_sheets.upload_json_btn')}</span>
@@ -1349,7 +1391,7 @@ export default function SettingsPage() {
                   <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 border-t border-slate-100">
                     <div className="flex-1">
                       {sheetsTestResult && (
-                        <div className={`p-3 rounded-xl border flex items-start gap-2 text-[11px] font-semibold animate-in fade-in ${
+                        <div className={`p-3 rounded-xl border flex items-start gap-2 text-[11px] font-semibold ${
                           sheetsTestResult.type === 'success'
                             ? 'bg-purple-50 border-purple-200 text-purple-800'
                             : 'bg-rose-50 border-rose-200 text-rose-800'
@@ -1362,7 +1404,7 @@ export default function SettingsPage() {
                           <div>
                             <span>{sheetsTestResult.message}</span>
                             {sheetsTestResult.details?.sheets && (
-                              <p className="font-normal text-purple-700 mt-0.5 text-[10px]">
+                              <p className="font-normal text-purple-700 mt-0.5 text-caption">
                                 Các trang tính: {sheetsTestResult.details.sheets.join(', ')}
                               </p>
                             )}
@@ -1375,7 +1417,7 @@ export default function SettingsPage() {
                       type="button"
                       onClick={handleTestSheetsConnection}
                       disabled={testingSheets || !form.google_sheets_spreadsheet_id || !form.google_sheets_service_account_json}
-                      className="bg-teal-600 hover:bg-teal-700 disabled:bg-slate-300 text-white font-bold text-xs py-2.5 px-5 rounded-xl transition flex items-center justify-center gap-2 shadow-xs shrink-0"
+                      className="bg-teal-600 hover:bg-teal-700 disabled:bg-slate-300 text-white font-bold text-xs py-2.5 px-5 rounded-xl transition flex items-center justify-center gap-2 shadow-card shrink-0"
                     >
                       {testingSheets ? (
                         <RefreshCw className="w-3.5 h-3.5 animate-spin" />
@@ -1388,7 +1430,7 @@ export default function SettingsPage() {
                 </div>
 
                 {/* 2. Sync Status & Controls Card */}
-                <div className="bg-white p-5 sm:p-7 rounded-2xl border border-slate-200/80 shadow-xs space-y-5">
+                <div className="surface-card p-5 sm:p-7 rounded-2xl border-card shadow-card space-y-5">
                   <div className="pb-4 border-b border-slate-100 flex items-center gap-3">
                     <div className="p-2.5 bg-indigo-50 rounded-xl border border-indigo-100 text-indigo-600">
                       <RefreshCw className="w-5 h-5" />
@@ -1405,8 +1447,8 @@ export default function SettingsPage() {
 
                   {/* Status Metrics Banner */}
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 space-y-1">
-                      <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wide block">
+                    <div className="bg-slate-50 border border-border-hairline rounded-2xl p-4 space-y-1">
+                      <span className="text-caption uppercase font-bold text-slate-400 tracking-wide block">
                         {t('google_sheets.status_label')}
                       </span>
                       <span className="font-extrabold text-sm text-slate-800 flex items-center gap-2">
@@ -1425,8 +1467,8 @@ export default function SettingsPage() {
                       </span>
                     </div>
 
-                    <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 space-y-1">
-                      <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wide block">
+                    <div className="bg-slate-50 border border-border-hairline rounded-2xl p-4 space-y-1">
+                      <span className="text-caption uppercase font-bold text-slate-400 tracking-wide block">
                         {t('google_sheets.last_synced_at')}
                       </span>
                       <span className="font-bold text-xs text-slate-800 block">
@@ -1434,9 +1476,9 @@ export default function SettingsPage() {
                       </span>
                     </div>
 
-                    <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 flex items-center justify-between">
+                    <div className="bg-slate-50 border border-border-hairline rounded-2xl p-4 flex items-center justify-between">
                       <div>
-                        <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wide block">
+                        <span className="text-caption uppercase font-bold text-slate-400 tracking-wide block">
                           Trang Tính
                         </span>
                         <span className="font-bold text-xs text-slate-800">5 Tabs Chuẩn</span>
@@ -1463,7 +1505,7 @@ export default function SettingsPage() {
                       <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
                       <div className="text-[11px] space-y-0.5">
                         <span className="font-bold">Lỗi đồng bộ gần nhất:</span>
-                        <p className="text-rose-800 font-mono text-[10px]">{form.google_sheets_last_sync_error}</p>
+                        <p className="text-rose-800 font-mono text-caption">{form.google_sheets_last_sync_error}</p>
                       </div>
                     </div>
                   )}
@@ -1506,7 +1548,7 @@ export default function SettingsPage() {
                       type="button"
                       onClick={handleSyncSheetsNow}
                       disabled={syncingSheetsNow || !form.google_sheets_spreadsheet_id || !form.google_sheets_service_account_json}
-                      className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 text-white font-bold text-xs py-3 px-6 rounded-xl shadow-xs transition flex items-center justify-center gap-2 shrink-0 w-full sm:w-auto"
+                      className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 text-white font-bold text-xs py-3 px-6 rounded-xl shadow-card transition flex items-center justify-center gap-2 shrink-0 w-full sm:w-auto"
                     >
                       {syncingSheetsNow ? (
                         <RefreshCw className="w-4 h-4 animate-spin" />
@@ -1522,7 +1564,7 @@ export default function SettingsPage() {
 
             {/* TAB 6: Backup & Data Management (with Sub-tab Switcher) */}
             {activeTab === 'backup' && (
-              <div className="space-y-6 text-xs animate-in fade-in duration-150">
+              <div className="space-y-6 text-xs">
                 {/* Sub-Tab Switcher inside Backup Tab */}
                 <div className="flex overflow-x-auto no-scrollbar bg-slate-200/70 p-1 rounded-2xl w-full sm:w-fit gap-1">
                   {isSuperAdmin && (
@@ -1537,7 +1579,7 @@ export default function SettingsPage() {
                     >
                       <Database className="w-3.5 h-3.5 text-purple-600" />
                       <span>Sao Lưu & Phục Hồi (.json)</span>
-                      <span className="text-[9px] bg-purple-100 text-purple-800 px-1.5 py-0.2 rounded-full font-extrabold">
+                      <span className="text-caption bg-purple-100 text-purple-800 px-1.5 py-0.2 rounded-full font-extrabold">
                         Platform-Wide
                       </span>
                     </button>
@@ -1567,9 +1609,9 @@ export default function SettingsPage() {
                 )}
 
                 {backupSubTab === 'json_backup' && isSuperAdmin && (
-                  <div className="space-y-6 animate-in fade-in">
+                  <div className="space-y-6">
                     {/* 1. Export Backup Card */}
-                    <div className="bg-white p-5 sm:p-7 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
+                    <div className="surface-card p-5 sm:p-7 rounded-2xl border-card shadow-card space-y-4">
                       <div className="pb-4 border-b border-slate-100 flex items-center justify-between">
                         <div className="flex items-center gap-3">
                           <div className="p-2.5 bg-violet-50 rounded-xl border border-violet-100 text-violet-600">
@@ -1584,7 +1626,7 @@ export default function SettingsPage() {
                             </p>
                           </div>
                         </div>
-                        <span className="text-[10px] bg-purple-50 text-purple-700 border border-purple-200 px-2 py-0.5 rounded-md font-extrabold shrink-0">
+                        <span className="text-caption bg-purple-50 text-purple-700 border border-purple-200 px-2 py-0.5 rounded-md font-extrabold shrink-0">
                           Platform-Wide (Super Admin)
                         </span>
                       </div>
@@ -1603,7 +1645,7 @@ export default function SettingsPage() {
                           type="button"
                           onClick={handleExportBackup}
                           disabled={exportingBackup}
-                          className="bg-violet-600 hover:bg-violet-700 disabled:bg-slate-300 text-white font-bold text-xs py-3 px-5 rounded-xl shadow-xs transition flex items-center gap-2 shrink-0 self-start sm:self-auto"
+                          className="bg-violet-600 hover:bg-violet-700 disabled:bg-slate-300 text-white font-bold text-xs py-3 px-5 rounded-xl shadow-card transition flex items-center gap-2 shrink-0 self-start sm:self-auto"
                         >
                           {exportingBackup ? (
                             <RefreshCw className="w-4 h-4 animate-spin" />
@@ -1616,7 +1658,7 @@ export default function SettingsPage() {
                     </div>
 
                     {/* 2. Restore Backup Card */}
-                    <div className="bg-white p-5 sm:p-7 rounded-2xl border border-slate-200/80 shadow-xs space-y-5">
+                    <div className="surface-card p-5 sm:p-7 rounded-2xl border-card shadow-card space-y-5">
                       <div className="pb-4 border-b border-slate-100 flex items-center gap-3">
                         <div className="p-2.5 bg-amber-50 rounded-xl border border-amber-100 text-amber-600">
                           <UploadCloud className="w-5 h-5" />
@@ -1652,7 +1694,7 @@ export default function SettingsPage() {
                           onChange={handleBackupFileSelect}
                           className="hidden"
                         />
-                        <div className="w-12 h-12 rounded-2xl bg-white border border-slate-200 text-violet-600 flex items-center justify-center mx-auto shadow-2xs">
+                        <div className="w-12 h-12 rounded-2xl bg-white border border-slate-200 text-violet-600 flex items-center justify-center mx-auto shadow-card">
                           {previewingBackup ? <RefreshCw className="w-6 h-6 animate-spin text-violet-600" /> : <FileJson className="w-6 h-6" />}
                         </div>
                         <div>
@@ -1673,8 +1715,8 @@ export default function SettingsPage() {
 
                       {/* Backup Preview V2 Rich Card */}
                       {backupPreview && (
-                        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3 animate-in fade-in">
-                          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200/80 pb-2.5">
+                        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3">
+                          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border-hairline pb-2.5">
                             <div className="flex items-center gap-2">
                               <span className="font-bold text-slate-800 text-xs">Phiên bản:</span>
                               {backupPreview.format_version === '2.0' ? (
@@ -1763,7 +1805,7 @@ export default function SettingsPage() {
                               type="button"
                               onClick={() => setShowRestoreModal(true)}
                               disabled={restoringBackup || !backupPreview.restore_token}
-                              className="bg-amber-600 hover:bg-amber-700 disabled:bg-slate-300 text-white font-bold text-xs py-2.5 px-5 rounded-xl shadow-xs transition flex items-center gap-2 cursor-pointer"
+                              className="bg-amber-600 hover:bg-amber-700 disabled:bg-slate-300 text-white font-bold text-xs py-2.5 px-5 rounded-xl shadow-card transition flex items-center gap-2 cursor-pointer"
                             >
                               {restoringBackup ? (
                                 <RefreshCw className="w-4 h-4 animate-spin" />
@@ -1778,7 +1820,7 @@ export default function SettingsPage() {
 
                       {/* Restore Result Summary */}
                       {restoreResult && (
-                        <div className="bg-purple-50 border border-purple-200 rounded-2xl p-4 space-y-2 animate-in fade-in">
+                        <div className="bg-purple-50 border border-purple-200 rounded-2xl p-4 space-y-2">
                           <div className="flex items-center gap-2 text-purple-800 font-bold text-xs">
                             <CheckCircle2 className="w-4 h-4 text-purple-600" />
                             {t('settings.restore_success')}
@@ -1819,9 +1861,9 @@ export default function SettingsPage() {
 
                 {/* Sub-tab 2: Excel & CSV Data Import */}
                 {backupSubTab === 'excel_import' && (
-                  <div className="space-y-6 animate-in fade-in">
+                  <div className="space-y-6">
                     {/* 1. Download Template Card */}
-                    <div className="bg-white p-5 sm:p-7 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
+                    <div className="surface-card p-5 sm:p-7 rounded-2xl border-card shadow-card space-y-4">
                       <div className="pb-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div className="flex items-center gap-3">
                           <div className="p-2.5 bg-purple-50 rounded-xl border border-purple-100 text-purple-600">
@@ -1840,7 +1882,7 @@ export default function SettingsPage() {
                           <a
                             href="/mau_import_don_hang.xlsx"
                             download="mau_import_don_hang.xlsx"
-                            className="bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs py-2.5 px-3.5 rounded-xl border border-slate-200 shadow-2xs transition flex items-center gap-1.5 shrink-0"
+                            className="bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs py-2.5 px-3.5 rounded-xl border border-slate-200 shadow-card transition flex items-center gap-1.5 shrink-0"
                           >
                             <FileSpreadsheet className="w-4 h-4 text-purple-600" />
                             <span>Mẫu đơn hàng (.xlsx)</span>
@@ -1848,7 +1890,7 @@ export default function SettingsPage() {
                           <a
                             href="/mau_import_don_hang.csv"
                             download="mau_import_don_hang.csv"
-                            className="bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs py-2.5 px-3.5 rounded-xl border border-slate-200 shadow-2xs transition flex items-center gap-1.5 shrink-0"
+                            className="bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs py-2.5 px-3.5 rounded-xl border border-slate-200 shadow-card transition flex items-center gap-1.5 shrink-0"
                           >
                             <FileSpreadsheet className="w-4 h-4 text-sky-600" />
                             <span>Mẫu đơn (.csv)</span>
@@ -1857,7 +1899,7 @@ export default function SettingsPage() {
                             type="button"
                             onClick={handleDownloadTemplate}
                             disabled={downloadingTemplate}
-                            className="bg-purple-600 hover:bg-purple-700 disabled:bg-slate-300 text-white font-bold text-xs py-2.5 px-4 rounded-xl shadow-xs transition flex items-center gap-2 shrink-0 self-start sm:self-auto"
+                            className="bg-purple-600 hover:bg-purple-700 disabled:bg-slate-300 text-white font-bold text-xs py-2.5 px-4 rounded-xl shadow-card transition flex items-center gap-2 shrink-0 self-start sm:self-auto"
                           >
                             {downloadingTemplate ? (
                               <RefreshCw className="w-4 h-4 animate-spin" />
@@ -1895,7 +1937,7 @@ export default function SettingsPage() {
                     </div>
 
                     {/* 2. File Upload & Ingestion Settings Card */}
-                    <div className="bg-white p-5 sm:p-7 rounded-2xl border border-slate-200/80 shadow-xs space-y-5">
+                    <div className="surface-card p-5 sm:p-7 rounded-2xl border-card shadow-card space-y-5">
                       <div className="pb-4 border-b border-slate-100 flex items-center gap-3">
                         <div className="p-2.5 bg-purple-50 rounded-xl border border-purple-100 text-purple-600">
                           <UploadCloud className="w-5 h-5" />
@@ -1922,7 +1964,7 @@ export default function SettingsPage() {
                           onChange={handleImportFileSelect}
                           className="hidden"
                         />
-                        <div className="w-12 h-12 rounded-2xl bg-white border border-slate-200 text-purple-600 flex items-center justify-center mx-auto shadow-2xs">
+                        <div className="w-12 h-12 rounded-2xl bg-white border border-slate-200 text-purple-600 flex items-center justify-center mx-auto shadow-card">
                           <FileSpreadsheet className="w-6 h-6" />
                         </div>
                         <div>
@@ -1991,7 +2033,7 @@ export default function SettingsPage() {
                           type="button"
                           onClick={handleExecuteImport}
                           disabled={!importFile || importingData}
-                          className="bg-purple-600 hover:bg-purple-700 disabled:bg-slate-300 text-white font-bold text-xs py-3 px-6 rounded-xl shadow-xs transition flex items-center gap-2"
+                          className="bg-purple-600 hover:bg-purple-700 disabled:bg-slate-300 text-white font-bold text-xs py-3 px-6 rounded-xl shadow-card transition flex items-center gap-2"
                         >
                           {importingData ? (
                             <RefreshCw className="w-4 h-4 animate-spin" />
@@ -2004,7 +2046,7 @@ export default function SettingsPage() {
 
                       {/* Import Result Breakdown */}
                       {importResult && (
-                        <div className="space-y-4 pt-2 animate-in fade-in">
+                        <div className="space-y-4 pt-2">
                           <div className="bg-purple-50 border border-purple-200 rounded-2xl p-4 space-y-3">
                             <div className="flex items-center justify-between">
                               <span className="flex items-center gap-2 text-purple-800 font-bold text-xs">
@@ -2057,7 +2099,7 @@ export default function SettingsPage() {
                                     <div className="space-y-0.5 flex-1">
                                       <div className="flex items-center gap-2">
                                         <span className="font-semibold text-slate-800">{err.sheet}</span>
-                                        <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded text-[10px]">Dòng {err.row}</span>
+                                        <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded text-caption">Dòng {err.row}</span>
                                         {err.field && <span className="text-slate-400">({err.field})</span>}
                                       </div>
                                       <p className="text-rose-700">{err.message}</p>
@@ -2075,13 +2117,56 @@ export default function SettingsPage() {
               </div>
             )}
 
+            {/* TAB 7: Appearance & Visual Effects (Liquid Glass, Override Q3) */}
+            {activeTab === 'appearance' && (
+              <div className="surface-card p-5 sm:p-7 rounded-2xl border-card shadow-card space-y-6 text-xs">
+                <div className="pb-4 border-b border-border-hairline flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 bg-purple-50 rounded-xl border border-purple-200 text-brand-purple">
+                      <Sparkles className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-slate-900 text-sm">
+                        {t('settings.appearance_section_title') || 'Giao diện & Hiệu ứng thị giác'}
+                      </h3>
+                      <p className="text-slate-500 text-xs mt-0.5">
+                        {t('settings.appearance_section_desc') || 'Tùy chỉnh hiệu ứng chất liệu kính mờ trên thiết bị này.'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Liquid Glass Switch Row */}
+                <div className="p-4 bg-slate-50 border border-border-hairline rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="space-y-1 pr-2">
+                    <span className="font-bold text-slate-800 block text-xs">
+                      {t('settings.glass_effects_label') || 'Hiệu ứng kính (Liquid Glass)'}
+                    </span>
+                    <p className="text-caption text-slate-500">
+                      {t('settings.glass_effects_desc') || 'Áp dụng hiệu ứng kính mờ cho thanh điều hướng và bảng trượt trên thiết bị này. Tắt để dùng nền đặc.'}
+                    </p>
+                    {isSystemGlassForcedOff() && (
+                      <p className="text-caption text-amber-700 font-semibold pt-1">
+                        ⚠️ {t('settings.glass_effects_forced_off_a11y') || 'Đang tự động tắt theo cài đặt trợ năng hệ thống (Giảm độ trong suốt hoặc Tăng tương phản).'}
+                      </p>
+                    )}
+                  </div>
+                  <Switch
+                    checked={glassEffects}
+                    onCheckedChange={handleToggleGlass}
+                    aria-label={t('settings.glass_effects_label') || 'Hiệu ứng kính'}
+                  />
+                </div>
+              </div>
+            )}
+
             {/* Save Button (displayed for form-based tabs: store, currency, vietqr, email) */}
-            {activeTab !== 'backup' && (
+            {activeTab !== 'backup' && activeTab !== 'appearance' && (
               <div className="flex justify-end pt-2">
                 <button
                   type="submit"
                   disabled={saving}
-                  className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 text-white font-bold text-xs py-3 px-6 rounded-xl shadow-xs transition flex items-center space-x-2"
+                  className="bg-brand-purple hover:bg-purple-800 disabled:bg-slate-300 text-white font-bold text-xs py-3 px-7 rounded-full shadow-card transition flex items-center space-x-2 cursor-pointer"
                 >
                   {saving ? (
                     <>
@@ -2102,26 +2187,45 @@ export default function SettingsPage() {
 
         {/* Restore Confirmation Modal */}
         {showRestoreModal && backupPreview && (
-          <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-150">
-            <div className="bg-white rounded-t-3xl sm:rounded-3xl p-5 sm:p-8 max-w-md w-full shadow-2xl space-y-4 sm:space-y-5 animate-in slide-in-from-bottom-6 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200 pb-safe sm:pb-8 border border-slate-100">
-              <div className="flex items-center gap-3 text-amber-600">
-                <div className="p-3 bg-amber-50 rounded-2xl border border-amber-200 shrink-0">
-                  <AlertTriangle className="w-6 h-6" />
-                </div>
-                <div className="min-w-0">
-                  <h3 className="font-bold text-slate-900 text-sm sm:text-base truncate">{t('settings.restore_confirm_title')}</h3>
-                  <p className="text-slate-500 text-xs truncate">File: {backupFile?.name}</p>
-                </div>
+          <ModalShell
+            isOpen={showRestoreModal && !!backupPreview}
+            onClose={() => setShowRestoreModal(false)}
+            preventClose={restoringBackup}
+            size="md"
+            icon={<AlertTriangle className="w-5 h-5 text-amber-600" />}
+            title={t('settings.restore_confirm_title')}
+            description={`File: ${backupFile?.name}`}
+            footer={
+              <div className="grid grid-cols-2 gap-2.5 w-full">
+                <button
+                  type="button"
+                  onClick={() => setShowRestoreModal(false)}
+                  disabled={restoringBackup}
+                  className="w-full py-2.5 px-4 rounded-full border border-border-hairline text-slate-700 font-semibold text-xs hover:bg-slate-100 transition cursor-pointer text-center justify-center flex items-center"
+                >
+                  {t('common.cancel')}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleExecuteRestore}
+                  disabled={restoringBackup || !backupPreview.restore_token}
+                  className="w-full py-2.5 px-4 rounded-full bg-amber-600 hover:bg-amber-700 disabled:bg-slate-300 text-white font-bold text-xs shadow-card transition flex items-center justify-center gap-1.5 cursor-pointer text-center"
+                >
+                  {restoringBackup ? <RefreshCw className="w-4 h-4 animate-spin" /> : <UploadCloud className="w-4 h-4" />}
+                  <span>{t('settings.restore_btn')}</span>
+                </button>
               </div>
-
-              <div className="flex items-center justify-between text-xs bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+            }
+          >
+            <div className="space-y-4">
+              <div className="flex items-center justify-between text-xs bg-slate-50 p-2.5 rounded-xl border border-border-hairline">
                 <span className="font-medium text-slate-600">Phiên bản:</span>
                 {backupPreview.format_version === '2.0' ? (
-                  <span className="bg-purple-100 text-purple-800 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                  <span className="bg-purple-100 text-brand-purple text-caption font-bold px-2.5 py-0.5 rounded-full border border-purple-200">
                     V2.0 (16 Bảng dữ liệu)
                   </span>
                 ) : (
-                  <span className="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                  <span className="bg-amber-100 text-amber-800 text-caption font-bold px-2.5 py-0.5 rounded-full border border-amber-200">
                     V1.0 (Thiếu BOM & NVL)
                   </span>
                 )}
@@ -2132,11 +2236,11 @@ export default function SettingsPage() {
               </p>
 
               {backupPreview.stats && (
-                <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 text-xs space-y-1.5 text-slate-600">
-                  <span className="font-bold text-slate-800 block text-[11px] uppercase tracking-wide">
+                <div className="bg-slate-50 p-3.5 rounded-2xl border border-border-hairline text-xs space-y-1.5 text-slate-600">
+                  <span className="font-bold text-slate-800 block text-caption uppercase tracking-wide">
                     Thống kê dữ liệu trong file:
                   </span>
-                  <div className="grid grid-cols-2 gap-1.5 text-[11px]">
+                  <div className="grid grid-cols-2 gap-1.5 text-caption font-num">
                     <div>• Danh mục: <b>{backupPreview.stats.categories || 0}</b></div>
                     <div>• Sản phẩm: <b>{backupPreview.stats.products || 0}</b></div>
                     <div>• Topping: <b>{backupPreview.stats.toppings || 0}</b></div>
@@ -2148,27 +2252,8 @@ export default function SettingsPage() {
                   </div>
                 </div>
               )}
-
-              <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:gap-3 pt-2 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setShowRestoreModal(false)}
-                  className="w-full sm:flex-1 py-2.5 px-4 rounded-xl border border-slate-200 text-slate-700 font-semibold text-xs hover:bg-slate-50 transition cursor-pointer text-center justify-center flex items-center"
-                >
-                  {t('common.cancel')}
-                </button>
-                <button
-                  type="button"
-                  onClick={handleExecuteRestore}
-                  disabled={restoringBackup || !backupPreview.restore_token}
-                  className="w-full sm:flex-1 py-2.5 px-4 rounded-xl bg-amber-600 hover:bg-amber-700 disabled:bg-slate-300 text-white font-bold text-xs shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer text-center"
-                >
-                  {restoringBackup ? <RefreshCw className="w-4 h-4 animate-spin" /> : <UploadCloud className="w-4 h-4" />}
-                  <span>{t('settings.restore_btn')}</span>
-                </button>
-              </div>
             </div>
-          </div>
+          </ModalShell>
         )}
 
         {/* 1:1 Image Crop Modal */}
