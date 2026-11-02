@@ -23,6 +23,7 @@ import { SettingsMap, formatCurrency } from '@/lib/utils';
 import { getLocalDateStr } from '@/components/common/ModernDateRangePicker';
 import { RevenueAnalyticsResponse, ProfitAnalyticsResponse } from '@/types/analytics';
 import { FilterPill } from '@/components/ui';
+import { ModalShell } from '@/components/ui/ModalShell';
 
 interface EmailReportModalProps {
   isOpen: boolean;
@@ -206,41 +207,65 @@ export default function EmailReportModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-150">
-      <div className="bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl w-full max-w-lg max-h-[92dvh] sm:max-h-[90vh] flex flex-col overflow-hidden border border-slate-100 animate-in zoom-in-95 duration-150 pb-safe">
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-100 shrink-0 bg-slate-50/70">
-          <div className="flex items-center gap-3 min-w-0 pr-2">
-            <div className="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center shrink-0 shadow-2xs text-indigo-600">
-              <Mail className="w-5 h-5" />
-            </div>
-            <div className="min-w-0">
-              <h3 className="font-extrabold text-slate-900 text-sm sm:text-base truncate">
-                Gửi Báo Cáo Tài Chính Qua Email
-              </h3>
-              <p className="text-[11px] sm:text-xs text-slate-500 truncate">
-                Tổng hợp doanh thu, chi phí và gửi báo cáo kết ca tự động
-              </p>
-            </div>
+    <ModalShell
+      isOpen={isOpen}
+      onClose={onClose}
+      preventClose={isSending}
+      size="md"
+      title={
+        <div className="flex items-center gap-2.5 min-w-0 pr-2">
+          <div className="w-10 h-10 rounded-2xl bg-purple-50 border border-purple-200 flex items-center justify-center shrink-0 text-brand-purple">
+            <Mail className="w-5 h-5" />
           </div>
+          <div className="min-w-0">
+            <h3 className="font-extrabold text-slate-900 text-sm sm:text-base truncate">
+              Gửi Báo Cáo Tài Chính Qua Email
+            </h3>
+            <p className="text-caption text-slate-500 truncate">
+              Tổng hợp doanh thu, chi phí và gửi báo cáo kết ca tự động
+            </p>
+          </div>
+        </div>
+      }
+      footer={
+        <div className="grid grid-cols-2 gap-2.5 w-full">
           <button
             type="button"
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 transition cursor-pointer shrink-0"
+            disabled={isSending}
+            className="w-full text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 py-2.5 rounded-full border border-border-hairline transition cursor-pointer text-center justify-center flex items-center"
           >
-            <X className="w-5 h-5" />
+            Hủy
+          </button>
+          <button
+            type="button"
+            onClick={handleSend}
+            disabled={isSending}
+            className="w-full text-xs font-bold text-white bg-brand-purple hover:bg-purple-700 py-2.5 rounded-full transition flex items-center justify-center gap-1.5 disabled:opacity-60 cursor-pointer shadow-card text-center"
+          >
+            {isSending ? (
+              <>
+                <RefreshCw className="w-4 h-4 animate-spin" />
+                <span>Đang gửi báo cáo...</span>
+              </>
+            ) : (
+              <>
+                <Send className="w-4 h-4" />
+                <span>Gửi Báo Cáo Ngay</span>
+              </>
+            )}
           </button>
         </div>
-
-        {/* Body */}
-        <div className="p-4 sm:p-5 space-y-4 overflow-y-auto">
-          {/* Alerts */}
-          {errorMsg && (
-            <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 shrink-0 text-rose-500" />
-              <span>{errorMsg}</span>
-            </div>
-          )}
+      }
+    >
+      <div className="space-y-4">
+        {/* Alerts */}
+        {errorMsg && (
+          <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0 text-rose-500" />
+            <span>{errorMsg}</span>
+          </div>
+        )}
 
           {successMsg && (
             <div className="p-3 bg-purple-50 border border-purple-200 rounded-xl text-xs text-purple-700 flex items-center gap-2">
@@ -295,30 +320,30 @@ export default function EmailReportModal({
               )}
             </div>
 
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              <div className="bg-white p-2.5 rounded-xl border border-slate-100 shadow-2xs">
-                <span className="text-[10px] text-slate-500 font-semibold block">Doanh thu thuần</span>
+            <div className="grid grid-cols-2 gap-2 text-xs font-num">
+              <div className="surface-card p-2.5 rounded-xl border-card shadow-card">
+                <span className="text-caption text-slate-500 font-semibold block font-sans">Doanh thu thuần</span>
                 <span className="text-xs sm:text-sm font-black text-slate-900 mt-0.5 block">
                   {formatCurrency(previewRevenue, settings)}
                 </span>
               </div>
-              <div className="bg-white p-2.5 rounded-xl border border-slate-100 shadow-2xs">
-                <span className="text-[10px] text-slate-500 font-semibold block">Số đơn hàng</span>
-                <span className="text-xs sm:text-sm font-black text-indigo-600 mt-0.5 block">
+              <div className="surface-card p-2.5 rounded-xl border-card shadow-card">
+                <span className="text-caption text-slate-500 font-semibold block font-sans">Số đơn hàng</span>
+                <span className="text-xs sm:text-sm font-black text-brand-purple mt-0.5 block">
                   {previewOrders} đơn
                 </span>
               </div>
-              <div className="bg-white p-2.5 rounded-xl border border-slate-100 shadow-2xs">
-                <span className="text-[10px] text-slate-500 font-semibold block">Chi phí vận hành</span>
+              <div className="surface-card p-2.5 rounded-xl border-card shadow-card">
+                <span className="text-caption text-slate-500 font-semibold block font-sans">Chi phí vận hành</span>
                 <span className="text-xs sm:text-sm font-black text-rose-600 mt-0.5 block">
                   {formatCurrency(previewExpense, settings)}
                 </span>
               </div>
-              <div className="bg-white p-2.5 rounded-xl border border-slate-100 shadow-2xs">
-                <span className="text-[10px] text-slate-500 font-semibold block">Lợi nhuận ròng</span>
+              <div className="surface-card p-2.5 rounded-xl border-card shadow-card">
+                <span className="text-caption text-slate-500 font-semibold block font-sans">Lợi nhuận ròng</span>
                 <span
                   className={`text-xs sm:text-sm font-black mt-0.5 block ${
-                    previewProfit >= 0 ? 'text-purple-600' : 'text-rose-600'
+                    previewProfit >= 0 ? 'text-brand-purple' : 'text-rose-600'
                   }`}
                 >
                   {formatCurrency(previewProfit, settings)}
@@ -334,15 +359,15 @@ export default function EmailReportModal({
                 <Mail className="w-3.5 h-3.5 text-slate-400" />
                 <span>Danh sách email người nhận ({recipients.length})</span>
               </span>
-              <span className="text-[10px] text-slate-400 font-normal">Quản trị & Quản lý</span>
+              <span className="text-caption text-slate-400 font-normal">Quản trị & Quản lý</span>
             </label>
 
             {/* Email chips */}
-            <div className="flex flex-wrap gap-1.5 p-2 bg-slate-50/60 rounded-xl border border-slate-200 min-h-[42px] items-center">
+            <div className="flex flex-wrap gap-1.5 p-2 bg-slate-50/60 rounded-xl border border-border-hairline min-h-[42px] items-center">
               {recipients.map((email) => (
                 <span
                   key={email}
-                  className="inline-flex items-center gap-1 text-[11px] bg-white text-slate-800 border border-slate-200 rounded-lg px-2.5 py-1 font-semibold shadow-2xs group"
+                  className="inline-flex items-center gap-1 text-caption bg-white text-slate-800 border border-border-hairline rounded-full px-2.5 py-1 font-semibold shadow-card group"
                 >
                   <span>{email}</span>
                   <button
@@ -370,12 +395,12 @@ export default function EmailReportModal({
                     handleAddEmail();
                   }
                 }}
-                className="flex-1 text-xs border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400 min-h-[38px]"
+                className="flex-1 text-xs border border-border-hairline rounded-full px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-purple-400 min-h-[38px]"
               />
               <button
                 type="button"
                 onClick={handleAddEmail}
-                className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition flex items-center gap-1 shrink-0 cursor-pointer min-h-[38px]"
+                className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-full border border-border-hairline transition flex items-center gap-1 shrink-0 cursor-pointer min-h-[38px]"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Thêm</span>
@@ -383,42 +408,11 @@ export default function EmailReportModal({
             </div>
           </div>
 
-          <div className="text-[11px] text-slate-400 flex items-center gap-1.5 pt-1">
+          <div className="text-caption text-slate-400 flex items-center gap-1.5 pt-1">
             <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
             <span>Nội dung email sẽ bao gồm bảng chi tiết doanh thu, chi phí, quỹ tiền và file đính kèm.</span>
           </div>
         </div>
-
-        {/* Footer */}
-        <div className="grid grid-cols-2 gap-2.5 p-4 sm:p-5 border-t border-slate-100 bg-slate-50/70 shrink-0">
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={isSending}
-            className="w-full text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 py-2.5 rounded-xl transition cursor-pointer text-center justify-center flex items-center"
-          >
-            Hủy
-          </button>
-          <button
-            type="button"
-            onClick={handleSend}
-            disabled={isSending}
-            className="w-full text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 py-2.5 rounded-xl transition flex items-center justify-center gap-1.5 disabled:opacity-60 cursor-pointer shadow-xs text-center"
-          >
-            {isSending ? (
-              <>
-                <RefreshCw className="w-4 h-4 animate-spin" />
-                <span>Đang gửi báo cáo...</span>
-              </>
-            ) : (
-              <>
-                <Send className="w-4 h-4" />
-                <span>Gửi Báo Cáo Ngay</span>
-              </>
-            )}
-          </button>
-        </div>
-      </div>
-    </div>
+      </ModalShell>
   );
 }
