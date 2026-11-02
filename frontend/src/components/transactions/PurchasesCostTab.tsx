@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Plus,
   Search,
@@ -34,6 +34,8 @@ import HorizontalScroller from '@/components/common/HorizontalScroller';
 import { fetchApi, getImageUrl } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
 import { useToast } from '@/context/ToastContext';
+import { useConfirm } from '@/context/ConfirmContext';
+import { ModalShell } from '@/components/ui/ModalShell';
 import { formatCurrency, SettingsMap } from '@/lib/utils';
 import {
   Ingredient,
@@ -152,6 +154,12 @@ export default function PurchasesCostTab({
   const [viewingHistoryIng, setViewingHistoryIng] = useState<Ingredient | null>(null);
   const [ingHistoryRecords, setIngHistoryRecords] = useState<IngredientHistoryRecord[]>([]);
   const [historyLoading, setHistoryLoading] = useState<boolean>(false);
+
+  // Confirm & Locks
+  const { confirm } = useConfirm();
+  const bulkApplyingRef = useRef<boolean>(false);
+  const deletingIngredientRef = useRef<boolean>(false);
+  const [deletingIngredientId, setDeletingIngredientId] = useState<number | null>(null);
 
   // Toast Notifications
   const [applyingCostId, setApplyingCostId] = useState<string | null>(null);
@@ -537,14 +545,16 @@ export default function PurchasesCostTab({
       return;
     }
 
-    if (
-      !window.confirm(
-        `Bạn có chắc muốn đồng bộ giá vốn mới tính toán cho ${itemsToApply.length} món trên Menu bán hàng?`
-      )
-    ) {
-      return;
-    }
+    const ok = await confirm({
+      title: 'Đồng bộ giá vốn menu',
+      message: `Bạn có chắc muốn đồng bộ giá vốn mới tính toán cho ${itemsToApply.length} món trên Menu bán hàng?`,
+      type: 'warning',
+      confirmText: 'Đồng bộ ngay',
+    });
+    if (!ok) return;
 
+    if (bulkApplyingRef.current) return;
+    bulkApplyingRef.current = true;
     setBulkApplying(true);
     try {
       const res = await fetchApi('/purchases/apply-cost', {
@@ -565,6 +575,7 @@ export default function PurchasesCostTab({
     } catch {
       showToast('error', 'Không thể kết nối máy chủ');
     } finally {
+      bulkApplyingRef.current = false;
       setBulkApplying(false);
     }
   };
@@ -809,8 +820,17 @@ export default function PurchasesCostTab({
   };
 
   const handleDeleteIngredient = async (ing: Ingredient) => {
-    if (!window.confirm(`Bạn có chắc muốn xóa nguyên liệu "${ing.name}"?`)) return;
+    const ok = await confirm({
+      title: 'Xóa nguyên liệu',
+      message: `Bạn có chắc muốn xóa nguyên liệu "${ing.name}"? Thao tác này không thể hoàn tác.`,
+      type: 'danger',
+      confirmText: 'Xóa nguyên liệu',
+    });
+    if (!ok) return;
 
+    if (deletingIngredientRef.current) return;
+    deletingIngredientRef.current = true;
+    setDeletingIngredientId(ing.id);
     try {
       const res = await fetchApi(`/purchases/ingredients/${ing.id}`, {
         method: 'DELETE',
@@ -824,6 +844,9 @@ export default function PurchasesCostTab({
       }
     } catch {
       showToast('error', 'Không thể kết nối máy chủ');
+    } finally {
+      deletingIngredientRef.current = false;
+      setDeletingIngredientId(null);
     }
   };
 
@@ -911,39 +934,39 @@ export default function PurchasesCostTab({
 
         {/* 3 Summary KPI Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-3 pt-1">
-          <div className="col-span-2 sm:col-span-1 bg-emerald-50/80 rounded-2xl p-3 sm:p-3.5 border border-emerald-200/90 flex items-center justify-between shadow-2xs">
+          <div className="col-span-2 sm:col-span-1 bg-emerald-50/80 rounded-2xl p-3 sm:p-3.5 border border-emerald-200/90 flex items-center justify-between shadow-card">
             <div>
-              <span className="text-[10px] sm:text-[11px] font-bold text-emerald-800 uppercase block">Biên Lãi Gộp TB Menu</span>
+              <span className="text-caption font-bold text-emerald-800 uppercase block">Biên Lãi Gộp TB Menu</span>
               <div className="flex items-baseline gap-1.5 mt-0.5">
-                <span className="text-lg sm:text-xl font-black text-emerald-950">{metrics.avgMargin}%</span>
-                <span className="text-[10px] text-emerald-700 font-semibold">(lợi nhuận gộp)</span>
+                <span className="text-lg sm:text-xl font-black text-emerald-950 font-num">{metrics.avgMargin}%</span>
+                <span className="text-caption text-emerald-700 font-semibold">(lợi nhuận gộp)</span>
               </div>
             </div>
-            <div className="w-9 h-9 rounded-xl bg-emerald-700 text-white flex items-center justify-center shadow-xs shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-emerald-700 text-white flex items-center justify-center shadow-card shrink-0">
               <TrendingUp className="w-5 h-5" />
             </div>
           </div>
 
-          <div className="bg-slate-50 rounded-2xl p-3 sm:p-3.5 border border-slate-200 flex items-center justify-between shadow-2xs">
+          <div className="surface-card rounded-2xl p-3 sm:p-3.5 border border-card flex items-center justify-between shadow-card">
             <div>
-              <span className="text-[10px] sm:text-[11px] font-bold text-slate-500 uppercase block">Đã Định Lượng BOM</span>
-              <span className="text-lg sm:text-xl font-black text-slate-900 block mt-0.5">
-                {metrics.itemsWithRecipe}/{metrics.totalItems} <span className="text-xs font-semibold text-slate-500">món</span>
+              <span className="text-caption font-bold text-slate-500 uppercase block">Đã Định Lượng BOM</span>
+              <span className="text-lg sm:text-xl font-black text-slate-900 block mt-0.5 font-num">
+                {metrics.itemsWithRecipe}/{metrics.totalItems} <span className="text-xs font-semibold text-slate-500 font-sans">món</span>
               </span>
             </div>
-            <div className="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-xs shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-brand-purple text-white flex items-center justify-center shadow-card shrink-0">
               <Scale className="w-5 h-5" />
             </div>
           </div>
 
-          <div className="bg-slate-50 rounded-2xl p-3 sm:p-3.5 border border-slate-200 flex items-center justify-between shadow-2xs">
+          <div className="surface-card rounded-2xl p-3 sm:p-3.5 border border-card flex items-center justify-between shadow-card">
             <div>
-              <span className="text-[10px] sm:text-[11px] font-bold text-slate-500 uppercase block">{t('purchases.kpi_ingredients_variance')}</span>
-              <span className="text-lg sm:text-xl font-black text-slate-900 block mt-0.5">
-                {ingredients.length} <span className="text-xs font-semibold text-slate-500">{t('purchases.kpi_ingredients_unit', { count: filterCounts.needsUpdate })}</span>
+              <span className="text-caption font-bold text-slate-500 uppercase block">{t('purchases.kpi_ingredients_variance')}</span>
+              <span className="text-lg sm:text-xl font-black text-slate-900 block mt-0.5 font-num">
+                {ingredients.length} <span className="text-xs font-semibold text-slate-500 font-sans">{t('purchases.kpi_ingredients_unit', { count: filterCounts.needsUpdate })}</span>
               </span>
             </div>
-            <div className="w-9 h-9 rounded-xl bg-amber-600 text-white flex items-center justify-center shadow-xs shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-amber-600 text-white flex items-center justify-center shadow-card shrink-0">
               <Package className="w-5 h-5" />
             </div>
           </div>
@@ -951,7 +974,7 @@ export default function PurchasesCostTab({
 
         {/* 2-view segmented mode */}
         <HorizontalScroller
-          wrapperClassName="bg-slate-200/70 p-1 rounded-2xl"
+          wrapperClassName="bg-slate-200/70 p-1 rounded-full"
           className="space-x-1 sm:space-x-2"
           scrollAmount={200}
           arrowSize="sm"
@@ -959,8 +982,8 @@ export default function PurchasesCostTab({
           <button
             type="button"
             onClick={() => setActiveSubTab('profit-recovery')}
-            className={`flex-1 min-w-[130px] py-2 px-3 text-xs sm:text-sm font-bold rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${activeSubTab === 'profit-recovery'
-              ? 'bg-white text-emerald-900 shadow-sm font-extrabold'
+            className={`flex-1 min-w-[130px] py-2 px-3 text-xs sm:text-sm font-bold rounded-full transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${activeSubTab === 'profit-recovery'
+              ? 'bg-white text-emerald-950 shadow-card font-extrabold'
               : 'text-slate-600 hover:text-slate-900'
               }`}
           >
@@ -971,14 +994,14 @@ export default function PurchasesCostTab({
           <button
             type="button"
             onClick={() => setActiveSubTab('ingredients')}
-            className={`flex-1 min-w-[130px] py-2 px-3 text-xs sm:text-sm font-bold rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${activeSubTab === 'ingredients'
-              ? 'bg-white text-emerald-900 shadow-sm font-extrabold'
+            className={`flex-1 min-w-[130px] py-2 px-3 text-xs sm:text-sm font-bold rounded-full transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${activeSubTab === 'ingredients'
+              ? 'bg-white text-emerald-950 shadow-card font-extrabold'
               : 'text-slate-600 hover:text-slate-900'
               }`}
           >
             <Package className="w-4 h-4 text-amber-600 shrink-0" />
             <span>{t('purchases.view_ingredient_stock')}</span>
-            <span className="bg-amber-50 text-amber-700 text-[10px] sm:text-xs px-1.5 py-0.2 rounded-full font-bold">
+            <span className="bg-amber-100 text-amber-800 text-caption px-2 py-0.5 rounded-full font-bold font-num">
               {ingredients.length}
             </span>
           </button>
@@ -994,37 +1017,37 @@ export default function PurchasesCostTab({
               type="button"
               onClick={() => setStatusFilter('all')}
               aria-pressed={statusFilter === 'all'}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${statusFilter === 'all'
-                ? 'bg-slate-800 text-white shadow-sm'
-                : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+              className={`px-3 py-1.5 rounded-full text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${statusFilter === 'all'
+                ? 'bg-slate-800 text-white shadow-card'
+                : 'surface-card text-slate-700 hover:bg-slate-50 border border-card'
                 }`}
             >
               <span>{t('purchases.pill_all')}</span>
-              <span className="text-[10px] tabular-nums opacity-80">{filterCounts.all}</span>
+              <span className="text-caption font-num opacity-80">{filterCounts.all}</span>
             </button>
             <button
               type="button"
               onClick={() => setStatusFilter('needs_update')}
               aria-pressed={statusFilter === 'needs_update'}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${statusFilter === 'needs_update'
-                ? 'bg-amber-600 text-white shadow-sm'
+              className={`px-3 py-1.5 rounded-full text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${statusFilter === 'needs_update'
+                ? 'bg-amber-600 text-white shadow-card'
                 : 'bg-amber-50 text-amber-900 hover:bg-amber-100 border border-amber-200'
                 }`}
             >
               <span>{t('purchases.pill_variance')}</span>
-              <span className="text-[10px] tabular-nums opacity-80">{filterCounts.needsUpdate}</span>
+              <span className="text-caption font-num opacity-80">{filterCounts.needsUpdate}</span>
             </button>
             <button
               type="button"
               onClick={() => setStatusFilter('no_recipe')}
               aria-pressed={statusFilter === 'no_recipe'}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${statusFilter === 'no_recipe'
-                ? 'bg-slate-800 text-white shadow-sm'
-                : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+              className={`px-3 py-1.5 rounded-full text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${statusFilter === 'no_recipe'
+                ? 'bg-slate-800 text-white shadow-card'
+                : 'surface-card text-slate-700 hover:bg-slate-50 border border-card'
                 }`}
             >
               <span>{t('purchases.pill_no_recipe')}</span>
-              <span className="text-[10px] tabular-nums opacity-80">{filterCounts.noRecipe}</span>
+              <span className="text-caption font-num opacity-80">{filterCounts.noRecipe}</span>
             </button>
           </div>
 
@@ -1084,12 +1107,12 @@ export default function PurchasesCostTab({
             }
             actionsSlot={
               <div className="flex items-center gap-2">
-                <div className="flex items-center bg-slate-100 p-1 rounded-xl text-xs font-bold shrink-0">
+                <div className="flex items-center bg-slate-100 p-1 rounded-full text-xs font-bold shrink-0">
                   <button
                     type="button"
                     onClick={() => setPricingBasis('latest')}
-                    className={`px-2.5 sm:px-3 py-1.5 rounded-lg transition cursor-pointer text-xs ${pricingBasis === 'latest'
-                      ? 'bg-white text-emerald-900 shadow-xs font-extrabold'
+                    className={`px-3 py-1.5 rounded-full transition cursor-pointer text-xs ${pricingBasis === 'latest'
+                      ? 'bg-white text-emerald-950 shadow-card font-extrabold'
                       : 'text-slate-600 hover:text-slate-900'
                       }`}
                     title="Tính theo giá quy đổi đợt nhập gần nhất"
@@ -1099,8 +1122,8 @@ export default function PurchasesCostTab({
                   <button
                     type="button"
                     onClick={() => setPricingBasis('average')}
-                    className={`px-2.5 sm:px-3 py-1.5 rounded-lg transition cursor-pointer text-xs ${pricingBasis === 'average'
-                      ? 'bg-white text-emerald-900 shadow-xs font-extrabold'
+                    className={`px-3 py-1.5 rounded-full transition cursor-pointer text-xs ${pricingBasis === 'average'
+                      ? 'bg-white text-emerald-950 shadow-card font-extrabold'
                       : 'text-slate-600 hover:text-slate-900'
                       }`}
                     title="Tính theo giá quy đổi bình quân các lần nhập"
@@ -1112,7 +1135,7 @@ export default function PurchasesCostTab({
                   type="button"
                   onClick={handleBulkApplyAll}
                   disabled={bulkApplying}
-                  className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-extrabold shadow-2xs transition active:scale-95 cursor-pointer shrink-0"
+                  className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-full text-xs font-extrabold shadow-card transition active:scale-95 cursor-pointer shrink-0 disabled:opacity-50"
                 >
                   <RefreshCw className={`w-3.5 h-3.5 ${bulkApplying ? 'animate-spin' : ''}`} />
                   <span className="hidden sm:inline">Đồng bộ</span>
@@ -1153,20 +1176,20 @@ export default function PurchasesCostTab({
           />
 
           {loading ? (
-            <div className="flex items-center justify-center py-16 bg-white rounded-2xl border border-slate-200 shadow-sm">
+            <div className="flex items-center justify-center py-16 surface-card rounded-2xl border border-card shadow-card">
               <RefreshCw className="w-7 h-7 text-emerald-600 animate-spin" />
             </div>
           ) : filteredCostItems.length === 0 ? (
-            <div className="py-14 text-center bg-white rounded-2xl border border-slate-200 shadow-sm text-slate-400 font-semibold text-xs sm:text-sm">
+            <div className="py-14 text-center surface-card rounded-2xl border border-card shadow-card text-slate-400 font-semibold text-xs sm:text-sm">
               Không tìm thấy món hoặc topping nào phù hợp
             </div>
           ) : (
             <>
               {/* Desktop View: Table (hidden md:block) */}
-              <div className="hidden md:block bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+              <div className="hidden md:block surface-card rounded-2xl border border-card shadow-card overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs">
-                    <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase tracking-wider font-semibold">
+                    <thead className="bg-slate-50 border-b border-card text-slate-500 uppercase tracking-wider font-semibold">
                       <tr>
                         <th className="py-3 px-4">Món / Topping</th>
                         <th className="py-3 px-3">Danh Mục</th>
@@ -1209,7 +1232,7 @@ export default function PurchasesCostTab({
                                     <div className="font-bold text-slate-900 text-xs sm:text-sm flex items-center gap-1.5">
                                       <span>{item.product_name}</span>
                                       {item.variant_name && item.variant_name !== 'Mặc định' && (
-                                        <span className="text-[9px] font-bold text-indigo-700 bg-indigo-50 px-1.5 py-0.2 rounded-md border border-indigo-100">
+                                        <span className="text-caption font-bold text-brand-purple bg-purple-50 px-2 py-0.5 rounded-full border border-purple-100">
                                           {item.variant_name}
                                         </span>
                                       )}
@@ -1220,22 +1243,22 @@ export default function PurchasesCostTab({
                               <td className="py-3 px-3 text-slate-600 font-medium">
                                 {item.category_name}
                               </td>
-                              <td className="py-3 px-3 text-right font-bold text-slate-900">
+                              <td className="py-3 px-3 text-right font-bold text-slate-900 font-num">
                                 {formatCurrency(item.retail_price, settings)}
                               </td>
-                              <td className="py-3 px-3 text-right font-black text-slate-900">
+                              <td className="py-3 px-3 text-right font-black text-slate-900 font-num">
                                 {hasRecipe ? (
-                                  <span className="text-slate-900">{formatCurrency(estCost, settings)}</span>
+                                  <span className="text-slate-900 font-num">{formatCurrency(estCost, settings)}</span>
                                 ) : (
-                                  <span className="text-slate-400 font-normal italic">Chưa định lượng</span>
+                                  <span className="text-slate-400 font-normal italic font-sans">Chưa định lượng</span>
                                 )}
                               </td>
-                              <td className="py-3 px-3 text-right font-black text-emerald-700">
+                              <td className="py-3 px-3 text-right font-black text-emerald-700 font-num">
                                 {hasRecipe ? `+${formatCurrency(unitProfit, settings)}` : '—'}
                               </td>
                               <td className="py-3 px-3 text-center">
                                 {hasRecipe ? (
-                                  <span className="inline-flex items-center font-black text-emerald-800 bg-emerald-100/90 border border-emerald-200/80 px-2 py-0.5 rounded-lg text-xs">
+                                  <span className="inline-flex items-center font-black text-emerald-800 bg-emerald-100/90 border border-emerald-200/80 px-2.5 py-0.5 rounded-full text-xs font-num">
                                     {marginPct}%
                                   </span>
                                 ) : (
@@ -1244,12 +1267,12 @@ export default function PurchasesCostTab({
                               </td>
                               <td className="py-3 px-3 text-center">
                                 {hasRecipe ? (
-                                  <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                                  <span className="inline-flex items-center gap-1 text-caption font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200 font-num">
                                     <CheckCircle2 className="w-3 h-3 text-emerald-600" />
                                     {item.recipe_item_count} NL
                                   </span>
                                 ) : (
-                                  <span className="inline-flex items-center text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
+                                  <span className="inline-flex items-center text-caption font-bold text-amber-700 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200">
                                     Chưa BOM
                                   </span>
                                 )}
@@ -1261,7 +1284,7 @@ export default function PurchasesCostTab({
                                       type="button"
                                       onClick={() => handleApplySingleCost(item)}
                                       disabled={applyingCostId === `${item.target_type}-${item.target_id}`}
-                                      className="p-1.5 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition active:scale-95 cursor-pointer"
+                                      className="p-1.5 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-full transition active:scale-95 cursor-pointer"
                                       title="Áp dụng giá vốn tính toán vào Menu bán hàng"
                                     >
                                       <CheckCircle2 className="w-3.5 h-3.5" />
@@ -1270,7 +1293,7 @@ export default function PurchasesCostTab({
                                   <button
                                     type="button"
                                     onClick={() => handleOpenRecipeEditor(item)}
-                                    className="px-2.5 py-1 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition cursor-pointer flex items-center gap-1"
+                                    className="px-3 py-1.5 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-full transition cursor-pointer flex items-center gap-1"
                                   >
                                     <Scale className="w-3.5 h-3.5 text-emerald-700" />
                                     <span>{hasRecipe ? 'Công thức' : '+ Định lượng'}</span>
@@ -1283,7 +1306,7 @@ export default function PurchasesCostTab({
                                           isExpanded ? null : `${item.target_type}-${item.target_id}`
                                         )
                                       }
-                                      className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition cursor-pointer"
+                                      className="p-1.5 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition cursor-pointer"
                                       title={isExpanded ? 'Thu gọn' : 'Xem chi tiết định lượng'}
                                     >
                                       {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
@@ -1294,25 +1317,25 @@ export default function PurchasesCostTab({
                             </tr>
                             {isExpanded && item.recipe_details && item.recipe_details.length > 0 && (
                               <tr className="bg-slate-50/70">
-                                <td colSpan={8} className="p-3 px-4 border-t border-slate-100">
+                                <td colSpan={8} className="p-3 px-4 border-t border-card">
                                   <div className="space-y-1.5">
-                                    <span className="text-[10px] font-bold text-slate-500 uppercase block">
+                                    <span className="text-caption font-bold text-slate-500 uppercase block">
                                       Chi tiết định lượng nguyên liệu cấu thành:
                                     </span>
                                     <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                                       {item.recipe_details.map((rd) => (
                                         <div
                                           key={rd.ingredient_id}
-                                          className="bg-white p-2 rounded-xl border border-slate-200/80 text-xs flex items-center justify-between shadow-2xs"
+                                          className="surface-card p-2.5 rounded-xl border border-card text-xs flex items-center justify-between shadow-card"
                                         >
                                           <div className="min-w-0 pr-2">
                                             <span className="font-bold text-slate-800 block truncate">{rd.ingredient_name}</span>
-                                            <span className="text-[10px] text-slate-400 font-semibold">
+                                            <span className="text-caption text-slate-400 font-semibold font-num">
                                               {formatQuantityWithUnit(rd.usage_quantity, rd.base_unit || rd.unit)} ×{' '}
                                               {formatCurrency(rd.effective_unit_cost, settings)}/{rd.base_unit || rd.unit}
                                             </span>
                                           </div>
-                                          <span className="font-black text-emerald-800 text-xs shrink-0">
+                                          <span className="font-black text-emerald-800 text-xs shrink-0 font-num">
                                             {formatCurrency(rd.line_cost, settings)}
                                           </span>
                                         </div>
@@ -1331,7 +1354,7 @@ export default function PurchasesCostTab({
               </div>
 
               {/* Mobile View: Cards (md:hidden) */}
-              <div className="md:hidden bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden divide-y divide-slate-100">
+              <div className="md:hidden surface-card rounded-2xl border border-card shadow-card overflow-hidden divide-y divide-slate-100">
                 {filteredCostItems.map((item) => {
                   const estCost = pricingBasis === 'latest' ? item.estimated_cogs : item.estimated_cogs_avg;
                   const isExpanded = expandedItemId === `${item.target_type}-${item.target_id}`;
@@ -1365,15 +1388,15 @@ export default function PurchasesCostTab({
                                 {item.product_name}
                               </h3>
                               {item.variant_name && item.variant_name !== 'Mặc định' && (
-                                <span className="text-[9px] sm:text-[10px] font-bold text-indigo-700 bg-indigo-50 px-1.5 py-0.2 rounded-md border border-indigo-100">
+                                <span className="text-caption font-bold text-brand-purple bg-purple-50 px-2 py-0.5 rounded-full border border-purple-100">
                                   {item.variant_name}
                                 </span>
                               )}
                             </div>
-                            <div className="flex items-center gap-1.5 text-[11px] text-slate-500 font-medium mt-0.5">
+                            <div className="flex items-center gap-1.5 text-caption text-slate-500 font-medium mt-0.5">
                               <span className="text-slate-400">{item.category_name}</span>
                               <span>•</span>
-                              <span className="font-bold text-slate-800">
+                              <span className="font-bold text-slate-800 font-num">
                                 Giá bán: {formatCurrency(item.retail_price, settings)}
                               </span>
                             </div>
@@ -1381,20 +1404,20 @@ export default function PurchasesCostTab({
                         </div>
 
                         {/* Cost, Margin & Actions */}
-                        <div className="flex items-center gap-2 sm:gap-3 self-stretch sm:self-auto justify-between sm:justify-end pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
+                        <div className="flex items-center gap-2 sm:gap-3 self-stretch sm:self-auto justify-between sm:justify-end pt-2 sm:pt-0 border-t sm:border-t-0 border-card">
                           <div className="text-left sm:text-right">
                             <div className="flex items-center gap-1.5 justify-start sm:justify-end">
-                              <span className="text-[10px] text-slate-400 font-bold uppercase">Giá vốn:</span>
-                              <span className="font-black text-slate-900 text-xs sm:text-sm">
+                              <span className="text-caption text-slate-400 font-bold uppercase">Giá vốn:</span>
+                              <span className="font-black text-slate-900 text-xs sm:text-sm font-num">
                                 {hasRecipe ? formatCurrency(estCost, settings) : 'Chưa định lượng'}
                               </span>
                             </div>
                             {hasRecipe && (
-                              <div className="flex items-center gap-1.5 justify-start sm:justify-end text-[11px] mt-0.5">
+                              <div className="flex items-center gap-1.5 justify-start sm:justify-end text-caption mt-0.5 font-num">
                                 <span className="font-bold text-emerald-700">
                                   Lãi: +{formatCurrency(unitProfit, settings)}
                                 </span>
-                                <span className="font-black text-emerald-800 bg-emerald-100 px-1.5 py-0.2 rounded text-[10px]">
+                                <span className="font-black text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full text-caption font-num">
                                   {marginPct}%
                                 </span>
                               </div>
@@ -1407,7 +1430,7 @@ export default function PurchasesCostTab({
                                 type="button"
                                 onClick={() => handleApplySingleCost(item)}
                                 disabled={applyingCostId === `${item.target_type}-${item.target_id}`}
-                                className="p-2 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-xl text-xs font-bold transition active:scale-95 cursor-pointer"
+                                className="p-2.5 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-full text-xs font-bold transition active:scale-95 cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center"
                                 title="Áp dụng giá vốn tính toán vào Menu bán hàng"
                               >
                                 <CheckCircle2 className="w-4 h-4" />
@@ -1417,7 +1440,7 @@ export default function PurchasesCostTab({
                             <button
                               type="button"
                               onClick={() => handleOpenRecipeEditor(item)}
-                              className="px-2.5 sm:px-3 py-1.5 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition cursor-pointer flex items-center gap-1"
+                              className="px-3.5 py-2.5 sm:py-1.5 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-full transition cursor-pointer flex items-center gap-1 min-h-[44px] sm:min-h-0"
                             >
                               <Scale className="w-3.5 h-3.5 text-emerald-700" />
                               <span>{hasRecipe ? 'Công thức' : '+ Định lượng'}</span>
@@ -1431,7 +1454,7 @@ export default function PurchasesCostTab({
                                     isExpanded ? null : `${item.target_type}-${item.target_id}`
                                   )
                                 }
-                                className="p-2 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 transition cursor-pointer"
+                                className="p-2.5 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center"
                                 title={isExpanded ? 'Thu gọn' : 'Xem chi tiết định lượng'}
                               >
                                 {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -1443,24 +1466,24 @@ export default function PurchasesCostTab({
 
                       {/* Expandable Recipe Details */}
                       {isExpanded && item.recipe_details && item.recipe_details.length > 0 && (
-                        <div className="mt-2.5 pt-2.5 border-t border-slate-100 bg-slate-50/80 rounded-2xl p-2.5 sm:p-3 space-y-2">
-                          <span className="text-[10px] font-bold text-slate-500 uppercase block">
+                        <div className="mt-2.5 pt-2.5 border-t border-card bg-slate-50/80 rounded-2xl p-2.5 sm:p-3 space-y-2">
+                          <span className="text-caption font-bold text-slate-500 uppercase block">
                             Chi tiết định lượng nguyên liệu cấu thành:
                           </span>
                           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-1.5 sm:gap-2">
                             {item.recipe_details.map((rd) => (
                               <div
                                 key={rd.ingredient_id}
-                                className="bg-white p-2 sm:p-2.5 rounded-xl border border-slate-200/70 text-xs flex items-center justify-between shadow-2xs"
+                                className="surface-card p-2.5 rounded-xl border border-card text-xs flex items-center justify-between shadow-card"
                               >
                                 <div className="min-w-0 pr-2">
                                   <span className="font-bold text-slate-800 block truncate">{rd.ingredient_name}</span>
-                                  <span className="text-[10px] text-slate-400 font-semibold">
+                                  <span className="text-caption text-slate-400 font-semibold font-num">
                                     {formatQuantityWithUnit(rd.usage_quantity, rd.base_unit || rd.unit)} ×{' '}
                                     {formatCurrency(rd.effective_unit_cost, settings)}/{rd.base_unit || rd.unit}
                                   </span>
                                 </div>
-                                <span className="font-black text-emerald-800 text-xs shrink-0">
+                                <span className="font-black text-emerald-800 text-xs shrink-0 font-num">
                                   {formatCurrency(rd.line_cost, settings)}
                                 </span>
                               </div>
@@ -1532,7 +1555,7 @@ export default function PurchasesCostTab({
               <button
                 type="button"
                 onClick={handleOpenAddIngredient}
-                className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-extrabold shadow-2xs transition active:scale-95 cursor-pointer shrink-0"
+                className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-full text-xs font-extrabold shadow-card transition active:scale-95 cursor-pointer shrink-0"
               >
                 <Plus className="w-4 h-4" />
                 <span>+ Thêm Nguyên Liệu</span>
@@ -1571,11 +1594,11 @@ export default function PurchasesCostTab({
           />
 
           {loading ? (
-            <div className="flex items-center justify-center py-16 bg-white rounded-2xl border border-slate-200 shadow-sm">
+            <div className="flex items-center justify-center py-16 surface-card rounded-2xl border border-card shadow-card">
               <RefreshCw className="w-7 h-7 text-emerald-600 animate-spin" />
             </div>
           ) : filteredIngredients.length === 0 ? (
-            <div className="py-14 text-center bg-white rounded-2xl border border-slate-200 shadow-sm text-slate-400 font-semibold text-xs sm:text-sm">
+            <div className="py-14 text-center surface-card rounded-2xl border border-card shadow-card text-slate-400 font-semibold text-xs sm:text-sm">
               Không tìm thấy nguyên liệu nào phù hợp
             </div>
           ) : (
@@ -1593,32 +1616,32 @@ export default function PurchasesCostTab({
                     return (
                       <div
                         key={ing.id}
-                        className="bg-emerald-50/50 rounded-2xl border-2 border-emerald-500 p-3 sm:p-4 shadow-md space-y-3"
+                        className="bg-emerald-50/50 rounded-2xl border-2 border-emerald-500 p-3 sm:p-4 shadow-card space-y-3"
                       >
                         <div className="flex items-center justify-between border-b border-emerald-200 pb-2">
                           <span className="text-xs font-black text-emerald-900 flex items-center gap-1.5">
                             <Edit className="w-3.5 h-3.5 text-emerald-700" />
                             <span>Chỉnh sửa nhanh nguyên liệu</span>
                           </span>
-                          <span className="text-[10px] text-emerald-700 font-bold bg-white px-2 py-0.5 rounded border border-emerald-300">
+                          <span className="text-caption text-emerald-700 font-bold bg-white px-2 py-0.5 rounded-full border border-emerald-300 font-num">
                             ID #{ing.id}
                           </span>
                         </div>
 
                         <div className="space-y-2 text-xs">
                           <div>
-                            <label className="text-[11px] font-bold text-slate-700 block mb-0.5">Tên nguyên liệu *</label>
+                            <label className="text-caption font-bold text-slate-700 block mb-0.5">Tên nguyên liệu *</label>
                             <input
                               type="text"
                               value={inlineForm.name}
                               onChange={(e) => setInlineForm({ ...inlineForm, name: e.target.value })}
-                              className="w-full h-8 px-2.5 border border-slate-300 rounded-xl font-bold bg-white focus:ring-2 focus:ring-emerald-500"
+                              className="app-input-compact font-bold"
                             />
                           </div>
 
                           <div className="grid grid-cols-2 gap-2">
                             <div>
-                              <label className="text-[10px] font-bold text-slate-600 block mb-0.5">Phân loại</label>
+                              <label className="text-caption font-bold text-slate-600 block mb-0.5">Phân loại</label>
                               <ModernSelect
                                 value={inlineForm.category}
                                 onChange={(val) => setInlineForm({ ...inlineForm, category: String(val) })}
@@ -1628,7 +1651,7 @@ export default function PurchasesCostTab({
                               />
                             </div>
                             <div>
-                              <label className="text-[10px] font-bold text-slate-600 block mb-0.5">Đơn vị cơ sở</label>
+                              <label className="text-caption font-bold text-slate-600 block mb-0.5">Đơn vị cơ sở</label>
                               <ModernSelect
                                 value={inlineForm.base_unit}
                                 onChange={(val) => setInlineForm({ ...inlineForm, base_unit: String(val) })}
@@ -1641,17 +1664,17 @@ export default function PurchasesCostTab({
 
                           <div className="grid grid-cols-2 gap-2">
                             <div>
-                              <label className="text-[10px] font-bold text-slate-600 block mb-0.5">Quy cách mặc định</label>
+                              <label className="text-caption font-bold text-slate-600 block mb-0.5">Quy cách mặc định</label>
                               <input
                                 type="text"
                                 value={inlineForm.default_spec_str}
                                 onChange={(e) => setInlineForm({ ...inlineForm, default_spec_str: e.target.value })}
                                 placeholder={`VD: 1 ${inlineForm.base_unit}`}
-                                className="w-full h-8 px-2 border border-slate-300 rounded-xl bg-white"
+                                className="app-input-compact"
                               />
                             </div>
                             <div>
-                              <label className="text-[10px] font-bold text-slate-600 block mb-0.5">Hao hụt (%)</label>
+                              <label className="text-caption font-bold text-slate-600 block mb-0.5">Hao hụt (%)</label>
                               <div className="relative w-full">
                                 <input
                                   type="number"
@@ -1659,34 +1682,34 @@ export default function PurchasesCostTab({
                                   max="99"
                                   value={inlineForm.loss_rate_pct}
                                   onChange={(e) => setInlineForm({ ...inlineForm, loss_rate_pct: parseFloat(e.target.value) || 0 })}
-                                  className="w-full h-8 pr-5 pl-2 border border-slate-300 rounded-xl text-center font-bold bg-white"
+                                  className="app-input-compact pr-6 text-center font-bold font-num"
                                 />
-                                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 font-bold">%</span>
+                                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-caption text-slate-400 font-bold">%</span>
                               </div>
                             </div>
                           </div>
 
                           <div className="grid grid-cols-2 gap-2">
                             <div>
-                              <label className="text-[10px] font-bold text-slate-600 block mb-0.5">Giá gần nhất (đ)</label>
+                              <label className="text-caption font-bold text-slate-600 block mb-0.5">Giá gần nhất (đ)</label>
                               <input
                                 type="number"
                                 min="0"
                                 step="any"
                                 value={inlineForm.latest_price === 0 ? '' : inlineForm.latest_price}
                                 onChange={(e) => setInlineForm({ ...inlineForm, latest_price: parseFloat(e.target.value) || 0 })}
-                                className="w-full h-8 px-2 border border-slate-300 rounded-xl text-right font-extrabold text-emerald-700 bg-white"
+                                className="app-input-compact text-right font-extrabold text-emerald-700 font-num"
                               />
                             </div>
                             <div>
-                              <label className="text-[10px] font-bold text-slate-600 block mb-0.5">Giá BQ (đ)</label>
+                              <label className="text-caption font-bold text-slate-600 block mb-0.5">Giá BQ (đ)</label>
                               <input
                                 type="number"
                                 min="0"
                                 step="any"
                                 value={inlineForm.avg_price === 0 ? '' : inlineForm.avg_price}
                                 onChange={(e) => setInlineForm({ ...inlineForm, avg_price: parseFloat(e.target.value) || 0 })}
-                                className="w-full h-8 px-2 border border-slate-300 rounded-xl text-right font-bold text-slate-700 bg-white"
+                                className="app-input-compact text-right font-bold text-slate-700 font-num"
                               />
                             </div>
                           </div>
@@ -1696,7 +1719,7 @@ export default function PurchasesCostTab({
                           <button
                             type="button"
                             onClick={handleCancelInlineEdit}
-                            className="px-3 py-1.5 text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition cursor-pointer"
+                            className="px-3.5 py-2 text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-full transition cursor-pointer"
                           >
                             Hủy
                           </button>
@@ -1704,7 +1727,7 @@ export default function PurchasesCostTab({
                             type="button"
                             onClick={handleSaveInlineEdit}
                             disabled={savingInlineId === ing.id}
-                            className="px-4 py-1.5 text-xs font-extrabold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-xs transition cursor-pointer flex items-center gap-1"
+                            className="px-4 py-2 text-xs font-extrabold text-white bg-emerald-600 hover:bg-emerald-700 rounded-full shadow-card transition cursor-pointer flex items-center gap-1"
                           >
                             <Check className="w-3.5 h-3.5" />
                             <span>{savingInlineId === ing.id ? 'Đang lưu...' : 'Lưu'}</span>
@@ -1717,21 +1740,21 @@ export default function PurchasesCostTab({
                   return (
                     <div
                       key={ing.id}
-                      className="bg-white rounded-2xl border border-slate-200 p-3 sm:p-3.5 shadow-2xs space-y-2.5"
+                      className="surface-card rounded-2xl border border-card p-3 sm:p-3.5 shadow-card space-y-2.5"
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0 flex-1">
                           <h4 className="font-extrabold text-slate-900 text-sm truncate">{ing.name}</h4>
-                          <div className="flex items-center gap-1.5 text-[11px] text-slate-500 mt-0.5 flex-wrap">
-                            <span className="font-bold text-emerald-900 bg-emerald-50 px-2 py-0.2 rounded border border-emerald-200">
+                          <div className="flex items-center gap-1.5 text-caption text-slate-500 mt-0.5 flex-wrap">
+                            <span className="font-bold text-emerald-900 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
                               Base: {baseUnit}
                             </span>
                             <span>•</span>
-                            <span className="text-slate-600">Hao hụt: {Math.round(ing.loss_rate * 100)}%</span>
+                            <span className="text-slate-600 font-num">Hao hụt: {Math.round(ing.loss_rate * 100)}%</span>
                           </div>
                         </div>
                         <span
-                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${ing.category === 'fruit'
+                          className={`text-caption font-bold px-2 py-0.5 rounded-full border shrink-0 ${ing.category === 'fruit'
                             ? 'bg-amber-50 text-amber-800 border-amber-200'
                             : ing.category === 'packaging'
                               ? 'bg-blue-50 text-blue-800 border-blue-200'
@@ -1746,30 +1769,30 @@ export default function PurchasesCostTab({
                         </span>
                       </div>
 
-                      <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200/80 grid grid-cols-3 gap-2 text-xs">
+                      <div className="bg-slate-50 p-2.5 rounded-xl border border-card grid grid-cols-3 gap-2 text-xs">
                         <div>
-                          <span className="text-[10px] font-semibold text-slate-400 block">Giá gần nhất</span>
-                          <span className="font-extrabold text-emerald-700 text-xs">
+                          <span className="text-caption font-semibold text-slate-400 block">Giá gần nhất</span>
+                          <span className="font-extrabold text-emerald-700 text-xs font-num">
                             {formatCurrency(ing.latest_purchase_price, settings)}
                           </span>
                         </div>
                         <div>
-                          <span className="text-[10px] font-semibold text-slate-400 block">Giá BQ</span>
-                          <span className="font-bold text-slate-700 text-xs">
+                          <span className="text-caption font-semibold text-slate-400 block">Giá BQ</span>
+                          <span className="font-bold text-slate-700 text-xs font-num">
                             {formatCurrency(ing.average_purchase_price, settings)}
                           </span>
                         </div>
                         <div className="text-right">
-                          <span className="text-[10px] font-semibold text-slate-400 block">Quy cách</span>
-                          <span className="font-bold text-slate-700 text-[11px] truncate block">{defaultSpec}</span>
+                          <span className="text-caption font-semibold text-slate-400 block">Quy cách</span>
+                          <span className="font-bold text-slate-700 text-caption truncate block">{defaultSpec}</span>
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-end gap-1.5 pt-1 border-t border-slate-100">
+                      <div className="flex items-center justify-end gap-1.5 pt-1 border-t border-card">
                         <button
                           type="button"
                           onClick={() => handleOpenIngredientHistory(ing)}
-                          className="px-2 py-1.5 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+                          className="px-2.5 py-2 text-brand-purple bg-purple-50 hover:bg-purple-100 rounded-full text-xs font-bold transition flex items-center gap-1 cursor-pointer min-h-[44px]"
                           title="Lịch sử giá"
                         >
                           <History className="w-3.5 h-3.5" />
@@ -1778,7 +1801,7 @@ export default function PurchasesCostTab({
                         <button
                           type="button"
                           onClick={() => handleStartInlineEdit(ing)}
-                          className="px-2.5 py-1.5 text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+                          className="px-3 py-2 text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-full text-xs font-bold transition flex items-center gap-1 cursor-pointer min-h-[44px]"
                           title="Sửa nhanh các thông số"
                         >
                           <Edit className="w-3.5 h-3.5" />
@@ -1787,7 +1810,7 @@ export default function PurchasesCostTab({
                         <button
                           type="button"
                           onClick={() => handleOpenEditIngredient(ing)}
-                          className="p-1.5 text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl text-xs font-bold transition cursor-pointer"
+                          className="p-2.5 text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-full text-xs font-bold transition cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center"
                           title="Chỉnh sửa nâng cao trong modal"
                         >
                           <Settings2 className="w-4 h-4" />
@@ -1795,7 +1818,8 @@ export default function PurchasesCostTab({
                         <button
                           type="button"
                           onClick={() => handleDeleteIngredient(ing)}
-                          className="p-1.5 text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-xl text-xs font-bold transition cursor-pointer"
+                          disabled={deletingIngredientId === ing.id}
+                          className="p-2.5 text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-full text-xs font-bold transition cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center disabled:opacity-40"
                           title="Xóa nguyên liệu"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -1807,10 +1831,10 @@ export default function PurchasesCostTab({
               </div>
 
               {/* Desktop View: Table (hidden md:block) */}
-              <div className="hidden md:block bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+              <div className="hidden md:block surface-card rounded-2xl border border-card shadow-card overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs">
-                    <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase tracking-wider font-semibold">
+                    <thead className="bg-slate-50 border-b border-card text-slate-500 uppercase tracking-wider font-semibold">
                       <tr>
                         <th className="py-3 px-3">Tên Nguyên Liệu</th>
                         <th className="py-3 px-2 w-28">Phân Loại</th>
@@ -1839,7 +1863,7 @@ export default function PurchasesCostTab({
                                   required
                                   value={inlineForm.name}
                                   onChange={(e) => setInlineForm({ ...inlineForm, name: e.target.value })}
-                                  className="w-full h-8 px-2 border border-slate-300 rounded-lg text-xs font-bold bg-white focus:ring-2 focus:ring-emerald-500"
+                                  className="app-input-compact font-bold"
                                 />
                               </td>
                               <td className="py-2 px-2">
@@ -1870,7 +1894,7 @@ export default function PurchasesCostTab({
                                   value={inlineForm.default_spec_str}
                                   onChange={(e) => setInlineForm({ ...inlineForm, default_spec_str: e.target.value })}
                                   placeholder={`VD: 1 ${inlineForm.base_unit}`}
-                                  className="w-full h-8 px-2 border border-slate-300 rounded-lg text-xs bg-white"
+                                  className="app-input-compact"
                                 />
                               </td>
                               <td className="py-2 px-2 text-right">
@@ -1881,9 +1905,9 @@ export default function PurchasesCostTab({
                                     max="99"
                                     value={inlineForm.loss_rate_pct}
                                     onChange={(e) => setInlineForm({ ...inlineForm, loss_rate_pct: parseFloat(e.target.value) || 0 })}
-                                    className="w-full h-8 pr-5 pl-1 border border-slate-300 rounded-lg text-xs font-bold text-center bg-white"
+                                    className="app-input-compact pr-6 text-center font-bold font-num"
                                   />
-                                  <span className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 font-bold">%</span>
+                                  <span className="absolute right-1.5 top-1/2 -translate-y-1/2 text-caption text-slate-400 font-bold">%</span>
                                 </div>
                               </td>
                               <td className="py-2 px-2 text-right">
@@ -1893,7 +1917,7 @@ export default function PurchasesCostTab({
                                   step="any"
                                   value={inlineForm.latest_price === 0 ? '' : inlineForm.latest_price}
                                   onChange={(e) => setInlineForm({ ...inlineForm, latest_price: parseFloat(e.target.value) || 0 })}
-                                  className="w-24 h-8 px-2 border border-slate-300 rounded-lg text-xs font-extrabold text-right text-emerald-700 bg-white"
+                                  className="app-input-compact text-right font-extrabold text-emerald-700 font-num w-24"
                                 />
                               </td>
                               <td className="py-2 px-2 text-right">
@@ -1903,7 +1927,7 @@ export default function PurchasesCostTab({
                                   step="any"
                                   value={inlineForm.avg_price === 0 ? '' : inlineForm.avg_price}
                                   onChange={(e) => setInlineForm({ ...inlineForm, avg_price: parseFloat(e.target.value) || 0 })}
-                                  className="w-24 h-8 px-2 border border-slate-300 rounded-lg text-xs font-bold text-right text-slate-700 bg-white"
+                                  className="app-input-compact text-right font-bold text-slate-700 font-num w-24"
                                 />
                               </td>
                               <td className="py-2 px-3 text-center">
@@ -1912,7 +1936,7 @@ export default function PurchasesCostTab({
                                     type="button"
                                     onClick={handleSaveInlineEdit}
                                     disabled={savingInlineId === ing.id}
-                                    className="px-2.5 py-1 text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition active:scale-95 cursor-pointer shadow-xs flex items-center gap-1 font-bold text-[11px]"
+                                    className="px-3 py-1.5 text-white bg-emerald-600 hover:bg-emerald-700 rounded-full transition active:scale-95 cursor-pointer shadow-card flex items-center gap-1 font-bold text-caption"
                                     title="Lưu thay đổi"
                                   >
                                     <Check className="w-3.5 h-3.5" />
@@ -1921,7 +1945,7 @@ export default function PurchasesCostTab({
                                   <button
                                     type="button"
                                     onClick={handleCancelInlineEdit}
-                                    className="p-1 text-slate-500 bg-slate-100 hover:bg-slate-200 rounded-lg transition active:scale-95 cursor-pointer"
+                                    className="p-1.5 text-slate-500 bg-slate-100 hover:bg-slate-200 rounded-full transition active:scale-95 cursor-pointer"
                                     title="Hủy"
                                   >
                                     <X className="w-3.5 h-3.5" />
@@ -1937,7 +1961,7 @@ export default function PurchasesCostTab({
                             <td className="py-3 px-3 font-extrabold text-slate-900">{ing.name}</td>
                             <td className="py-3 px-2">
                               <span
-                                className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${ing.category === 'fruit'
+                                className={`text-caption font-bold px-2.5 py-0.5 rounded-full border ${ing.category === 'fruit'
                                   ? 'bg-amber-50 text-amber-800 border-amber-200'
                                   : ing.category === 'packaging'
                                     ? 'bg-blue-50 text-blue-800 border-blue-200'
@@ -1952,18 +1976,18 @@ export default function PurchasesCostTab({
                               </span>
                             </td>
                             <td className="py-3 px-2 font-bold text-emerald-900">
-                              <span className="bg-emerald-50 text-emerald-800 px-2 py-0.5 rounded-md border border-emerald-200">
+                              <span className="bg-emerald-50 text-emerald-800 px-2 py-0.5 rounded-md border border-emerald-200 font-num">
                                 {baseUnit}
                               </span>
                             </td>
                             <td className="py-3 px-3 text-slate-600 font-medium">{defaultSpec}</td>
-                            <td className="py-3 px-2 text-right font-bold text-amber-700">
+                            <td className="py-3 px-2 text-right font-bold text-amber-700 font-num">
                               {ing.loss_rate > 0 ? `${Math.round(ing.loss_rate * 100)}%` : '0%'}
                             </td>
-                            <td className="py-3 px-3 text-right font-extrabold text-emerald-700">
+                            <td className="py-3 px-3 text-right font-extrabold text-emerald-700 font-num">
                               {formatCurrency(ing.latest_purchase_price, settings)}/{baseUnit}
                             </td>
-                            <td className="py-3 px-3 text-right font-bold text-slate-600">
+                            <td className="py-3 px-3 text-right font-bold text-slate-600 font-num">
                               {formatCurrency(ing.average_purchase_price, settings)}/{baseUnit}
                             </td>
                             <td className="py-3 px-3 text-center">
@@ -1971,7 +1995,7 @@ export default function PurchasesCostTab({
                                 <button
                                   type="button"
                                   onClick={() => handleOpenIngredientHistory(ing)}
-                                  className="p-1.5 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition active:scale-95 cursor-pointer"
+                                  className="p-1.5 text-brand-purple bg-purple-50 hover:bg-purple-100 rounded-full transition active:scale-95 cursor-pointer"
                                   title="Xem lịch sử giá nhập hàng"
                                 >
                                   <History className="w-3.5 h-3.5" />
@@ -1979,7 +2003,7 @@ export default function PurchasesCostTab({
                                 <button
                                   type="button"
                                   onClick={() => handleStartInlineEdit(ing)}
-                                  className="p-1.5 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition active:scale-95 cursor-pointer"
+                                  className="p-1.5 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-full transition active:scale-95 cursor-pointer"
                                   title="Sửa nhanh trực tiếp các thông số"
                                 >
                                   <Edit className="w-3.5 h-3.5" />
@@ -1987,7 +2011,7 @@ export default function PurchasesCostTab({
                                 <button
                                   type="button"
                                   onClick={() => handleOpenEditIngredient(ing)}
-                                  className="p-1.5 text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition active:scale-95 cursor-pointer"
+                                  className="p-1.5 text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-full transition active:scale-95 cursor-pointer"
                                   title="Chỉnh sửa nâng cao trong modal"
                                 >
                                   <Settings2 className="w-3.5 h-3.5" />
@@ -1995,7 +2019,8 @@ export default function PurchasesCostTab({
                                 <button
                                   type="button"
                                   onClick={() => handleDeleteIngredient(ing)}
-                                  className="p-1.5 text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg transition active:scale-95 cursor-pointer"
+                                  disabled={deletingIngredientId === ing.id}
+                                  className="p-1.5 text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-full transition active:scale-95 cursor-pointer disabled:opacity-40"
                                   title="Xóa nguyên liệu"
                                 >
                                   <Trash2 className="w-3.5 h-3.5" />
