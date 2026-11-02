@@ -30,19 +30,6 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   }, [currentUser?.role]);
 
   const refreshStores = useCallback(async () => {
-    // [TEMP G1-D3] Skip GET /api/v1/stores ONLY on /ui-gallery during non-production Gate G1 review.
-    // Compiles out completely via dead-code elimination when NODE_ENV === 'production'; revert alone in Phase T6.
-    if (
-      process.env.NODE_ENV !== 'production' &&
-      process.env.NEXT_PUBLIC_ENABLE_UI_GALLERY === 'true' &&
-      typeof window !== 'undefined' &&
-      (window.location.pathname === '/ui-gallery' ||
-        window.location.pathname === '/ui-gallery/')
-    ) {
-      setIsLoading(false);
-      return;
-    }
-
     if (!isAuthenticated()) {
       setStoresList([]);
       setActiveStore(null);

@@ -140,9 +140,9 @@ Because `/ui-gallery` only exists inside `/opt/RabbitPOS-tahoe` and is excluded 
      - `CORS_ORIGIN=http://<HOST_LAN_OR_TAILSCALE_IP>:3001,http://localhost:3001`
      *(Replace `<HOST_LAN_OR_TAILSCALE_IP>` with the exact private IP the phone dials, e.g., `10.0.0.10` on Wi-Fi LAN or `100.x.y.z` on Tailscale — **no `*` wildcard**).*
    - *(Note `[VERIFIED]` in `backend/internal/middleware/cors.go:27–38`: `isAllowedOrigin` has built-in prefix matching for RFC1918 LAN IPs `10.*`, `192.168.*`, `172.16–31.*`, whereas Tailscale CGNAT `100.64.0.0/10` or custom `.local` hostnames rely strictly on the explicit `CORS_ALLOWED_ORIGINS` / `CORS_ORIGIN` entry above).*
-2. **Start the Worktree Dev Server on Port `3001`**:
-   - Working directory: `/opt/RabbitPOS-tahoe/frontend`
-   - Command:
+2. **Start the Worktree Dev Server on Port `3001` (COMPLETED & ARCHIVED in Phase T6)**:
+   - *(Note: Gate G1/G4 review complete. `/ui-gallery` route physically deleted in Phase T6; dev server no longer run).*
+   - Historical command used during Gate G1 review:
      `INTERNAL_BACKEND_URL=http://127.0.0.1:8081 NEXT_PUBLIC_ALLOW_UI_GALLERY=true npx --no-install next dev -H 0.0.0.0 -p 3001`
    - Binds `0.0.0.0:3001` so it is reachable over LAN/VPN without colliding with live `rabbitpos-frontend` on `:3000`.
 3. **Firewall / LAN Network Access Needed (`[UNVERIFIED]` Host Firewall State)**:
