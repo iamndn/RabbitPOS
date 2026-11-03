@@ -968,7 +968,7 @@ export default function UsersPage() {
               ? `${t('users.modal_edit_desc') || 'Cập nhật thông tin tài khoản'} @${editingUser.username}`
               : (t('users.modal_add_desc') || 'Khởi tạo tài khoản nhân viên & phân quyền')}
             footer={
-              <div className="flex items-center justify-end space-x-2.5 w-full">
+              <div className="flex items-center justify-center gap-3 w-full">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
@@ -1265,7 +1265,7 @@ export default function UsersPage() {
             title={t('users.modal_pwd_title') || 'Đổi Mật khẩu / Mã PIN'}
             description={`Tài khoản: @${passwordTargetUser?.username || ''}`}
             footer={
-              <div className="flex items-center justify-end space-x-2.5 w-full">
+              <div className="flex items-center justify-center gap-3 w-full">
                 <button
                   type="button"
                   onClick={() => setIsPasswordModalOpen(false)}

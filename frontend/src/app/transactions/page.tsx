@@ -3499,7 +3499,7 @@ export default function TransactionsPage() {
         description="Nhật ký kiểm kê két tiền, cập nhật & hoàn tác"
         icon={<History className="w-5 h-5 text-brand-purple" />}
         footer={
-          <div className="flex justify-end">
+          <div className="flex justify-center">
             <button
               type="button"
               onClick={() => setViewingHistoryFund(null)}

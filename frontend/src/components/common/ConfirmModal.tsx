@@ -262,8 +262,8 @@ export default function ConfirmModal({
             className={cn(
               'mt-6 pt-4 border-t border-hairline',
               options.isAlert
-                ? 'flex justify-end'
-                : 'grid grid-cols-2 gap-2.5 sm:flex sm:justify-end sm:gap-2.5'
+                ? 'flex justify-center'
+                : 'grid grid-cols-2 gap-2.5 sm:flex sm:justify-center sm:gap-3'
             )}
           >
             {!options.isAlert && (

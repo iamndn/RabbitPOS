@@ -308,7 +308,7 @@ export default function StoreFormModal({
       title={isEdit ? 'Chỉnh sửa Cửa hàng' : 'Thêm Cửa hàng Mới'}
       description={isEdit ? `Cập nhật thông tin chi nhánh: ${storeToEdit?.name}` : 'Khởi tạo chi nhánh kinh doanh độc lập trên hệ thống RabbitPOS'}
       footer={
-        <div className="flex items-center justify-end gap-2.5 w-full">
+        <div className="flex items-center justify-center gap-3 w-full">
           <button
             type="button"
             onClick={onClose}

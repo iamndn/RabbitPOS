@@ -123,9 +123,11 @@ export const FilterBar: React.FC<FilterBarProps> = ({
                 selected={activeFiltersCount > 0}
                 onClick={() => setIsSheetOpen(true)}
                 aria-label={t('common.filters_title') || 'Bộ lọc nâng cao'}
+                title={t('common.filter_button') || 'Bộ lọc'}
+                className="px-2.5 sm:px-3 h-11"
               >
-                <SlidersHorizontal className="w-4 h-4" />
-                <span>{t('common.filter_button') || 'Bộ lọc'}</span>
+                <SlidersHorizontal className="w-4 h-4 shrink-0" />
+                <span className="hidden sm:inline">{t('common.filter_button') || 'Bộ lọc'}</span>
                 {activeFiltersCount > 0 && (
                   <Badge variant="brand" size="sm" className="ml-0.5 font-num">
                     {activeFiltersCount}

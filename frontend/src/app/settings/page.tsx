@@ -35,6 +35,13 @@ import {
   Plus,
   Edit2,
   Sparkles,
+  Volume2,
+  VolumeX,
+  Palette,
+  Eye,
+  Contrast,
+  LayoutGrid,
+  Play,
 } from 'lucide-react';
 import AppShell from '@/components/AppShell';
 import { fetchApi, uploadImage, getImageUrl, getApiBaseUrl, authHeaders } from '@/lib/api';
@@ -88,6 +95,93 @@ export default function SettingsPage() {
         ? (t('settings.glass_effects_enabled') || 'Đã bật hiệu ứng kính Liquid Glass')
         : (t('settings.glass_effects_disabled') || 'Đã tắt hiệu ứng kính Liquid Glass')
     );
+  };
+
+  // Extended Appearance Settings
+  const [posDensity, setPosDensity] = useState<'comfortable' | 'compact'>('comfortable');
+  const [soundFeedback, setSoundFeedback] = useState<boolean>(true);
+  const [accentColor, setAccentColor] = useState<'purple' | 'blue' | 'emerald' | 'amber'>('purple');
+  const [highContrast, setHighContrast] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const savedDensity = localStorage.getItem('rabbitpos_pos_density') as 'comfortable' | 'compact';
+        if (savedDensity) setPosDensity(savedDensity);
+        const savedSound = localStorage.getItem('rabbitpos_sound_feedback');
+        if (savedSound !== null) setSoundFeedback(savedSound === 'true');
+        const savedAccent = localStorage.getItem('rabbitpos_accent_color') as 'purple' | 'blue' | 'emerald' | 'amber';
+        if (savedAccent) setAccentColor(savedAccent);
+        const savedContrast = localStorage.getItem('rabbitpos_high_contrast');
+        if (savedContrast !== null) setHighContrast(savedContrast === 'true');
+      } catch {}
+    }
+  }, []);
+
+  const playPosFeedbackSound = (type: 'beep' | 'success') => {
+    if (typeof window === 'undefined') return;
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      if (type === 'beep') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, ctx.currentTime);
+        gain.gain.setValueAtTime(0.12, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.08);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.08);
+      } else {
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(659.25, ctx.currentTime);
+        osc.frequency.setValueAtTime(880, ctx.currentTime + 0.07);
+        gain.gain.setValueAtTime(0.15, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.18);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.18);
+      }
+    } catch {}
+  };
+
+  const handleToggleDensity = (val: 'comfortable' | 'compact') => {
+    setPosDensity(val);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('rabbitpos_pos_density', val);
+      toast.success(val === 'comfortable' ? 'Đã chọn mật độ thẻ lớn (Thoải mái)' : 'Đã chọn mật độ gọn gàng (Xem nhiều món)');
+    }
+  };
+
+  const handleToggleSound = (checked: boolean) => {
+    setSoundFeedback(checked);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('rabbitpos_sound_feedback', String(checked));
+      if (checked) {
+        playPosFeedbackSound('beep');
+        toast.success('Đã bật phản hồi âm thanh POS');
+      } else {
+        toast.success('Đã tắt phản hồi âm thanh POS');
+      }
+    }
+  };
+
+  const handleToggleAccent = (color: 'purple' | 'blue' | 'emerald' | 'amber') => {
+    setAccentColor(color);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('rabbitpos_accent_color', color);
+      toast.success('Đã cập nhật tông màu chủ đạo');
+    }
+  };
+
+  const handleToggleContrast = (checked: boolean) => {
+    setHighContrast(checked);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('rabbitpos_high_contrast', String(checked));
+      toast.success(checked ? 'Đã bật chế độ tương phản cao' : 'Đã tắt chế độ tương phản cao');
+    }
   };
   const [backupSubTab, setBackupSubTab] = useState<'json_backup' | 'excel_import'>('excel_import');
 
@@ -573,7 +667,7 @@ export default function SettingsPage() {
             {/* Main Tab Navigation Bar (Tabs: store, currency, vietqr, email, sheets, backup, appearance) */}
             <HorizontalScroller
               wrapperClassName="bg-slate-200/70 p-1 rounded-full"
-              className="space-x-1 sm:space-x-2"
+              className="gap-1.5 sm:gap-2 px-0.5 py-0.5"
               scrollAmount={200}
               arrowSize="sm"
             >
@@ -581,7 +675,7 @@ export default function SettingsPage() {
               <button
                 type="button"
                 onClick={() => setActiveTab('store')}
-                className={`flex-1 min-w-[130px] py-2 px-3.5 text-xs sm:text-sm font-bold rounded-full transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
+                className={`shrink-0 py-2.5 px-4 sm:px-5 text-xs sm:text-sm font-bold rounded-full transition flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap ${
                   activeTab === 'store'
                     ? 'bg-white text-purple-900 shadow-card font-extrabold'
                     : 'text-slate-600 hover:text-slate-900'
@@ -595,7 +689,7 @@ export default function SettingsPage() {
               <button
                 type="button"
                 onClick={() => setActiveTab('currency')}
-                className={`flex-1 min-w-[130px] py-2 px-3.5 text-xs sm:text-sm font-bold rounded-full transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
+                className={`shrink-0 py-2.5 px-4 sm:px-5 text-xs sm:text-sm font-bold rounded-full transition flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap ${
                   activeTab === 'currency'
                     ? 'bg-white text-purple-900 shadow-card font-extrabold'
                     : 'text-slate-600 hover:text-slate-900'
@@ -609,7 +703,7 @@ export default function SettingsPage() {
               <button
                 type="button"
                 onClick={() => setActiveTab('vietqr')}
-                className={`flex-1 min-w-[130px] py-2 px-3.5 text-xs sm:text-sm font-bold rounded-full transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
+                className={`shrink-0 py-2.5 px-4 sm:px-5 text-xs sm:text-sm font-bold rounded-full transition flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap ${
                   activeTab === 'vietqr'
                     ? 'bg-white text-purple-900 shadow-card font-extrabold'
                     : 'text-slate-600 hover:text-slate-900'
@@ -623,7 +717,7 @@ export default function SettingsPage() {
               <button
                 type="button"
                 onClick={() => setActiveTab('email')}
-                className={`flex-1 min-w-[130px] py-2 px-3.5 text-xs sm:text-sm font-bold rounded-full transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
+                className={`shrink-0 py-2.5 px-4 sm:px-5 text-xs sm:text-sm font-bold rounded-full transition flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap ${
                   activeTab === 'email'
                     ? 'bg-white text-purple-900 shadow-card font-extrabold'
                     : 'text-slate-600 hover:text-slate-900'
@@ -637,7 +731,7 @@ export default function SettingsPage() {
               <button
                 type="button"
                 onClick={() => setActiveTab('sheets')}
-                className={`flex-1 min-w-[130px] py-2 px-3.5 text-xs sm:text-sm font-bold rounded-full transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
+                className={`shrink-0 py-2.5 px-4 sm:px-5 text-xs sm:text-sm font-bold rounded-full transition flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap ${
                   activeTab === 'sheets'
                     ? 'bg-white text-purple-900 shadow-card font-extrabold'
                     : 'text-slate-600 hover:text-slate-900'
@@ -652,7 +746,7 @@ export default function SettingsPage() {
                 <button
                   type="button"
                   onClick={() => setActiveTab('backup')}
-                  className={`flex-1 min-w-[130px] py-2 px-3.5 text-xs sm:text-sm font-bold rounded-full transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
+                  className={`shrink-0 py-2.5 px-4 sm:px-5 text-xs sm:text-sm font-bold rounded-full transition flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap ${
                     activeTab === 'backup'
                       ? 'bg-white text-purple-900 shadow-card font-extrabold'
                       : 'text-slate-600 hover:text-slate-900'
@@ -660,7 +754,7 @@ export default function SettingsPage() {
                 >
                   <Database className={`w-4 h-4 shrink-0 ${activeTab === 'backup' ? 'text-brand-purple' : 'text-slate-400'}`} />
                   <span>{t('settings.tab_backup')}</span>
-                  <span className="text-caption bg-purple-100 text-brand-purple px-2 py-0.5 rounded-full font-bold">
+                  <span className="text-caption bg-purple-100 text-brand-purple px-2 py-0.5 rounded-full font-bold ml-0.5">
                     Platform
                   </span>
                 </button>
@@ -670,7 +764,7 @@ export default function SettingsPage() {
               <button
                 type="button"
                 onClick={() => setActiveTab('appearance')}
-                className={`flex-1 min-w-[130px] py-2 px-3.5 text-xs sm:text-sm font-bold rounded-full transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
+                className={`shrink-0 py-2.5 px-4 sm:px-5 text-xs sm:text-sm font-bold rounded-full transition flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap ${
                   activeTab === 'appearance'
                     ? 'bg-white text-purple-900 shadow-card font-extrabold'
                     : 'text-slate-600 hover:text-slate-900'
@@ -2117,7 +2211,7 @@ export default function SettingsPage() {
               </div>
             )}
 
-            {/* TAB 7: Appearance & Visual Effects (Liquid Glass, Override Q3) */}
+            {/* TAB 7: Appearance & Visual Effects (Liquid Glass & Tahoe Extensions) */}
             {activeTab === 'appearance' && (
               <div className="surface-card p-5 sm:p-7 rounded-2xl border-card shadow-card space-y-6 text-xs">
                 <div className="pb-4 border-b border-border-hairline flex items-center justify-between">
@@ -2130,43 +2224,229 @@ export default function SettingsPage() {
                         {t('settings.appearance_section_title') || 'Giao diện & Hiệu ứng thị giác'}
                       </h3>
                       <p className="text-slate-500 text-xs mt-0.5">
-                        {t('settings.appearance_section_desc') || 'Tùy chỉnh hiệu ứng chất liệu kính mờ trên thiết bị này.'}
+                        {t('settings.appearance_section_desc') || 'Tùy chỉnh phong cách hiển thị, mật độ thẻ món và âm thanh phản hồi POS trên thiết bị này.'}
                       </p>
                     </div>
                   </div>
                 </div>
 
-                {/* Liquid Glass Switch Row */}
-                <div className="p-4 bg-slate-50 border border-border-hairline rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div className="space-y-1 pr-2">
-                    <span className="font-bold text-slate-800 block text-xs">
-                      {t('settings.glass_effects_label') || 'Hiệu ứng kính (Liquid Glass)'}
-                    </span>
-                    <p className="text-caption text-slate-500">
-                      {t('settings.glass_effects_desc') || 'Áp dụng hiệu ứng kính mờ cho thanh điều hướng và bảng trượt trên thiết bị này. Tắt để dùng nền đặc.'}
-                    </p>
-                    {isSystemGlassForcedOff() && (
-                      <p className="text-caption text-amber-700 font-semibold pt-1">
-                        ⚠️ {t('settings.glass_effects_forced_off_a11y') || 'Đang tự động tắt theo cài đặt trợ năng hệ thống (Giảm độ trong suốt hoặc Tăng tương phản).'}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* 1. Liquid Glass Switch */}
+                  <div className="p-4 bg-slate-50 border border-border-hairline rounded-2xl flex flex-col justify-between gap-3">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="w-4 h-4 text-brand-purple" />
+                        <span className="font-bold text-slate-800 text-xs">
+                          {t('settings.glass_effects_label') || 'Hiệu ứng kính mờ (Liquid Glass)'}
+                        </span>
+                      </div>
+                      <p className="text-caption text-slate-500">
+                        {t('settings.glass_effects_desc') || 'Áp dụng hiệu ứng kính mờ cho thanh điều hướng và bảng trượt trên thiết bị này. Tắt để dùng nền đặc.'}
                       </p>
-                    )}
+                      {isSystemGlassForcedOff() && (
+                        <p className="text-caption text-amber-700 font-semibold pt-1">
+                          ⚠️ {t('settings.glass_effects_forced_off_a11y') || 'Đang tự động tắt theo cài đặt trợ năng hệ thống.'}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex items-center justify-between pt-1">
+                      <span className="text-caption font-semibold text-slate-600">Trạng thái</span>
+                      <Switch
+                        checked={glassEffects}
+                        onCheckedChange={handleToggleGlass}
+                        aria-label={t('settings.glass_effects_label') || 'Hiệu ứng kính'}
+                      />
+                    </div>
                   </div>
-                  <Switch
-                    checked={glassEffects}
-                    onCheckedChange={handleToggleGlass}
-                    aria-label={t('settings.glass_effects_label') || 'Hiệu ứng kính'}
-                  />
+
+                  {/* 2. Sound Feedback */}
+                  <div className="p-4 bg-slate-50 border border-border-hairline rounded-2xl flex flex-col justify-between gap-3">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        {soundFeedback ? <Volume2 className="w-4 h-4 text-emerald-600" /> : <VolumeX className="w-4 h-4 text-slate-400" />}
+                        <span className="font-bold text-slate-800 text-xs">
+                          Âm thanh phản hồi POS (Audio Click / Beep)
+                        </span>
+                      </div>
+                      <p className="text-caption text-slate-500">
+                        Phát âm thanh bíp nhẹ khi thu ngân bấm chọn món, cộng/trừ số lượng hoặc hoàn tất đơn hàng.
+                      </p>
+                    </div>
+                    <div className="flex items-center justify-between pt-1 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => playPosFeedbackSound('beep')}
+                        className="px-2.5 py-1 text-caption font-bold bg-white hover:bg-slate-100 border border-border-hairline rounded-full text-slate-700 transition active:scale-95 flex items-center gap-1 cursor-pointer"
+                        title="Nghe thử âm thanh thao tác"
+                      >
+                        <Play className="w-3 h-3 text-brand-purple fill-brand-purple" />
+                        <span>Nghe thử</span>
+                      </button>
+                      <Switch
+                        checked={soundFeedback}
+                        onCheckedChange={handleToggleSound}
+                        aria-label="Âm thanh phản hồi POS"
+                      />
+                    </div>
+                  </div>
+
+                  {/* 3. POS Density */}
+                  <div className="p-4 bg-slate-50 border border-border-hairline rounded-2xl flex flex-col justify-between gap-3">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <LayoutGrid className="w-4 h-4 text-brand-purple" />
+                        <span className="font-bold text-slate-800 text-xs">
+                          Mật độ hiển thị lưới món POS
+                        </span>
+                      </div>
+                      <p className="text-caption text-slate-500">
+                        Chọn bố cục hiển thị thực đơn bán hàng tối ưu cho kích thước màn hình thiết bị này.
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => handleToggleDensity('comfortable')}
+                        className={`p-2.5 rounded-xl border text-center transition cursor-pointer ${
+                          posDensity === 'comfortable'
+                            ? 'border-brand-purple bg-purple-50/70 text-brand-purple font-bold ring-2 ring-brand-purple/20 shadow-card'
+                            : 'border-border-hairline bg-white text-slate-700 hover:bg-slate-100'
+                        }`}
+                      >
+                        <span className="block text-xs">Thoải mái (Thẻ to)</span>
+                        <span className="block text-[11px] text-slate-400 font-normal mt-0.5">Tối ưu cảm ứng</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleToggleDensity('compact')}
+                        className={`p-2.5 rounded-xl border text-center transition cursor-pointer ${
+                          posDensity === 'compact'
+                            ? 'border-brand-purple bg-purple-50/70 text-brand-purple font-bold ring-2 ring-brand-purple/20 shadow-card'
+                            : 'border-border-hairline bg-white text-slate-700 hover:bg-slate-100'
+                        }`}
+                      >
+                        <span className="block text-xs">Gọn gàng (Xem nhiều)</span>
+                        <span className="block text-[11px] text-slate-400 font-normal mt-0.5">Ít phải cuộn</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* 4. High Contrast Mode */}
+                  <div className="p-4 bg-slate-50 border border-border-hairline rounded-2xl flex flex-col justify-between gap-3">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <Contrast className="w-4 h-4 text-amber-600" />
+                        <span className="font-bold text-slate-800 text-xs">
+                          Chế độ tương phản cao (High Contrast)
+                        </span>
+                      </div>
+                      <p className="text-caption text-slate-500">
+                        Làm nổi bật đường viền và độ đậm nhạt chữ, chống chói khi sử dụng máy POS ngoài trời hoặc quầy sáng.
+                      </p>
+                    </div>
+                    <div className="flex items-center justify-between pt-1">
+                      <span className="text-caption font-semibold text-slate-600">Trạng thái</span>
+                      <Switch
+                        checked={highContrast}
+                        onCheckedChange={handleToggleContrast}
+                        aria-label="Chế độ tương phản cao"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* 5. Accent Color Palette */}
+                <div className="p-4 bg-slate-50 border border-border-hairline rounded-2xl space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Palette className="w-4 h-4 text-brand-purple" />
+                    <div>
+                      <span className="font-bold text-slate-800 text-xs block">
+                        Tông màu nhận diện thương hiệu (Accent Palette)
+                      </span>
+                      <p className="text-caption text-slate-500 mt-0.5">
+                        Lựa chọn tông màu sắc chủ đạo cho các nút bấm hành động chính, tab đang chọn và icon đại diện.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1">
+                    {[
+                      { id: 'purple', name: 'Tím Rabbit', hex: '#7c3aed', bg: 'bg-purple-600' },
+                      { id: 'blue', name: 'Xanh Ocean', hex: '#0284c7', bg: 'bg-sky-600' },
+                      { id: 'emerald', name: 'Xanh Emerald', hex: '#059669', bg: 'bg-emerald-600' },
+                      { id: 'amber', name: 'Cam Sunset', hex: '#d97706', bg: 'bg-amber-600' },
+                    ].map((c) => {
+                      const isSelected = accentColor === c.id;
+                      return (
+                        <button
+                          key={c.id}
+                          type="button"
+                          onClick={() => handleToggleAccent(c.id as any)}
+                          className={`p-3 rounded-xl border flex items-center gap-2.5 transition cursor-pointer text-left ${
+                            isSelected
+                              ? 'border-brand-purple bg-white shadow-card ring-2 ring-brand-purple/20 font-bold'
+                              : 'border-border-hairline bg-white hover:bg-slate-100 text-slate-700'
+                          }`}
+                        >
+                          <span className={`w-4 h-4 rounded-full ${c.bg} shrink-0 shadow-sm`} />
+                          <span className="text-xs">{c.name}</span>
+                          {isSelected && <Check className="w-3.5 h-3.5 text-brand-purple ml-auto" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* 6. Live Interactive Preview Card */}
+                <div className="p-4 bg-gradient-to-r from-purple-50/60 via-slate-50 to-purple-50/30 border border-purple-100 rounded-2xl space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-xs font-bold text-slate-800">
+                      <Eye className="w-4 h-4 text-brand-purple" />
+                      <span>Xem trước giao diện (Live Preview)</span>
+                    </div>
+                    <span className="text-caption font-semibold px-2 py-0.5 rounded-full bg-white border border-purple-200 text-brand-purple">
+                      Cập nhật trực tiếp
+                    </span>
+                  </div>
+
+                  <div className="p-4 bg-white border border-card rounded-xl shadow-card flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-xl bg-purple-100 border border-purple-200 flex items-center justify-center text-xl shrink-0">
+                        🧋
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-slate-900 text-xs">Trà Sữa Oolong Nướng</span>
+                          <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            Bán chạy
+                          </span>
+                        </div>
+                        <p className="text-caption text-slate-500 mt-0.5">Size L • Trân châu hoàng kim • 50% đường</p>
+                        <div className="text-xs font-black text-brand-purple mt-1 font-num">35.000 đ</div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => playPosFeedbackSound('beep')}
+                        className="px-4 py-2 bg-brand-purple hover:bg-brand-purple-hover text-white text-xs font-bold rounded-full shadow-card transition active:scale-95 cursor-pointer flex items-center gap-1.5"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Thêm vào giỏ</span>
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
 
-            {/* Save Button (displayed for form-based tabs: store, currency, vietqr, email) */}
+            {/* Save Button (displayed for form-based tabs: store, currency, vietqr, email) - Centered */}
             {activeTab !== 'backup' && activeTab !== 'appearance' && (
-              <div className="flex justify-end pt-2">
+              <div className="flex justify-center items-center gap-3 pt-6 pb-2">
                 <button
                   type="submit"
                   disabled={saving}
-                  className="bg-brand-purple hover:bg-purple-800 disabled:bg-slate-300 text-white font-bold text-xs py-3 px-7 rounded-full shadow-card transition flex items-center space-x-2 cursor-pointer"
+                  className="bg-brand-purple hover:bg-purple-800 disabled:bg-slate-300 text-white font-bold text-xs py-3 px-8 rounded-full shadow-card transition flex items-center space-x-2 cursor-pointer"
                 >
                   {saving ? (
                     <>

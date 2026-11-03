@@ -467,7 +467,7 @@ export default function MemberManagerModal({
                 </div>
               </div>
 
-              <div className="flex justify-end">
+              <div className="flex justify-center pt-1">
                 <button
                   type="submit"
                   disabled={isAssigning || !selectedUserId}
@@ -559,7 +559,7 @@ export default function MemberManagerModal({
                 </div>
               </div>
 
-              <div className="flex justify-end">
+              <div className="flex justify-center pt-1">
                 <button
                   type="submit"
                   disabled={isCreatingUser}

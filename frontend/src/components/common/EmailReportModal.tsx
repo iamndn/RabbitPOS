@@ -228,12 +228,12 @@ export default function EmailReportModal({
         </div>
       }
       footer={
-        <div className="grid grid-cols-2 gap-2.5 w-full">
+        <div className="grid grid-cols-2 gap-2.5 w-full sm:flex sm:justify-center sm:gap-3">
           <button
             type="button"
             onClick={onClose}
             disabled={isSending}
-            className="w-full text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 py-2.5 rounded-full border border-border-hairline transition cursor-pointer text-center justify-center flex items-center"
+            className="w-full sm:w-auto px-6 text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 py-2.5 rounded-full border border-border-hairline transition cursor-pointer text-center justify-center flex items-center"
           >
             Hủy
           </button>
@@ -241,7 +241,7 @@ export default function EmailReportModal({
             type="button"
             onClick={handleSend}
             disabled={isSending}
-            className="w-full text-xs font-bold text-white bg-brand-purple hover:bg-purple-700 py-2.5 rounded-full transition flex items-center justify-center gap-1.5 disabled:opacity-60 cursor-pointer shadow-card text-center"
+            className="w-full sm:w-auto px-7 text-xs font-bold text-white bg-brand-purple hover:bg-purple-700 py-2.5 rounded-full transition flex items-center justify-center gap-1.5 disabled:opacity-60 cursor-pointer shadow-card text-center"
           >
             {isSending ? (
               <>

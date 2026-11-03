@@ -289,7 +289,7 @@ export default function TagManagerModal({
         ) : null
       }
       footer={
-        <div className="flex justify-end w-full">
+        <div className="flex justify-center w-full">
           <button
             type="button"
             onClick={onClose}

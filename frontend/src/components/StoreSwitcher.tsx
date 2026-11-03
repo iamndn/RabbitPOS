@@ -89,7 +89,7 @@ export default function StoreSwitcher() {
   // Single-store static capsule pill on light glass-regular Top Bar
   if (!canSwitch) {
     return (
-      <div className="inline-flex items-center gap-2 bg-surface-card/90 border border-card min-h-[38px] md:min-h-[36px] px-2.5 sm:px-3 rounded-full text-slate-900 shadow-card select-none max-w-[175px] sm:max-w-[230px]">
+      <div className="inline-flex items-center gap-2 bg-surface-card/90 border border-card min-h-[38px] md:min-h-[36px] px-2.5 sm:px-3 rounded-full text-slate-900 shadow-card select-none max-w-[200px] sm:max-w-[280px] md:max-w-[360px]">
         {activeStore?.logo_url ? (
           <img
             src={getImageUrl(activeStore.logo_url) || activeStore.logo_url}
@@ -140,7 +140,7 @@ export default function StoreSwitcher() {
           </div>
         )}
 
-        <div className="flex flex-col min-w-0 max-w-[100px] sm:max-w-[160px]">
+        <div className="flex flex-col min-w-0 max-w-[140px] sm:max-w-[220px] md:max-w-[280px] lg:max-w-[340px]">
           <span className="font-semibold text-footnote leading-snug truncate text-slate-900">
             {activeStore?.name || t('common.app_title')}
           </span>
@@ -162,7 +162,7 @@ export default function StoreSwitcher() {
         triggerRef={triggerButtonRef}
         exclusiveId="store-switcher"
         align="start"
-        width="w-80"
+        width="w-[340px] sm:w-[420px] md:w-[460px]"
         title={
           <div className="flex items-center gap-2">
             <StoreIcon className="w-4 h-4 text-brand-700 shrink-0" />
@@ -248,9 +248,9 @@ export default function StoreSwitcher() {
                   )}
 
                   {/* Store Name & Meta */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-subhead font-semibold truncate text-slate-900">
+                  <div className="flex-1 min-w-0 pr-1">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-subhead font-bold text-slate-900 leading-snug break-words">
                         {store.name}
                       </span>
                       {!store.is_active && (
@@ -259,9 +259,9 @@ export default function StoreSwitcher() {
                         </span>
                       )}
                     </div>
-                    <div className="flex items-center gap-1.5 text-caption text-slate-500 mt-0.5 truncate">
-                      <span className="font-mono text-slate-600 font-semibold">{store.code}</span>
-                      <span>•</span>
+                    <div className="flex items-center gap-1.5 text-caption text-slate-500 mt-0.5 min-w-0">
+                      <span className="font-mono text-slate-600 font-bold shrink-0">{store.code}</span>
+                      <span className="shrink-0">•</span>
                       <span className="truncate">{store.address || itemBadge.label}</span>
                     </div>
                   </div>

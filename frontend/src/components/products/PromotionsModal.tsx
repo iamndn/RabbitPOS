@@ -891,17 +891,17 @@ export default function PromotionsModal({ isOpen, onClose, settings: initialSett
               </div>
 
               {/* Form Buttons */}
-              <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:justify-end pt-2 border-t border-slate-100">
+              <div className="grid grid-cols-2 gap-3 sm:flex sm:items-center sm:justify-center sm:gap-3 pt-3 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setIsFormOpen(false)}
-                  className="px-4 py-2.5 text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-full font-bold text-xs transition cursor-pointer text-center justify-center flex items-center"
+                  className="px-6 py-2.5 text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-full font-bold text-xs transition cursor-pointer text-center justify-center flex items-center"
                 >
                   {t('common.cancel') || 'Hủy'}
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2.5 bg-brand-purple hover:bg-purple-700 text-white rounded-full font-bold text-xs shadow-sm transition active:scale-95 cursor-pointer text-center justify-center flex items-center"
+                  className="px-7 py-2.5 bg-brand-purple hover:bg-purple-700 text-white rounded-full font-bold text-xs shadow-card transition active:scale-95 cursor-pointer text-center justify-center flex items-center"
                 >
                   {t('common.save') || 'Lưu khuyến mãi'}
                 </button>

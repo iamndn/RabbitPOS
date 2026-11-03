@@ -2053,7 +2053,7 @@ export default function PurchasesCostTab({
         icon={<Scale className="w-5 h-5 text-emerald-700" />}
         preventClose={savingRecipe}
         footer={
-          <div className="flex items-center justify-end gap-2 w-full">
+          <div className="flex items-center justify-center gap-3 w-full">
             <button
               type="button"
               onClick={() => setEditingRecipeTarget(null)}
@@ -2277,7 +2277,7 @@ export default function PurchasesCostTab({
         icon={<Package className="w-5 h-5 text-emerald-700" />}
         preventClose={savingIngredient}
         footer={
-          <div className="flex items-center justify-end gap-2 w-full">
+          <div className="flex items-center justify-center gap-3 w-full">
             <button
               type="button"
               onClick={() => setIsIngredientModalOpen(false)}
@@ -2545,7 +2545,7 @@ export default function PurchasesCostTab({
         }
         icon={<History className="w-5 h-5 text-brand-purple" />}
         footer={
-          <div className="flex justify-end w-full">
+          <div className="flex justify-center w-full">
             <button
               type="button"
               onClick={() => setViewingHistoryIng(null)}

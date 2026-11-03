@@ -428,7 +428,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 </div>
               )}
               <div className="hidden xl:flex flex-col justify-center min-w-0 text-left">
-                <span className="text-subhead font-bold text-slate-900 truncate max-w-[150px]">
+                <span className="text-subhead font-bold text-slate-900 truncate max-w-[200px] 2xl:max-w-[260px]">
                   {currentStoreName}
                 </span>
                 <span className="text-caption text-slate-500 font-medium leading-tight">

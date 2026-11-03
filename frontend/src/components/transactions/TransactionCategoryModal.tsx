@@ -357,7 +357,7 @@ export default function TransactionCategoryModal({
                 </span>
               </label>
 
-              <div className="flex justify-end pt-1">
+              <div className="flex justify-center pt-2">
                 <button
                   type="submit"
                   disabled={submitting}
@@ -539,7 +539,7 @@ export default function TransactionCategoryModal({
         icon={<Trash2 className="w-5 h-5 text-rose-600" />}
         preventClose={deleteSubmitting}
         footer={
-          <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end sm:space-x-2">
+          <div className="grid grid-cols-2 gap-3 sm:flex sm:justify-center sm:gap-3 w-full">
             <button
               type="button"
               disabled={deleteSubmitting}

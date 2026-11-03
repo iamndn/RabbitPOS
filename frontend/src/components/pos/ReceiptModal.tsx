@@ -101,13 +101,13 @@ export default function ReceiptModal({ isOpen, onClose, order, settings: initial
         bodyClassName="print:!overflow-visible print:!p-0"
         footerClassName="print:hidden"
         footer={
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center justify-center gap-3">
             <Button
               variant="primary"
               size="md"
               onClick={handlePrint}
               leftIcon={<Printer className="w-4 h-4" />}
-              className="flex-1"
+              className="flex-1 max-w-[200px]"
             >
               {t('pos.print_receipt')}
             </Button>
@@ -115,7 +115,7 @@ export default function ReceiptModal({ isOpen, onClose, order, settings: initial
               variant="secondary"
               size="md"
               onClick={onClose}
-              className="px-5"
+              className="px-6"
             >
               {t('common.close')}
             </Button>

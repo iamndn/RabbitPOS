@@ -228,7 +228,7 @@ export default function SalesChannelModal({
         </div>
       }
       footer={
-        <div className="flex justify-end w-full">
+        <div className="flex justify-center w-full">
           <button
             type="button"
             onClick={onClose}
@@ -428,18 +428,18 @@ export default function SalesChannelModal({
             </div>
 
             {/* Form Actions */}
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-purple-100">
+            <div className="flex items-center justify-center gap-3 pt-3 border-t border-purple-100">
               <button
                 type="button"
                 onClick={() => setIsFormOpen(false)}
-                className="px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-200/60 rounded-full transition cursor-pointer"
+                className="px-5 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-200/60 rounded-full transition cursor-pointer"
               >
                 Hủy
               </button>
               <button
                 type="submit"
                 disabled={isSaving}
-                className="px-4 py-1.5 bg-brand-purple hover:bg-purple-800 disabled:opacity-50 text-white text-xs font-bold rounded-full transition active:scale-95 shadow-card cursor-pointer flex items-center gap-1"
+                className="px-6 py-2 bg-brand-purple hover:bg-purple-800 disabled:opacity-50 text-white text-xs font-bold rounded-full transition active:scale-95 shadow-card cursor-pointer flex items-center gap-1.5"
               >
                 <Check className="w-3.5 h-3.5" />
                 <span>{isSaving ? 'Đang lưu...' : editingId ? 'Lưu thay đổi' : 'Thêm kênh'}</span>

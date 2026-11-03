@@ -309,7 +309,7 @@ export default function AutoTaggingModal({
             <span>Món có biểu tượng 🔒 Khóa sẽ không bị ghi đè tự động.</span>
           </div>
 
-          <div className="grid grid-cols-2 gap-2 w-full sm:w-auto sm:flex sm:items-center">
+          <div className="grid grid-cols-2 gap-2.5 w-full sm:w-auto sm:flex sm:items-center sm:justify-center">
             <button
               type="button"
               onClick={onClose}
