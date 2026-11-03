@@ -210,7 +210,7 @@ export default function LoginPage() {
       </div>
 
       {/* Main Card */}
-      <div className="w-full max-w-md sm:max-w-lg surface-card rounded-panel p-5 sm:p-8 shadow-card space-y-5 border-card my-6">
+      <div className="w-full max-w-md sm:max-w-lg bg-surface-card rounded-panel p-5 sm:p-8 shadow-card space-y-5 border border-card my-6">
         {/* Brand Header */}
         <div className="text-center space-y-1.5">
           <div className="inline-flex p-3 bg-purple-50 text-purple-600 rounded-2xl border border-purple-100 shadow-card items-center justify-center">
@@ -247,7 +247,7 @@ export default function LoginPage() {
             }}
             className={`flex-1 py-2 sm:py-2.5 text-xs font-bold rounded-full transition cursor-pointer active:scale-95 flex items-center justify-center space-x-1.5 ${
               mode === 'login'
-                ? 'bg-white text-slate-900 shadow-card font-extrabold'
+                ? 'bg-white text-brand-purple shadow-card font-extrabold'
                 : 'text-slate-500 hover:text-slate-900'
             }`}
           >
@@ -262,7 +262,7 @@ export default function LoginPage() {
             }}
             className={`flex-1 py-2 sm:py-2.5 text-xs font-bold rounded-full transition cursor-pointer active:scale-95 flex items-center justify-center space-x-1.5 ${
               mode === 'register'
-                ? 'bg-brand-purple text-white shadow-card font-extrabold'
+                ? 'bg-white text-brand-purple shadow-card font-extrabold'
                 : 'text-slate-500 hover:text-slate-900'
             }`}
           >

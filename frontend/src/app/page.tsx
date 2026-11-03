@@ -152,8 +152,8 @@ const CategorySidebar = React.memo(function CategorySidebar({
         onClick={() => onSelectCategory(null)}
         className={`w-full min-h-[42px] md:min-h-[38px] px-2.5 sm:px-3 py-2 rounded-field text-caption sm:text-footnote font-semibold text-left flex items-center justify-between gap-1.5 transition duration-press ease-press active:scale-[0.97] cursor-pointer ${
           activeCategoryId === null
-            ? 'bg-brand-600 text-white shadow-card'
-            : 'bg-surface-card text-slate-700 hover:bg-slate-900/[0.04] border border-transparent'
+            ? 'bg-brand-600 text-white shadow-card border border-brand-700/20'
+            : 'bg-slate-50/80 text-slate-700 hover:bg-slate-100/90 border border-slate-200/70 shadow-sm'
         }`}
       >
         <span className="truncate leading-snug">{allLabel}</span>
@@ -178,8 +178,8 @@ const CategorySidebar = React.memo(function CategorySidebar({
             onClick={() => onSelectCategory(cat.id)}
             className={`w-full min-h-[42px] md:min-h-[38px] px-2.5 sm:px-3 py-2 rounded-field text-caption sm:text-footnote font-semibold text-left flex items-center justify-between gap-1.5 transition duration-press ease-press active:scale-[0.97] cursor-pointer ${
               isSelected
-                ? 'bg-brand-600 text-white shadow-card'
-                : 'bg-surface-card text-slate-700 hover:bg-slate-900/[0.04] border border-transparent'
+                ? 'bg-brand-600 text-white shadow-card border border-brand-700/20'
+                : 'bg-slate-50/80 text-slate-700 hover:bg-slate-100/90 border border-slate-200/70 shadow-sm'
             }`}
           >
             <span className="flex-1 truncate leading-snug">{cat.name}</span>

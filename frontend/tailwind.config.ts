@@ -104,6 +104,11 @@ const config: Config = {
         "surface-elevated": "var(--surface-elevated)",
         "surface-cart-bar": "var(--surface-cart-bar)",
         hairline: "var(--separator-hairline)",
+        "border-hairline": "var(--separator-hairline)",
+
+        // Brand Purple direct and hover aliases (supporting legacy & modern utility classes)
+        "brand-purple": "#7c3aed",
+        "brand-purple-hover": "#6d28d9",
 
         // Dedicated Purple Brand Scale (Single Brand Hue)
         brand: {
@@ -119,6 +124,7 @@ const config: Config = {
           900: "#4c1d95",
           950: "#2e1065", // Solid POS Quick-Cart Bar platter (--surface-cart-bar)
           DEFAULT: "#7c3aed",
+          purple: "#7c3aed",
           hover: "#6d28d9",
           pressed: "#5b21b6",
           surface: "#faf5ff",
