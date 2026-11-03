@@ -1168,70 +1168,85 @@ export default function TransactionsPage() {
     return item.variant?.variant_name || 'Sản phẩm';
   };
 
-  const filteredTransactions = safeTransactions.filter((tx) => {
-    const matchesFund = selectedFundId ? tx.fund_id === selectedFundId : true;
-    const matchesType =
-      selectedType === 'all' ? true
-      : selectedType === 'purchase' ? (tx.purchase_items?.length ?? 0) > 0
-      : tx.transaction_type === selectedType;
-    const matchesCat = selectedCategory !== 'all' ? matchTransactionCategory(tx.category, selectedCategory, txCategories) : true;
-    const txDate = toLocalDateStr(tx.created_at);
-    const matchesDate = (!customFrom || txDate >= customFrom) && (!customTo || txDate <= customTo);
-    const matchesSearch =
-      debouncedTxSearch.trim() === '' ||
-      tx.description.toLowerCase().includes(debouncedTxSearch.toLowerCase()) ||
-      (tx.cashier_name || '').toLowerCase().includes(debouncedTxSearch.toLowerCase()) ||
-      (tx.reference_order?.order_code || '').toLowerCase().includes(debouncedTxSearch.toLowerCase());
-    return matchesFund && matchesType && matchesCat && matchesDate && matchesSearch;
-  });
+  // Unified date range matching across all tabs (period / customFrom / customTo)
+  const dateFilteredTransactions = useMemo(() => {
+    return safeTransactions.filter((tx) => {
+      const txDate = toLocalDateStr(tx.created_at);
+      return (!customFrom || txDate >= customFrom) && (!customTo || txDate <= customTo);
+    });
+  }, [safeTransactions, customFrom, customTo]);
+
+  const dateFilteredOrders = useMemo(() => {
+    return safeOrders.filter((order) => {
+      const orderDate = toLocalDateStr(order.created_at);
+      return (!customFrom || orderDate >= customFrom) && (!customTo || orderDate <= customTo);
+    });
+  }, [safeOrders, customFrom, customTo]);
+
+  const filteredTransactions = useMemo(() => {
+    return dateFilteredTransactions.filter((tx) => {
+      const matchesFund = selectedFundId ? tx.fund_id === selectedFundId : true;
+      const matchesType =
+        selectedType === 'all' ? true
+        : selectedType === 'purchase' ? (tx.purchase_items?.length ?? 0) > 0
+        : tx.transaction_type === selectedType;
+      const matchesCat = selectedCategory !== 'all' ? matchTransactionCategory(tx.category, selectedCategory, txCategories) : true;
+      const matchesSearch =
+        debouncedTxSearch.trim() === '' ||
+        tx.description.toLowerCase().includes(debouncedTxSearch.toLowerCase()) ||
+        (tx.cashier_name || '').toLowerCase().includes(debouncedTxSearch.toLowerCase()) ||
+        (tx.reference_order?.order_code || '').toLowerCase().includes(debouncedTxSearch.toLowerCase());
+      return matchesFund && matchesType && matchesCat && matchesSearch;
+    });
+  }, [dateFilteredTransactions, selectedFundId, selectedType, selectedCategory, txCategories, debouncedTxSearch]);
 
   const totalTxPages = Math.max(1, Math.ceil(filteredTransactions.length / PAGE_SIZE));
   const paginatedTransactions = filteredTransactions.slice((txPage - 1) * PAGE_SIZE, txPage * PAGE_SIZE);
 
   const ledgerFundSelectOptions = useMemo<ModernSelectOption[]>(() => {
     const opts: ModernSelectOption[] = [
-      { value: 'all', label: `Tất cả nguồn tiền (${safeTransactions.length})` },
+      { value: 'all', label: `Tất cả nguồn tiền (${dateFilteredTransactions.length})` },
     ];
     safeFunds.forEach((f) => {
-      const count = safeTransactions.filter((tx) => tx.fund_id === f.id).length;
+      const count = dateFilteredTransactions.filter((tx) => tx.fund_id === f.id).length;
       opts.push({
         value: String(f.id),
         label: `${f.name} (${count})`,
       });
     });
     return opts;
-  }, [safeTransactions, safeFunds]);
+  }, [dateFilteredTransactions, safeFunds]);
 
   const ledgerTypeSelectOptions = useMemo<ModernSelectOption[]>(
     () => [
       {
         value: 'all',
-        label: `${t('tx.filter_all_types') || 'Tất cả loại'} (${safeTransactions.length})`,
+        label: `${t('tx.filter_all_types') || 'Tất cả loại'} (${dateFilteredTransactions.length})`,
       },
       {
         value: 'inflow',
         label: `${t('tx.type_inflow') || 'Khoản thu (+)'} (${
-          safeTransactions.filter((tx) => tx.transaction_type === 'inflow').length
+          dateFilteredTransactions.filter((tx) => tx.transaction_type === 'inflow').length
         })`,
       },
       {
         value: 'outflow',
         label: `${t('tx.type_outflow') || 'Khoản chi (-)'} (${
-          safeTransactions.filter((tx) => tx.transaction_type === 'outflow').length
+          dateFilteredTransactions.filter((tx) => tx.transaction_type === 'outflow').length
         })`,
       },
       {
         value: 'purchase',
         label: `${t('tx.filter_purchase_voucher') || 'Đơn nhập hàng'} (${
-          safeTransactions.filter((tx) => (tx.purchase_items?.length ?? 0) > 0).length
+          dateFilteredTransactions.filter((tx) => (tx.purchase_items?.length ?? 0) > 0).length
         })`,
       },
     ],
-    [safeTransactions, t]
+    [dateFilteredTransactions, t]
   );
 
   const ledgerCategorySelectOptions = useMemo<ModernSelectOption[]>(() => {
-    const countTotal = safeTransactions.filter(
+    const countTotal = dateFilteredTransactions.filter(
       (tx) => selectedType === 'all' || tx.transaction_type === selectedType
     ).length;
     const opts: ModernSelectOption[] = [
@@ -1251,7 +1266,7 @@ export default function TransactionsPage() {
       .filter((c) => selectedType === 'all' || c.type === selectedType || c.type === 'both')
       .forEach((cat) => {
         const catCode = cat.code || cat.name;
-        const count = safeTransactions.filter(
+        const count = dateFilteredTransactions.filter(
           (tx) =>
             matchTransactionCategory(tx.category, catCode, txCategories) &&
             (selectedType === 'all' || tx.transaction_type === selectedType)
@@ -1262,19 +1277,19 @@ export default function TransactionsPage() {
         });
       });
     return opts;
-  }, [safeTransactions, txCategories, selectedType, t]);
+  }, [dateFilteredTransactions, txCategories, selectedType, t]);
 
-  const filteredOrders = safeOrders.filter((order) => {
-    const matchesSearch =
-      debouncedOrderSearch.trim() === '' ||
-      order.order_code.toLowerCase().includes(debouncedOrderSearch.toLowerCase()) ||
-      (order.cashier_name || '').toLowerCase().includes(debouncedOrderSearch.toLowerCase());
-    const matchesStatus = orderStatusFilter === 'all' ? true : order.status === orderStatusFilter;
-    const matchesChannel = orderChannelFilter === 'all' ? true : (order.sales_channel || 'dine_in') === orderChannelFilter;
-    const orderDate = toLocalDateStr(order.created_at);
-    const matchesDate = (!customFrom || orderDate >= customFrom) && (!customTo || orderDate <= customTo);
-    return matchesSearch && matchesStatus && matchesChannel && matchesDate;
-  });
+  const filteredOrders = useMemo(() => {
+    return dateFilteredOrders.filter((order) => {
+      const matchesSearch =
+        debouncedOrderSearch.trim() === '' ||
+        order.order_code.toLowerCase().includes(debouncedOrderSearch.toLowerCase()) ||
+        (order.cashier_name || '').toLowerCase().includes(debouncedOrderSearch.toLowerCase());
+      const matchesStatus = orderStatusFilter === 'all' ? true : order.status === orderStatusFilter;
+      const matchesChannel = orderChannelFilter === 'all' ? true : (order.sales_channel || 'dine_in') === orderChannelFilter;
+      return matchesSearch && matchesStatus && matchesChannel;
+    });
+  }, [dateFilteredOrders, debouncedOrderSearch, orderStatusFilter, orderChannelFilter]);
 
   const totalOrderPages = Math.max(1, Math.ceil(filteredOrders.length / PAGE_SIZE));
   const paginatedOrders = filteredOrders.slice((orderPage - 1) * PAGE_SIZE, orderPage * PAGE_SIZE);
@@ -1283,37 +1298,37 @@ export default function TransactionsPage() {
     () => [
       {
         value: 'all',
-        label: `${t('tx.filter_all_order_status') || 'Tất cả trạng thái'} (${safeOrders.length})`,
+        label: `${t('tx.filter_all_order_status') || 'Tất cả trạng thái'} (${dateFilteredOrders.length})`,
       },
       {
         value: 'completed',
         label: `${t('tx.order_status_completed') || 'Hoàn thành'} (${
-          safeOrders.filter((o) => o.status === 'completed').length
+          dateFilteredOrders.filter((o) => o.status === 'completed').length
         })`,
       },
       {
         value: 'cancelled',
         label: `${t('tx.order_status_cancelled') || 'Đã hủy'} (${
-          safeOrders.filter((o) => o.status === 'cancelled').length
+          dateFilteredOrders.filter((o) => o.status === 'cancelled').length
         })`,
       },
     ],
-    [safeOrders, t]
+    [dateFilteredOrders, t]
   );
 
   const orderChannelOptions = useMemo<ModernSelectOption[]>(() => {
     const opts: ModernSelectOption[] = [
-      { value: 'all', label: `Tất cả kênh (${safeOrders.length})` },
+      { value: 'all', label: `Tất cả kênh (${dateFilteredOrders.length})` },
     ];
     salesChannelsList.forEach((ch) => {
-      const count = safeOrders.filter((o) => (o.sales_channel || 'dine_in') === ch.id).length;
+      const count = dateFilteredOrders.filter((o) => (o.sales_channel || 'dine_in') === ch.id).length;
       opts.push({
         value: ch.id,
         label: `${ch.icon} ${ch.name} (${count})`,
       });
     });
     return opts;
-  }, [safeOrders, salesChannelsList]);
+  }, [dateFilteredOrders, salesChannelsList]);
 
   // Track cancelled order IDs to exclude their initial inflows from financial totals
   const cancelledOrderIds = new Set(safeOrders.filter((o) => o.status === 'cancelled').map((o) => o.id));
@@ -1336,11 +1351,10 @@ export default function TransactionsPage() {
   const netCashFlow = totalInflow - totalOutflow;
 
   // Breakdown of inflows by fund (date range matched, excluding cancelled orders)
-  const dateMatchedInflowTxs = safeTransactions.filter((tx) => {
+  const dateMatchedInflowTxs = dateFilteredTransactions.filter((tx) => {
     if (tx.transaction_type !== 'inflow') return false;
     if (isTxFromCancelledOrder(tx)) return false;
-    const txDate = toLocalDateStr(tx.created_at);
-    return (!customFrom || txDate >= customFrom) && (!customTo || txDate <= customTo);
+    return true;
   });
 
   const fundInflows = safeFunds.map((fund) => {
@@ -1494,11 +1508,18 @@ export default function TransactionsPage() {
                   ? 'bg-brand-purple text-white shadow-card font-bold'
                   : 'text-slate-600 hover:text-slate-900'
                 }`}
+              title={
+                filteredTransactions.length !== dateFilteredTransactions.length
+                  ? `${filteredTransactions.length} trên ${dateFilteredTransactions.length} giao dịch trong kỳ`
+                  : `${dateFilteredTransactions.length} giao dịch trong kỳ`
+              }
             >
               <TrendingUp className={`w-4 h-4 shrink-0 ${activeTab === 'ledger' ? 'text-white' : 'text-brand-purple'}`} />
               <span>{t('tx.tab_ledger') || '💸 Sổ thu/chi'}</span>
               <span className={`text-[11px] px-1.5 py-0.5 rounded-full font-bold font-num ${activeTab === 'ledger' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'}`}>
-                {safeTransactions.length}
+                {activeTab === 'ledger' && filteredTransactions.length !== dateFilteredTransactions.length
+                  ? `${filteredTransactions.length}/${dateFilteredTransactions.length}`
+                  : dateFilteredTransactions.length}
               </span>
             </button>
 
@@ -1510,11 +1531,18 @@ export default function TransactionsPage() {
                   ? 'bg-brand-purple text-white shadow-card font-bold'
                   : 'text-slate-600 hover:text-slate-900'
                 }`}
+              title={
+                filteredOrders.length !== dateFilteredOrders.length
+                  ? `${filteredOrders.length} trên ${dateFilteredOrders.length} đơn hàng trong kỳ`
+                  : `${dateFilteredOrders.length} đơn hàng trong kỳ`
+              }
             >
               <Receipt className={`w-4 h-4 shrink-0 ${activeTab === 'orders' ? 'text-white' : 'text-amber-600'}`} />
               <span>{t('tx.tab_orders') || '🧾 Lịch sử đơn hàng'}</span>
               <span className={`text-[11px] px-1.5 py-0.5 rounded-full font-bold font-num ${activeTab === 'orders' ? 'bg-white/20 text-white' : 'bg-amber-100 text-amber-800'}`}>
-                {safeOrders.length}
+                {activeTab === 'orders' && filteredOrders.length !== dateFilteredOrders.length
+                  ? `${filteredOrders.length}/${dateFilteredOrders.length}`
+                  : dateFilteredOrders.length}
               </span>
             </button>
 
