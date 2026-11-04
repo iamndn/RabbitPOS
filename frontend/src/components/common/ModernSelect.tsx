@@ -215,7 +215,7 @@ export default function ModernSelect({
   };
 
   const sizeClasses = {
-    sm: 'h-8 px-2.5 text-xs rounded-sm-tahoe',
+    sm: 'h-10 md:h-8 px-3 md:px-2.5 text-sm md:text-xs rounded-xl md:rounded-sm-tahoe',
     md: 'h-11 md:h-9 px-3.5 text-base md:text-sm rounded-field',
     lg: 'h-12 md:h-11 px-4 text-base md:text-sm rounded-field',
   };

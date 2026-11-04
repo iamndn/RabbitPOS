@@ -23,7 +23,9 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   WifiOff,
+  Truck,
 } from 'lucide-react';
+import SalesChannelModal from '@/components/common/SalesChannelModal';
 import { fetchApi, getImageUrl } from '@/lib/api';
 import { getAuthUser, isAuthenticated, isMasterRole, isOwnerRole, logout as authLogout, UserInfo } from '@/lib/auth';
 import {
@@ -69,6 +71,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [isMoreSheetOpen, setIsMoreSheetOpen] = useState<boolean>(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
   const [isPromotionsQueryOpen, setIsPromotionsQueryOpen] = useState<boolean>(false);
+  const [isChannelModalOpen, setIsChannelModalOpen] = useState<boolean>(false);
 
   const userMenuTriggerRef = useRef<HTMLButtonElement>(null);
   const headerRef = useRef<HTMLElement>(null);
@@ -332,15 +335,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         isPromotions: false,
       },
       {
-        id: 'settings',
-        label: t('nav.system_settings'),
-        href: '/settings',
-        icon: Settings,
-        visible: canManageStore,
-        isActive: pathname.startsWith('/settings'),
-        isPromotions: false,
-      },
-      {
         id: 'stores',
         label: t('nav.store_chain'),
         href: '/stores',
@@ -348,6 +342,16 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         visible: isSuperAdmin,
         isActive: pathname.startsWith('/stores'),
         isPromotions: false,
+      },
+      {
+        id: 'channels',
+        label: 'Kênh bán hàng',
+        href: '#channels',
+        icon: Truck,
+        visible: canManageStore,
+        isActive: false,
+        isPromotions: false,
+        isChannels: true,
       },
     ].filter((item) => item.visible),
     [canManageStore, canManageUsers, isSuperAdmin, pathname, isPromotionsQueryOpen, t]
@@ -515,16 +519,16 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                     <User className="w-3.5 h-3.5" />
                   )}
                 </div>
-                <div className="hidden sm:flex flex-col min-w-0 max-w-[110px]">
-                  <span className="font-semibold text-footnote leading-snug text-slate-900 truncate">
+                <div className="hidden sm:flex flex-col min-w-0 max-w-[110px] justify-center text-left">
+                  <span className="font-semibold text-footnote leading-tight text-slate-900 truncate">
                     {currentUser?.username || 'User'}
                   </span>
-                  <span className="text-caption text-slate-500 font-medium leading-tight truncate">
+                  <span className="text-[11px] text-slate-500 font-medium leading-tight truncate mt-0.5">
                     {roleShortLabel}
                   </span>
                 </div>
                 <ChevronDown
-                  className={`hidden sm:block w-3.5 h-3.5 text-slate-500 transition-transform duration-snappy ease-spring-snappy ${
+                  className={`hidden sm:block w-3.5 h-3.5 text-slate-500 transition-transform duration-snappy ease-spring-snappy shrink-0 ${
                     isUserMenuOpen ? 'rotate-180' : ''
                   }`}
                 />
@@ -540,18 +544,18 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 width="w-80"
                 title={
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-brand-600 text-white font-bold flex items-center justify-center text-subhead shrink-0">
+                    <div className="w-10 h-10 rounded-full bg-brand-600 text-white font-bold flex items-center justify-center text-subhead shrink-0 shadow-sm">
                       {currentUser?.username ? (
                         currentUser.username.slice(0, 2).toUpperCase()
                       ) : (
                         <User className="w-5 h-5" />
                       )}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-headline text-slate-900 truncate">
+                    <div className="flex-1 min-w-0 flex flex-col justify-center">
+                      <p className="font-semibold text-headline text-slate-900 truncate leading-snug">
                         {currentUser?.username}
                       </p>
-                      <div className="mt-0.5">
+                      <div className="mt-1 flex items-center">
                         <Badge variant={isMaster ? 'brand' : isOwner ? 'info' : 'neutral'}>
                           <Shield className="w-3 h-3 mr-1" />
                           {roleShortLabel}
@@ -576,44 +580,18 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 }
               >
                 <div className="space-y-4 py-1">
-                  {canManageStore && (
-                    <ListGroup header={t('nav.group_management')}>
-                      {isSuperAdmin && (
-                        <ListRow
-                          leading={<StoreIcon className="w-4 h-4 text-brand-600" />}
-                          title={t('nav.store_chain')}
-                          selected={pathname.startsWith('/stores')}
-                          chevron
-                          onClick={() => {
-                            setIsUserMenuOpen(false);
-                            router.push('/stores');
-                          }}
-                        />
-                      )}
-                      {canManageUsers && (
-                        <ListRow
-                          leading={<Users className="w-4 h-4 text-brand-600" />}
-                          title={t('nav.staff_management')}
-                          selected={pathname.startsWith('/users')}
-                          chevron
-                          onClick={() => {
-                            setIsUserMenuOpen(false);
-                            router.push('/users');
-                          }}
-                        />
-                      )}
-                      <ListRow
-                        leading={<Settings className="w-4 h-4 text-slate-500" />}
-                        title={t('nav.system_settings')}
-                        selected={pathname.startsWith('/settings')}
-                        chevron
-                        onClick={() => {
-                          setIsUserMenuOpen(false);
-                          router.push('/settings');
-                        }}
-                      />
-                    </ListGroup>
-                  )}
+                  <ListGroup header={t('nav.group_management')}>
+                    <ListRow
+                      leading={<Settings className="w-4 h-4 text-slate-500" />}
+                      title={t('nav.system_settings')}
+                      selected={pathname.startsWith('/settings')}
+                      chevron
+                      onClick={() => {
+                        setIsUserMenuOpen(false);
+                        router.push('/settings');
+                      }}
+                    />
+                  </ListGroup>
 
                   <ListGroup header={t('nav.group_device_prefs')}>
                     <ListRow
@@ -714,6 +692,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                     onClick={(e) => {
                       if (item.isPromotions) {
                         handleNavigatePromotions(e);
+                      } else if ((item as any).isChannels) {
+                        e.preventDefault();
+                        setIsChannelModalOpen(true);
                       } else {
                         setIsPromotionsQueryOpen(false);
                       }
@@ -816,7 +797,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                   onClick={() => setIsPromotionsQueryOpen(false)}
                   aria-current={item.isActive ? 'page' : undefined}
                   className={cn(
-                    'flex-1 min-w-0 min-h-[44px] py-1 px-1.5 rounded-full flex flex-col items-center justify-center transition duration-press ease-press active:scale-[0.95]',
+                    'flex-1 min-w-0 min-h-[44px] py-1 px-0.5 sm:px-1.5 rounded-full flex flex-col items-center justify-center transition duration-press ease-press active:scale-[0.95]',
                     item.isActive
                       ? 'bg-brand-glass-pill text-brand-700 font-semibold'
                       : 'text-slate-600 hover:text-slate-900 font-medium'
@@ -828,7 +809,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                       item.isActive ? 'text-brand-700' : 'text-slate-500'
                     )}
                   />
-                  <span className="text-caption leading-none truncate max-w-full">
+                  <span className="text-[10px] sm:text-caption leading-tight text-center whitespace-nowrap overflow-hidden text-ellipsis max-w-full px-0.5">
                     {item.label}
                   </span>
                 </Link>
@@ -841,7 +822,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               onClick={() => setIsMoreSheetOpen(true)}
               aria-expanded={isMoreSheetOpen}
               className={cn(
-                'flex-1 min-w-0 min-h-[44px] py-1 px-1.5 rounded-full flex flex-col items-center justify-center transition duration-press ease-press active:scale-[0.95] cursor-pointer',
+                'flex-1 min-w-0 min-h-[44px] py-1 px-0.5 sm:px-1.5 rounded-full flex flex-col items-center justify-center transition duration-press ease-press active:scale-[0.95] cursor-pointer',
                 isMoreSheetOpen || isMoreRouteActive
                   ? 'bg-brand-glass-pill text-brand-700 font-semibold'
                   : 'text-slate-600 hover:text-slate-900 font-medium'
@@ -855,7 +836,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                     : 'text-slate-500'
                 )}
               />
-              <span className="text-caption leading-none truncate max-w-full">
+              <span className="text-[10px] sm:text-caption leading-tight text-center whitespace-nowrap overflow-hidden text-ellipsis max-w-full px-0.5">
                 {t('nav.more')}
               </span>
             </button>
@@ -902,6 +883,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                       onClick={() => {
                         if (item.isPromotions) {
                           handleNavigatePromotions();
+                        } else if ((item as any).isChannels) {
+                          setIsPromotionsQueryOpen(false);
+                          setIsMoreSheetOpen(false);
+                          setIsChannelModalOpen(true);
                         } else {
                           setIsPromotionsQueryOpen(false);
                           setIsMoreSheetOpen(false);
@@ -939,6 +924,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* iOS PWA Install Prompt — shown only on iOS Safari in browser (not standalone) mode */}
       <InstallPWABanner />
+
+      {/* Sales Channel Management Modal (accessible from More Menu or Desktop Sidebar) */}
+      <SalesChannelModal
+        isOpen={isChannelModalOpen}
+        onClose={() => setIsChannelModalOpen(false)}
+        channels={[]}
+        onChannelsUpdated={() => {}}
+      />
     </div>
   );
 }

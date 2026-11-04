@@ -41,8 +41,8 @@ const chipVariantStyles: Record<ChipVariant, { inactive: string; active: string 
 };
 
 const chipSizeStyles: Record<ChipSize, string> = {
-  sm: 'h-8 px-3 text-caption rounded-full gap-1.5',
-  md: 'h-9 px-3.5 text-footnote md:text-subhead rounded-full gap-2',
+  sm: 'h-8 px-3 text-xs md:text-caption rounded-full gap-1.5',
+  md: 'h-9 px-3.5 text-sm md:text-subhead rounded-full gap-2',
 };
 
 export const Chip: React.FC<ChipProps> = ({
@@ -160,7 +160,7 @@ export const FilterPill: React.FC<FilterPillProps> = ({
         }
       }}
       className={cn(
-        'inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full border text-footnote md:text-subhead font-sans shrink-0 cursor-pointer select-none',
+        'inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full border text-sm md:text-subhead font-sans shrink-0 cursor-pointer select-none',
         'transition-all duration-press ease-press active:scale-[0.97]',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/45 focus-visible:ring-offset-1',
         disabled && 'opacity-45 pointer-events-none',

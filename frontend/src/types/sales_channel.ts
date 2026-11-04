@@ -29,10 +29,13 @@ export const DEFAULT_SALES_CHANNELS: SalesChannel[] = [
   { id: 'befood', name: 'BeFood', icon: '💛', color: 'amber', default_commission_pct: 20, is_delivery_app: true, is_system: false, is_active: true },
 ];
 
-export function parseSalesChannels(rawJson?: string | null): SalesChannel[] {
+export function parseSalesChannels(rawJson?: any): SalesChannel[] {
   if (!rawJson) return DEFAULT_SALES_CHANNELS;
   try {
-    const parsed = JSON.parse(rawJson);
+    let parsed = typeof rawJson === 'string' ? JSON.parse(rawJson) : rawJson;
+    if (typeof parsed === 'string') {
+      parsed = JSON.parse(parsed);
+    }
     if (Array.isArray(parsed) && parsed.length > 0) {
       return parsed;
     }

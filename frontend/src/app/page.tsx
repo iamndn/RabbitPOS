@@ -275,22 +275,6 @@ const ProductCard = React.memo(function ProductCard({
               {t('pos.sizes_badge', { count: variantsCount })}
             </span>
           )}
-
-          {/* Quick-Add (+) Capsule Button Overlay */}
-          {!isSuspended && !isComingSoon && (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onQuickAdd(product);
-              }}
-              className="absolute bottom-1.5 right-1.5 w-8 h-8 rounded-full bg-brand-600 hover:bg-brand-700 active:scale-90 text-white flex items-center justify-center shadow-card border-2 border-white transition duration-press ease-press cursor-pointer z-10"
-              title={t('pos.quick_add_title')}
-              aria-label={t('pos.quick_add_aria', { name: product.name })}
-            >
-              <Plus className="w-4 h-4 stroke-[2.5]" />
-            </button>
-          )}
         </div>
 
         {/* Tag Badge */}
@@ -310,9 +294,9 @@ const ProductCard = React.memo(function ProductCard({
         </h3>
       </div>
 
-      {/* Bottom section: Tabular Price & Status */}
-      <div className="mt-2 pt-1.5 border-t border-hairline flex items-center justify-between gap-1 min-w-0">
-        <div className="flex items-baseline gap-1 min-w-0">
+      {/* Bottom section: Tabular Price & Quick-Add (+) Button */}
+      <div className="mt-2 pt-1.5 border-t border-hairline flex items-center justify-between gap-1.5 min-w-0">
+        <div className="flex items-baseline gap-1 min-w-0 flex-1">
           {variantsCount > 1 && (
             <span className="text-caption text-slate-500 font-medium shrink-0">
               {t('pos.from_price')}
@@ -334,7 +318,20 @@ const ProductCard = React.memo(function ProductCard({
           <span className="text-caption font-semibold text-sky-700 bg-sky-50 border border-sky-200/80 px-2 py-0.5 rounded-full shrink-0">
             {t('products.coming_soon')}
           </span>
-        ) : null}
+        ) : (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onQuickAdd(product);
+            }}
+            className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-brand-600 hover:bg-brand-700 active:scale-90 text-white flex items-center justify-center shadow-card border border-white/60 transition duration-press ease-press cursor-pointer shrink-0"
+            title={t('pos.quick_add_title')}
+            aria-label={t('pos.quick_add_aria', { name: product.name })}
+          >
+            <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[2.5]" />
+          </button>
+        )}
       </div>
     </div>
   );
@@ -1410,7 +1407,7 @@ export default function PosPage() {
                       key={opt.id}
                       type="button"
                       onClick={() => setSortBy(opt.id)}
-                      className={`min-h-[44px] md:min-h-[38px] px-3 py-2 rounded-field text-footnote font-semibold transition duration-press ease-press active:scale-[0.98] flex items-center justify-between gap-2 cursor-pointer text-left border ${
+                      className={`min-h-[44px] md:min-h-[38px] px-3 py-2 rounded-field text-sm font-semibold transition duration-press ease-press active:scale-[0.98] flex items-center justify-between gap-2 cursor-pointer text-left border ${
                         isSelected
                           ? 'bg-brand-600 text-white border-brand-600 shadow-card'
                           : 'bg-surface-card text-slate-700 hover:bg-slate-50 border-card shadow-card'

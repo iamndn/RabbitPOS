@@ -1172,7 +1172,7 @@ export default function TransactionModal({
                               {/* Line 2 (mobile): Subtotal display */}
                               <div className="flex items-center justify-between md:justify-end gap-1.5 shrink-0">
                                 <span className="text-slate-400 font-bold text-xs md:inline">=</span>
-                                <div className="bg-purple-50 border border-purple-200 rounded-xl px-3 py-1.5 md:py-1 min-w-[100px] text-right">
+                                <div className="h-10 md:h-8 flex items-center justify-end bg-purple-50 border border-purple-200 rounded-xl px-3 min-w-[100px] text-right">
                                   <div className="text-xs font-black text-brand-purple font-num">
                                     {formatCurrency(item.subtotal)}
                                   </div>
@@ -1481,7 +1481,7 @@ export default function TransactionModal({
                   setModalCreatedAt(null);
                 }
               }}
-              className="app-input text-xs font-semibold font-num"
+              className="app-input text-xs font-semibold font-num w-full max-w-full box-border"
             />
           </div>
 

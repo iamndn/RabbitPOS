@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   X,
   Plus,
@@ -17,6 +17,7 @@ import {
   SalesChannel,
   CHANNEL_COLORS,
   DEFAULT_SALES_CHANNELS,
+  parseSalesChannels,
 } from '@/types/sales_channel';
 import { fetchApi } from '@/lib/api';
 import { useConfirm } from '@/context/ConfirmContext';
@@ -58,6 +59,30 @@ export default function SalesChannelModal({
   // Drag and drop states
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+
+  // Keep channels in sync with props & auto-fetch if opened without passed channels
+  useEffect(() => {
+    if (!isOpen) return;
+
+    if (channels && channels.length > 0) {
+      setLocalChannels(channels);
+    } else {
+      fetchApi<any>('/settings')
+        .then((res) => {
+          if (res.status === 'success' && res.data) {
+            const raw = res.data.sales_channels_config;
+            if (raw) {
+              const parsed = parseSalesChannels(raw);
+              if (parsed && parsed.length > 0) {
+                setLocalChannels(parsed);
+                onChannelsUpdated(parsed);
+              }
+            }
+          }
+        })
+        .catch(() => {});
+    }
+  }, [isOpen, channels, onChannelsUpdated]);
 
   if (!isOpen) return null;
 
