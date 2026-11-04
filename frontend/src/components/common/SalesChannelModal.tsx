@@ -11,6 +11,7 @@ import {
   Building,
   RotateCcw,
   Sparkles,
+  GripVertical,
 } from 'lucide-react';
 import {
   SalesChannel,
@@ -53,6 +54,10 @@ export default function SalesChannelModal({
   const [formIsDelivery, setFormIsDelivery] = useState(false);
   const [formCommissionPct, setFormCommissionPct] = useState('0');
   const [isSaving, setIsSaving] = useState(false);
+
+  // Drag and drop states
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
   if (!isOpen) return null;
 
@@ -117,6 +122,44 @@ export default function SalesChannelModal({
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+    try {
+      e.dataTransfer.setData('text/plain', String(index));
+    } catch (_) {}
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (dragOverIndex !== index) {
+      setDragOverIndex(index);
+    }
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
+
+  const handleDrop = async (e: React.DragEvent, targetIndex: number) => {
+    e.preventDefault();
+    if (draggedIndex === null || draggedIndex === targetIndex) {
+      handleDragEnd();
+      return;
+    }
+
+    const nextList = [...localChannels];
+    const [moved] = nextList.splice(draggedIndex, 1);
+    nextList.splice(targetIndex, 0, moved);
+
+    setLocalChannels(nextList);
+    handleDragEnd();
+
+    await saveToBackend(nextList);
   };
 
   const handleSaveForm = async (e: React.FormEvent) => {
@@ -460,21 +503,35 @@ export default function SalesChannelModal({
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-2">
-              {localChannels.map((ch) => {
+              {localChannels.map((ch, idx) => {
                 const colorDef = CHANNEL_COLORS.find((c) => c.id === ch.color) || CHANNEL_COLORS[0];
                 const isActive = ch.is_active !== false;
+                const isDragging = draggedIndex === idx;
+                const isDragOver = dragOverIndex === idx && draggedIndex !== idx;
 
                 return (
                   <div
                     key={ch.id}
-                    className={`p-3 rounded-2xl border transition-all flex items-center justify-between gap-3 ${
-                      isActive
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, idx)}
+                    onDragOver={(e) => handleDragOver(e, idx)}
+                    onDragEnd={handleDragEnd}
+                    onDrop={(e) => handleDrop(e, idx)}
+                    className={`p-3 rounded-2xl border transition-all flex items-center justify-between gap-3 cursor-move select-none ${
+                      isDragging
+                        ? 'opacity-40 scale-95 border-dashed border-purple-400 bg-purple-50/40'
+                        : isDragOver
+                        ? 'border-purple-500 ring-2 ring-purple-500/20 bg-purple-50/20'
+                        : isActive
                         ? 'bg-white border-border-hairline shadow-card hover:border-slate-300'
                         : 'bg-slate-50 border-border-hairline opacity-60'
                     }`}
                   >
-                    {/* Left: Icon, Name & Code */}
-                    <div className="flex items-center gap-3 min-w-0">
+                    {/* Left: Drag Handle, Icon, Name & Code */}
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="text-slate-300 hover:text-slate-600 shrink-0 cursor-grab active:cursor-grabbing p-1" title="Kéo thả để sắp xếp">
+                        <GripVertical className="w-4 h-4" />
+                      </div>
                       <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-lg border shrink-0 ${colorDef.bg} ${colorDef.border}`}>
                         {ch.icon || '🛵'}
                       </div>

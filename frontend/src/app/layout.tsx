@@ -104,7 +104,7 @@ export default function RootLayout({
         <script
           dangerouslySetInnerHTML={{
             __html:
-              "try{if(localStorage.getItem('rabbitpos_glass_effects')==='false'){document.documentElement.classList.add('no-glass');}}catch(e){}",
+              "try{if(localStorage.getItem('rabbitpos_glass_effects')==='false'){document.documentElement.classList.add('no-glass');}var a=localStorage.getItem('rabbitpos_accent_color');if(a){document.documentElement.setAttribute('data-accent',a);}var c=localStorage.getItem('rabbitpos_high_contrast');if(c==='true'){document.documentElement.setAttribute('data-high-contrast','true');}var d=localStorage.getItem('rabbitpos_pos_density');if(d){document.documentElement.setAttribute('data-pos-density',d);}}catch(e){}",
           }}
         />
       </head>

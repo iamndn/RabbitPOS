@@ -862,6 +862,25 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
 		}
 	}
 
+	callerRole := h.callerRole(c)
+	isPermanent := (c.Query("permanent") == "true" || c.Query("hard") == "true") && callerRole.IsMaster()
+
+	if isPermanent {
+		// Hard delete: remove user record completely (relational references cascade or set null)
+		if err := h.db.Delete(&user).Error; err != nil {
+			models.SendInternalErrorLogged(c, "Failed to permanently delete user", err)
+			return
+		}
+
+		h.audit(c, "PERMANENT_DELETE_USER", "users", user.ID, map[string]interface{}{
+			"username": user.Username,
+			"role":     user.Role,
+		})
+
+		models.SendSuccess(c, http.StatusOK, gin.H{"id": user.ID, "deleted": true}, "Đã xóa vĩnh viễn tài khoản người dùng thành công")
+		return
+	}
+
 	user.IsActive = false
 	user.TokenVersion++
 	if err := h.db.Save(&user).Error; err != nil {

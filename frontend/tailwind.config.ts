@@ -106,11 +106,11 @@ const config: Config = {
         hairline: "var(--separator-hairline)",
         "border-hairline": "var(--separator-hairline)",
 
-        // Brand Purple direct and hover aliases (supporting legacy & modern utility classes)
-        "brand-purple": "#7c3aed",
-        "brand-purple-hover": "#6d28d9",
+        // Brand Purple direct and hover aliases (supporting dynamic brand accent tint)
+        "brand-purple": "var(--tint-primary, #7c3aed)",
+        "brand-purple-hover": "var(--tint-primary-hover, #6d28d9)",
 
-        // Dedicated Purple Brand Scale (Single Brand Hue)
+        // Dedicated Purple Brand Scale (Single Brand Hue with dynamic primary tint)
         brand: {
           50: "#faf5ff",
           100: "#f3e8ff",
@@ -118,16 +118,16 @@ const config: Config = {
           300: "#d8b4fe",
           400: "#c084fc",
           500: "#a855f7",
-          600: "#7c3aed", // Primary brand purple (--tint-primary)
-          700: "#6d28d9", // Primary hover & active link on glass (--tint-primary-hover)
-          800: "#5b21b6", // Pressed & high-contrast tint (--tint-primary-pressed)
+          600: "var(--tint-primary, #7c3aed)", // Primary brand accent (--tint-primary)
+          700: "var(--tint-primary-hover, #6d28d9)", // Primary hover & active link on glass (--tint-primary-hover)
+          800: "var(--tint-primary-pressed, #5b21b6)", // Pressed & high-contrast tint (--tint-primary-pressed)
           900: "#4c1d95",
-          950: "#2e1065", // Solid POS Quick-Cart Bar platter (--surface-cart-bar)
-          DEFAULT: "#7c3aed",
-          purple: "#7c3aed",
-          hover: "#6d28d9",
-          pressed: "#5b21b6",
-          surface: "#faf5ff",
+          950: "var(--surface-cart-bar, #2e1065)", // Solid POS Quick-Cart Bar platter (--surface-cart-bar)
+          DEFAULT: "var(--tint-primary, #7c3aed)",
+          purple: "var(--tint-primary, #7c3aed)",
+          hover: "var(--tint-primary-hover, #6d28d9)",
+          pressed: "var(--tint-primary-pressed, #5b21b6)",
+          surface: "var(--tint-glass-surface, #faf5ff)",
           border: "#e9d5ff",
           "glass-pill": "var(--tint-glass-surface)",
         },

@@ -22,16 +22,12 @@ import {
   MoreHorizontal,
   PanelLeftClose,
   PanelLeftOpen,
-  Sparkles,
   WifiOff,
 } from 'lucide-react';
 import { fetchApi, getImageUrl } from '@/lib/api';
 import { getAuthUser, isAuthenticated, isMasterRole, isOwnerRole, logout as authLogout, UserInfo } from '@/lib/auth';
 import {
   GLASS_EFFECTS_CHANGE_EVENT,
-  isGlassEffectsEnabled,
-  isSystemGlassForcedOff,
-  setGlassEffectsEnabled,
   syncGlassEffectsClass,
 } from '@/lib/featureFlags';
 import { useNetworkStatus } from '@/hooks/useNetworkStatus';
@@ -47,7 +43,6 @@ import {
   ListRow,
   ResponsiveSheet,
   SegmentedControl,
-  Switch,
 } from '@/components/ui';
 
 interface HealthData {
@@ -75,9 +70,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
   const [isPromotionsQueryOpen, setIsPromotionsQueryOpen] = useState<boolean>(false);
 
-  const [glassEnabled, setGlassEnabled] = useState<boolean>(true);
-  const [systemGlassOff, setSystemGlassOff] = useState<boolean>(false);
-
   const userMenuTriggerRef = useRef<HTMLButtonElement>(null);
   const headerRef = useRef<HTMLElement>(null);
   const inlineTitleRef = useRef<HTMLDivElement>(null);
@@ -93,12 +85,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
     // Sync per-device Liquid Glass preference (Override Q3)
     syncGlassEffectsClass();
-    setGlassEnabled(isGlassEffectsEnabled());
-    setSystemGlassOff(isSystemGlassForcedOff());
 
     const handleGlassChange = () => {
-      setGlassEnabled(isGlassEffectsEnabled());
-      setSystemGlassOff(isSystemGlassForcedOff());
+      syncGlassEffectsClass();
     };
 
     const reducedTransMq = window.matchMedia('(prefers-reduced-transparency: reduce)');
@@ -236,11 +225,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       }
       return next;
     });
-  }, []);
-
-  const handleToggleGlass = useCallback((next: boolean) => {
-    setGlassEffectsEnabled(next);
-    setGlassEnabled(next);
   }, []);
 
   // Navigate to Promotions reliably even when already standing on /products
@@ -648,24 +632,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                         />
                       }
                     />
-                    <ListRow
-                      leading={<Sparkles className="w-4 h-4 text-brand-600" />}
-                      title={t('nav.glass_effects')}
-                      subtitle={
-                        systemGlassOff
-                          ? t('nav.glass_forced_off')
-                          : t('nav.glass_effects_desc')
-                      }
-                      trailing={
-                        <Switch
-                          size="sm"
-                          checked={glassEnabled && !systemGlassOff}
-                          disabled={systemGlassOff}
-                          onCheckedChange={handleToggleGlass}
-                          aria-label={t('nav.glass_effects')}
-                        />
-                      }
-                    />
                   </ListGroup>
                 </div>
               </ResponsiveSheet>
@@ -962,24 +928,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                         { value: 'vi', label: 'VI' },
                         { value: 'en', label: 'EN' },
                       ]}
-                    />
-                  }
-                />
-                <ListRow
-                  leading={<Sparkles className="w-4 h-4 text-brand-600" />}
-                  title={t('nav.glass_effects')}
-                  subtitle={
-                    systemGlassOff
-                      ? t('nav.glass_forced_off')
-                      : t('nav.glass_effects_desc')
-                  }
-                  trailing={
-                    <Switch
-                      size="sm"
-                      checked={glassEnabled && !systemGlassOff}
-                      disabled={systemGlassOff}
-                      onCheckedChange={handleToggleGlass}
-                      aria-label={t('nav.glass_effects')}
                     />
                   }
                 />

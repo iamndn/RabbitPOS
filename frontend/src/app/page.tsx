@@ -48,6 +48,7 @@ import {
   OfflineOrder,
 } from '@/lib/offline/orders';
 import { syncOfflineOrders } from '@/lib/offline/sync';
+import { playPosSound } from '@/lib/sound';
 import { formatCurrency, SettingsMap } from '@/lib/utils';
 import { CustomTag, DEFAULT_SYSTEM_TAGS, getTagBadgeStyle } from '@/components/products/TagManagerModal';
 import { useStore } from '@/lib/StoreContext';
@@ -249,7 +250,7 @@ const ProductCard = React.memo(function ProductCard({
   return (
     <div
       onClick={handleClick}
-      className={`bg-surface-card p-2 sm:p-2.5 rounded-card border border-card shadow-card hover:shadow-glass-sm hover:border-brand-300 transition duration-press ease-press active:scale-[0.98] flex flex-col justify-between cursor-pointer group min-w-0 w-full relative select-none ${
+      className={`product-card-container bg-surface-card p-2 sm:p-2.5 rounded-card border border-card shadow-card hover:shadow-glass-sm hover:border-brand-300 transition duration-press ease-press active:scale-[0.98] flex flex-col justify-between cursor-pointer group min-w-0 w-full relative select-none ${
         isSuspended ? 'opacity-70 bg-surface-grouped/60' : ''
       }`}
     >
@@ -304,7 +305,7 @@ const ProductCard = React.memo(function ProductCard({
           </div>
         )}
 
-        <h3 className="font-semibold text-slate-900 text-footnote sm:text-subhead leading-snug group-hover:text-brand-700 transition-colors line-clamp-2 break-words">
+        <h3 className="product-card-title font-semibold text-slate-900 text-footnote sm:text-subhead leading-snug group-hover:text-brand-700 transition-colors line-clamp-2 break-words">
           {product.name}
         </h3>
       </div>
@@ -318,7 +319,7 @@ const ProductCard = React.memo(function ProductCard({
             </span>
           )}
           <span
-            className="font-bold font-num tabular-nums text-brand-700 text-subhead sm:text-headline tracking-tight truncate leading-snug"
+            className="product-card-price font-bold font-num tabular-nums text-brand-700 text-subhead sm:text-headline tracking-tight truncate leading-snug"
             title={formatCurrency(startingPrice, settings)}
           >
             {formatCurrency(startingPrice, settings)}
@@ -749,6 +750,7 @@ export default function PosPage() {
   // Memoized Cart Handlers
   const handleAddToCart = useCallback((newItem: CartItem) => {
     setCartItems((prev) => [...prev, newItem]);
+    playPosSound('add');
     toast.success(
       t('pos.added_to_cart', { name: `${newItem.product.name} (${newItem.selectedVariant.variant_name})` }),
       { duration: 2500 }
@@ -756,6 +758,11 @@ export default function PosPage() {
   }, [t, toast]);
 
   const handleUpdateQty = useCallback((id: string, delta: number) => {
+    if (delta > 0) {
+      playPosSound('add');
+    } else {
+      playPosSound('remove');
+    }
     setCartItems((prev) =>
       prev
         .map((item) => {
@@ -790,6 +797,7 @@ export default function PosPage() {
   }, []);
 
   const handleRemoveItem = useCallback((id: string) => {
+    playPosSound('remove');
     setCartItems((prev) => {
       const target = prev.find((i) => i.id === id);
       if (target?.isGift) {
@@ -974,6 +982,7 @@ export default function PosPage() {
       clearCartFromOfflineCache(currentStoreId).catch(() => {});
       localStorage.removeItem(cartStorageKey);
       refreshQueueStats();
+      playPosSound('checkout');
       toast.queuedOrder(provisionalCode);
       return;
     }
@@ -1064,6 +1073,7 @@ export default function PosPage() {
         }
         clearCartFromOfflineCache(currentStoreId).catch(() => {});
         localStorage.removeItem(cartStorageKey);
+        playPosSound('checkout');
         toast.success(t('pos.order_success', { code: res.data.order_code }));
       } else {
         toast.error(t('pos.order_failed', { message: res.message }));
@@ -1366,6 +1376,7 @@ export default function PosPage() {
                   setActiveTag(null);
                   setSortBy('default');
                 }}
+                className="whitespace-nowrap shrink-0 text-xs sm:text-sm px-2 sm:px-3"
               >
                 {t('common.reset_filters')}
               </Button>
@@ -1373,6 +1384,7 @@ export default function PosPage() {
                 variant="primary"
                 size="md"
                 onClick={() => setIsFilterModalOpen(false)}
+                className="whitespace-nowrap truncate text-xs sm:text-sm px-3 sm:px-4"
               >
                 {t('pos.apply_count', { count: sortedAndFilteredProducts.length })}
               </Button>

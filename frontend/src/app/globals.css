@@ -264,6 +264,58 @@
     }
   }
 
+  /* Brand Accent Color Customization */
+  html[data-accent="blue"] {
+    --tint-primary: #2563EB;
+    --tint-primary-hover: #1D4ED8;
+    --tint-primary-pressed: #1E40AF;
+    --tint-glass-surface: rgba(37, 99, 235, 0.14);
+    --surface-cart-bar: #0F172A;
+    --border-cart-bar: rgba(37, 99, 235, 0.4);
+  }
+
+  html[data-accent="emerald"] {
+    --tint-primary: #059669;
+    --tint-primary-hover: #047857;
+    --tint-primary-pressed: #065F46;
+    --tint-glass-surface: rgba(5, 150, 105, 0.14);
+    --surface-cart-bar: #064E3B;
+    --border-cart-bar: rgba(5, 150, 105, 0.4);
+  }
+
+  html[data-accent="amber"] {
+    --tint-primary: #D97706;
+    --tint-primary-hover: #B45309;
+    --tint-primary-pressed: #92400E;
+    --tint-glass-surface: rgba(217, 119, 6, 0.14);
+    --surface-cart-bar: #78350F;
+    --border-cart-bar: rgba(217, 119, 6, 0.4);
+  }
+
+  /* Manual High Contrast Mode */
+  html[data-high-contrast="true"] {
+    --mat-glass-thin-border: #475569;
+    --mat-glass-thin-border-width: 1.5px;
+    --mat-glass-reg-border: #334155;
+    --mat-glass-reg-border-width: 1.5px;
+    --border-card: #64748B;
+    --separator-hairline: #94A3B8;
+    --border-strong: #334155;
+  }
+
+  /* POS Density Mode: Compact */
+  html[data-pos-density="compact"] .product-card-container {
+    padding: 0.375rem !important;
+  }
+  html[data-pos-density="compact"] .product-card-title {
+    font-size: 0.75rem !important;
+    line-height: 1rem !important;
+    -webkit-line-clamp: 1 !important;
+  }
+  html[data-pos-density="compact"] .product-card-price {
+    font-size: 0.8125rem !important;
+  }
+
   *, ::before, ::after {
     box-sizing: border-box;
   }
@@ -321,6 +373,15 @@
 /* Touch & Form optimization */
 button, a, input, select, textarea, [role="button"] {
   touch-action: manipulation;
+}
+
+/* Prevent iOS Safari auto-zoom when tapping inputs, textareas, or selects */
+@media screen and (max-width: 767px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
 }
 
 @layer components {

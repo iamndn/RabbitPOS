@@ -22,6 +22,7 @@ import {
   Building2,
   Hash,
   Sparkles,
+  Trash2,
 } from 'lucide-react';
 import AppShell from '@/components/AppShell';
 import { FilterBar, Chip } from '@/components/ui';
@@ -361,6 +362,38 @@ export default function UsersPage() {
         }
       } catch (err: any) {
         toast.error(err.message || 'Thao tác thất bại');
+      }
+    }
+  };
+
+  // Super-Admin permanent delete user
+  const handleDeleteUser = async (user: UserItem) => {
+    if (user.id === currentUser?.id) {
+      toast.error('Không thể tự xóa tài khoản đang đăng nhập');
+      return;
+    }
+
+    const ok = await confirm({
+      title: 'Xóa vĩnh viễn người dùng',
+      message: `Bạn có chắc chắn muốn xóa vĩnh viễn tài khoản "${user.full_name || user.username}" (@${user.username})? Thao tác này sẽ xóa toàn bộ quyền truy cập và không thể hoàn tác.`,
+      confirmText: 'Xóa vĩnh viễn',
+      cancelText: t('common.cancel') || 'Hủy',
+      type: 'danger',
+    });
+
+    if (ok) {
+      try {
+        const res = await fetchApi(`/users/${user.id}?permanent=true`, {
+          method: 'DELETE',
+        });
+        if (res.status === 'success') {
+          toast.success('Đã xóa tài khoản người dùng thành công');
+          loadUsers();
+        } else {
+          toast.error(res.message || 'Xóa tài khoản thất bại');
+        }
+      } catch (err: any) {
+        toast.error(err.message || 'Xóa tài khoản thất bại');
       }
     }
   };
@@ -936,6 +969,16 @@ export default function UsersPage() {
                                     title={u.is_active ? (t('users.confirm_lock_title') || 'Khóa tài khoản') : (t('users.confirm_unlock_title') || 'Kích hoạt tài khoản')}
                                   >
                                     <Power className="w-4 h-4" />
+                                  </button>
+                                )}
+                                {isMasterCaller && u.id !== currentUser?.id && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteUser(u)}
+                                    className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition active:scale-95 cursor-pointer"
+                                    title="Xóa vĩnh viễn tài khoản"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
                                   </button>
                                 )}
                               </>

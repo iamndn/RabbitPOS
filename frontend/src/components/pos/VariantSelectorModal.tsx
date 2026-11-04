@@ -188,18 +188,19 @@ export default function VariantSelectorModal({ product, onClose, onAddToCart, se
         </span>
       }
       footer={
-        <div className="flex items-center gap-3">
-          <div className="inline-flex items-center gap-1 p-1 rounded-full bg-surface-grouped border border-hairline shrink-0">
+        <div className="flex items-center gap-2 sm:gap-3 w-full">
+          <div className="inline-flex items-center gap-0.5 sm:gap-1 p-0.5 sm:p-1 rounded-full bg-surface-grouped border border-hairline shrink-0">
             <IconButton
               variant="secondary"
               size="sm"
               onClick={() => setQuantity(Math.max(1, quantity - 1))}
               disabled={quantity <= 1}
               aria-label={t('pos.decrease_qty')}
+              className="w-7 h-7 sm:w-8 sm:h-8"
             >
-              <Minus className="w-4 h-4" />
+              <Minus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </IconButton>
-            <span className="font-semibold text-slate-900 text-subhead px-2 min-w-[28px] text-center font-num">
+            <span className="font-semibold text-slate-900 text-footnote sm:text-subhead px-1 sm:px-2 min-w-[24px] sm:min-w-[28px] text-center font-num">
               {quantity}
             </span>
             <IconButton
@@ -207,8 +208,9 @@ export default function VariantSelectorModal({ product, onClose, onAddToCart, se
               size="sm"
               onClick={() => setQuantity(quantity + 1)}
               aria-label={t('pos.increase_qty')}
+              className="w-7 h-7 sm:w-8 sm:h-8"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </IconButton>
           </div>
 
@@ -216,14 +218,17 @@ export default function VariantSelectorModal({ product, onClose, onAddToCart, se
             variant="primary"
             size="lg"
             onClick={handleAdd}
-            className="flex-1 justify-between"
+            className="flex-1 justify-between min-w-0 px-3 sm:px-5 text-sm sm:text-base"
             rightIcon={
-              <span className="font-num font-bold pl-2.5 border-l border-white/25">
+              <span className="font-num font-bold pl-2 sm:pl-2.5 border-l border-white/25 text-xs sm:text-base shrink-0">
                 {formatCurrency(lineTotal, settings)}
               </span>
             }
           >
-            {t('pos.add_to_order')}
+            <span className="truncate">
+              <span className="sm:hidden">Thêm</span>
+              <span className="hidden sm:inline">{t('pos.add_to_order')}</span>
+            </span>
           </Button>
         </div>
       }

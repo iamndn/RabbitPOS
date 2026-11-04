@@ -173,23 +173,23 @@ export const FilterBar: React.FC<FilterBarProps> = ({
             </div>
           }
           footer={
-            <div className="grid grid-cols-2 gap-2.5">
+            <div className="grid grid-cols-2 gap-2.5 w-full">
               <Button
                 variant="secondary"
-                size="lg"
+                size="md"
                 onClick={handleReset}
-                className="w-full"
+                className="w-full whitespace-nowrap justify-center text-xs sm:text-sm px-2 sm:px-4"
               >
-                <RotateCcw className="w-4 h-4" />
-                <span>{t('common.reset_filters') || 'Đặt lại'}</span>
+                <RotateCcw className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+                <span className="truncate">{t('common.reset_filters') || 'Đặt lại'}</span>
               </Button>
               <Button
                 variant="primary"
-                size="lg"
+                size="md"
                 onClick={handleApply}
-                className="w-full"
+                className="w-full whitespace-nowrap justify-center text-xs sm:text-sm px-2 sm:px-4"
               >
-                <span>
+                <span className="truncate">
                   {t('common.apply_filters') || 'Áp dụng'}
                   {activeFiltersCount > 0 ? ` (${activeFiltersCount})` : ''}
                 </span>

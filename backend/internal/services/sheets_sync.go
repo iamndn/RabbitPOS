@@ -278,11 +278,26 @@ func (s *SheetsSyncService) updateSyncStatusForStore(storeID uint, status, error
 
 // getClient initializes the Google Sheets API client using Service Account credentials JSON
 func (s *SheetsSyncService) getClient(ctx context.Context, credentialsJSON string) (*sheets.Service, error) {
-	if credentialsJSON == "" {
-		return nil, errors.New("service account JSON credentials are missing")
+	trimmed := strings.TrimSpace(credentialsJSON)
+	if trimmed == "" {
+		return nil, errors.New("vui lòng nhập hoặc tải lên tệp JSON Service Account")
 	}
 
-	srv, err := sheets.NewService(ctx, option.WithCredentialsJSON([]byte(credentialsJSON)))
+	if models.IsSecretMasked(trimmed) {
+		return nil, errors.New("thông tin xác thực đang ở dạng mã hóa bảo vệ, không thể kết nối trực tiếp")
+	}
+
+	var credMap map[string]interface{}
+	if err := json.Unmarshal([]byte(trimmed), &credMap); err != nil {
+		return nil, fmt.Errorf("tệp JSON Service Account không hợp lệ: %w", err)
+	}
+
+	clientEmail, _ := credMap["client_email"].(string)
+	if strings.TrimSpace(clientEmail) == "" {
+		return nil, errors.New("tệp JSON không hợp lệ: thiếu trường 'client_email'. Vui lòng kiểm tra lại tệp tải về từ Google Cloud Console (IAM & Admin > Service Accounts > Keys), không sử dụng tệp OAuth Client ID")
+	}
+
+	srv, err := sheets.NewService(ctx, option.WithCredentialsJSON([]byte(trimmed)))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Google Sheets client: %w", err)
 	}
@@ -431,13 +446,16 @@ func (s *SheetsSyncService) EnsureSheetsLayout(ctx context.Context, srv *sheets.
 
 // TestConnection tests read and write access to the target Google Spreadsheet
 func (s *SheetsSyncService) TestConnection(ctx context.Context, credentialsJSON, spreadsheetID string) (*TestConnectionResult, error) {
-	if credentialsJSON == "" || spreadsheetID == "" {
-		// Fallback to configured settings if not provided
+	credentialsJSON = strings.TrimSpace(credentialsJSON)
+	spreadsheetID = strings.TrimSpace(spreadsheetID)
+
+	if credentialsJSON == "" || spreadsheetID == "" || models.IsSecretMasked(credentialsJSON) {
+		// Fallback to configured settings if not provided or client sent masked secret
 		cfg, err := s.GetConfig()
 		if err != nil {
 			return nil, err
 		}
-		if credentialsJSON == "" {
+		if credentialsJSON == "" || models.IsSecretMasked(credentialsJSON) {
 			credentialsJSON = cfg.ServiceAccountJSON
 		}
 		if spreadsheetID == "" {

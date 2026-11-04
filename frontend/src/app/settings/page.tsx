@@ -67,6 +67,7 @@ import {
   isSystemGlassForcedOff,
   GLASS_EFFECTS_CHANGE_EVENT,
 } from '@/lib/featureFlags';
+import { playPosSound } from '@/lib/sound';
 
 export default function SettingsPage() {
   const { t } = useTranslation();
@@ -107,50 +108,31 @@ export default function SettingsPage() {
     if (typeof window !== 'undefined') {
       try {
         const savedDensity = localStorage.getItem('rabbitpos_pos_density') as 'comfortable' | 'compact';
-        if (savedDensity) setPosDensity(savedDensity);
+        if (savedDensity) {
+          setPosDensity(savedDensity);
+          document.documentElement.setAttribute('data-pos-density', savedDensity);
+        }
         const savedSound = localStorage.getItem('rabbitpos_sound_feedback');
         if (savedSound !== null) setSoundFeedback(savedSound === 'true');
         const savedAccent = localStorage.getItem('rabbitpos_accent_color') as 'purple' | 'blue' | 'emerald' | 'amber';
-        if (savedAccent) setAccentColor(savedAccent);
+        if (savedAccent) {
+          setAccentColor(savedAccent);
+          document.documentElement.setAttribute('data-accent', savedAccent);
+        }
         const savedContrast = localStorage.getItem('rabbitpos_high_contrast');
-        if (savedContrast !== null) setHighContrast(savedContrast === 'true');
+        if (savedContrast !== null) {
+          setHighContrast(savedContrast === 'true');
+          document.documentElement.setAttribute('data-high-contrast', savedContrast === 'true' ? 'true' : 'false');
+        }
       } catch {}
     }
   }, []);
-
-  const playPosFeedbackSound = (type: 'beep' | 'success') => {
-    if (typeof window === 'undefined') return;
-    try {
-      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-      if (!AudioCtx) return;
-      const ctx = new AudioCtx();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      if (type === 'beep') {
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(880, ctx.currentTime);
-        gain.gain.setValueAtTime(0.12, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.08);
-        osc.start(ctx.currentTime);
-        osc.stop(ctx.currentTime + 0.08);
-      } else {
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(659.25, ctx.currentTime);
-        osc.frequency.setValueAtTime(880, ctx.currentTime + 0.07);
-        gain.gain.setValueAtTime(0.15, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.18);
-        osc.start(ctx.currentTime);
-        osc.stop(ctx.currentTime + 0.18);
-      }
-    } catch {}
-  };
 
   const handleToggleDensity = (val: 'comfortable' | 'compact') => {
     setPosDensity(val);
     if (typeof window !== 'undefined') {
       localStorage.setItem('rabbitpos_pos_density', val);
+      document.documentElement.setAttribute('data-pos-density', val);
       toast.success(val === 'comfortable' ? 'Đã chọn mật độ thẻ lớn (Thoải mái)' : 'Đã chọn mật độ gọn gàng (Xem nhiều món)');
     }
   };
@@ -160,7 +142,7 @@ export default function SettingsPage() {
     if (typeof window !== 'undefined') {
       localStorage.setItem('rabbitpos_sound_feedback', String(checked));
       if (checked) {
-        playPosFeedbackSound('beep');
+        playPosSound('test', true);
         toast.success('Đã bật phản hồi âm thanh POS');
       } else {
         toast.success('Đã tắt phản hồi âm thanh POS');
@@ -172,6 +154,7 @@ export default function SettingsPage() {
     setAccentColor(color);
     if (typeof window !== 'undefined') {
       localStorage.setItem('rabbitpos_accent_color', color);
+      document.documentElement.setAttribute('data-accent', color);
       toast.success('Đã cập nhật tông màu chủ đạo');
     }
   };
@@ -180,6 +163,7 @@ export default function SettingsPage() {
     setHighContrast(checked);
     if (typeof window !== 'undefined') {
       localStorage.setItem('rabbitpos_high_contrast', String(checked));
+      document.documentElement.setAttribute('data-high-contrast', checked ? 'true' : 'false');
       toast.success(checked ? 'Đã bật chế độ tương phản cao' : 'Đã tắt chế độ tương phản cao');
     }
   };
@@ -2275,7 +2259,7 @@ export default function SettingsPage() {
                     <div className="flex items-center justify-between pt-1 gap-2">
                       <button
                         type="button"
-                        onClick={() => playPosFeedbackSound('beep')}
+                        onClick={() => playPosSound('test', true)}
                         className="px-2.5 py-1 text-caption font-bold bg-white hover:bg-slate-100 border border-border-hairline rounded-full text-slate-700 transition active:scale-95 flex items-center gap-1 cursor-pointer"
                         title="Nghe thử âm thanh thao tác"
                       >
@@ -2428,7 +2412,7 @@ export default function SettingsPage() {
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
-                        onClick={() => playPosFeedbackSound('beep')}
+                        onClick={() => playPosSound('add', true)}
                         className="px-4 py-2 bg-brand-purple hover:bg-brand-purple-hover text-white text-xs font-bold rounded-full shadow-card transition active:scale-95 cursor-pointer flex items-center gap-1.5"
                       >
                         <Plus className="w-3.5 h-3.5" />
