@@ -171,7 +171,7 @@ export default function TransactionModal({
             setKnownIngredients(res.data);
           }
         })
-        .catch(() => {});
+        .catch(() => { });
     }
   }, [isOpen]);
 
@@ -365,7 +365,7 @@ export default function TransactionModal({
         const capacityUnit = found.default_capacity_unit || baseUnit;
         const lossRate = found.loss_rate || 0;
         const pQty = item.purchase_quantity > 0 ? item.purchase_quantity : 1;
-        
+
         let pPrice = item.purchase_unit_price;
         if (pPrice === 0 && found.latest_purchase_price > 0) {
           const factor = packQty * capacityQty;
@@ -757,25 +757,24 @@ export default function TransactionModal({
         isPurchaseOnly
           ? (isEditing ? 'Chỉnh Sửa Phiếu Nhập Hàng' : 'Chi Mua Nguyên Liệu')
           : isEditing
-          ? (t('tx.modal_title_edit') || 'Chỉnh Sửa Giao Dịch')
-          : (t('tx.modal_title_add') || 'Tạo Giao Dịch Mới')
+            ? (t('tx.modal_title_edit') || 'Chỉnh Sửa Giao Dịch')
+            : (t('tx.modal_title_add') || 'Tạo Giao Dịch Mới')
       }
       description={
         isPurchaseOnly
           ? 'Nhập danh sách nguyên vật liệu, quy cách và chi tiền từ quỹ'
           : isEditing
-          ? (t('tx.modal_subtitle_edit') || 'Cập nhật phiếu thu chi hoặc nguyên liệu')
-          : (t('tx.modal_subtitle_add') || 'Ghi nhận dòng tiền hoặc chi mua nguyên liệu')
+            ? (t('tx.modal_subtitle_edit') || 'Cập nhật phiếu thu chi hoặc nguyên liệu')
+            : (t('tx.modal_subtitle_add') || 'Ghi nhận dòng tiền hoặc chi mua nguyên liệu')
       }
       icon={
         <div
-          className={`w-9 h-9 rounded-2xl flex items-center justify-center font-bold text-white shadow-card shrink-0 ${
-            isPurchaseOnly
-              ? 'bg-purple-700'
-              : modalType === 'inflow'
+          className={`w-9 h-9 rounded-2xl flex items-center justify-center font-bold text-white shadow-card shrink-0 ${isPurchaseOnly
+            ? 'bg-purple-700'
+            : modalType === 'inflow'
               ? 'bg-brand-purple'
               : 'bg-rose-600'
-          }`}
+            }`}
         >
           {isPurchaseOnly ? <Package className="w-5 h-5 text-white" /> : modalType === 'inflow' ? '+' : '-'}
         </div>
@@ -800,13 +799,12 @@ export default function TransactionModal({
               type="submit"
               form="tx-modal-form"
               disabled={isSubmitting}
-              className={`px-6 py-2 text-xs font-extrabold text-white rounded-full shadow-card transition active:scale-95 cursor-pointer flex items-center justify-center gap-1.5 ${
-                isPurchaseOnly
-                  ? 'bg-purple-700 hover:bg-purple-800'
-                  : modalType === 'inflow'
+              className={`px-6 py-2 text-xs font-extrabold text-white rounded-full shadow-card transition active:scale-95 cursor-pointer flex items-center justify-center gap-1.5 ${isPurchaseOnly
+                ? 'bg-purple-700 hover:bg-purple-800'
+                : modalType === 'inflow'
                   ? 'bg-brand-purple hover:bg-purple-700'
                   : 'bg-rose-600 hover:bg-rose-700'
-              }`}
+                }`}
             >
               {isSubmitting ? (
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -815,8 +813,8 @@ export default function TransactionModal({
                 {isPurchaseOnly
                   ? (isEditing ? 'Lưu Phiếu Nhập' : 'Lưu Phiếu Nhập Hàng')
                   : isEditing
-                  ? (t('common.save') || 'Lưu thay đổi')
-                  : (t('tx.modal_btn_submit') || 'Lưu Giao Dịch')}
+                    ? (t('common.save') || 'Lưu thay đổi')
+                    : (t('tx.modal_btn_submit') || 'Lưu Giao Dịch')}
               </span>
             </button>
           </div>
@@ -842,13 +840,12 @@ export default function TransactionModal({
                 type="button"
                 disabled={isStaff}
                 onClick={() => setModalType('inflow')}
-                className={`py-2 text-xs font-extrabold rounded-full transition ${
-                  isStaff
-                    ? 'opacity-40 cursor-not-allowed text-slate-400'
-                    : modalType === 'inflow'
+                className={`py-2 text-xs font-extrabold rounded-full transition ${isStaff
+                  ? 'opacity-40 cursor-not-allowed text-slate-400'
+                  : modalType === 'inflow'
                     ? 'bg-brand-purple text-white shadow-card'
                     : 'text-slate-600 hover:text-slate-900'
-                }`}
+                  }`}
                 title={isStaff ? 'Nhân viên chỉ được tạo phiếu chi (tiền ra)' : undefined}
               >
                 + {t('tx.type_inflow')} (Tiền Vào)
@@ -856,11 +853,10 @@ export default function TransactionModal({
               <button
                 type="button"
                 onClick={() => setModalType('outflow')}
-                className={`py-2 text-xs font-extrabold rounded-full transition ${
-                  modalType === 'outflow'
-                    ? 'bg-rose-600 text-white shadow-card'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
+                className={`py-2 text-xs font-extrabold rounded-full transition ${modalType === 'outflow'
+                  ? 'bg-rose-600 text-white shadow-card'
+                  : 'text-slate-600 hover:text-slate-900'
+                  }`}
               >
                 - {t('tx.type_outflow')} (Tiền Ra)
               </button>
@@ -868,11 +864,28 @@ export default function TransactionModal({
           </div>
         )}
 
-          {/* Fund and Category Selection */}
-          {isPurchaseOnly ? (
+        {/* Fund and Category Selection */}
+        {isPurchaseOnly ? (
+          <div>
+            <label className="font-bold text-slate-700 mb-1 block text-xs">
+              {t('tx.modal_fund_label') || 'Tài khoản chi trả tiền'} *
+            </label>
+            <ModernSelect
+              value={modalFundId}
+              onChange={(val) => setModalFundId(Number(val))}
+              options={funds.map((f) => ({
+                value: f.id,
+                label: f.name,
+                badge: formatCurrency(f.current_balance),
+                badgeColor: f.current_balance >= 0 ? 'purple' : 'rose',
+              }))}
+            />
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
             <div>
-              <label className="font-bold text-slate-700 mb-1 block text-xs">
-                {t('tx.modal_fund_label') || 'Tài khoản chi trả tiền'} *
+              <label className="font-bold text-slate-700 mb-1 block">
+                {t('tx.modal_fund_label')} *
               </label>
               <ModernSelect
                 value={modalFundId}
@@ -885,232 +898,349 @@ export default function TransactionModal({
                 }))}
               />
             </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-              <div>
-                <label className="font-bold text-slate-700 mb-1 block">
-                  {t('tx.modal_fund_label')} *
-                </label>
-                <ModernSelect
-                  value={modalFundId}
-                  onChange={(val) => setModalFundId(Number(val))}
-                  options={funds.map((f) => ({
-                    value: f.id,
-                    label: f.name,
-                    badge: formatCurrency(f.current_balance),
-                    badgeColor: f.current_balance >= 0 ? 'purple' : 'rose',
-                  }))}
-                />
-              </div>
 
-              <div>
-                <label className="font-bold text-slate-700 mb-1 block">
-                  {t('tx.modal_category_label')} *
-                </label>
-                <ModernSelect
-                  value={modalCategory}
-                  onChange={(val) => {
-                    setModalCategory(String(val));
-                  }}
-                  options={categoryOptions}
-                />
-              </div>
+            <div>
+              <label className="font-bold text-slate-700 mb-1 block">
+                {t('tx.modal_category_label')} *
+              </label>
+              <ModernSelect
+                value={modalCategory}
+                onChange={(val) => {
+                  setModalCategory(String(val));
+                }}
+                options={categoryOptions}
+              />
             </div>
-          )}
+          </div>
+        )}
 
-          {/* Integrated Itemized Purchases Toggle & Detailed Conversion Engine */}
-          {(isPurchaseOnly || modalType === 'outflow') && (
-            <div className="surface-card border border-purple-200/80 rounded-2xl p-3 sm:p-4 space-y-3 w-full max-w-full min-w-0 box-border shadow-card">
-              {/* Header Toggle */}
-              <div className="flex items-center justify-between gap-2 w-full min-w-0">
-                <div className="flex items-center space-x-2 min-w-0">
-                  <div className="w-8 h-8 rounded-xl bg-purple-700 text-white flex items-center justify-center shadow-card shrink-0">
-                    <ShoppingBag className="w-4 h-4" />
-                  </div>
-                  <div className="min-w-0">
-                    <span className="font-extrabold text-purple-950 text-xs flex items-center gap-1.5 flex-wrap">
-                      {isPurchaseOnly ? 'Danh Sách Nguyên Liệu Mua Vào' : 'Chi Mua Nguyên Liệu (Tự Tính Giá Vốn)'}
-                      <span className="bg-purple-100 text-brand-purple text-caption font-bold px-2 py-0.5 rounded-full border border-purple-200">
-                        Tự tính cost
-                      </span>
-                    </span>
-                    <p className="text-caption text-purple-700 truncate">
-                      Tự động tính tiền vốn 1 ly (ml, g, cái) khi mua hàng
-                    </p>
-                  </div>
+        {/* Integrated Itemized Purchases Toggle & Detailed Conversion Engine */}
+        {(isPurchaseOnly || modalType === 'outflow') && (
+          <div className="surface-card border border-purple-200/80 rounded-2xl p-3 sm:p-4 space-y-3 w-full max-w-full min-w-0 box-border shadow-card">
+            {/* Header Toggle */}
+            <div className="flex items-center justify-between gap-2 w-full min-w-0">
+              <div className="flex items-center space-x-2 min-w-0">
+                <div className="w-8 h-8 rounded-xl bg-purple-700 text-white flex items-center justify-center shadow-card shrink-0">
+                  <ShoppingBag className="w-4 h-4" />
                 </div>
-
-                {!isPurchaseOnly && (
-                  <label className="relative inline-flex items-center cursor-pointer shrink-0">
-                    <input
-                      type="checkbox"
-                      checked={isPurchaseLogging}
-                      onChange={(e) => {
-                        setIsPurchaseLogging(e.target.checked);
-                        if (e.target.checked) {
-                          setModalCategory('ingredient_purchase');
-                        }
-                      }}
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-5 peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-700"></div>
-                  </label>
-                )}
+                <div className="min-w-0">
+                  <span className="font-extrabold text-purple-950 text-xs flex items-center gap-1.5 flex-wrap">
+                    {isPurchaseOnly ? 'Danh Sách Nguyên Liệu Mua Vào' : 'Chi Mua Nguyên Liệu (Tự Tính Giá Vốn)'}
+                    <span className="bg-purple-100 text-brand-purple text-caption font-bold px-2 py-0.5 rounded-full border border-purple-200">
+                      Tự tính cost
+                    </span>
+                  </span>
+                  <p className="text-caption text-purple-700 truncate">
+                    Tự động tính tiền vốn 1 ly (ml, g, cái) khi mua hàng
+                  </p>
+                </div>
               </div>
 
-              {/* Purchase Items List */}
-              {(isPurchaseOnly || isPurchaseLogging) && (
-                <div className="space-y-3 pt-2 border-t border-purple-200/60 w-full min-w-0">
-                  {purchaseItems.map((item, idx) => {
-                    const matchedIng = knownIngredients.find(
-                      (i) => i.id === item.ingredient_id || i.name.toLowerCase() === item.ingredient_name.toLowerCase()
-                    );
-                    
-                    // Collect presets from ingredient's saved conversions + smart category suggestions
-                    let savedPresets: IngredientConversionPreset[] = [];
-                    if (matchedIng?.saved_conversions) {
-                      try {
-                        savedPresets = typeof matchedIng.saved_conversions === 'string'
-                          ? JSON.parse(matchedIng.saved_conversions)
-                          : matchedIng.saved_conversions;
-                      } catch {}
-                    }
-                    const suggestedPresets = getSuggestedPresets(item.category, item.base_unit);
-                    const allPresetChips = [
-                      ...savedPresets.map((sp) => ({
-                        label: sp.label || `1 ${sp.purchase_unit} = ${sp.capacity_qty}${sp.capacity_unit}`,
-                        purchase_unit: sp.purchase_unit,
-                        pack_qty: 1,
-                        pack_unit: '',
-                        capacity_qty: sp.capacity_qty || 1000,
-                        capacity_unit: sp.capacity_unit || item.base_unit || 'ml',
-                        loss_rate: sp.loss_rate || 0,
-                      })),
-                      ...suggestedPresets,
-                    ].filter((p, pIdx, self) => 
-                      pIdx === self.findIndex((x) => 
-                        x.purchase_unit.toLowerCase() === p.purchase_unit.toLowerCase() && 
-                        x.capacity_qty === p.capacity_qty &&
-                        Math.abs((x.loss_rate || 0) - (p.loss_rate || 0)) < 0.001
-                      )
-                    );
+              {!isPurchaseOnly && (
+                <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                  <input
+                    type="checkbox"
+                    checked={isPurchaseLogging}
+                    onChange={(e) => {
+                      setIsPurchaseLogging(e.target.checked);
+                      if (e.target.checked) {
+                        setModalCategory('ingredient_purchase');
+                      }
+                    }}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-5 peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-700"></div>
+                </label>
+              )}
+            </div>
 
-                    const isBasic = item.is_basic_mode !== false;
+            {/* Purchase Items List */}
+            {(isPurchaseOnly || isPurchaseLogging) && (
+              <div className="space-y-3 pt-2 border-t border-purple-200/60 w-full min-w-0">
+                {purchaseItems.map((item, idx) => {
+                  const matchedIng = knownIngredients.find(
+                    (i) => i.id === item.ingredient_id || i.name.toLowerCase() === item.ingredient_name.toLowerCase()
+                  );
 
-                    return (
-                      <div
-                        key={idx}
-                        className={`surface-card rounded-2xl p-3 border shadow-card space-y-2.5 transition-all w-full max-w-full min-w-0 box-border overflow-hidden ${
-                          isBasic
-                            ? 'border-card hover:border-purple-300'
-                            : 'border-purple-200/90 hover:border-purple-300'
+                  // Collect presets from ingredient's saved conversions + smart category suggestions
+                  let savedPresets: IngredientConversionPreset[] = [];
+                  if (matchedIng?.saved_conversions) {
+                    try {
+                      savedPresets = typeof matchedIng.saved_conversions === 'string'
+                        ? JSON.parse(matchedIng.saved_conversions)
+                        : matchedIng.saved_conversions;
+                    } catch { }
+                  }
+                  const suggestedPresets = getSuggestedPresets(item.category, item.base_unit);
+                  const allPresetChips = [
+                    ...savedPresets.map((sp) => ({
+                      label: sp.label || `1 ${sp.purchase_unit} = ${sp.capacity_qty}${sp.capacity_unit}`,
+                      purchase_unit: sp.purchase_unit,
+                      pack_qty: 1,
+                      pack_unit: '',
+                      capacity_qty: sp.capacity_qty || 1000,
+                      capacity_unit: sp.capacity_unit || item.base_unit || 'ml',
+                      loss_rate: sp.loss_rate || 0,
+                    })),
+                    ...suggestedPresets,
+                  ].filter((p, pIdx, self) =>
+                    pIdx === self.findIndex((x) =>
+                      x.purchase_unit.toLowerCase() === p.purchase_unit.toLowerCase() &&
+                      x.capacity_qty === p.capacity_qty &&
+                      Math.abs((x.loss_rate || 0) - (p.loss_rate || 0)) < 0.001
+                    )
+                  );
+
+                  const isBasic = item.is_basic_mode !== false;
+
+                  return (
+                    <div
+                      key={idx}
+                      className={`surface-card rounded-2xl p-3 border shadow-card space-y-2.5 transition-all w-full max-w-full min-w-0 box-border overflow-hidden ${isBasic
+                        ? 'border-card hover:border-purple-300'
+                        : 'border-purple-200/90 hover:border-purple-300'
                         }`}
-                      >
-                        {/* Row 1: Ingredient Select + Category + Mode Toggle + Delete */}
-                        <div className="flex items-center gap-1.5 w-full min-w-0">
-                          <div className="flex-1 min-w-0">
-                            {item.is_custom_new ? (
-                              <div className="flex items-center gap-1 w-full min-w-0">
-                                <input
-                                  type="text"
-                                  required
-                                  autoFocus
-                                  placeholder="Tên nguyên liệu mới (VD: Bột Matcha, Sữa tươi...)"
-                                  value={item.ingredient_name}
-                                  onChange={(e) =>
-                                    handleItemChange(idx, 'ingredient_name', e.target.value)
-                                  }
-                                  className="app-input-compact border-amber-300 bg-amber-50/50 font-bold text-slate-900"
-                                />
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setPurchaseItems((prev) => {
-                                      const updated = [...prev];
-                                      updated[idx] = {
-                                        ...updated[idx],
-                                        is_custom_new: false,
-                                        ingredient_id: undefined,
-                                        ingredient_name: '',
-                                      };
-                                      return updated;
-                                    });
-                                  }}
-                                  className="text-caption font-bold text-brand-purple bg-purple-50 hover:bg-purple-100 px-2.5 py-1.5 rounded-full border border-purple-200 shrink-0 cursor-pointer whitespace-nowrap"
-                                >
-                                  ↺ Có sẵn
-                                </button>
-                              </div>
-                            ) : (
-                              <div className="w-full min-w-0">
-                                <ModernSelect
-                                  value={item.ingredient_id ? String(item.ingredient_id) : ''}
-                                  onChange={(val) => handleSelectIngredient(idx, String(val))}
-                                  placeholder="— Chọn nguyên liệu có sẵn —"
-                                  searchable
-                                  size="sm"
-                                  options={ingredientOptions}
-                                  title="Chọn nguyên liệu"
-                                />
-                              </div>
-                            )}
-                          </div>
-
-                          {!isBasic && (
-                            <div className="w-28 shrink-0">
+                    >
+                      {/* Row 1: Ingredient Select + Category + Mode Toggle + Delete */}
+                      <div className="flex items-center gap-1.5 w-full min-w-0">
+                        <div className="flex-1 min-w-0">
+                          {item.is_custom_new ? (
+                            <div className="flex items-center gap-1 w-full min-w-0">
+                              <input
+                                type="text"
+                                required
+                                autoFocus
+                                placeholder="Tên nguyên liệu mới (VD: Bột Matcha, Sữa tươi...)"
+                                value={item.ingredient_name}
+                                onChange={(e) =>
+                                  handleItemChange(idx, 'ingredient_name', e.target.value)
+                                }
+                                className="app-input-compact border-amber-300 bg-amber-50/50 font-bold text-slate-900"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setPurchaseItems((prev) => {
+                                    const updated = [...prev];
+                                    updated[idx] = {
+                                      ...updated[idx],
+                                      is_custom_new: false,
+                                      ingredient_id: undefined,
+                                      ingredient_name: '',
+                                    };
+                                    return updated;
+                                  });
+                                }}
+                                className="text-caption font-bold text-brand-purple bg-purple-50 hover:bg-purple-100 px-2.5 py-1.5 rounded-full border border-purple-200 shrink-0 cursor-pointer whitespace-nowrap"
+                              >
+                                ↺ Có sẵn
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="w-full min-w-0">
                               <ModernSelect
-                                value={item.category || 'ingredient'}
-                                onChange={(val) => handleItemChange(idx, 'category', val)}
+                                value={item.ingredient_id ? String(item.ingredient_id) : ''}
+                                onChange={(val) => handleSelectIngredient(idx, String(val))}
+                                placeholder="— Chọn nguyên liệu có sẵn —"
+                                searchable
                                 size="sm"
-                                options={purchaseItemCategoryOptions}
-                                title="Phân loại"
+                                options={ingredientOptions}
+                                title="Chọn nguyên liệu"
                               />
                             </div>
                           )}
-
-                          {/* Mode Toggle Button */}
-                          <button
-                            type="button"
-                            onClick={() => handleToggleBasicMode(idx, !isBasic)}
-                            className={`h-9 px-2 text-caption font-bold rounded-xl border transition shrink-0 cursor-pointer flex items-center gap-0.5 whitespace-nowrap ${
-                              isBasic
-                                ? 'text-brand-purple bg-purple-50 border-purple-200 hover:bg-purple-100'
-                                : 'text-slate-600 bg-slate-50 border-slate-200 hover:bg-slate-100'
-                            }`}
-                            title={isBasic ? 'Chuyển sang chế độ Nâng cao (quy đổi thùng→kg, hao hụt...)' : 'Chuyển về chế độ Cơ bản'}
-                          >
-                            {isBasic ? (
-                              <>
-                                <Settings2 className="w-3 h-3" />
-                                <span className="hidden sm:inline">Nâng cao</span>
-                                <ChevronRight className="w-3 h-3" />
-                              </>
-                            ) : (
-                              <>
-                                <ChevronLeft className="w-3 h-3" />
-                                <Zap className="w-3 h-3" />
-                                <span className="hidden sm:inline">Cơ bản</span>
-                              </>
-                            )}
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveRow(idx)}
-                            className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition cursor-pointer shrink-0"
-                            title="Xóa dòng"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
                         </div>
 
-                        {/* ===== BASIC MODE: Responsive 2-Line reflow on mobile, inline on md ===== */}
-                        {isBasic && (
-                          <>
-                            <div className="flex flex-col md:flex-row md:items-center gap-2 w-full min-w-0">
-                              {/* Line 1 (mobile): Quantity & Unit & Multiplier & Unit Price */}
-                              <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                                {/* Quantity */}
+                        {!isBasic && (
+                          <div className="w-28 shrink-0">
+                            <ModernSelect
+                              value={item.category || 'ingredient'}
+                              onChange={(val) => handleItemChange(idx, 'category', val)}
+                              size="sm"
+                              options={purchaseItemCategoryOptions}
+                              title="Phân loại"
+                            />
+                          </div>
+                        )}
+
+                        {/* Mode Toggle Button */}
+                        <button
+                          type="button"
+                          onClick={() => handleToggleBasicMode(idx, !isBasic)}
+                          className={`h-9 px-2 text-caption font-bold rounded-xl border transition shrink-0 cursor-pointer flex items-center gap-0.5 whitespace-nowrap ${isBasic
+                            ? 'text-brand-purple bg-purple-50 border-purple-200 hover:bg-purple-100'
+                            : 'text-slate-600 bg-slate-50 border-slate-200 hover:bg-slate-100'
+                            }`}
+                          title={isBasic ? 'Chuyển sang chế độ Nâng cao (quy đổi thùng→kg, hao hụt...)' : 'Chuyển về chế độ Cơ bản'}
+                        >
+                          {isBasic ? (
+                            <>
+                              <Settings2 className="w-3 h-3" />
+                              <span className="hidden sm:inline">Nâng cao</span>
+                              <ChevronRight className="w-3 h-3" />
+                            </>
+                          ) : (
+                            <>
+                              <ChevronLeft className="w-3 h-3" />
+                              <Zap className="w-3 h-3" />
+                              <span className="hidden sm:inline">Cơ bản</span>
+                            </>
+                          )}
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveRow(idx)}
+                          className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition cursor-pointer shrink-0"
+                          title="Xóa dòng"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+
+                      {/* ===== BASIC MODE: Responsive 2-Line reflow on mobile, inline on md ===== */}
+                      {isBasic && (
+                        <>
+                          <div className="flex flex-col md:flex-row md:items-center gap-2 w-full min-w-0">
+                            {/* Line 1 (mobile): Quantity & Unit & Multiplier & Unit Price */}
+                            <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                              {/* Quantity */}
+                              <input
+                                type="number"
+                                step="any"
+                                min="0.001"
+                                required
+                                value={item.purchase_quantity === 0 ? '' : item.purchase_quantity}
+                                onChange={(e) =>
+                                  handleItemChange(
+                                    idx,
+                                    'purchase_quantity',
+                                    e.target.value === '' ? 0 : parseFloat(e.target.value)
+                                  )
+                                }
+                                placeholder="SL"
+                                className="app-input-compact w-20 text-center font-num font-black"
+                              />
+
+                              {/* Purchase Unit */}
+                              <div className="w-28 shrink-0">
+                                <ModernSelect
+                                  value={item.purchase_unit}
+                                  onChange={(newUnit) => {
+                                    handleItemChange(idx, 'purchase_unit', newUnit);
+                                    handleItemChange(idx, 'capacity_unit', newUnit);
+                                    handleItemChange(idx, 'base_unit', String(newUnit).toLowerCase());
+                                  }}
+                                  size="sm"
+                                  options={purchaseUnitOptions}
+                                  title="Đơn vị mua"
+                                />
+                              </div>
+
+                              <span className="text-slate-400 font-bold text-xs shrink-0">×</span>
+
+                              {/* Unit Price */}
+                              <div className="relative flex-1 min-w-[120px]">
+                                <input
+                                  type="number"
+                                  step="any"
+                                  min="0"
+                                  required
+                                  value={item.purchase_unit_price === 0 ? '' : item.purchase_unit_price}
+                                  onChange={(e) =>
+                                    handleItemChange(
+                                      idx,
+                                      'purchase_unit_price',
+                                      e.target.value === '' ? 0 : parseFloat(e.target.value)
+                                    )
+                                  }
+                                  placeholder="Đơn giá"
+                                  className="app-input-compact pr-12 text-right font-num font-black"
+                                />
+                                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-caption font-semibold text-slate-400 pointer-events-none">
+                                  đ/{item.purchase_unit}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Line 2 (mobile): Subtotal display */}
+                            <div className="flex items-center justify-between md:justify-end gap-1.5 shrink-0">
+                              <span className="text-slate-400 font-bold text-xs md:inline">=</span>
+                              <div className="h-10 md:h-8 flex items-center justify-end bg-purple-50 border border-purple-200 rounded-xl px-3 min-w-[100px] text-right">
+                                <div className="text-xs font-black text-brand-purple font-num">
+                                  {formatCurrency(item.subtotal)}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Basic Mode Cost Summary */}
+                          {item.subtotal > 0 && (
+                            <div className="flex items-center justify-between px-2.5 py-1.5 bg-purple-50/80 rounded-xl border border-purple-100 text-caption">
+                              <div className="flex items-center gap-1.5 text-purple-900 font-semibold font-num">
+                                <Zap className="w-3 h-3 text-brand-purple shrink-0" />
+                                <span>
+                                  {item.purchase_quantity} {item.purchase_unit} × {formatCurrency(item.purchase_unit_price)} = {formatCurrency(item.subtotal)}
+                                </span>
+                              </div>
+                              <span className="bg-purple-700 text-white font-black text-caption font-num px-2.5 py-0.5 rounded-full shadow-card shrink-0">
+                                Vốn: {formatCurrency(item.purchase_unit_price)}/{item.purchase_unit}
+                              </span>
+                            </div>
+                          )}
+                        </>
+                      )}
+
+                      {/* ===== ADVANCED MODE: Full 3-Column Conversion Engine ===== */}
+                      {!isBasic && (
+                        <>
+                          {/* Preset Chips */}
+                          {allPresetChips.length > 0 && (
+                            <div className="flex items-center gap-1.5 w-full min-w-0">
+                              <span className="text-caption text-slate-400 font-bold uppercase shrink-0 flex items-center gap-0.5">
+                                <Tag className="w-2.5 h-2.5" /> Gợi ý:
+                              </span>
+                              <HorizontalScroller
+                                className="gap-1.5 py-0.5"
+                                scrollAmount={150}
+                                arrowSize="sm"
+                              >
+                                {allPresetChips.map((pr, pIdx) => {
+                                  const isSelected =
+                                    item.purchase_unit.toLowerCase() === pr.purchase_unit.toLowerCase() &&
+                                    item.capacity_qty === pr.capacity_qty &&
+                                    Math.abs((item.loss_rate || 0) - (pr.loss_rate || 0)) < 0.001;
+
+                                  return (
+                                    <button
+                                      key={pIdx}
+                                      type="button"
+                                      onClick={() => {
+                                        handleApplyPreset(idx, pr);
+                                        // Applying a preset switches to advanced automatically
+                                        handleToggleBasicMode(idx, false);
+                                      }}
+                                      className={`text-caption font-bold px-2.5 py-1 rounded-full border transition active:scale-95 shrink-0 cursor-pointer whitespace-nowrap ${isSelected
+                                        ? 'bg-brand-purple text-white border-brand-purple shadow-card'
+                                        : 'bg-purple-50 text-brand-purple border-purple-200/80 hover:bg-purple-100'
+                                        }`}
+                                    >
+                                      {pr.label}
+                                    </button>
+                                  );
+                                })}
+                              </HorizontalScroller>
+                            </div>
+                          )}
+
+                          {/* 3-Column Input Grid */}
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 w-full min-w-0 text-xs">
+                            {/* Col 1: Purchase Quantity & Unit */}
+                            <div className="bg-slate-50 p-2 rounded-xl border border-slate-200 space-y-1">
+                              <label className="text-caption font-bold text-slate-500 uppercase block">
+                                1. Mua vào
+                              </label>
+                              <div className="flex items-center gap-1.5">
                                 <input
                                   type="number"
                                   step="any"
@@ -1124,381 +1254,243 @@ export default function TransactionModal({
                                       e.target.value === '' ? 0 : parseFloat(e.target.value)
                                     )
                                   }
-                                  placeholder="SL"
+                                  placeholder="1"
                                   className="app-input-compact w-20 text-center font-num font-black"
                                 />
-
-                                {/* Purchase Unit */}
-                                <div className="w-28 shrink-0">
+                                <div className="flex-1 min-w-0">
                                   <ModernSelect
                                     value={item.purchase_unit}
-                                    onChange={(newUnit) => {
-                                      handleItemChange(idx, 'purchase_unit', newUnit);
-                                      handleItemChange(idx, 'capacity_unit', newUnit);
-                                      handleItemChange(idx, 'base_unit', String(newUnit).toLowerCase());
-                                    }}
+                                    onChange={(newUnit) => handleItemChange(idx, 'purchase_unit', newUnit)}
                                     size="sm"
                                     options={purchaseUnitOptions}
                                     title="Đơn vị mua"
                                   />
                                 </div>
-
-                                <span className="text-slate-400 font-bold text-xs shrink-0">×</span>
-
-                                {/* Unit Price */}
-                                <div className="relative flex-1 min-w-[120px]">
-                                  <input
-                                    type="number"
-                                    step="any"
-                                    min="0"
-                                    required
-                                    value={item.purchase_unit_price === 0 ? '' : item.purchase_unit_price}
-                                    onChange={(e) =>
-                                      handleItemChange(
-                                        idx,
-                                        'purchase_unit_price',
-                                        e.target.value === '' ? 0 : parseFloat(e.target.value)
-                                      )
-                                    }
-                                    placeholder="Đơn giá"
-                                    className="app-input-compact pr-12 text-right font-num font-black"
-                                  />
-                                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-caption font-semibold text-slate-400 pointer-events-none">
-                                    đ/{item.purchase_unit}
-                                  </span>
-                                </div>
-                              </div>
-
-                              {/* Line 2 (mobile): Subtotal display */}
-                              <div className="flex items-center justify-between md:justify-end gap-1.5 shrink-0">
-                                <span className="text-slate-400 font-bold text-xs md:inline">=</span>
-                                <div className="h-10 md:h-8 flex items-center justify-end bg-purple-50 border border-purple-200 rounded-xl px-3 min-w-[100px] text-right">
-                                  <div className="text-xs font-black text-brand-purple font-num">
-                                    {formatCurrency(item.subtotal)}
-                                  </div>
-                                </div>
                               </div>
                             </div>
 
-                            {/* Basic Mode Cost Summary */}
-                            {item.subtotal > 0 && (
-                              <div className="flex items-center justify-between px-2.5 py-1.5 bg-purple-50/80 rounded-xl border border-purple-100 text-caption">
-                                <div className="flex items-center gap-1.5 text-purple-900 font-semibold font-num">
-                                  <Zap className="w-3 h-3 text-brand-purple shrink-0" />
-                                  <span>
-                                    {item.purchase_quantity} {item.purchase_unit} × {formatCurrency(item.purchase_unit_price)} = {formatCurrency(item.subtotal)}
-                                  </span>
-                                </div>
-                                <span className="bg-purple-700 text-white font-black text-caption font-num px-2.5 py-0.5 rounded-full shadow-card shrink-0">
-                                  Vốn: {formatCurrency(item.purchase_unit_price)}/{item.purchase_unit}
-                                </span>
-                              </div>
-                            )}
-                          </>
-                        )}
-
-                        {/* ===== ADVANCED MODE: Full 3-Column Conversion Engine ===== */}
-                        {!isBasic && (
-                          <>
-                            {/* Preset Chips */}
-                            {allPresetChips.length > 0 && (
-                              <div className="flex items-center gap-1.5 w-full min-w-0">
-                                <span className="text-caption text-slate-400 font-bold uppercase shrink-0 flex items-center gap-0.5">
-                                  <Tag className="w-2.5 h-2.5" /> Gợi ý:
-                                </span>
-                                <HorizontalScroller
-                                  className="gap-1.5 py-0.5"
-                                  scrollAmount={150}
-                                  arrowSize="sm"
-                                >
-                                  {allPresetChips.map((pr, pIdx) => {
-                                    const isSelected =
-                                      item.purchase_unit.toLowerCase() === pr.purchase_unit.toLowerCase() &&
-                                      item.capacity_qty === pr.capacity_qty &&
-                                      Math.abs((item.loss_rate || 0) - (pr.loss_rate || 0)) < 0.001;
-
-                                    return (
-                                      <button
-                                        key={pIdx}
-                                        type="button"
-                                        onClick={() => {
-                                          handleApplyPreset(idx, pr);
-                                          // Applying a preset switches to advanced automatically
-                                          handleToggleBasicMode(idx, false);
-                                        }}
-                                        className={`text-caption font-bold px-2.5 py-1 rounded-full border transition active:scale-95 shrink-0 cursor-pointer whitespace-nowrap ${
-                                          isSelected
-                                            ? 'bg-brand-purple text-white border-brand-purple shadow-card'
-                                            : 'bg-purple-50 text-brand-purple border-purple-200/80 hover:bg-purple-100'
-                                        }`}
-                                      >
-                                        {pr.label}
-                                      </button>
-                                    );
-                                  })}
-                                </HorizontalScroller>
-                              </div>
-                            )}
-
-                            {/* 3-Column Input Grid */}
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 w-full min-w-0 text-xs">
-                              {/* Col 1: Purchase Quantity & Unit */}
-                              <div className="bg-slate-50 p-2 rounded-xl border border-slate-200 space-y-1">
-                                <label className="text-caption font-bold text-slate-500 uppercase block">
-                                  1. Mua vào
-                                </label>
-                                <div className="flex items-center gap-1.5">
-                                  <input
-                                    type="number"
-                                    step="any"
-                                    min="0.001"
-                                    required
-                                    value={item.purchase_quantity === 0 ? '' : item.purchase_quantity}
-                                    onChange={(e) =>
-                                      handleItemChange(
-                                        idx,
-                                        'purchase_quantity',
-                                        e.target.value === '' ? 0 : parseFloat(e.target.value)
-                                      )
-                                    }
-                                    placeholder="1"
-                                    className="app-input-compact w-20 text-center font-num font-black"
-                                  />
-                                  <div className="flex-1 min-w-0">
-                                    <ModernSelect
-                                      value={item.purchase_unit}
-                                      onChange={(newUnit) => handleItemChange(idx, 'purchase_unit', newUnit)}
-                                      size="sm"
-                                      options={purchaseUnitOptions}
-                                      title="Đơn vị mua"
-                                    />
-                                  </div>
-                                </div>
-                              </div>
-
-                              {/* Col 2: Conversion (capacity per purchase unit) */}
-                              <div className="bg-slate-50 p-2 rounded-xl border border-slate-200 space-y-1">
-                                <label className="text-caption font-bold text-slate-500 uppercase block truncate">
-                                  2. Chứa trong 1 {item.purchase_unit}
-                                </label>
-                                <div className="flex items-center gap-1.5">
-                                  <input
-                                    type="number"
-                                    step="any"
-                                    min="0.001"
-                                    required
-                                    value={item.capacity_qty === 0 ? '' : item.capacity_qty}
-                                    onChange={(e) =>
-                                      handleItemChange(
-                                        idx,
-                                        'capacity_qty',
-                                        e.target.value === '' ? 0 : parseFloat(e.target.value)
-                                      )
-                                    }
-                                    placeholder="1000"
-                                    className="app-input-compact w-24 text-right font-num font-black"
-                                  />
-                                  <div className="flex-1 min-w-0">
-                                    <ModernSelect
-                                      value={item.capacity_unit || item.base_unit || 'ml'}
-                                      onChange={(val) => handleItemChange(idx, 'capacity_unit', val)}
-                                      size="sm"
-                                      options={capacityUnitOptions}
-                                      title="Đơn vị thể tích / khối lượng"
-                                    />
-                                  </div>
-                                </div>
-                              </div>
-
-                              {/* Col 3: Subtotal + Loss Rate */}
-                              <div className="bg-purple-50/50 p-2 rounded-xl border border-purple-200 space-y-1">
-                                <div className="flex items-center justify-between">
-                                  <label className="text-caption font-bold text-brand-purple uppercase block truncate">
-                                    3. Thành tiền
-                                  </label>
-                                  {item.category === 'fruit' && (
-                                    <label className="text-caption font-bold text-amber-900 flex items-center gap-1 cursor-pointer">
-                                      <span>Hao hụt:</span>
-                                      <input
-                                        type="number"
-                                        min="0"
-                                        max="99"
-                                        value={Math.round(item.loss_rate * 100)}
-                                        onChange={(e) =>
-                                          handleItemChange(idx, 'loss_rate', (parseFloat(e.target.value) || 0) / 100)
-                                        }
-                                        className="w-10 h-6 px-1 border border-amber-300 rounded text-caption font-num font-black text-center bg-white text-amber-950"
-                                      />
-                                      <span>%</span>
-                                    </label>
-                                  )}
-                                </div>
+                            {/* Col 2: Conversion (capacity per purchase unit) */}
+                            <div className="bg-slate-50 p-2 rounded-xl border border-slate-200 space-y-1">
+                              <label className="text-caption font-bold text-slate-500 uppercase block truncate">
+                                2. Chứa trong 1 {item.purchase_unit}
+                              </label>
+                              <div className="flex items-center gap-1.5">
                                 <input
                                   type="number"
                                   step="any"
-                                  min="0"
-                                  placeholder="0"
-                                  value={item.subtotal === 0 ? '' : item.subtotal}
+                                  min="0.001"
+                                  required
+                                  value={item.capacity_qty === 0 ? '' : item.capacity_qty}
                                   onChange={(e) =>
                                     handleItemChange(
                                       idx,
-                                      'subtotal',
+                                      'capacity_qty',
                                       e.target.value === '' ? 0 : parseFloat(e.target.value)
                                     )
                                   }
-                                  className="app-input-compact text-right font-num font-black border-purple-300 text-purple-950"
+                                  placeholder="1000"
+                                  className="app-input-compact w-24 text-right font-num font-black"
                                 />
+                                <div className="flex-1 min-w-0">
+                                  <ModernSelect
+                                    value={item.capacity_unit || item.base_unit || 'ml'}
+                                    onChange={(val) => handleItemChange(idx, 'capacity_unit', val)}
+                                    size="sm"
+                                    options={capacityUnitOptions}
+                                    title="Đơn vị thể tích / khối lượng"
+                                  />
+                                </div>
                               </div>
                             </div>
 
-                            {/* Advanced Cost Summary */}
-                            <div className="bg-purple-50 rounded-xl px-2.5 py-1.5 border border-purple-200/80 flex items-center justify-between gap-2 text-xs w-full min-w-0 flex-wrap">
-                              <div className="flex items-center gap-1.5 text-purple-950 font-bold text-caption min-w-0 flex-1 flex-wrap">
-                                <Sparkles className="w-3.5 h-3.5 text-brand-purple shrink-0" />
-                                <span className="min-w-0">
-                                  {item.purchase_quantity} {item.purchase_unit} ={' '}
-                                  <strong className="font-num">{formatQuantityWithUnit(item.total_base_quantity, item.base_unit)}</strong>
-                                  {item.loss_rate > 0 && (
-                                    <span className="text-amber-800 text-caption ml-1 font-semibold font-num">
-                                      (Thực dùng: {formatQuantityWithUnit(item.effective_base_quantity, item.base_unit)})
-                                    </span>
-                                  )}
-                                </span>
+                            {/* Col 3: Subtotal + Loss Rate */}
+                            <div className="bg-purple-50/50 p-2 rounded-xl border border-purple-200 space-y-1">
+                              <div className="flex items-center justify-between">
+                                <label className="text-caption font-bold text-brand-purple uppercase block truncate">
+                                  3. Thành tiền
+                                </label>
+                                {item.category === 'fruit' && (
+                                  <label className="text-caption font-bold text-amber-900 flex items-center gap-1 cursor-pointer">
+                                    <span>Hao hụt:</span>
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      max="99"
+                                      value={Math.round(item.loss_rate * 100)}
+                                      onChange={(e) =>
+                                        handleItemChange(idx, 'loss_rate', (parseFloat(e.target.value) || 0) / 100)
+                                      }
+                                      className="w-10 h-6 px-1 border border-amber-300 rounded text-caption font-num font-black text-center bg-white text-amber-950"
+                                    />
+                                    <span>%</span>
+                                  </label>
+                                )}
                               </div>
-
-                              <div className="flex items-center gap-2 shrink-0">
-                                <span className="bg-purple-700 text-white font-black text-caption font-num px-2.5 py-0.5 rounded-full shadow-card shrink-0 whitespace-nowrap">
-                                  {item.loss_rate > 0
-                                    ? `Vốn: ${formatCurrency(item.effective_base_price)}/${item.base_unit}`
-                                    : `Vốn: ${formatCurrency(item.base_unit_price)}/${item.base_unit}`}
-                                </span>
-                              </div>
+                              <input
+                                type="number"
+                                step="any"
+                                min="0"
+                                placeholder="0"
+                                value={item.subtotal === 0 ? '' : item.subtotal}
+                                onChange={(e) =>
+                                  handleItemChange(
+                                    idx,
+                                    'subtotal',
+                                    e.target.value === '' ? 0 : parseFloat(e.target.value)
+                                  )
+                                }
+                                className="app-input-compact text-right font-num font-black border-purple-300 text-purple-950"
+                              />
                             </div>
-                          </>
-                        )}
-                      </div>
-                    );
-                  })}
+                          </div>
 
-                  {/* Add Row Buttons */}
-                  <div className="grid grid-cols-2 gap-2 pt-1 w-full min-w-0">
-                    <button
-                      type="button"
-                      onClick={() => handleAddRow(false)}
-                      className="inline-flex items-center justify-center gap-1.5 text-xs font-extrabold text-brand-purple hover:text-purple-950 bg-white hover:bg-purple-100/60 px-3 py-2.5 rounded-full border border-purple-300 transition active:scale-95 shadow-card cursor-pointer text-center"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      <span>+ Thêm mặt hàng</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleAddRow(true)}
-                      className="inline-flex items-center justify-center gap-1.5 text-xs font-extrabold text-amber-800 hover:text-amber-950 bg-amber-50 hover:bg-amber-100 px-3 py-2.5 rounded-full border border-amber-300 transition active:scale-95 shadow-card cursor-pointer text-center"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      <span>+ Nguyên liệu mới</span>
-                    </button>
-                  </div>
+                          {/* Advanced Cost Summary */}
+                          <div className="bg-purple-50 rounded-xl px-2.5 py-1.5 border border-purple-200/80 flex items-center justify-between gap-2 text-xs w-full min-w-0 flex-wrap">
+                            <div className="flex items-center gap-1.5 text-purple-950 font-bold text-caption min-w-0 flex-1 flex-wrap">
+                              <Sparkles className="w-3.5 h-3.5 text-brand-purple shrink-0" />
+                              <span className="min-w-0">
+                                {item.purchase_quantity} {item.purchase_unit} ={' '}
+                                <strong className="font-num">{formatQuantityWithUnit(item.total_base_quantity, item.base_unit)}</strong>
+                                {item.loss_rate > 0 && (
+                                  <span className="text-amber-800 text-caption ml-1 font-semibold font-num">
+                                    (Thực dùng: {formatQuantityWithUnit(item.effective_base_quantity, item.base_unit)})
+                                  </span>
+                                )}
+                              </span>
+                            </div>
+
+                            <div className="flex items-center gap-2 shrink-0">
+                              <span className="bg-purple-700 text-white font-black text-caption font-num px-2.5 py-0.5 rounded-full shadow-card shrink-0 whitespace-nowrap">
+                                {item.loss_rate > 0
+                                  ? `Vốn: ${formatCurrency(item.effective_base_price)}/${item.base_unit}`
+                                  : `Vốn: ${formatCurrency(item.base_unit_price)}/${item.base_unit}`}
+                              </span>
+                            </div>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  );
+                })}
+
+                {/* Add Row Buttons */}
+                <div className="grid grid-cols-2 gap-2 pt-1 w-full min-w-0">
+                  <button
+                    type="button"
+                    onClick={() => handleAddRow(false)}
+                    className="inline-flex items-center justify-center gap-1.5 text-xs font-extrabold text-brand-purple hover:text-purple-950 bg-white hover:bg-purple-100/60 px-3 py-2.5 rounded-full border border-purple-300 transition active:scale-95 shadow-card cursor-pointer text-center"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>+ Thêm mặt hàng</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleAddRow(true)}
+                    className="inline-flex items-center justify-center gap-1.5 text-xs font-extrabold text-amber-800 hover:text-amber-950 bg-amber-50 hover:bg-amber-100 px-3 py-2.5 rounded-full border border-amber-300 transition active:scale-95 shadow-card cursor-pointer text-center"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>+ Nguyên liệu mới</span>
+                  </button>
                 </div>
-              )}
-            </div>
-          )}
-
-          {/* Amount Input */}
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <label className="font-bold text-slate-700 text-xs">
-                {t('tx.modal_amount_label')} (VNĐ) *
-              </label>
-              {isPurchaseLogging && modalType === 'outflow' && (
-                <span className="text-caption text-brand-purple font-semibold bg-purple-100 px-2 py-0.5 rounded-full">
-                  ⚡ Tự động tính từ danh sách
-                </span>
-              )}
-            </div>
-            <input
-              type="number"
-              step="any"
-              min="0"
-              required
-              disabled={isPurchaseLogging && modalType === 'outflow'}
-              placeholder="120.000"
-              value={modalAmount === 0 ? '' : modalAmount}
-              onChange={(e) => {
-                const raw = e.target.value.replace(/\D/g, '');
-                setModalAmount(raw === '' ? 0 : parseInt(raw, 10));
-              }}
-              className={`app-input font-num font-extrabold ${
-                isPurchaseLogging && modalType === 'outflow'
-                  ? 'bg-slate-100 border-slate-200 text-slate-800'
-                  : ''
-              }`}
-            />
+              </div>
+            )}
           </div>
+        )}
 
-          {/* Transaction Date & Time */}
-          <div className="space-y-1.5 text-xs">
-            <div className="flex items-center justify-between">
-              <label className="font-bold text-slate-700 flex items-center gap-1">
-                <Calendar className="w-3.5 h-3.5 text-brand-purple" />
-                {t('tx.transaction_time')}
-              </label>
-              {modalCreatedAt ? (
-                <button
-                  type="button"
-                  onClick={() => setModalCreatedAt(null)}
-                  className="inline-flex items-center gap-1 text-caption font-bold text-brand-purple hover:text-purple-800 bg-purple-50 hover:bg-purple-100 px-2 py-0.5 rounded-full transition active:scale-95 border border-purple-200"
-                >
-                  <RotateCcw className="w-3 h-3" />
-                  <span>{t('tx.transaction_time_reset')}</span>
-                </button>
-              ) : (
-                <span className="text-caption font-medium text-brand-purple bg-purple-50 px-2 py-0.5 rounded-full border border-purple-100">
-                  {t('tx.transaction_time_auto')}
-                </span>
-              )}
-            </div>
-
-            <input
-              type="datetime-local"
-              value={
-                modalCreatedAt
-                  ? (() => {
-                      try {
-                        const d = new Date(modalCreatedAt);
-                        const offset = d.getTimezoneOffset() * 60000;
-                        return new Date(d.getTime() - offset).toISOString().slice(0, 16);
-                      } catch {
-                        return '';
-                      }
-                    })()
-                  : ''
-              }
-              onChange={(e) => {
-                if (e.target.value) {
-                  setModalCreatedAt(new Date(e.target.value).toISOString());
-                } else {
-                  setModalCreatedAt(null);
-                }
-              }}
-              className="app-input text-xs font-semibold font-num w-full max-w-full box-border"
-            />
-          </div>
-
-          {/* Description & Note */}
-          <div>
-            <label className="font-bold text-slate-700 mb-1 block text-xs">
-              {t('tx.modal_description_label')} / Ghi chú nhà cung cấp
+        {/* Amount Input */}
+        <div>
+          <div className="flex items-center justify-between mb-1">
+            <label className="font-bold text-slate-700 text-xs">
+              {t('tx.modal_amount_label')} (VNĐ) *
             </label>
-            <textarea
-              rows={2}
-              placeholder="VD: Nhập 2 chai cốt cà phê, 3 thùng sữa tươi Dalat Milk..."
-              value={modalDescription}
-              onChange={(e) => setModalDescription(e.target.value)}
-              className="app-textarea min-h-[64px]"
-            />
+            {isPurchaseLogging && modalType === 'outflow' && (
+              <span className="text-caption text-brand-purple font-semibold bg-purple-100 px-2 py-0.5 rounded-full">
+                ⚡ Tự động tính từ danh sách
+              </span>
+            )}
           </div>
-        </form>
+          <input
+            type="number"
+            step="any"
+            min="0"
+            required
+            disabled={isPurchaseLogging && modalType === 'outflow'}
+            placeholder="120.000"
+            value={modalAmount === 0 ? '' : modalAmount}
+            onChange={(e) => {
+              const raw = e.target.value.replace(/\D/g, '');
+              setModalAmount(raw === '' ? 0 : parseInt(raw, 10));
+            }}
+            className={`app-input font-num font-extrabold ${isPurchaseLogging && modalType === 'outflow'
+              ? 'bg-slate-100 border-slate-200 text-slate-800'
+              : ''
+              }`}
+          />
+        </div>
+
+        {/* Transaction Date & Time */}
+        <div className="space-y-1.5 text-xs">
+          <div className="flex items-center justify-between">
+            <label className="font-bold text-slate-700 flex items-center gap-1">
+              <Calendar className="w-3.5 h-3.5 text-brand-purple" />
+              {t('tx.transaction_time')}
+            </label>
+            {modalCreatedAt ? (
+              <button
+                type="button"
+                onClick={() => setModalCreatedAt(null)}
+                className="inline-flex items-center gap-1 text-caption font-bold text-brand-purple hover:text-purple-800 bg-purple-50 hover:bg-purple-100 px-2 py-0.5 rounded-full transition active:scale-95 border border-purple-200"
+              >
+                <RotateCcw className="w-3 h-3" />
+                <span>{t('tx.transaction_time_reset')}</span>
+              </button>
+            ) : (
+              <span className="text-caption font-medium text-brand-purple bg-purple-50 px-2 py-0.5 rounded-full border border-purple-100">
+                {t('tx.transaction_time_auto')}
+              </span>
+            )}
+          </div>
+
+          <input
+            type="datetime-local"
+            value={
+              modalCreatedAt
+                ? (() => {
+                  try {
+                    const d = new Date(modalCreatedAt);
+                    const offset = d.getTimezoneOffset() * 60000;
+                    return new Date(d.getTime() - offset).toISOString().slice(0, 16);
+                  } catch {
+                    return '';
+                  }
+                })()
+                : ''
+            }
+            onChange={(e) => {
+              if (e.target.value) {
+                setModalCreatedAt(new Date(e.target.value).toISOString());
+              } else {
+                setModalCreatedAt(null);
+              }
+            }}
+            className="app-input text-xs font-semibold font-num w-full max-w-full box-border"
+          />
+        </div>
+
+        {/* Description & Note */}
+        <div>
+          <label className="font-bold text-slate-700 mb-1 block text-xs">
+            {t('tx.modal_description_label')} / Ghi chú nhà cung cấp
+          </label>
+          <textarea
+            rows={2}
+            placeholder="VD: Nhập 2 chai cốt cà phê, 3 thùng sữa tươi Dalat Milk..."
+            value={modalDescription}
+            onChange={(e) => setModalDescription(e.target.value)}
+            className="app-textarea min-h-[64px]"
+          />
+        </div>
+      </form>
     </ModalShell>
   );
 }

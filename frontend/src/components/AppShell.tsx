@@ -24,6 +24,14 @@ import {
   PanelLeftOpen,
   WifiOff,
   Truck,
+  Sparkles,
+  Volume2,
+  VolumeX,
+  Palette,
+  Contrast,
+  LayoutGrid,
+  Play,
+  Check,
 } from 'lucide-react';
 import SalesChannelModal from '@/components/common/SalesChannelModal';
 import { fetchApi, getImageUrl } from '@/lib/api';
@@ -31,7 +39,11 @@ import { getAuthUser, isAuthenticated, isMasterRole, isOwnerRole, logout as auth
 import {
   GLASS_EFFECTS_CHANGE_EVENT,
   syncGlassEffectsClass,
+  isGlassEffectsEnabled,
+  setGlassEffectsEnabled,
+  isSystemGlassForcedOff,
 } from '@/lib/featureFlags';
+import { playPosSound } from '@/lib/sound';
 import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 import { useTranslation } from '@/lib/i18n/LanguageContext';
 import { useStore } from '@/lib/StoreContext';
@@ -45,6 +57,7 @@ import {
   ListRow,
   ResponsiveSheet,
   SegmentedControl,
+  Switch,
 } from '@/components/ui';
 
 interface HealthData {
@@ -73,6 +86,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [isPromotionsQueryOpen, setIsPromotionsQueryOpen] = useState<boolean>(false);
   const [isChannelModalOpen, setIsChannelModalOpen] = useState<boolean>(false);
 
+  // Per-device Appearance & UX Preferences
+  const [glassEnabled, setGlassEnabled] = useState<boolean>(() => isGlassEffectsEnabled());
+  const [soundFeedback, setSoundFeedback] = useState<boolean>(true);
+  const [posDensity, setPosDensity] = useState<'comfortable' | 'compact'>('comfortable');
+  const [highContrast, setHighContrast] = useState<boolean>(false);
+  const [accentColor, setAccentColor] = useState<'purple' | 'blue' | 'emerald' | 'amber'>('purple');
+
   const userMenuTriggerRef = useRef<HTMLButtonElement>(null);
   const headerRef = useRef<HTMLElement>(null);
   const inlineTitleRef = useRef<HTMLDivElement>(null);
@@ -81,6 +101,70 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const isOwner = isOwnerRole(currentUser?.role) || storeRole === 'store_admin';
   const canManageStore = isMaster || isOwner;
   const canManageUsers = isMaster || isOwner;
+
+  // Load and apply saved appearance preferences on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const savedDensity = localStorage.getItem('rabbitpos_pos_density') as 'comfortable' | 'compact';
+        if (savedDensity) {
+          setPosDensity(savedDensity);
+          document.documentElement.setAttribute('data-pos-density', savedDensity);
+        }
+        const savedSound = localStorage.getItem('rabbitpos_sound_feedback');
+        if (savedSound !== null) setSoundFeedback(savedSound === 'true');
+        const savedAccent = localStorage.getItem('rabbitpos_accent_color') as 'purple' | 'blue' | 'emerald' | 'amber';
+        if (savedAccent) {
+          setAccentColor(savedAccent);
+          document.documentElement.setAttribute('data-accent', savedAccent);
+        }
+        const savedContrast = localStorage.getItem('rabbitpos_high_contrast');
+        if (savedContrast !== null) {
+          setHighContrast(savedContrast === 'true');
+          document.documentElement.setAttribute('data-high-contrast', savedContrast === 'true' ? 'true' : 'false');
+        }
+      } catch {}
+    }
+  }, []);
+
+  const handleToggleGlass = (checked: boolean) => {
+    setGlassEnabled(checked);
+    setGlassEffectsEnabled(checked);
+  };
+
+  const handleToggleSound = (checked: boolean) => {
+    setSoundFeedback(checked);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('rabbitpos_sound_feedback', String(checked));
+      if (checked) {
+        playPosSound('test', true);
+      }
+    }
+  };
+
+  const handleToggleDensity = (val: 'comfortable' | 'compact') => {
+    setPosDensity(val);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('rabbitpos_pos_density', val);
+      document.documentElement.setAttribute('data-pos-density', val);
+    }
+  };
+
+  const handleToggleContrast = (checked: boolean) => {
+    setHighContrast(checked);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('rabbitpos_high_contrast', String(checked));
+      document.documentElement.setAttribute('data-high-contrast', checked ? 'true' : 'false');
+    }
+  };
+
+  const handleToggleAccent = (color: 'purple' | 'blue' | 'emerald' | 'amber') => {
+    setAccentColor(color);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('rabbitpos_accent_color', color);
+      document.documentElement.setAttribute('data-accent', color);
+    }
+  };
 
   // Effect 1: App Mount Only (Initial Health check + Background 60s health monitor + Glass & Sidebar prefs)
   useEffect(() => {
@@ -91,6 +175,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
     const handleGlassChange = () => {
       syncGlassEffectsClass();
+      setGlassEnabled(isGlassEffectsEnabled());
     };
 
     const reducedTransMq = window.matchMedia('(prefers-reduced-transparency: reduce)');
@@ -541,7 +626,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 triggerRef={userMenuTriggerRef}
                 exclusiveId="user-menu"
                 align="end"
-                width="w-80"
+                width="w-88 sm:w-96"
                 title={
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-brand-600 text-white font-bold flex items-center justify-center text-subhead shrink-0 shadow-sm">
@@ -593,7 +678,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                     />
                   </ListGroup>
 
-                  <ListGroup header={t('nav.group_device_prefs')}>
+                  <ListGroup header={t('settings.appearance_section_title') || 'Giao diện & Tùy chọn'}>
                     <ListRow
                       leading={<Globe className="w-4 h-4 text-slate-500" />}
                       title={t('nav.language')}
@@ -610,6 +695,107 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                         />
                       }
                     />
+                    <ListRow
+                      leading={<Sparkles className="w-4 h-4 text-brand-purple" />}
+                      title={t('settings.glass_effects_label') || 'Hiệu ứng kính Liquid Glass'}
+                      subtitle={isSystemGlassForcedOff() ? 'Đang tắt theo trợ năng hệ thống' : undefined}
+                      trailing={
+                        <Switch
+                          checked={glassEnabled}
+                          onCheckedChange={handleToggleGlass}
+                          aria-label={t('settings.glass_effects_label') || 'Hiệu ứng kính'}
+                        />
+                      }
+                    />
+                    <ListRow
+                      leading={soundFeedback ? <Volume2 className="w-4 h-4 text-emerald-600" /> : <VolumeX className="w-4 h-4 text-slate-400" />}
+                      title="Âm thanh POS"
+                      trailing={
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              playPosSound('test', true);
+                            }}
+                            className="px-2 py-0.5 text-[11px] font-bold bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 rounded-full transition flex items-center gap-1 cursor-pointer"
+                            title="Nghe thử âm thanh thao tác"
+                          >
+                            <Play className="w-2.5 h-2.5 text-brand-purple fill-brand-purple" />
+                            <span>Thử</span>
+                          </button>
+                          <Switch
+                            checked={soundFeedback}
+                            onCheckedChange={handleToggleSound}
+                            aria-label="Âm thanh phản hồi POS"
+                          />
+                        </div>
+                      }
+                    />
+                    <ListRow
+                      leading={<LayoutGrid className="w-4 h-4 text-brand-purple" />}
+                      title="Mật độ hiển thị POS"
+                      trailing={
+                        <SegmentedControl
+                          size="sm"
+                          aria-label="Mật độ hiển thị POS"
+                          value={posDensity}
+                          onChange={(val) => handleToggleDensity(val as 'comfortable' | 'compact')}
+                          options={[
+                            { value: 'comfortable', label: 'Lớn' },
+                            { value: 'compact', label: 'Gọn' },
+                          ]}
+                        />
+                      }
+                    />
+                    <ListRow
+                      leading={<Contrast className="w-4 h-4 text-amber-600" />}
+                      title="Chế độ tương phản cao"
+                      trailing={
+                        <Switch
+                          checked={highContrast}
+                          onCheckedChange={handleToggleContrast}
+                          aria-label="Chế độ tương phản cao"
+                        />
+                      }
+                    />
+                    <li className="px-4 py-2.5 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-body font-medium text-slate-900 flex items-center gap-2">
+                          <Palette className="w-4 h-4 text-brand-purple" />
+                          <span>Tông màu nhận diện</span>
+                        </span>
+                        <span className="text-caption font-semibold text-slate-500 capitalize">
+                          {accentColor === 'purple' ? 'Tím' : accentColor === 'blue' ? 'Xanh' : accentColor === 'emerald' ? 'Lá' : 'Cam'}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-4 gap-1.5">
+                        {[
+                          { id: 'purple', name: 'Tím', bg: 'bg-purple-600' },
+                          { id: 'blue', name: 'Xanh', bg: 'bg-sky-600' },
+                          { id: 'emerald', name: 'Lá', bg: 'bg-emerald-600' },
+                          { id: 'amber', name: 'Cam', bg: 'bg-amber-600' },
+                        ].map((c) => {
+                          const isSelected = accentColor === c.id;
+                          return (
+                            <button
+                              key={c.id}
+                              type="button"
+                              onClick={() => handleToggleAccent(c.id as any)}
+                              className={`py-1.5 px-1 rounded-xl border flex items-center justify-center gap-1.5 transition cursor-pointer ${
+                                isSelected
+                                  ? 'border-brand-purple bg-purple-50 text-brand-purple ring-1 ring-brand-purple font-bold shadow-xs'
+                                  : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-600'
+                              }`}
+                            >
+                              <span className={`w-3 h-3 rounded-full ${c.bg} shrink-0 shadow-xs`} />
+                              <span className="text-[11px]">{c.name}</span>
+                              {isSelected && <Check className="w-3 h-3 text-brand-purple ml-0.5" />}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </li>
                   </ListGroup>
                 </div>
               </ResponsiveSheet>
@@ -896,26 +1082,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                     />
                   );
                 })}
-              </ListGroup>
-
-              {/* Group 2: Per-Device Preferences */}
-              <ListGroup header={t('nav.group_device_prefs')}>
-                <ListRow
-                  leading={<Globe className="w-4 h-4 text-slate-500" />}
-                  title={t('nav.language')}
-                  trailing={
-                    <SegmentedControl
-                      size="sm"
-                      aria-label={t('nav.language')}
-                      value={locale}
-                      onChange={(val) => setLocale(val as 'vi' | 'en')}
-                      options={[
-                        { value: 'vi', label: 'VI' },
-                        { value: 'en', label: 'EN' },
-                      ]}
-                    />
-                  }
-                />
               </ListGroup>
             </div>
           </ResponsiveSheet>

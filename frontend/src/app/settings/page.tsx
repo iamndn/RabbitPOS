@@ -31,17 +31,6 @@ import {
   Zap,
   Receipt,
   ShieldCheck,
-  Truck,
-  Plus,
-  Edit2,
-  Sparkles,
-  Volume2,
-  VolumeX,
-  Palette,
-  Eye,
-  Contrast,
-  LayoutGrid,
-  Play,
 } from 'lucide-react';
 import AppShell from '@/components/AppShell';
 import { fetchApi, uploadImage, getImageUrl, getApiBaseUrl, authHeaders } from '@/lib/api';
@@ -51,122 +40,15 @@ import { useToast } from '@/context/ToastContext';
 import ModernSelect from '@/components/common/ModernSelect';
 import ImageCropModal from '@/components/common/ImageCropModal';
 import HorizontalScroller from '@/components/common/HorizontalScroller';
-import SalesChannelModal from '@/components/common/SalesChannelModal';
-import {
-  SalesChannel,
-  CHANNEL_COLORS,
-  DEFAULT_SALES_CHANNELS,
-  parseSalesChannels,
-} from '@/types/sales_channel';
 import { useStore } from '@/lib/StoreContext';
 import { Switch } from '@/components/ui/Switch';
 import { ModalShell } from '@/components/ui/ModalShell';
-import {
-  isGlassEffectsEnabled,
-  setGlassEffectsEnabled,
-  isSystemGlassForcedOff,
-  GLASS_EFFECTS_CHANGE_EVENT,
-} from '@/lib/featureFlags';
-import { playPosSound } from '@/lib/sound';
 
 export default function SettingsPage() {
   const { t } = useTranslation();
   const toast = useToast();
   const { activeStore, isSuperAdmin, refreshStores } = useStore();
-  const [activeTab, setActiveTab] = useState<'store' | 'currency' | 'vietqr' | 'email' | 'sheets' | 'backup' | 'appearance'>('store');
-  const [glassEffects, setGlassEffects] = useState<boolean>(() => {
-    return isGlassEffectsEnabled();
-  });
-
-  useEffect(() => {
-    const handleGlassChange = (e: any) => {
-      if (e.detail?.enabled !== undefined) {
-        setGlassEffects(e.detail.enabled);
-      }
-    };
-    window.addEventListener(GLASS_EFFECTS_CHANGE_EVENT, handleGlassChange);
-    return () => window.removeEventListener(GLASS_EFFECTS_CHANGE_EVENT, handleGlassChange);
-  }, []);
-
-  const handleToggleGlass = (checked: boolean) => {
-    setGlassEffects(checked);
-    setGlassEffectsEnabled(checked);
-    toast.success(
-      checked
-        ? (t('settings.glass_effects_enabled') || 'Đã bật hiệu ứng kính Liquid Glass')
-        : (t('settings.glass_effects_disabled') || 'Đã tắt hiệu ứng kính Liquid Glass')
-    );
-  };
-
-  // Extended Appearance Settings
-  const [posDensity, setPosDensity] = useState<'comfortable' | 'compact'>('comfortable');
-  const [soundFeedback, setSoundFeedback] = useState<boolean>(true);
-  const [accentColor, setAccentColor] = useState<'purple' | 'blue' | 'emerald' | 'amber'>('purple');
-  const [highContrast, setHighContrast] = useState<boolean>(false);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const savedDensity = localStorage.getItem('rabbitpos_pos_density') as 'comfortable' | 'compact';
-        if (savedDensity) {
-          setPosDensity(savedDensity);
-          document.documentElement.setAttribute('data-pos-density', savedDensity);
-        }
-        const savedSound = localStorage.getItem('rabbitpos_sound_feedback');
-        if (savedSound !== null) setSoundFeedback(savedSound === 'true');
-        const savedAccent = localStorage.getItem('rabbitpos_accent_color') as 'purple' | 'blue' | 'emerald' | 'amber';
-        if (savedAccent) {
-          setAccentColor(savedAccent);
-          document.documentElement.setAttribute('data-accent', savedAccent);
-        }
-        const savedContrast = localStorage.getItem('rabbitpos_high_contrast');
-        if (savedContrast !== null) {
-          setHighContrast(savedContrast === 'true');
-          document.documentElement.setAttribute('data-high-contrast', savedContrast === 'true' ? 'true' : 'false');
-        }
-      } catch {}
-    }
-  }, []);
-
-  const handleToggleDensity = (val: 'comfortable' | 'compact') => {
-    setPosDensity(val);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('rabbitpos_pos_density', val);
-      document.documentElement.setAttribute('data-pos-density', val);
-      toast.success(val === 'comfortable' ? 'Đã chọn mật độ thẻ lớn (Thoải mái)' : 'Đã chọn mật độ gọn gàng (Xem nhiều món)');
-    }
-  };
-
-  const handleToggleSound = (checked: boolean) => {
-    setSoundFeedback(checked);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('rabbitpos_sound_feedback', String(checked));
-      if (checked) {
-        playPosSound('test', true);
-        toast.success('Đã bật phản hồi âm thanh POS');
-      } else {
-        toast.success('Đã tắt phản hồi âm thanh POS');
-      }
-    }
-  };
-
-  const handleToggleAccent = (color: 'purple' | 'blue' | 'emerald' | 'amber') => {
-    setAccentColor(color);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('rabbitpos_accent_color', color);
-      document.documentElement.setAttribute('data-accent', color);
-      toast.success('Đã cập nhật tông màu chủ đạo');
-    }
-  };
-
-  const handleToggleContrast = (checked: boolean) => {
-    setHighContrast(checked);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('rabbitpos_high_contrast', String(checked));
-      document.documentElement.setAttribute('data-high-contrast', checked ? 'true' : 'false');
-      toast.success(checked ? 'Đã bật chế độ tương phản cao' : 'Đã tắt chế độ tương phản cao');
-    }
-  };
+  const [activeTab, setActiveTab] = useState<'store' | 'currency' | 'vietqr' | 'email' | 'sheets' | 'backup'>('store');
   const [backupSubTab, setBackupSubTab] = useState<'json_backup' | 'excel_import'>('excel_import');
 
   useEffect(() => {
@@ -262,19 +144,12 @@ export default function SettingsPage() {
   const [importResult, setImportResult] = useState<any | null>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
 
-  // Sales Channel State
-  const [isChannelModalOpen, setIsChannelModalOpen] = useState<boolean>(false);
-  const [salesChannels, setSalesChannels] = useState<SalesChannel[]>(DEFAULT_SALES_CHANNELS);
-
   const loadSettings = async () => {
     setLoading(true);
     try {
       const res = await fetchApi<SettingsMap>('/settings');
       if (res.status === 'success' && res.data) {
         const data = res.data;
-        if (data.sales_channels_config) {
-          setSalesChannels(parseSalesChannels(data.sales_channels_config));
-        }
         setForm((prev) => ({
           ...prev,
           ...data,
@@ -743,20 +618,6 @@ export default function SettingsPage() {
                   </span>
                 </button>
               )}
-
-              {/* Tab 7: Appearance & Visual Effects (Override Q3) */}
-              <button
-                type="button"
-                onClick={() => setActiveTab('appearance')}
-                className={`shrink-0 py-2.5 px-4 sm:px-5 text-xs sm:text-sm font-bold rounded-full transition flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap ${
-                  activeTab === 'appearance'
-                    ? 'bg-white text-purple-900 shadow-card font-extrabold'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <Sparkles className={`w-4 h-4 shrink-0 ${activeTab === 'appearance' ? 'text-brand-purple' : 'text-slate-400'}`} />
-                <span>{t('settings.tab_appearance') || 'Giao diện'}</span>
-              </button>
             </HorizontalScroller>
 
             {/* TAB 1: Store Information */}
@@ -910,77 +771,6 @@ export default function SettingsPage() {
                         onCheckedChange={(checked) => handleChange('auto_show_receipt_after_checkout', checked ? 'true' : 'false')}
                         aria-label="Tự động in hóa đơn sau thanh toán"
                       />
-                    </div>
-                  </div>
-
-                  {/* Sales Channel Management & Commissions Section */}
-                  <div className="md:col-span-2 pt-4 border-t border-slate-100 space-y-3">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                      <div>
-                        <label className="font-bold text-slate-800 text-sm flex items-center gap-2">
-                          <Truck className="w-4 h-4 text-purple-600" />
-                          <span>Kênh Bán Hàng & Chiết Khấu Ứng Dụng</span>
-                        </label>
-                        <p className="text-[11px] text-slate-500 mt-0.5">
-                          Quản lý các kênh bán hàng (Tại quán, Mang về, App giao hàng...) và cấu hình % hoa hồng tự động.
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setIsChannelModalOpen(true)}
-                        className="px-3.5 py-2 bg-purple-700 hover:bg-purple-800 active:scale-95 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition cursor-pointer shadow-card shrink-0"
-                      >
-                        <Plus className="w-4 h-4" />
-                        <span>Thêm / Quản lý kênh</span>
-                      </button>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                      {salesChannels.map((ch) => {
-                        const colorDef = CHANNEL_COLORS.find((c) => c.id === ch.color) || CHANNEL_COLORS[0];
-                        const isActive = ch.is_active !== false;
-
-                        return (
-                          <div
-                            key={ch.id}
-                            className={`p-3.5 rounded-2xl border transition-all space-y-2.5 shadow-card ${
-                              isActive
-                                ? 'bg-white border-slate-200 hover:border-slate-300'
-                                : 'bg-slate-50 border-slate-200 opacity-60'
-                            }`}
-                          >
-                            <div className="flex items-center justify-between">
-                              <span className="font-bold text-xs text-slate-900 flex items-center gap-2">
-                                <span className="text-base">{ch.icon || '🛵'}</span>
-                                <span>{ch.name}</span>
-                              </span>
-                              <div className="flex items-center gap-1">
-                                <span className={`text-caption font-bold px-1.5 py-0.2 rounded border ${colorDef.bg} ${colorDef.text} ${colorDef.border}`}>
-                                  {ch.is_delivery_app ? 'App giao' : 'Trực tiếp'}
-                                </span>
-                                <button
-                                  type="button"
-                                  onClick={() => setIsChannelModalOpen(true)}
-                                  className="p-1 text-slate-400 hover:text-purple-700 transition cursor-pointer"
-                                  title="Chỉnh sửa kênh"
-                                >
-                                  <Edit2 className="w-3.5 h-3.5" />
-                                </button>
-                              </div>
-                            </div>
-
-                            <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-100">
-                              <span className="text-slate-500 text-[11px] font-mono">{ch.id}</span>
-                              <div className="flex items-center gap-1.5">
-                                <span className="text-[11px] text-slate-500 font-semibold">Chiết khấu:</span>
-                                <span className="text-xs font-black text-purple-700">
-                                  {ch.default_commission_pct || 0}%
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
                     </div>
                   </div>
                 </div>
@@ -2195,237 +1985,8 @@ export default function SettingsPage() {
               </div>
             )}
 
-            {/* TAB 7: Appearance & Visual Effects (Liquid Glass & Tahoe Extensions) */}
-            {activeTab === 'appearance' && (
-              <div className="surface-card p-5 sm:p-7 rounded-2xl border-card shadow-card space-y-6 text-xs">
-                <div className="pb-4 border-b border-border-hairline flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2.5 bg-purple-50 rounded-xl border border-purple-200 text-brand-purple">
-                      <Sparkles className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-slate-900 text-sm">
-                        {t('settings.appearance_section_title') || 'Giao diện & Hiệu ứng thị giác'}
-                      </h3>
-                      <p className="text-slate-500 text-xs mt-0.5">
-                        {t('settings.appearance_section_desc') || 'Tùy chỉnh phong cách hiển thị, mật độ thẻ món và âm thanh phản hồi POS trên thiết bị này.'}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* 1. Liquid Glass Switch */}
-                  <div className="p-4 bg-slate-50 border border-border-hairline rounded-2xl flex flex-col justify-between gap-3">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <Sparkles className="w-4 h-4 text-brand-purple" />
-                        <span className="font-bold text-slate-800 text-xs">
-                          {t('settings.glass_effects_label') || 'Hiệu ứng kính mờ (Liquid Glass)'}
-                        </span>
-                      </div>
-                      <p className="text-caption text-slate-500">
-                        {t('settings.glass_effects_desc') || 'Áp dụng hiệu ứng kính mờ cho thanh điều hướng và bảng trượt trên thiết bị này. Tắt để dùng nền đặc.'}
-                      </p>
-                      {isSystemGlassForcedOff() && (
-                        <p className="text-caption text-amber-700 font-semibold pt-1">
-                          ⚠️ {t('settings.glass_effects_forced_off_a11y') || 'Đang tự động tắt theo cài đặt trợ năng hệ thống.'}
-                        </p>
-                      )}
-                    </div>
-                    <div className="flex items-center justify-between pt-1">
-                      <span className="text-caption font-semibold text-slate-600">Trạng thái</span>
-                      <Switch
-                        checked={glassEffects}
-                        onCheckedChange={handleToggleGlass}
-                        aria-label={t('settings.glass_effects_label') || 'Hiệu ứng kính'}
-                      />
-                    </div>
-                  </div>
-
-                  {/* 2. Sound Feedback */}
-                  <div className="p-4 bg-slate-50 border border-border-hairline rounded-2xl flex flex-col justify-between gap-3">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        {soundFeedback ? <Volume2 className="w-4 h-4 text-emerald-600" /> : <VolumeX className="w-4 h-4 text-slate-400" />}
-                        <span className="font-bold text-slate-800 text-xs">
-                          Âm thanh phản hồi POS (Audio Click / Beep)
-                        </span>
-                      </div>
-                      <p className="text-caption text-slate-500">
-                        Phát âm thanh bíp nhẹ khi thu ngân bấm chọn món, cộng/trừ số lượng hoặc hoàn tất đơn hàng.
-                      </p>
-                    </div>
-                    <div className="flex items-center justify-between pt-1 gap-2">
-                      <button
-                        type="button"
-                        onClick={() => playPosSound('test', true)}
-                        className="px-2.5 py-1 text-caption font-bold bg-white hover:bg-slate-100 border border-border-hairline rounded-full text-slate-700 transition active:scale-95 flex items-center gap-1 cursor-pointer"
-                        title="Nghe thử âm thanh thao tác"
-                      >
-                        <Play className="w-3 h-3 text-brand-purple fill-brand-purple" />
-                        <span>Nghe thử</span>
-                      </button>
-                      <Switch
-                        checked={soundFeedback}
-                        onCheckedChange={handleToggleSound}
-                        aria-label="Âm thanh phản hồi POS"
-                      />
-                    </div>
-                  </div>
-
-                  {/* 3. POS Density */}
-                  <div className="p-4 bg-slate-50 border border-border-hairline rounded-2xl flex flex-col justify-between gap-3">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <LayoutGrid className="w-4 h-4 text-brand-purple" />
-                        <span className="font-bold text-slate-800 text-xs">
-                          Mật độ hiển thị lưới món POS
-                        </span>
-                      </div>
-                      <p className="text-caption text-slate-500">
-                        Chọn bố cục hiển thị thực đơn bán hàng tối ưu cho kích thước màn hình thiết bị này.
-                      </p>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2 pt-1">
-                      <button
-                        type="button"
-                        onClick={() => handleToggleDensity('comfortable')}
-                        className={`p-2.5 rounded-xl border text-center transition cursor-pointer ${
-                          posDensity === 'comfortable'
-                            ? 'border-brand-purple bg-purple-50/70 text-brand-purple font-bold ring-2 ring-brand-purple/20 shadow-card'
-                            : 'border-border-hairline bg-white text-slate-700 hover:bg-slate-100'
-                        }`}
-                      >
-                        <span className="block text-xs">Thoải mái (Thẻ to)</span>
-                        <span className="block text-[11px] text-slate-400 font-normal mt-0.5">Tối ưu cảm ứng</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleToggleDensity('compact')}
-                        className={`p-2.5 rounded-xl border text-center transition cursor-pointer ${
-                          posDensity === 'compact'
-                            ? 'border-brand-purple bg-purple-50/70 text-brand-purple font-bold ring-2 ring-brand-purple/20 shadow-card'
-                            : 'border-border-hairline bg-white text-slate-700 hover:bg-slate-100'
-                        }`}
-                      >
-                        <span className="block text-xs">Gọn gàng (Xem nhiều)</span>
-                        <span className="block text-[11px] text-slate-400 font-normal mt-0.5">Ít phải cuộn</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* 4. High Contrast Mode */}
-                  <div className="p-4 bg-slate-50 border border-border-hairline rounded-2xl flex flex-col justify-between gap-3">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <Contrast className="w-4 h-4 text-amber-600" />
-                        <span className="font-bold text-slate-800 text-xs">
-                          Chế độ tương phản cao (High Contrast)
-                        </span>
-                      </div>
-                      <p className="text-caption text-slate-500">
-                        Làm nổi bật đường viền và độ đậm nhạt chữ, chống chói khi sử dụng máy POS ngoài trời hoặc quầy sáng.
-                      </p>
-                    </div>
-                    <div className="flex items-center justify-between pt-1">
-                      <span className="text-caption font-semibold text-slate-600">Trạng thái</span>
-                      <Switch
-                        checked={highContrast}
-                        onCheckedChange={handleToggleContrast}
-                        aria-label="Chế độ tương phản cao"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* 5. Accent Color Palette */}
-                <div className="p-4 bg-slate-50 border border-border-hairline rounded-2xl space-y-3">
-                  <div className="flex items-center gap-2">
-                    <Palette className="w-4 h-4 text-brand-purple" />
-                    <div>
-                      <span className="font-bold text-slate-800 text-xs block">
-                        Tông màu nhận diện thương hiệu (Accent Palette)
-                      </span>
-                      <p className="text-caption text-slate-500 mt-0.5">
-                        Lựa chọn tông màu sắc chủ đạo cho các nút bấm hành động chính, tab đang chọn và icon đại diện.
-                      </p>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1">
-                    {[
-                      { id: 'purple', name: 'Tím Rabbit', hex: '#7c3aed', bg: 'bg-purple-600' },
-                      { id: 'blue', name: 'Xanh Ocean', hex: '#0284c7', bg: 'bg-sky-600' },
-                      { id: 'emerald', name: 'Xanh Emerald', hex: '#059669', bg: 'bg-emerald-600' },
-                      { id: 'amber', name: 'Cam Sunset', hex: '#d97706', bg: 'bg-amber-600' },
-                    ].map((c) => {
-                      const isSelected = accentColor === c.id;
-                      return (
-                        <button
-                          key={c.id}
-                          type="button"
-                          onClick={() => handleToggleAccent(c.id as any)}
-                          className={`p-3 rounded-xl border flex items-center gap-2.5 transition cursor-pointer text-left ${
-                            isSelected
-                              ? 'border-brand-purple bg-white shadow-card ring-2 ring-brand-purple/20 font-bold'
-                              : 'border-border-hairline bg-white hover:bg-slate-100 text-slate-700'
-                          }`}
-                        >
-                          <span className={`w-4 h-4 rounded-full ${c.bg} shrink-0 shadow-sm`} />
-                          <span className="text-xs">{c.name}</span>
-                          {isSelected && <Check className="w-3.5 h-3.5 text-brand-purple ml-auto" />}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* 6. Live Interactive Preview Card */}
-                <div className="p-4 bg-gradient-to-r from-purple-50/60 via-slate-50 to-purple-50/30 border border-purple-100 rounded-2xl space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-xs font-bold text-slate-800">
-                      <Eye className="w-4 h-4 text-brand-purple" />
-                      <span>Xem trước giao diện (Live Preview)</span>
-                    </div>
-                    <span className="text-caption font-semibold px-2 py-0.5 rounded-full bg-white border border-purple-200 text-brand-purple">
-                      Cập nhật trực tiếp
-                    </span>
-                  </div>
-
-                  <div className="p-4 bg-white border border-card rounded-xl shadow-card flex flex-col sm:flex-row items-center justify-between gap-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-xl bg-purple-100 border border-purple-200 flex items-center justify-center text-xl shrink-0">
-                        🧋
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-slate-900 text-xs">Trà Sữa Oolong Nướng</span>
-                          <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                            Bán chạy
-                          </span>
-                        </div>
-                        <p className="text-caption text-slate-500 mt-0.5">Size L • Trân châu hoàng kim • 50% đường</p>
-                        <div className="text-xs font-black text-brand-purple mt-1 font-num">35.000 đ</div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => playPosSound('add', true)}
-                        className="px-4 py-2 bg-brand-purple hover:bg-brand-purple-hover text-white text-xs font-bold rounded-full shadow-card transition active:scale-95 cursor-pointer flex items-center gap-1.5"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                        <span>Thêm vào giỏ</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
             {/* Save Button (displayed for form-based tabs: store, currency, vietqr, email) - Centered */}
-            {activeTab !== 'backup' && activeTab !== 'appearance' && (
+            {activeTab !== 'backup' && (
               <div className="flex justify-center items-center gap-3 pt-6 pb-2">
                 <button
                   type="submit"
@@ -2527,20 +2088,6 @@ export default function SettingsPage() {
           onClose={() => setIsCropModalOpen(false)}
           onCropComplete={handleLogoCropComplete}
           aspectRatio={1}
-        />
-
-        {/* Sales Channel Management Modal */}
-        <SalesChannelModal
-          isOpen={isChannelModalOpen}
-          onClose={() => setIsChannelModalOpen(false)}
-          channels={salesChannels}
-          onChannelsUpdated={(updated) => {
-            setSalesChannels(updated);
-            setForm((prev) => ({
-              ...prev,
-              sales_channels_config: JSON.stringify(updated),
-            }));
-          }}
         />
       </div>
     </AppShell>
