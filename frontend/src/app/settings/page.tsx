@@ -534,11 +534,10 @@ export default function SettingsPage() {
               <button
                 type="button"
                 onClick={() => setActiveTab('store')}
-                className={`shrink-0 py-2.5 px-4 sm:px-5 text-xs sm:text-sm font-bold rounded-full transition flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap ${
-                  activeTab === 'store'
+                className={`shrink-0 py-2.5 px-4 sm:px-5 text-xs sm:text-sm font-bold rounded-full transition flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap ${activeTab === 'store'
                     ? 'bg-white text-purple-900 shadow-card font-extrabold'
                     : 'text-slate-600 hover:text-slate-900'
-                }`}
+                  }`}
               >
                 <Store className={`w-4 h-4 shrink-0 ${activeTab === 'store' ? 'text-brand-purple' : 'text-slate-400'}`} />
                 <span>{t('settings.tab_store')}</span>
@@ -548,11 +547,10 @@ export default function SettingsPage() {
               <button
                 type="button"
                 onClick={() => setActiveTab('currency')}
-                className={`shrink-0 py-2.5 px-4 sm:px-5 text-xs sm:text-sm font-bold rounded-full transition flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap ${
-                  activeTab === 'currency'
+                className={`shrink-0 py-2.5 px-4 sm:px-5 text-xs sm:text-sm font-bold rounded-full transition flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap ${activeTab === 'currency'
                     ? 'bg-white text-purple-900 shadow-card font-extrabold'
                     : 'text-slate-600 hover:text-slate-900'
-                }`}
+                  }`}
               >
                 <Coins className={`w-4 h-4 shrink-0 ${activeTab === 'currency' ? 'text-amber-600' : 'text-slate-400'}`} />
                 <span>{t('settings.tab_currency')}</span>
@@ -562,11 +560,10 @@ export default function SettingsPage() {
               <button
                 type="button"
                 onClick={() => setActiveTab('vietqr')}
-                className={`shrink-0 py-2.5 px-4 sm:px-5 text-xs sm:text-sm font-bold rounded-full transition flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap ${
-                  activeTab === 'vietqr'
+                className={`shrink-0 py-2.5 px-4 sm:px-5 text-xs sm:text-sm font-bold rounded-full transition flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap ${activeTab === 'vietqr'
                     ? 'bg-white text-purple-900 shadow-card font-extrabold'
                     : 'text-slate-600 hover:text-slate-900'
-                }`}
+                  }`}
               >
                 <QrCode className={`w-4 h-4 shrink-0 ${activeTab === 'vietqr' ? 'text-brand-purple' : 'text-slate-400'}`} />
                 <span>{t('settings.tab_vietqr')}</span>
@@ -576,11 +573,10 @@ export default function SettingsPage() {
               <button
                 type="button"
                 onClick={() => setActiveTab('email')}
-                className={`shrink-0 py-2.5 px-4 sm:px-5 text-xs sm:text-sm font-bold rounded-full transition flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap ${
-                  activeTab === 'email'
+                className={`shrink-0 py-2.5 px-4 sm:px-5 text-xs sm:text-sm font-bold rounded-full transition flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap ${activeTab === 'email'
                     ? 'bg-white text-purple-900 shadow-card font-extrabold'
                     : 'text-slate-600 hover:text-slate-900'
-                }`}
+                  }`}
               >
                 <Mail className={`w-4 h-4 shrink-0 ${activeTab === 'email' ? 'text-brand-purple' : 'text-slate-400'}`} />
                 <span>{t('settings.tab_email') || 'Cấu hình Email'}</span>
@@ -590,11 +586,10 @@ export default function SettingsPage() {
               <button
                 type="button"
                 onClick={() => setActiveTab('sheets')}
-                className={`shrink-0 py-2.5 px-4 sm:px-5 text-xs sm:text-sm font-bold rounded-full transition flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap ${
-                  activeTab === 'sheets'
+                className={`shrink-0 py-2.5 px-4 sm:px-5 text-xs sm:text-sm font-bold rounded-full transition flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap ${activeTab === 'sheets'
                     ? 'bg-white text-purple-900 shadow-card font-extrabold'
                     : 'text-slate-600 hover:text-slate-900'
-                }`}
+                  }`}
               >
                 <FileSpreadsheet className={`w-4 h-4 shrink-0 ${activeTab === 'sheets' ? 'text-teal-600' : 'text-slate-400'}`} />
                 <span>{t('google_sheets.tab_title') || 'Google Sheets'}</span>
@@ -605,11 +600,10 @@ export default function SettingsPage() {
                 <button
                   type="button"
                   onClick={() => setActiveTab('backup')}
-                  className={`shrink-0 py-2.5 px-4 sm:px-5 text-xs sm:text-sm font-bold rounded-full transition flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap ${
-                    activeTab === 'backup'
+                  className={`shrink-0 py-2.5 px-4 sm:px-5 text-xs sm:text-sm font-bold rounded-full transition flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap ${activeTab === 'backup'
                       ? 'bg-white text-purple-900 shadow-card font-extrabold'
                       : 'text-slate-600 hover:text-slate-900'
-                  }`}
+                    }`}
                 >
                   <Database className={`w-4 h-4 shrink-0 ${activeTab === 'backup' ? 'text-brand-purple' : 'text-slate-400'}`} />
                   <span>{t('settings.tab_backup')}</span>
@@ -970,81 +964,81 @@ export default function SettingsPage() {
                       </span>
                     </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="font-semibold text-slate-700 mb-1.5 block">{t('email_report.smtp_host')}</label>
-                      <input type="text" value={form.smtp_host || ''} onChange={(e) => handleChange('smtp_host', e.target.value)}
-                        className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 bg-slate-50/50 hover:bg-white focus:bg-white transition"
-                        placeholder="smtp.gmail.com" />
-                    </div>
-                    <div>
-                      <label className="font-semibold text-slate-700 mb-1.5 block">{t('email_report.smtp_port')}</label>
-                      <input type="text" value={form.smtp_port || ''} onChange={(e) => handleChange('smtp_port', e.target.value)}
-                        className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 bg-slate-50/50 hover:bg-white focus:bg-white transition"
-                        placeholder="587" />
-                    </div>
-                    <div>
-                      <label className="font-semibold text-slate-700 mb-1.5 block">{t('email_report.smtp_user')}</label>
-                      <input type="email" value={form.smtp_user || ''} onChange={(e) => handleChange('smtp_user', e.target.value)}
-                        className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 bg-slate-50/50 hover:bg-white focus:bg-white transition"
-                        placeholder="your-email@gmail.com" />
-                    </div>
-                    <div>
-                      <div className="flex items-center justify-between mb-1.5">
-                        <label className="font-semibold text-slate-700 block">{t('email_report.smtp_password')}</label>
-                        {form.smtp_password_configured === 'true' && (
-                          <span className="text-caption bg-purple-100 text-purple-800 font-bold px-2 py-0.5 rounded-md flex items-center gap-1">
-                            <CheckCircle2 className="w-3 h-3 text-purple-600" />
-                            Đã mã hóa & cấu hình
-                          </span>
-                        )}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="font-semibold text-slate-700 mb-1.5 block">{t('email_report.smtp_host')}</label>
+                        <input type="text" value={form.smtp_host || ''} onChange={(e) => handleChange('smtp_host', e.target.value)}
+                          className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 bg-slate-50/50 hover:bg-white focus:bg-white transition"
+                          placeholder="smtp.gmail.com" />
                       </div>
-                      <input type="password" value={form.smtp_password || ''} onChange={(e) => handleChange('smtp_password', e.target.value)}
-                        className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 bg-slate-50/50 hover:bg-white focus:bg-white transition"
-                        placeholder={form.smtp_password_configured === 'true' ? '•••••••• (Để trống để giữ nguyên mật khẩu cũ)' : 'xxxx xxxx xxxx xxxx'} />
-                      <p className="text-slate-400 text-[11px] mt-1">{t('email_report.smtp_password_hint')}</p>
+                      <div>
+                        <label className="font-semibold text-slate-700 mb-1.5 block">{t('email_report.smtp_port')}</label>
+                        <input type="text" value={form.smtp_port || ''} onChange={(e) => handleChange('smtp_port', e.target.value)}
+                          className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 bg-slate-50/50 hover:bg-white focus:bg-white transition"
+                          placeholder="587" />
+                      </div>
+                      <div>
+                        <label className="font-semibold text-slate-700 mb-1.5 block">{t('email_report.smtp_user')}</label>
+                        <input type="email" value={form.smtp_user || ''} onChange={(e) => handleChange('smtp_user', e.target.value)}
+                          className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 bg-slate-50/50 hover:bg-white focus:bg-white transition"
+                          placeholder="your-email@gmail.com" />
+                      </div>
+                      <div>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <label className="font-semibold text-slate-700 block">{t('email_report.smtp_password')}</label>
+                          {form.smtp_password_configured === 'true' && (
+                            <span className="text-caption bg-purple-100 text-purple-800 font-bold px-2 py-0.5 rounded-md flex items-center gap-1">
+                              <CheckCircle2 className="w-3 h-3 text-purple-600" />
+                              Đã mã hóa & cấu hình
+                            </span>
+                          )}
+                        </div>
+                        <input type="password" value={form.smtp_password || ''} onChange={(e) => handleChange('smtp_password', e.target.value)}
+                          className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 bg-slate-50/50 hover:bg-white focus:bg-white transition"
+                          placeholder={form.smtp_password_configured === 'true' ? '•••••••• (Để trống để giữ nguyên mật khẩu cũ)' : 'xxxx xxxx xxxx xxxx'} />
+                        <p className="text-slate-400 text-[11px] mt-1">{t('email_report.smtp_password_hint')}</p>
+                      </div>
+                      <div>
+                        <label className="font-semibold text-slate-700 mb-1.5 block">{t('email_report.smtp_from_email')}</label>
+                        <input type="email" value={form.smtp_from_email || ''} onChange={(e) => handleChange('smtp_from_email', e.target.value)}
+                          className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 bg-slate-50/50 hover:bg-white focus:bg-white transition"
+                          placeholder="rabbitpos@yourdomain.com" />
+                      </div>
+                      <div>
+                        <label className="font-semibold text-slate-700 mb-1.5 block">{t('email_report.smtp_from_name')}</label>
+                        <input type="text" value={form.smtp_from_name || ''} onChange={(e) => handleChange('smtp_from_name', e.target.value)}
+                          className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 bg-slate-50/50 hover:bg-white focus:bg-white transition"
+                          placeholder="RabbitPOS" />
+                      </div>
                     </div>
-                    <div>
-                      <label className="font-semibold text-slate-700 mb-1.5 block">{t('email_report.smtp_from_email')}</label>
-                      <input type="email" value={form.smtp_from_email || ''} onChange={(e) => handleChange('smtp_from_email', e.target.value)}
-                        className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 bg-slate-50/50 hover:bg-white focus:bg-white transition"
-                        placeholder="rabbitpos@yourdomain.com" />
-                    </div>
-                    <div>
-                      <label className="font-semibold text-slate-700 mb-1.5 block">{t('email_report.smtp_from_name')}</label>
-                      <input type="text" value={form.smtp_from_name || ''} onChange={(e) => handleChange('smtp_from_name', e.target.value)}
-                        className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 bg-slate-50/50 hover:bg-white focus:bg-white transition"
-                        placeholder="RabbitPOS" />
-                    </div>
-                  </div>
 
-                  {/* Test SMTP button */}
-                  <div className="pt-2 flex justify-end">
-                    <button type="button" onClick={handleTestSMTP} disabled={testingSmtp}
-                      className="bg-purple-600 hover:bg-purple-700 disabled:bg-slate-300 text-white font-bold text-xs py-2.5 px-4 rounded-xl transition flex items-center gap-2 shadow-card">
-                      {testingSmtp ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
-                      <span>{testingSmtp ? t('email_report.sending') : t('email_report.test_smtp_button')}</span>
-                    </button>
+                    {/* Test SMTP button */}
+                    <div className="pt-2 flex justify-end">
+                      <button type="button" onClick={handleTestSMTP} disabled={testingSmtp}
+                        className="bg-purple-600 hover:bg-purple-700 disabled:bg-slate-300 text-white font-bold text-xs py-2.5 px-4 rounded-xl transition flex items-center gap-2 shadow-card">
+                        {testingSmtp ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                        <span>{testingSmtp ? t('email_report.sending') : t('email_report.test_smtp_button')}</span>
+                      </button>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
-              {!isSuperAdmin && (
-                <div className="bg-purple-50/50 border border-purple-200 p-4 rounded-2xl flex items-center justify-between gap-3 text-xs">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-purple-100 text-purple-700 rounded-xl">
-                      <Mail className="w-4 h-4" />
+                {!isSuperAdmin && (
+                  <div className="bg-purple-50/50 border border-purple-200 p-4 rounded-2xl flex items-center justify-between gap-3 text-xs">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-purple-100 text-purple-700 rounded-xl">
+                        <Mail className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <span className="font-bold text-slate-900 block">Cấu hình Máy chủ Gửi Email (SMTP)</span>
+                        <span className="text-slate-600 text-[11px]">Thông số SMTP kết nối được cấu hình tập trung bởi Tổng quản trị (Super Admin). Chi nhánh gửi báo cáo tài chính qua máy chủ chung của hệ thống.</span>
+                      </div>
                     </div>
-                    <div>
-                      <span className="font-bold text-slate-900 block">Cấu hình Máy chủ Gửi Email (SMTP)</span>
-                      <span className="text-slate-600 text-[11px]">Thông số SMTP kết nối được cấu hình tập trung bởi Tổng quản trị (Super Admin). Chi nhánh gửi báo cáo tài chính qua máy chủ chung của hệ thống.</span>
-                    </div>
+                    <span className="text-caption bg-purple-100 text-purple-800 border border-purple-200 px-2 py-0.5 rounded-md font-extrabold shrink-0">
+                      Platform-Wide
+                    </span>
                   </div>
-                  <span className="text-caption bg-purple-100 text-purple-800 border border-purple-200 px-2 py-0.5 rounded-md font-extrabold shrink-0">
-                    Platform-Wide
-                  </span>
-                </div>
-              )}
+                )}
 
                 {/* 2. Automated Daily Report Configuration */}
                 <div className="surface-card p-5 sm:p-7 rounded-2xl border-card shadow-card space-y-5">
@@ -1115,16 +1109,14 @@ export default function SettingsPage() {
 
                     {/* Quick status pill */}
                     <div className="flex items-center gap-2">
-                      <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold text-xs border ${
-                        form.google_sheets_sync_enabled === 'true' && form.google_sheets_spreadsheet_id
+                      <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold text-xs border ${form.google_sheets_sync_enabled === 'true' && form.google_sheets_spreadsheet_id
                           ? 'bg-purple-50 text-purple-700 border-purple-200'
                           : 'bg-slate-50 text-slate-600 border-slate-200'
-                      }`}>
-                        <span className={`w-2 h-2 rounded-full ${
-                          form.google_sheets_sync_enabled === 'true' && form.google_sheets_spreadsheet_id
+                        }`}>
+                        <span className={`w-2 h-2 rounded-full ${form.google_sheets_sync_enabled === 'true' && form.google_sheets_spreadsheet_id
                             ? 'bg-purple-500 animate-pulse'
                             : 'bg-slate-400'
-                        }`} />
+                          }`} />
                         {form.google_sheets_sync_enabled === 'true' && form.google_sheets_spreadsheet_id
                           ? t('google_sheets.connected_badge')
                           : t('google_sheets.not_connected_badge')}
@@ -1259,11 +1251,10 @@ export default function SettingsPage() {
                   <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 border-t border-slate-100">
                     <div className="flex-1">
                       {sheetsTestResult && (
-                        <div className={`p-3 rounded-xl border flex items-start gap-2 text-[11px] font-semibold ${
-                          sheetsTestResult.type === 'success'
+                        <div className={`p-3 rounded-xl border flex items-start gap-2 text-[11px] font-semibold ${sheetsTestResult.type === 'success'
                             ? 'bg-purple-50 border-purple-200 text-purple-800'
                             : 'bg-rose-50 border-rose-200 text-rose-800'
-                        }`}>
+                          }`}>
                           {sheetsTestResult.type === 'success' ? (
                             <CheckCircle2 className="w-4 h-4 text-purple-600 shrink-0 mt-0.5" />
                           ) : (
@@ -1320,18 +1311,17 @@ export default function SettingsPage() {
                         {t('google_sheets.status_label')}
                       </span>
                       <span className="font-extrabold text-sm text-slate-800 flex items-center gap-2">
-                        <span className={`w-2.5 h-2.5 rounded-full ${
-                          form.google_sheets_last_sync_status === 'success'
+                        <span className={`w-2.5 h-2.5 rounded-full ${form.google_sheets_last_sync_status === 'success'
                             ? 'bg-purple-500'
                             : form.google_sheets_last_sync_status === 'error'
-                            ? 'bg-rose-500'
-                            : 'bg-slate-400'
-                        }`} />
+                              ? 'bg-rose-500'
+                              : 'bg-slate-400'
+                          }`} />
                         {form.google_sheets_last_sync_status === 'success'
                           ? t('google_sheets.status_success')
                           : form.google_sheets_last_sync_status === 'error'
-                          ? t('google_sheets.status_error')
-                          : t('google_sheets.status_idle')}
+                            ? t('google_sheets.status_error')
+                            : t('google_sheets.status_idle')}
                       </span>
                     </div>
 
@@ -1439,11 +1429,10 @@ export default function SettingsPage() {
                     <button
                       type="button"
                       onClick={() => setBackupSubTab('json_backup')}
-                      className={`flex-1 sm:flex-none py-2 px-4 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer ${
-                        backupSubTab === 'json_backup'
+                      className={`flex-1 sm:flex-none py-2 px-4 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer ${backupSubTab === 'json_backup'
                           ? 'bg-white text-purple-900 shadow-sm font-extrabold'
                           : 'text-slate-600 hover:text-slate-900'
-                      }`}
+                        }`}
                     >
                       <Database className="w-3.5 h-3.5 text-purple-600" />
                       <span>Sao Lưu & Phục Hồi (.json)</span>
@@ -1456,11 +1445,10 @@ export default function SettingsPage() {
                   <button
                     type="button"
                     onClick={() => setBackupSubTab('excel_import')}
-                    className={`flex-1 sm:flex-none py-2 px-4 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer ${
-                      backupSubTab === 'excel_import'
+                    className={`flex-1 sm:flex-none py-2 px-4 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer ${backupSubTab === 'excel_import'
                         ? 'bg-white text-purple-900 shadow-sm font-extrabold'
                         : 'text-slate-600 hover:text-slate-900'
-                    }`}
+                      }`}
                   >
                     <FileSpreadsheet className="w-3.5 h-3.5 text-teal-600" />
                     <span>Nhập Dữ Liệu Excel / CSV</span>
@@ -1570,8 +1558,8 @@ export default function SettingsPage() {
                             {previewingBackup
                               ? 'Đang kiểm tra toàn vẹn file sao lưu...'
                               : backupFile
-                              ? backupFile.name
-                              : t('settings.restore_select_file')}
+                                ? backupFile.name
+                                : t('settings.restore_select_file')}
                           </span>
                           <span className="text-slate-400 text-[11px]">
                             {backupFile
@@ -1986,27 +1974,27 @@ export default function SettingsPage() {
             )}
 
             {/* Save Button (displayed for form-based tabs: store, currency, vietqr, email) - Centered */}
-            {activeTab !== 'backup' && (
-              <div className="flex justify-center items-center gap-3 pt-6 pb-2">
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="bg-brand-purple hover:bg-purple-800 disabled:bg-slate-300 text-white font-bold text-xs py-3 px-8 rounded-full shadow-card transition flex items-center space-x-2 cursor-pointer"
-                >
-                  {saving ? (
-                    <>
-                      <RefreshCw className="w-4 h-4 animate-spin" />
-                      <span>{t('pos.processing')}</span>
-                    </>
-                  ) : (
-                    <>
-                      <Save className="w-4 h-4" />
-                      <span>{t('common.save')}</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            )}
+              { activeTab !== 'backup' && (
+                <div className="flex justify-center items-center gap-3 pt-6 pb-2">
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className="bg-brand-purple hover:bg-purple-800 disabled:bg-slate-300 text-white font-bold text-xs py-3 px-8 rounded-full shadow-card transition flex items-center space-x-2 cursor-pointer"
+                  >
+                    {saving ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        <span>{t('pos.processing')}</span>
+                      </>
+                    ) : (
+                      <>
+                        <Save className="w-4 h-4" />
+                        <span>{t('common.save')}</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
           </form>
         )}
 
